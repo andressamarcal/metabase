@@ -56,6 +56,9 @@ function _init(reducers, getRoutes, callback) {
         window['ga-disable-' + MetabaseSettings.get('ga_code')] = MetabaseSettings.isTrackingEnabled() ? null : true;
     });
 
+    MetabaseSettings.on("color_scheme", updateColorScheme);
+    updateColorScheme()
+
     if (callback) {
         callback(store);
     }
@@ -66,5 +69,21 @@ export function init(...args) {
         _init(...args);
     } else {
         document.addEventListener('DOMContentLoaded', () => _init(...args));
+    }
+}
+
+let BRAND_COLOR_REGEX = /rgb\(80, 158, 227\)|rgb\(74, 144, 226\)|rgb\(154, 167, 188\)/g;
+function updateColorScheme() {
+    const colorScheme = MetabaseSettings.colorScheme();
+    for (const sheet of document.styleSheets) {
+        for (const rule of sheet.cssRules || sheet.rules || []) {
+            if (BRAND_COLOR_REGEX.test(rule.cssText) && rule.style) {
+                for (const [prop, value] of Object.entries(rule.style)) {
+                    if (BRAND_COLOR_REGEX.test(value)) {
+                        rule.style[prop] = value.replace(BRAND_COLOR_REGEX, colorScheme)
+                    }
+                }
+            }
+        }
     }
 }

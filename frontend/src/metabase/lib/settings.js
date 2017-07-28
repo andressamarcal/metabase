@@ -55,6 +55,12 @@ const MetabaseSettings = {
         return mb_settings.ldap_configured;
     },
 
+    colorScheme: function() {
+        // FIXME: Ugh? initially load public setting as "color_scheme" but if the admin updates it
+        // we need to use "color-scheme"
+        return mb_settings["color-scheme"] || mb_settings.color_scheme;
+    },
+
     newVersionAvailable: function(settings) {
         let versionInfo = _.findWhere(settings, {key: "version-info"}),
             currentVersion = MetabaseSettings.get("version").tag;

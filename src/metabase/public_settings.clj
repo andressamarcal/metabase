@@ -88,6 +88,35 @@
   :type    :integer
   :default 10)
 
+(defsetting color-scheme
+  "The color scheme to use"
+  :type    :string
+  :default "#9CC177")
+
+(defsetting enable-query-builder
+  "Enable the query builder"
+  :type    :boolean
+  :default true)
+
+(defsetting enable-saved-questions
+  "Enable saved questions"
+  :type    :boolean
+  :default true)
+
+(defsetting enable-dashboards
+  "Enable dashboards"
+  :type    :boolean
+  :default true)
+
+(defsetting enable-pulses
+  "Enable pulses"
+  :type    :boolean
+  :default true)
+
+(defsetting enable-dataref
+  "Enable data reference"
+  :type    :boolean
+  :default true)
 
 (defn remove-public-uuid-if-public-sharing-is-disabled
   "If public sharing is *disabled* and OBJECT has a `:public_uuid`, remove it so people don't try to use it (since it won't work).
@@ -116,9 +145,15 @@
   {:admin_email           (admin-email)
    :anon_tracking_enabled (anon-tracking-enabled)
    :custom_geojson        (setting/get :custom-geojson)
+   :color_scheme          (setting/get :color-scheme)
    :email_configured      ((resolve 'metabase.email/email-configured?))
    :enable_query_caching  (enable-query-caching)
    :engines               ((resolve 'metabase.driver/available-drivers))
+   :features              {:saved_questions (setting/get :enable-saved-questions)
+                           :query_builder   (setting/get :enable-query-builder)
+                           :dashboards      (setting/get :enable-dashboards)
+                           :pulses          (setting/get :enable-pulses)
+                           :dataref         (setting/get :enable-dataref)}
    :ga_code               "UA-60817802-1"
    :google_auth_client_id (setting/get :google-auth-client-id)
    :ldap_configured       ((resolve 'metabase.integrations.ldap/ldap-configured?))

@@ -14,6 +14,8 @@ import SecretKeyWidget from "./components/widgets/SecretKeyWidget.jsx";
 import EmbeddingLegalese from "./components/widgets/EmbeddingLegalese";
 import LdapGroupMappingsWidget from "./components/widgets/LdapGroupMappingsWidget";
 
+import { normal } from "metabase/lib/colors";
+
 import { UtilApi } from "metabase/services";
 
 const SECTIONS = [
@@ -360,7 +362,38 @@ const SECTIONS = [
                 allowValueCollection: true
             }
         ]
-    }
+    },
+    {
+        name: "Whitelabel",
+        settings: [
+            {
+                key: "color-scheme",
+                display_name: "Color Scheme",
+                type: "select",
+                options: Object.entries(normal).map(([name, value]) => ({ name, value })),
+            },
+            {
+                key: "enable-query-builder",
+                type: "boolean"
+            },
+            {
+                key: "enable-saved-questions",
+                type: "boolean"
+            },
+            {
+                key: "enable-dashboards",
+                type: "boolean"
+            },
+            {
+                key: "enable-pulses",
+                type: "boolean"
+            },
+            {
+                key: "enable-dataref",
+                type: "boolean"
+            },
+        ]
+    },
 ];
 for (const section of SECTIONS) {
     section.slug = slugify(section.name);
