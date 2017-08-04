@@ -8,6 +8,7 @@ type TransformFn = (o: any) => any;
 
 type Options = {
     noEvent?: boolean,
+    json?: boolean,
     transformResponse?: TransformFn,
     cancelled?: Promise<any>
 }
@@ -16,6 +17,7 @@ type Data = {
 };
 
 const DEFAULT_OPTIONS: Options = {
+    json: true,
     noEvent: false,
     transformResponse: (o) => o
 }
@@ -62,9 +64,9 @@ class Api extends EventEmitter {
                     delete data[tag.slice(1)];
                 }
 
-                let headers: { [key:string]: string } = {
-                    "Accept": "application/json",
-                };
+                let headers: { [key:string]: string } = options.json ?
+                    { "Accept": "application/json" } :
+                    {};
 
                 let body;
                 if (hasBody) {
@@ -95,7 +97,9 @@ class Api extends EventEmitter {
                 // $FlowFixMe
                 if (xhr.readyState === XMLHttpRequest.DONE) {
                     let body = xhr.responseText;
-                    try { body = JSON.parse(body); } catch (e) {}
+                    if (options.json) {
+                        try { body = JSON.parse(body); } catch (e) {}
+                    }
                     if (xhr.status >= 200 && xhr.status <= 299) {
                         if (options.transformResponse) {
                             body = options.transformResponse(body, { data });

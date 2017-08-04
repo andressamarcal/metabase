@@ -88,10 +88,20 @@
   :type    :integer
   :default 10)
 
+(defsetting logo-url
+  "Application logo"
+  :type :string
+  :default "app/assets/img/logo.svg")
+
 (defsetting color-scheme
   "The color scheme to use"
   :type    :string
   :default "#9CC177")
+
+(defsetting application-name
+  "The name of the application"
+  :type    :string
+  :default "Metabase")
 
 (defsetting enable-query-builder
   "Enable the query builder"
@@ -146,6 +156,7 @@
    :anon_tracking_enabled (anon-tracking-enabled)
    :custom_geojson        (setting/get :custom-geojson)
    :color_scheme          (setting/get :color-scheme)
+   :application_name      (setting/get :application-name)
    :email_configured      ((resolve 'metabase.email/email-configured?))
    :enable_query_caching  (enable-query-caching)
    :engines               ((resolve 'metabase.driver/available-drivers))
@@ -157,6 +168,7 @@
    :ga_code               "UA-60817802-1"
    :google_auth_client_id (setting/get :google-auth-client-id)
    :ldap_configured       ((resolve 'metabase.integrations.ldap/ldap-configured?))
+   :logo_url              (setting/get :logo-url)
    :has_sample_dataset    (db/exists? 'Database, :is_sample true)
    :map_tile_server_url   (map-tile-server-url)
    :password_complexity   password/active-password-complexity

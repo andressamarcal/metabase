@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import PropTypes from "prop-types";
 import { Link } from "react-router";
+import { t } from "c-3po";
+
 import _ from 'underscore';
 
 import LoadingAndErrorWrapper from 'metabase/components/LoadingAndErrorWrapper.jsx';
@@ -71,7 +73,7 @@ export default class Activity extends Component {
         } else if (user) {
             return user.first_name;
         } else {
-            return "Metabase";
+            return t`Metabase`;
         }
     }
 
@@ -130,8 +132,8 @@ export default class Activity extends Component {
                 }
                 break;
             case "install":
-                description.userName = "Hello World!";
-                description.summary = "Metabase is up and running.";
+                description.userName = t`Hello World!`;
+                description.summary = t`Metabase` + " is up and running.";
                 break;
             case "metric-create":
                 if(item.model_exists) {

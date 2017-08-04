@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import PropTypes from "prop-types";
 import cx from "classnames";
+import { t } from "c-3po"
 
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
@@ -86,7 +87,7 @@ export default class Navbar extends Component {
                 <div className="wrapper flex align-center">
                     <div className="NavTitle flex align-center">
                         <Icon name={'gear'} className="AdminGear" size={22}></Icon>
-                        <span className="NavItem-text ml1 hide sm-show text-bold">Metabase Admin Panel</span>
+                        <span className="NavItem-text ml1 hide sm-show text-bold">{t`Metabase`} Admin Panel</span>
                     </div>
 
                     <ul className="sm-ml4 flex flex-full text-strong">
@@ -119,7 +120,7 @@ export default class Navbar extends Component {
 
     renderMainNav() {
         const { features } = this.props;
-        const featuresCount = Object.keys(features).length;
+        const featuresCount = Object.values(features).filter(enabled => enabled).length;
         return (
             <nav className={cx("Nav relative bg-brand sm-py2 sm-py1 xl-py3", this.props.className)}>
                 <ul className="ml2 sm-pl4 pr1 flex align-center">
@@ -164,7 +165,7 @@ export default class Navbar extends Component {
     }
 
     render() {
-        let { context, user, features } = this.props;
+        let { context, user } = this.props;
 
         if (!user) return null;
 

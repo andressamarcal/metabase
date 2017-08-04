@@ -10,6 +10,7 @@ import SettingPassword from "./widgets/SettingPassword.jsx";
 import SettingRadio from "./widgets/SettingRadio.jsx";
 import SettingToggle from "./widgets/SettingToggle.jsx";
 import SettingSelect from "./widgets/SettingSelect.jsx";
+import SettingColor from "./widgets/SettingColor.jsx";
 
 const SETTING_WIDGET_MAP = {
     "string":   SettingInput,
@@ -17,18 +18,19 @@ const SETTING_WIDGET_MAP = {
     "password": SettingPassword,
     "select":   SettingSelect,
     "radio":    SettingRadio,
-    "boolean":  SettingToggle
+    "boolean":  SettingToggle,
+    "color":    SettingColor,
 };
 
 const updatePlaceholderForEnvironmentVars = (props) => {
     if (props && props.setting && props.setting.is_env_setting){
-        return assocIn(props, ["setting", "placeholder"], "Using " + props.setting.env_name) 
+        return assocIn(props, ["setting", "placeholder"], "Using " + props.setting.env_name)
     }
     return props
 }
 
 export default class SettingsSetting extends Component {
-    
+
 
     static propTypes = {
         setting: PropTypes.object.isRequired,
@@ -50,7 +52,7 @@ export default class SettingsSetting extends Component {
                     <SettingHeader setting={setting} />
                 }
                 <div className="flex">
-                    <Widget {...updatePlaceholderForEnvironmentVars(this.props)} 
+                    <Widget {...updatePlaceholderForEnvironmentVars(this.props)}
                     />
                 </div>
                 { errorMessage &&

@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# gettext installed via homebrew is "keg-only", add it to the PATH
+if [ -d "/usr/local/opt/gettext/bin" ]; then
+  export PATH="/usr/local/opt/gettext/bin:$PATH"
+fi
+
+if [ $# -lt 1 ]; then
+  echo "USAGE: update-translation en_US"
+  exit 1
+fi
+
+POT_FILE="metabase.pot"
+PO_FILE="resources/frontend_client/app/lang/$1.po"
+
+if [ -f "$PO_FILE" ]; then
+  msgmerge -U "$PO_FILE" "$POT_FILE"
+else
+  msginit -i "$POT_FILE" -o "$PO_FILE" -l "$1"
+fi

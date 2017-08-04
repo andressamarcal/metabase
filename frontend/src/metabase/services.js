@@ -241,4 +241,13 @@ export const GeoJSONApi = {
     get:                         GET("/api/geojson/:id"),
 };
 
+import gParser from 'gettext-parser';
+
+export const I18NApi = {
+    locale:                      GET("/app/lang/:locale.po", {
+        json: false,
+        transformResponse: (body) => gParser.po.parse(body)
+    }),
+}
+
 global.services = exports;

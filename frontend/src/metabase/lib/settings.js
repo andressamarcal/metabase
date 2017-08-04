@@ -61,6 +61,11 @@ const MetabaseSettings = {
         return mb_settings["color-scheme"] || mb_settings.color_scheme;
     },
 
+    applicationName: function() {
+        // FIXME: Ugh? see comment in colorScheme()
+        return mb_settings["application-name"] || mb_settings.application_name;
+    },
+
     newVersionAvailable: function(settings) {
         let versionInfo = _.findWhere(settings, {key: "version-info"}),
             currentVersion = MetabaseSettings.get("version").tag;

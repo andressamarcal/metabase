@@ -232,6 +232,30 @@ export function moveToFront(element) {
     }
 }
 
+export function removeAllChildren(element) {
+    while (element.firstChild) {
+        element.removeChild(element.firstChild);
+    }
+}
+
+export function parseDataUri(url) {
+    const match = url && url.match(/^data:(?:([^;]+)(?:;([^;]+))?)?(;base64)?,(.*)$/);
+    if (match) {
+        let [, mimeType, charset, base64, data] = match;
+        if (charset === "base64" && !base64) {
+            base64 = charset;
+            charset = undefined;
+        }
+        return {
+            mimeType,
+            charset,
+            data: base64 ? atob(data): data,
+            base64: base64 ? data : btoa(data)
+        };
+    }
+    return null;
+}
+
 /**
  * @returns the clip-path CSS property referencing the clip path in the current document, taking into account the <base> tag.
  */

@@ -1,0 +1,17 @@
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=utf-8\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+
+#: frontend/src/metabase/admin/settings/components/SettingsSetupList.jsx:89
+#: frontend/src/metabase/home/components/Activity.jsx:76
+#: frontend/src/metabase/home/components/Activity.jsx:136
+#: frontend/src/metabase/nav/components/ProfileLink.jsx:121
+#: frontend/src/metabase/nav/components/ProfileLink.jsx:148
+#: frontend/src/metabase/nav/containers/Navbar.jsx:90
+msgid "Metabase"
+msgstr ""
+
+#: frontend/src/metabase/home/components/Activity.jsx:135
+msgid "Hello World!"
+msgstr ""

@@ -6,3 +6,5 @@ export const getIsApplicationEmbeddingEnabled = (state) => state.settings.values
 // NOTE: these are admin-only settings
 export const getSiteUrl = (state) => state.settings.values["site-url"];
 export const getEmbeddingSecretKey = (state) => state.settings.values["embedding-secret-key"];
+
+export const getLogoUrl = (state) => state.settings.values.logo_url;

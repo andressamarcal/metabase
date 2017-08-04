@@ -20,6 +20,9 @@ import { Router, useRouterHistory } from "react-router";
 import { createHistory } from 'history'
 import { syncHistoryWithStore } from 'react-router-redux';
 
+import { loadLocale } from "metabase/lib/i18n";
+import { updateColorScheme } from "metabase/lib/whitelabel";
+
 // remove trailing slash
 const BASENAME = window.MetabaseRoot.replace(/\/+$/, "");
 
@@ -56,8 +59,11 @@ function _init(reducers, getRoutes, callback) {
         window['ga-disable-' + MetabaseSettings.get('ga_code')] = MetabaseSettings.isTrackingEnabled() ? null : true;
     });
 
-    MetabaseSettings.on("color_scheme", updateColorScheme);
+    MetabaseSettings.on("color-scheme", updateColorScheme);
     updateColorScheme()
+
+    // TODO: detect user's prefered locale
+    loadLocale("en_US");
 
     if (callback) {
         callback(store);
@@ -69,21 +75,5 @@ export function init(...args) {
         _init(...args);
     } else {
         document.addEventListener('DOMContentLoaded', () => _init(...args));
-    }
-}
-
-let BRAND_COLOR_REGEX = /rgb\(80, 158, 227\)|rgb\(74, 144, 226\)|rgb\(154, 167, 188\)/g;
-function updateColorScheme() {
-    const colorScheme = MetabaseSettings.colorScheme();
-    for (const sheet of document.styleSheets) {
-        for (const rule of sheet.cssRules || sheet.rules || []) {
-            if (BRAND_COLOR_REGEX.test(rule.cssText) && rule.style) {
-                for (const [prop, value] of Object.entries(rule.style)) {
-                    if (BRAND_COLOR_REGEX.test(value)) {
-                        rule.style[prop] = value.replace(BRAND_COLOR_REGEX, colorScheme)
-                    }
-                }
-            }
-        }
     }
 }

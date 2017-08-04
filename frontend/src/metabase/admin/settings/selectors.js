@@ -13,8 +13,7 @@ import {
 import SecretKeyWidget from "./components/widgets/SecretKeyWidget.jsx";
 import EmbeddingLegalese from "./components/widgets/EmbeddingLegalese";
 import LdapGroupMappingsWidget from "./components/widgets/LdapGroupMappingsWidget";
-
-import { normal } from "metabase/lib/colors";
+import LogoUpload from "./components/widgets/LogoUpload";
 
 import { UtilApi } from "metabase/services";
 
@@ -367,10 +366,20 @@ const SECTIONS = [
         name: "Whitelabel",
         settings: [
             {
+                key: "application-name",
+                display_name: "Application Name",
+                type: "string",
+            },
+            {
                 key: "color-scheme",
                 display_name: "Color Scheme",
-                type: "select",
-                options: Object.entries(normal).map(([name, value]) => ({ name, value })),
+                type: "color",
+            },
+            {
+                key: "logo-url",
+                display_name: "Logo",
+                type: "string",
+                widget: LogoUpload,
             },
             {
                 key: "enable-query-builder",
