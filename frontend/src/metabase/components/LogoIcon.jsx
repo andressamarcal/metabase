@@ -42,12 +42,16 @@ export default class LogoIcon extends Component {
     loadImage(url) {
         const parsed = parseDataUri(url);
 
-        if (parsed && parsed.mimeType === "image/svg+xml") {
-            this._container.innerHTML = parsed.data;
-            const svg = this._container.getElementsByTagName("svg")[0];
-            if (svg) {
-                svg.setAttribute("fill", "currentcolor");
-                this.updateSize(svg);
+        if (parsed) {
+            if (parsed.mimeType === "image/svg+xml") {
+                this._container.innerHTML = parsed.data;
+                const svg = this._container.getElementsByTagName("svg")[0];
+                if (svg) {
+                    svg.setAttribute("fill", "currentcolor");
+                    this.updateSize(svg);
+                } else {
+                    this.loadImageFallback();
+                }
             } else {
                 this.loadImageFallback();
             }
@@ -77,7 +81,7 @@ export default class LogoIcon extends Component {
     }
 
     loadImageFallback() {
-        const img = document.createElement(img);
+        const img = document.createElement("img");
         img.src = this.props.url;
         this.updateSize(img);
 
