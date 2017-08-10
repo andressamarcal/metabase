@@ -3,7 +3,7 @@ import MetabaseSettings from "metabase/lib/settings";
 
 import Color from "color";
 
-import { brand } from "metabase/lib/colors";
+import { brand, normal, harmony } from "metabase/lib/colors";
 
 const BRAND_COLOR = Color(brand).hsl();
 const COLOR_REGEX = /rgba?\([^)]+\)/g;
@@ -53,12 +53,38 @@ function initStyleColorUpdators() {
     }
 }
 
+function findClosestIndex(array, value) {
+    let minDelta = Infinity;
+    let minIndex = -1;
+    for (let i = 0; i < array.length; i++) {
+        const delta = Math.abs(value - array[i]);
+        if (delta < minDelta) {
+            minDelta = delta;
+            minIndex = i;
+        }
+    }
+    return minIndex;
+}
+
+const originalHarmony = [...harmony];
+
 export function updateColorScheme() {
     if (styleColorUpdators.length === 0) {
         initStyleColorUpdators();
     }
+
     const colorScheme = MetabaseSettings.colorScheme();
+
+    // css rules
     for (const colorUpdator of styleColorUpdators) {
         colorUpdator(colorScheme);
     }
+
+    // color harmony
+    const closest = findClosestIndex(
+        originalHarmony.map(c => Color(c).hsl().hue()),
+        Color(colorScheme).hsl().hue()
+    )
+    const newHarmony = [colorScheme, ...originalHarmony.slice(closest), ...originalHarmony.slice(0, closest)];
+    harmony.splice(0, harmony.length, ...newHarmony);
 }

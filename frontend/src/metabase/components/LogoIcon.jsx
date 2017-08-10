@@ -5,9 +5,10 @@ import cx from "classnames";
 import { removeAllChildren, parseDataUri } from "metabase/lib/dom";
 
 import { connect } from "react-redux";
+import { getLogoUrl } from "metabase/selectors/settings";
 
 const mapStateToProps = state => ({
-    url: state.settings.values["logo-url"] || "app/assets/img/logo.svg"
+    url: getLogoUrl(state)
 });
 
 @connect(mapStateToProps)
