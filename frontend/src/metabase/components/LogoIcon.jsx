@@ -41,8 +41,9 @@ export default class LogoIcon extends Component {
     }
 
     loadImage(url) {
-        const parsed = parseDataUri(url);
+        removeAllChildren(this._container);
 
+        const parsed = parseDataUri(url);
         if (parsed) {
             if (parsed.mimeType === "image/svg+xml") {
                 this._container.innerHTML = parsed.data;
@@ -51,10 +52,10 @@ export default class LogoIcon extends Component {
                     svg.setAttribute("fill", "currentcolor");
                     this.updateSize(svg);
                 } else {
-                    this.loadImageFallback();
+                    this.loadImageFallback(url);
                 }
             } else {
-                this.loadImageFallback();
+                this.loadImageFallback(url);
             }
         } else {
             const xhr = new XMLHttpRequest();
@@ -71,22 +72,23 @@ export default class LogoIcon extends Component {
                     removeAllChildren(this._container);
                     this._container.appendChild(svg);
                 } else {
-                    this.loadImageFallback();
+                    this.loadImageFallback(url);
                 }
             };
             xhr.onerror = () => {
-                this.loadImageFallback();
+                this.loadImageFallback(url);
             }
             xhr.send();
         }
     }
 
-    loadImageFallback() {
+    loadImageFallback(url) {
+        removeAllChildren(this._container);
+
         const img = document.createElement("img");
-        img.src = this.props.url;
+        img.src = url;
         this.updateSize(img);
 
-        removeAllChildren(this._container);
         this._container.appendChild(img);
     }
 
