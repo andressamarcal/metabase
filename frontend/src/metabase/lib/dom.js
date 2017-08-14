@@ -180,11 +180,13 @@ var STYLE_SHEET = (function() {
 })();
 
 export function addCSSRule(selector, rules, index = 0) {
-    if("insertRule" in STYLE_SHEET) {
-        STYLE_SHEET.insertRule(selector + "{" + rules + "}", index);
+    if ("insertRule" in STYLE_SHEET) {
+        const ruleIndex = STYLE_SHEET.insertRule(selector + "{" + rules + "}", index);
+        return STYLE_SHEET.cssRules[ruleIndex];
     }
     else if("addRule" in STYLE_SHEET) {
-        STYLE_SHEET.addRule(selector, rules, index);
+        const ruleIndex = STYLE_SHEET.addRule(selector, rules, index);
+        return STYLE_SHEET.rules[ruleIndex];
     }
 }
 
