@@ -13,6 +13,7 @@
             [metabase.util
              [quotation :as quotation]
              [urls :as url]]
+            [puppetlabs.i18n.core :as i18n :refer [trs trsn tru trun]]
             [stencil
              [core :as stencil]
              [loader :as stencil-loader]]
@@ -37,13 +38,13 @@
    :logoHeader true})
 
 (def ^:private ^:const abandonment-context
-  {:heading      "We’d love your feedback."
-   :callToAction "It looks like Metabase wasn’t quite a match for you. Would you mind taking a fast 5 question survey to help the Metabase team understand why and make things better in the future?"
+  {:heading      (trs "We’d love your feedback.")
+   :callToAction (trs "It looks like Metabase wasn’t quite a match for you. Would you mind taking a fast 5 question survey to help the Metabase team understand why and make things better in the future?")
    :link         "http://www.metabase.com/feedback/inactive"})
 
 (def ^:private ^:const follow-up-context
-  {:heading      "We hope you've been enjoying Metabase."
-   :callToAction "Would you mind taking a fast 6 question survey to tell us how it’s going?"
+  {:heading      (trs "We hope you've been enjoying Metabase.")
+   :callToAction (trs "Would you mind taking a fast 6 question survey to tell us how it’s going?")
    :link         "http://www.metabase.com/feedback/active"})
 
 
@@ -64,7 +65,7 @@
                                :logoHeader   true}
                               (random-quote-context)))]
     (email/send-message!
-      :subject      (str "You're invited to join " company "'s Metabase")
+      :subject      (trs "You're invited to join {0}'s {1}" company (trs "Metabase"))
       :recipients   [(:email invited)]
       :message-type :html
       :message      message-body)))
@@ -85,9 +86,8 @@
   (let [recipients (all-admin-recipients)]
     (email/send-message!
       :subject      (format (if google-auth?
-                              "%s created a Metabase account"
-                              "%s accepted their Metabase invite")
-                            (:common_name new-user))
+                              (trs "{0} created a {1} account" (:common_name new-user) (trs "Metabase"))
+                              (trs "{0} accepted their {1} invite" (:common_name new-user) (trs "Metabase"))))
       :recipients   recipients
       :message-type :html
       :message      (stencil/render-file "metabase/email/user_joined_notification"
@@ -115,7 +115,7 @@
                         :passwordResetUrl password-reset-url
                         :logoHeader       true})]
     (email/send-message!
-      :subject      "[Metabase] Password Reset Request"
+      :subject      (trs "[{0}] Password Reset Request" (trs "Metabase"))
       :recipients   [email]
       :message-type :html
       :message      message-body)))
@@ -153,7 +153,7 @@
                             (random-quote-context))
         message-body (stencil/render-file "metabase/email/notification" context)]
     (email/send-message!
-      :subject      "[Metabase] Notification"
+      :subject      (trs "[{0}] Notification" (trs "Metabase"))
       :recipients   [email]
       :message-type :html
       :message      message-body)))
@@ -163,8 +163,8 @@
   [email msg-type]
   {:pre [(u/is-email? email) (contains? #{"abandon" "follow-up"} msg-type)]}
   (let [subject      (if (= "abandon" msg-type)
-                       "[Metabase] Help make Metabase better."
-                       "[Metabase] Tell us how things are going.")
+                       (trs "[{0}] Help make Metabase better." (trs "Metabase"))
+                       (trs "[{0}] Tell us how things are going." (trs "Metabase")))
         context      (merge notification-context
                             (random-quote-context)
                             (if (= "abandon" msg-type)

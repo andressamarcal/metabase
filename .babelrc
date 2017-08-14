@@ -16,8 +16,9 @@
       "plugins": [
         ["c-3po", {
           "extract": {
-            "output": "metabase.pot"
-          }
+            "output": "locales/metabase-frontend.pot"
+          },
+          "discover": ["t"]
         }]
       ]
     }

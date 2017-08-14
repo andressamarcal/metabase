@@ -67,7 +67,7 @@ function _init(reducers, getRoutes, callback) {
     updateColorScheme()
 
     // TODO: detect user's prefered locale
-    loadLocale("en_US");
+    loadLocale("en");
 
     if (callback) {
         callback(store);

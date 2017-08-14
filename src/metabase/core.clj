@@ -22,6 +22,7 @@
              [util :as u]]
             [metabase.core.initialization-status :as init-status]
             [metabase.models.user :refer [User]]
+            [puppetlabs.i18n.core :as i18n :refer [trs trsn tru trun]]
             [ring.adapter.jetty :as ring-jetty]
             [ring.middleware
              [cookies :refer [wrap-cookies]]
@@ -134,7 +135,7 @@
     (metabot/start-metabot!))
 
   (init-status/set-complete!)
-  (log/info "Metabase Initialization COMPLETE"))
+  (log/info (trs "{0} Initialization COMPLETE" (trs "Metabase"))))
 
 
 ;;; ## ---------------------------------------- Jetty (Web) Server ----------------------------------------

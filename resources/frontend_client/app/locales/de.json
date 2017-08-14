@@ -1,0 +1,34 @@
+{
+  "charset": "utf-8",
+  "headers": {
+    "project-id-version": "metabase",
+    "report-msgid-bugs-to": "docs@metabase.com",
+    "pot-creation-date": "2017-08-14 18:54+0200",
+    "po-revision-date": "2017-08-14 18:54+0200",
+    "last-translator": "Tom Robinson <tom@metabase.com>",
+    "language-team": "German",
+    "language": "de",
+    "mime-version": "1.0",
+    "content-type": "text/plain; charset=UTF-8",
+    "content-transfer-encoding": "8bit",
+    "#-#-#-#-#  metabase-frontend.pot  #-#-#-#-#": "",
+    "plural-forms": "nplurals=2; plural=(n != 1);",
+    "#-#-#-#-#  metabase-backend.pot (metabase)  #-#-#-#-#": ""
+  },
+  "translations": {
+    "": {
+      "Metabase": {
+        "msgid": "Metabase",
+        "msgstr": [
+          "Metabase GERMAN"
+        ]
+      },
+      "Hello World!": {
+        "msgid": "Hello World!",
+        "msgstr": [
+          ""
+        ]
+      }
+    }
+  }
+}
