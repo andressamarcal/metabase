@@ -186,7 +186,7 @@ export default class DatabaseDetailsForm extends Component {
                         <div className="px2">
                             <h3>Enable in-depth database analysis</h3>
                             <div style={{maxWidth: "40rem"}} className="pt1">
-                                This allows us to present you with better metadata for your tables and is required for some features of Metabase.
+                                This allows us to present you with better metadata for your tables and is required for some features of {t`Metabase`}.
                                 We recommend leaving this on unless your database is large and you're concerned about performance.
                             </div>
                         </div>

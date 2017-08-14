@@ -22,7 +22,7 @@ export default class WhatsAPulse extends Component {
                     />
                 </div>
                 <div className="h3 my3 text-centered text-grey-2 text-bold" style={{maxWidth: "500px"}}>
-                    Pulses let you send data from Metabase to email or Slack on the schedule of your choice.
+                    Pulses let you send data from {t`Metabase`} to email or Slack on the schedule of your choice.
                 </div>
                 {this.props.button}
             </div>

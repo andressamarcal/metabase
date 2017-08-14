@@ -3,6 +3,10 @@
 import 'babel-polyfill';
 import 'number-to-locale-string';
 
+// make the i18n function "t" global so we don't have to import it in basically every file
+import { t } from "c-3po";
+global.t = t;
+
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { Provider } from 'react-redux'

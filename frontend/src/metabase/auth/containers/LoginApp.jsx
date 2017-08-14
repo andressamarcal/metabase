@@ -115,7 +115,7 @@ export default class LoginApp extends Component {
                     </div>
                     <div className="Login-content Grid-cell">
                         <form className="Form-new bg-white bordered rounded shadowed" name="form" onSubmit={(e) => this.formSubmitted(e)} noValidate>
-                            <h3 className="Login-header Form-offset">Sign in to Metabase</h3>
+                            <h3 className="Login-header Form-offset">Sign in to {t`Metabase`}</h3>
 
                             { Settings.ssoEnabled() &&
                                 <div className="mx4 mb4 py3 border-bottom relative">

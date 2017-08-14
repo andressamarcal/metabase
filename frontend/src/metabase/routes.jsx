@@ -57,7 +57,7 @@ import Unauthorized from "metabase/components/Unauthorized.jsx";
 
 // Reference Guide
 import GettingStartedGuideContainer from "metabase/reference/guide/GettingStartedGuideContainer.jsx";
-// Reference Metrics 
+// Reference Metrics
 import MetricListContainer from "metabase/reference/metrics/MetricListContainer.jsx";
 import MetricDetailContainer from "metabase/reference/metrics/MetricDetailContainer.jsx";
 import MetricQuestionsContainer from "metabase/reference/metrics/MetricQuestionsContainer.jsx";
@@ -136,7 +136,7 @@ const IsAdmin = MetabaseIsSetup(UserIsAuthenticated(UserIsAdmin(({ children }) =
 const IsNotAuthenticated = MetabaseIsSetup(UserIsNotAuthenticated(({ children }) => children));
 
 export const getRoutes = (store) =>
-    <Route title="Metabase" component={App}>
+    <Route title={t`Metabase`} component={App}>
         {/* SETUP */}
         <Route path="/setup" component={SetupApp} onEnter={(nextState, replace) => {
             if (!MetabaseSettings.hasSetupToken()) {

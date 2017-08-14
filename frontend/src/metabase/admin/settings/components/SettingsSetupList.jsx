@@ -1,6 +1,5 @@
 import React, { Component } from "react";
 import { Link } from "react-router";
-import { t } from "c-3po"
 
 import Icon from "metabase/components/Icon.jsx";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper.jsx";

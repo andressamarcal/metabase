@@ -163,7 +163,7 @@ export default class FieldApp extends Component {
 
                             <Section>
                                 <SectionHeader title="Visibility"
-                                               description="Where this field will appear throughout Metabase"/>
+                                               description={"Where this field will appear throughout " + t`Metabase`}/>
                                 <FieldVisibilityPicker
                                     triggerClasses={SelectClasses}
                                     field={field.getPlainObject()}
