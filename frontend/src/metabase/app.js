@@ -63,7 +63,7 @@ function _init(reducers, getRoutes, callback) {
         window['ga-disable-' + MetabaseSettings.get('ga_code')] = MetabaseSettings.isTrackingEnabled() ? null : true;
     });
 
-    MetabaseSettings.on("color-scheme", updateColorScheme);
+    MetabaseSettings.on("application-color", updateColorScheme);
     updateColorScheme()
 
     // TODO: detect user's prefered locale

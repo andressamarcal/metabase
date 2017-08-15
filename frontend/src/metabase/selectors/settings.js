@@ -7,4 +7,4 @@ export const getIsApplicationEmbeddingEnabled = (state) => state.settings.values
 export const getSiteUrl = (state) => state.settings.values["site-url"];
 export const getEmbeddingSecretKey = (state) => state.settings.values["embedding-secret-key"];
 
-export const getLogoUrl = (state) => state.settings.values["logo-url"] || state.settings.values.logo_url || "app/assets/img/logo.svg";
+export const getLogoUrl = (state) => state.settings.values["application-logo-url"] || state.settings.values.application_logo_url || "app/assets/img/logo.svg";

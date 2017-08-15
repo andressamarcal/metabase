@@ -371,12 +371,12 @@ const SECTIONS = [
                 type: "string",
             },
             {
-                key: "color-scheme",
+                key: "application-color",
                 display_name: "Color Scheme",
                 type: "color",
             },
             {
-                key: "logo-url",
+                key: "application-logo-url",
                 display_name: "Logo",
                 type: "string",
                 widget: LogoUpload,
