@@ -133,22 +133,22 @@ export default class Navbar extends Component {
                             <MainNavLink to="/dashboards" name="Dashboards" eventName="Dashboards" />
                         </li>
                     }
-                    { features.saved_questions && featuresCount > 1 &&
+                    { features.questions && featuresCount > 1 &&
                         <li className="pl1 hide xs-show">
                             <MainNavLink to="/questions" name="Questions" eventName="Questions" />
                         </li>
                     }
-                    { features.pulses && featuresCount > 1 &&
+                    { features.pulse && featuresCount > 1 &&
                         <li className="pl1 hide sm-show">
                             <MainNavLink to="/pulse" name="Pulses" eventName="Pulses" />
                         </li>
                     }
-                    { features.dataref && featuresCount > 1 &&
+                    { features.reference && featuresCount > 1 &&
                         <li className="pl1 hide sm-show">
                             <MainNavLink to="/reference/guide" name="Data Reference" eventName="DataReference" />
                         </li>
                     }
-                    { features.query_builder && featuresCount > 1 &&
+                    { features.question && featuresCount > 1 &&
                         <li className="pl3 hide sm-show">
                             <Link to={Urls.question()} data-metabase-event={"Navbar;New Question"} style={BUTTON_PADDING_STYLES.newQuestion} className="NavNewQuestion rounded inline-block bg-white text-brand text-bold cursor-pointer px2 no-decoration transition-all">
                                 New <span>Question</span>

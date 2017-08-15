@@ -45,6 +45,11 @@
   "The map tile server URL template used in map visualizations, for example from OpenStreetMaps or MapBox."
   :default "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png")
 
+(defsetting landing-page
+  "Default page to show the user"
+  :type    :string
+  :default "")
+
 (defsetting enable-public-sharing
   "Enable admins to create publically viewable links (and embeddable iframes) for Questions and Dashboards?"
   :type    :boolean
@@ -102,6 +107,11 @@
   "The application logo should ideally be an SVG image which has no color"
   :type :string
   :default "app/assets/img/logo.svg")
+
+(defsetting enable-home
+  "Enable the home screen"
+  :type    :boolean
+  :default true)
 
 (defsetting enable-query-builder
   "Enable the query builder"
@@ -161,13 +171,15 @@
    :email_configured      ((resolve 'metabase.email/email-configured?))
    :enable_query_caching  (enable-query-caching)
    :engines               ((resolve 'metabase.driver/available-drivers))
-   :features              {:saved_questions (setting/get :enable-saved-questions)
-                           :query_builder   (setting/get :enable-query-builder)
-                           :dashboards      (setting/get :enable-dashboards)
-                           :pulses          (setting/get :enable-pulses)
-                           :dataref         (setting/get :enable-dataref)}
+   :features              {:home       (setting/get :enable-home)
+                           :question   (setting/get :enable-query-builder)
+                           :questions  (setting/get :enable-saved-questions)
+                           :dashboards (setting/get :enable-dashboards)
+                           :pulse      (setting/get :enable-pulses)
+                           :reference  (setting/get :enable-dataref)}
    :ga_code               "UA-60817802-1"
    :google_auth_client_id (setting/get :google-auth-client-id)
+   :landing_page          (setting/get :landing-page)
    :ldap_configured       ((resolve 'metabase.integrations.ldap/ldap-configured?))
    :has_sample_dataset    (db/exists? 'Database, :is_sample true)
    :map_tile_server_url   (map-tile-server-url)

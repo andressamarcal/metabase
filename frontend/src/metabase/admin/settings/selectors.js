@@ -382,6 +382,21 @@ const SECTIONS = [
                 widget: LogoUpload,
             },
             {
+                key: "landing-page",
+                display_name: "Landing Page",
+                type: "select",
+                options: [
+                    { name: "Home Page", value: "" },
+                    { name: "Query Builder", value: "question" },
+                    { name: "Questions", value: "questions" },
+                    { name: "Dashboards", value: "dashboards" }
+                ]
+            },
+            {
+                key: "enable-home",
+                type: "boolean"
+            },
+            {
                 key: "enable-query-builder",
                 type: "boolean"
             },

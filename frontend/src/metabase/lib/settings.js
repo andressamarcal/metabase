@@ -66,6 +66,23 @@ const MetabaseSettings = {
         return mb_settings["application-name"] || mb_settings.application_name;
     },
 
+    landingPage: function() {
+        // FIXME: Ugh? see comment in colorScheme()
+        const features = MetabaseSettings.features();
+        let page;
+        if (features.length === 1) {
+            // NOTE: assumes features are named same as their URL
+            page = features[0];
+        } else {
+            page = mb_settings["landing-page"] || mb_settings.landing_page;
+        }
+        return "/" + (page || "");
+    },
+
+    features: function() {
+        return Object.entries(mb_settings["features"]).filter(([key, enabled]) => enabled).map(([key]) => key);
+    },
+
     newVersionAvailable: function(settings) {
         let versionInfo = _.findWhere(settings, {key: "version-info"}),
             currentVersion = MetabaseSettings.get("version").tag;
