@@ -4,8 +4,15 @@ import 'babel-polyfill';
 import 'number-to-locale-string';
 
 // make the i18n function "t" global so we don't have to import it in basically every file
-import { t } from "c-3po";
+import { t, jt } from "c-3po";
 global.t = t;
+global.jt = jt;
+
+// set the locale before loading anything else
+import { setLocalization } from "metabase/lib/i18n";
+if (window.MetabaseLocalization) {
+    setLocalization(window.MetabaseLocalization)
+}
 
 import React from 'react'
 import ReactDOM from 'react-dom'
@@ -24,7 +31,6 @@ import { Router, useRouterHistory } from "react-router";
 import { createHistory } from 'history'
 import { syncHistoryWithStore } from 'react-router-redux';
 
-import { loadLocale } from "metabase/lib/i18n";
 import { updateColorScheme } from "metabase/lib/whitelabel";
 
 // remove trailing slash
@@ -65,9 +71,6 @@ function _init(reducers, getRoutes, callback) {
 
     MetabaseSettings.on("application-color", updateColorScheme);
     updateColorScheme()
-
-    // TODO: detect user's prefered locale
-    loadLocale("en");
 
     if (callback) {
         callback(store);

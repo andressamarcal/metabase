@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: metabase\n"
 "Report-Msgid-Bugs-To: docs@metabase.com\n"
-"POT-Creation-Date: 2017-08-14 18:54+0200\n"
+"POT-Creation-Date: 2017-09-12 12:28+0700\n"
 "PO-Revision-Date: 2017-08-14 18:54+0200\n"
 "Last-Translator: Tom Robinson <tom@metabase.com>\n"
 "Language-Team: German\n"
@@ -39,16 +39,17 @@ msgstr ""
 #: frontend/src/metabase/admin/settings/components/SettingsSlackForm.jsx:200
 #: frontend/src/metabase/admin/settings/components/SettingsSlackForm.jsx:218
 #: frontend/src/metabase/admin/settings/components/widgets/LdapGroupMappingsWidget.jsx:123
-#: frontend/src/metabase/admin/settings/selectors.js:259
-#: frontend/src/metabase/admin/settings/selectors.js:310
+#: frontend/src/metabase/admin/settings/selectors.js:271
+#: frontend/src/metabase/admin/settings/selectors.js:322
 #: frontend/src/metabase/auth/components/GoogleNoAccount.jsx:15
 #: frontend/src/metabase/auth/components/GoogleNoAccount.jsx:17
 #: frontend/src/metabase/auth/containers/ForgotPasswordApp.jsx:73
 #: frontend/src/metabase/auth/containers/LoginApp.jsx:118
-#: frontend/src/metabase/components/DatabaseDetailsForm.jsx:189
+#: frontend/src/metabase/components/DatabaseDetailsForm.jsx:202
+#: frontend/src/metabase/components/DeleteQuestionModal.jsx:55
 #: frontend/src/metabase/dashboard/components/RemoveFromDashboardModal.jsx:55
 #: frontend/src/metabase/home/components/Activity.jsx:75
-#: frontend/src/metabase/home/components/Activity.jsx:135
+#: frontend/src/metabase/home/components/Activity.jsx:133
 #: frontend/src/metabase/lib/core.js:102
 #: frontend/src/metabase/nav/components/ProfileLink.jsx:120
 #: frontend/src/metabase/nav/components/ProfileLink.jsx:147
@@ -57,17 +58,131 @@ msgstr ""
 #: frontend/src/metabase/pulse/components/SchedulePicker.jsx:121
 #: frontend/src/metabase/pulse/components/WhatsAPulse.jsx:26
 #: frontend/src/metabase/reference/databases/DatabaseList.jsx:27
-#: frontend/src/metabase/reference/guide/ReferenceGettingStartedGuide.jsx:259
-#: frontend/src/metabase/routes.jsx:139
-#: frontend/src/metabase/setup/components/DatabaseStep.jsx:134
-#: frontend/src/metabase/setup/components/Setup.jsx:56
-#: frontend/src/metabase/setup/components/Setup.jsx:89
+#: frontend/src/metabase/reference/guide/GettingStartedGuideEditForm.jsx:230
+#: frontend/src/metabase/routes.jsx:156
+#: frontend/src/metabase/setup/components/DatabaseConnectionStep.jsx:150
+#: frontend/src/metabase/setup/components/Setup.jsx:71
+#: frontend/src/metabase/setup/components/Setup.jsx:112
+#: src/metabase/api/setup.clj src/metabase/core.clj
 #: src/metabase/email/messages.clj src/metabase/util.clj
 msgid "Metabase"
-msgstr "Metabase GERMAN"
+msgstr "Metabaes"
 
-#: frontend/src/metabase/home/components/Activity.jsx:134
+#: frontend/src/metabase/home/components/Activity.jsx:132
 msgid "Hello World!"
+msgstr "Hallo Welt!"
+
+#: frontend/src/metabase/home/components/Activity.jsx:177
+msgid "removed the filter {item.details.name}"
+msgstr "entfernen sie den filter {item.details.name}"
+
+#: frontend/src/metabase/home/components/Activity.jsx:180
+msgid "joined!"
+msgstr "beigetreten!"
+
+#: frontend/src/metabase/home/components/NextStep.jsx:31
+msgid "Setup Tip"
+msgstr "Setup Tipp"
+
+#: frontend/src/metabase/home/components/NextStep.jsx:32
+msgid "View all"
+msgstr "Alle Anzeigen"
+
+#: frontend/src/metabase/home/components/RecentViews.jsx:38
+msgid "Recently Viewed"
+msgstr "Vor Kurzem Anzeige"
+
+#: frontend/src/metabase/home/components/RecentViews.jsx:60
+msgid "You haven't looked at any dashboards or questions recently"
+msgstr "Sie haben nicht schaute zu jeder dashboards oder fragen kürzlich"
+
+#: frontend/src/metabase/home/containers/HomepageApp.jsx:93
+msgid "Activity"
+msgstr "Aktivitäten"
+
+#: frontend/src/metabase/lib/greeting.js:2
+msgid "Hey there"
+msgstr "Hallo"
+
+#: frontend/src/metabase/lib/greeting.js:3
+#: frontend/src/metabase/lib/greeting.js:25
+msgid "How's it going"
+msgstr "Wie ist es gehen"
+
+#: frontend/src/metabase/lib/greeting.js:4
+msgid "Howdy"
+msgstr "Hallo"
+
+#: frontend/src/metabase/lib/greeting.js:5
+msgid "Greetings"
+msgstr "Grüße"
+
+#: frontend/src/metabase/lib/greeting.js:6
+msgid "Good to see you"
+msgstr "Schön, dich zu sehen"
+
+#: frontend/src/metabase/lib/greeting.js:10
+msgid "What do you want to know?"
+msgstr "Was möchten sie wissen?"
+
+#: frontend/src/metabase/lib/greeting.js:11
+msgid "What's on your mind?"
+msgstr "Was auf dem herzen?"
+
+#: frontend/src/metabase/lib/greeting.js:12
+msgid "What do you want to find out?"
+msgstr "Was möchten sie finden ot?"
+
+#: frontend/src/metabase/nav/containers/Navbar.jsx:133
+msgid "Dashboards"
+msgstr "Übersicht"
+
+#: frontend/src/metabase/nav/containers/Navbar.jsx:138
+msgid "Questions"
+msgstr "Fragen"
+
+#: frontend/src/metabase/nav/containers/Navbar.jsx:143
+msgid "Pulses"
+msgstr "Impuse"
+
+#: frontend/src/metabase/nav/containers/Navbar.jsx:148
+msgid "Data Reference"
+msgstr "Daten Referenz"
+
+#: frontend/src/metabase/nav/containers/Navbar.jsx:154
+msgid "New Question"
+msgstr "Neue Frage"
+
+#: src/metabase/api/setup.clj
+msgid "Add a database"
+msgstr "Fügen sue eine Übersicht"
+
+#: src/metabase/api/setup.clj
+msgid "Get connected"
+msgstr "Holen sie verbunden"
+
+#: src/metabase/api/setup.clj
+msgid "Connect to your data so your whole team can start to explore."
+msgstr ""
+"Schließen sie auf ihre daten so ihre ganze team kann beginnen zu erkuden"
+
+#: src/metabase/api/setup.clj
+#, fuzzy
+msgid "Organize questions"
+msgstr "Neue Frage"
+
+#: src/metabase/api/setup.clj
+msgid "Curate your data"
+msgstr ""
+
+#: src/metabase/api/setup.clj
+msgid ""
+"Have a lot of saved questions in {0}? Create collections to help manage them "
+"and add context."
+msgstr ""
+
+#: src/metabase/core.clj
+msgid "{0} Initialization COMPLETE"
 msgstr ""
 
 #: src/metabase/email/messages.clj
@@ -123,4 +238,7 @@ msgstr ""
 #. It shows up a solid 10-15 seconds before the "Starting Metabase in STANDALONE mode" message because so many other namespaces need to get loaded
 #: src/metabase/util.clj
 msgid "Loading {0}..."
-msgstr ""
+msgstr "Laden {0}..."
+
+#~ msgid "Metabase is up and running."
+#~ msgstr "Metabase ist auf und laufen"

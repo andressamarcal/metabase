@@ -1,0 +1,241 @@
+# #-#-#-#-#  metabase-backend.pot (metabase)  #-#-#-#-#
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR Metabase <docs@metabase.com>
+# This file is distributed under the same license as the metabase package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"#-#-#-#-#  metabase-frontend.pot  #-#-#-#-#\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Plural-Forms: nplurals=2; plural=(n!=1);\n"
+"#-#-#-#-#  metabase-backend.pot (metabase)  #-#-#-#-#\n"
+"Project-Id-Version: metabase\n"
+"Report-Msgid-Bugs-To: docs@metabase.com\n"
+"POT-Creation-Date: 2017-09-12 12:28+0700\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. #-#-#-#-#  metabase-backend.pot (metabase)  #-#-#-#-#
+#. This is the very first log message that will get printed.
+#. It's here because this is one of the very first namespaces that gets loaded, and the first that has access to the logger
+#. It shows up a solid 10-15 seconds before the "Starting Metabase in STANDALONE mode" message because so many other namespaces need to get loaded
+#: frontend/src/metabase/admin/datamodel/containers/FieldApp.jsx:166
+#: frontend/src/metabase/admin/people/components/GroupDetail.jsx:28
+#: frontend/src/metabase/admin/people/components/GroupDetail.jsx:34
+#: frontend/src/metabase/admin/people/components/GroupDetail.jsx:38
+#: frontend/src/metabase/admin/permissions/selectors.js:46
+#: frontend/src/metabase/admin/permissions/selectors.js:48
+#: frontend/src/metabase/admin/permissions/selectors.js:50
+#: frontend/src/metabase/admin/settings/components/SettingsAuthenticationOptions.jsx:11
+#: frontend/src/metabase/admin/settings/components/SettingsAuthenticationOptions.jsx:19
+#: frontend/src/metabase/admin/settings/components/SettingsSetupList.jsx:88
+#: frontend/src/metabase/admin/settings/components/SettingsSingleSignOnForm.jsx:117
+#: frontend/src/metabase/admin/settings/components/SettingsSingleSignOnForm.jsx:120
+#: frontend/src/metabase/admin/settings/components/SettingsSlackForm.jsx:200
+#: frontend/src/metabase/admin/settings/components/SettingsSlackForm.jsx:218
+#: frontend/src/metabase/admin/settings/components/widgets/LdapGroupMappingsWidget.jsx:123
+#: frontend/src/metabase/admin/settings/selectors.js:271
+#: frontend/src/metabase/admin/settings/selectors.js:322
+#: frontend/src/metabase/auth/components/GoogleNoAccount.jsx:15
+#: frontend/src/metabase/auth/components/GoogleNoAccount.jsx:17
+#: frontend/src/metabase/auth/containers/ForgotPasswordApp.jsx:73
+#: frontend/src/metabase/auth/containers/LoginApp.jsx:118
+#: frontend/src/metabase/components/DatabaseDetailsForm.jsx:202
+#: frontend/src/metabase/components/DeleteQuestionModal.jsx:55
+#: frontend/src/metabase/dashboard/components/RemoveFromDashboardModal.jsx:55
+#: frontend/src/metabase/home/components/Activity.jsx:75
+#: frontend/src/metabase/home/components/Activity.jsx:133
+#: frontend/src/metabase/lib/core.js:102
+#: frontend/src/metabase/nav/components/ProfileLink.jsx:120
+#: frontend/src/metabase/nav/components/ProfileLink.jsx:147
+#: frontend/src/metabase/nav/containers/Navbar.jsx:89
+#: frontend/src/metabase/public/components/widgets/SharingPane.jsx:97
+#: frontend/src/metabase/pulse/components/SchedulePicker.jsx:121
+#: frontend/src/metabase/pulse/components/WhatsAPulse.jsx:26
+#: frontend/src/metabase/reference/databases/DatabaseList.jsx:27
+#: frontend/src/metabase/reference/guide/GettingStartedGuideEditForm.jsx:230
+#: frontend/src/metabase/routes.jsx:156
+#: frontend/src/metabase/setup/components/DatabaseConnectionStep.jsx:150
+#: frontend/src/metabase/setup/components/Setup.jsx:71
+#: frontend/src/metabase/setup/components/Setup.jsx:112
+#: src/metabase/api/setup.clj src/metabase/core.clj
+#: src/metabase/email/messages.clj src/metabase/util.clj
+msgid "Metabase"
+msgstr ""
+
+#: frontend/src/metabase/home/components/Activity.jsx:132
+msgid "Hello World!"
+msgstr ""
+
+#: frontend/src/metabase/home/components/Activity.jsx:177
+msgid "removed the filter {item.details.name}"
+msgstr ""
+
+#: frontend/src/metabase/home/components/Activity.jsx:180
+msgid "joined!"
+msgstr ""
+
+#: frontend/src/metabase/home/components/NextStep.jsx:31
+msgid "Setup Tip"
+msgstr ""
+
+#: frontend/src/metabase/home/components/NextStep.jsx:32
+msgid "View all"
+msgstr ""
+
+#: frontend/src/metabase/home/components/RecentViews.jsx:38
+msgid "Recently Viewed"
+msgstr ""
+
+#: frontend/src/metabase/home/components/RecentViews.jsx:60
+msgid "You haven't looked at any dashboards or questions recently"
+msgstr ""
+
+#: frontend/src/metabase/home/containers/HomepageApp.jsx:93
+msgid "Activity"
+msgstr ""
+
+#: frontend/src/metabase/lib/greeting.js:2
+msgid "Hey there"
+msgstr ""
+
+#: frontend/src/metabase/lib/greeting.js:3
+#: frontend/src/metabase/lib/greeting.js:25
+msgid "How's it going"
+msgstr ""
+
+#: frontend/src/metabase/lib/greeting.js:4
+msgid "Howdy"
+msgstr ""
+
+#: frontend/src/metabase/lib/greeting.js:5
+msgid "Greetings"
+msgstr ""
+
+#: frontend/src/metabase/lib/greeting.js:6
+msgid "Good to see you"
+msgstr ""
+
+#: frontend/src/metabase/lib/greeting.js:10
+msgid "What do you want to know?"
+msgstr ""
+
+#: frontend/src/metabase/lib/greeting.js:11
+msgid "What's on your mind?"
+msgstr ""
+
+#: frontend/src/metabase/lib/greeting.js:12
+msgid "What do you want to find out?"
+msgstr ""
+
+#: frontend/src/metabase/nav/containers/Navbar.jsx:133
+msgid "Dashboards"
+msgstr ""
+
+#: frontend/src/metabase/nav/containers/Navbar.jsx:138
+msgid "Questions"
+msgstr ""
+
+#: frontend/src/metabase/nav/containers/Navbar.jsx:143
+msgid "Pulses"
+msgstr ""
+
+#: frontend/src/metabase/nav/containers/Navbar.jsx:148
+msgid "Data Reference"
+msgstr ""
+
+#: frontend/src/metabase/nav/containers/Navbar.jsx:154
+msgid "New Question"
+msgstr ""
+
+#: src/metabase/api/setup.clj
+msgid "Add a database"
+msgstr ""
+
+#: src/metabase/api/setup.clj
+msgid "Get connected"
+msgstr ""
+
+#: src/metabase/api/setup.clj
+msgid "Connect to your data so your whole team can start to explore."
+msgstr ""
+
+#: src/metabase/api/setup.clj
+msgid "Organize questions"
+msgstr ""
+
+#: src/metabase/api/setup.clj
+msgid "Curate your data"
+msgstr ""
+
+#: src/metabase/api/setup.clj
+msgid ""
+"Have a lot of saved questions in {0}? Create collections to help manage them "
+"and add context."
+msgstr ""
+
+#: src/metabase/core.clj
+msgid "{0} Initialization COMPLETE"
+msgstr ""
+
+#: src/metabase/email/messages.clj
+msgid "We’d love your feedback."
+msgstr ""
+
+#: src/metabase/email/messages.clj
+msgid ""
+"It looks like Metabase wasn’t quite a match for you. Would you mind taking a "
+"fast 5 question survey to help the Metabase team understand why and make "
+"things better in the future?"
+msgstr ""
+
+#: src/metabase/email/messages.clj
+msgid "We hope you've been enjoying Metabase."
+msgstr ""
+
+#: src/metabase/email/messages.clj
+msgid ""
+"Would you mind taking a fast 6 question survey to tell us how it’s going?"
+msgstr ""
+
+#: src/metabase/email/messages.clj
+msgid "You're invited to join {0}'s {1}"
+msgstr ""
+
+#: src/metabase/email/messages.clj
+msgid "{0} created a {1} account"
+msgstr ""
+
+#: src/metabase/email/messages.clj
+msgid "{0} accepted their {1} invite"
+msgstr ""
+
+#: src/metabase/email/messages.clj
+msgid "[{0}] Password Reset Request"
+msgstr ""
+
+#: src/metabase/email/messages.clj
+msgid "[{0}] Notification"
+msgstr ""
+
+#: src/metabase/email/messages.clj
+msgid "[{0}] Help make Metabase better."
+msgstr ""
+
+#: src/metabase/email/messages.clj
+msgid "[{0}] Tell us how things are going."
+msgstr ""
+
+#. This is the very first log message that will get printed.
+#. It's here because this is one of the very first namespaces that gets loaded, and the first that has access to the logger
+#. It shows up a solid 10-15 seconds before the "Starting Metabase in STANDALONE mode" message because so many other namespaces need to get loaded
+#: src/metabase/util.clj
+msgid "Loading {0}..."
+msgstr ""
