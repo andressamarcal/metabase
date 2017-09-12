@@ -43,6 +43,7 @@ const replaceBrandColors = (value, colorScheme) => {
 }
 
 const STYLE_UPDATORS = [];
+const STYLE_RESETERS = [];
 
 function initBrandHueUpdator() {
     // initialize the ".brand-hue" CSS rule, which is used to change the hue of images which should
@@ -52,6 +53,9 @@ function initBrandHueUpdator() {
         const degrees = Color(colorScheme).hsl().hue() - BRAND_NORMAL_COLOR.hue();
         rotateHueRule.style["filter"] = `hue-rotate(${degrees}deg)`;
     });
+    STYLE_RESETERS.push(() => {
+        rotateHueRule.style["filter"] = `hue-rotate(0)`;
+    })
 }
 
 function initBrandColorUpdators() {
@@ -65,6 +69,9 @@ function initBrandColorUpdators() {
                         STYLE_UPDATORS.push(colorScheme => {
                             rule.style[prop] = replaceBrandColors(value, colorScheme);
                         });
+                        STYLE_RESETERS.push(() => {
+                            rule.style[prop] = value;
+                        })
                     }
                 }
             }
@@ -78,8 +85,14 @@ function updateCSSRules(colorScheme) {
         initBrandHueUpdator();
         initBrandColorUpdators();
     }
-    for (const colorUpdator of STYLE_UPDATORS) {
-        colorUpdator(colorScheme);
+    for (const styleUpdator of STYLE_UPDATORS) {
+        styleUpdator(colorScheme);
+    }
+}
+
+function resetCSSRules() {
+    for (const styleReseter of STYLE_RESETERS) {
+        styleReseter();
     }
 }
 
@@ -91,6 +104,12 @@ function updateBrandColors(colorScheme) {
             Color(colorScheme).hsl(),
             Color(BRAND_ORIGINAL[name]).hsl()
         );
+    }
+}
+
+function resetBrandColors() {
+    for (const name in brand) {
+        brand[name] = BRAND_ORIGINAL[name];
     }
 }
 
@@ -110,6 +129,10 @@ function updateHarmoneyColors(colorScheme) {
     harmony.splice(0, harmony.length, ...newHarmony);
 }
 
+function resetHarmoneyColors() {
+    harmony.splice(0, harmony.length, ...HARMONY_ORIGINAL);
+}
+
 function findClosestIndex(array, value) {
     let minDelta = Infinity;
     let minIndex = -1;
@@ -123,9 +146,19 @@ function findClosestIndex(array, value) {
     return minIndex;
 }
 
+function isDefaultBrandColor(colorScheme) {
+    return colorScheme === BRAND_ORIGINAL.normal;
+}
+
 export function updateColorScheme() {
     const colorScheme = MetabaseSettings.colorScheme();
-    updateCSSRules(colorScheme);
-    updateBrandColors(colorScheme);
-    updateHarmoneyColors(colorScheme);
+    if (!isDefaultBrandColor(colorScheme)) {
+        updateCSSRules(colorScheme);
+        updateBrandColors(colorScheme);
+        updateHarmoneyColors(colorScheme);
+    } else {
+        resetCSSRules();
+        resetBrandColors();
+        resetHarmoneyColors();
+    }
 }
