@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: metabase\n"
 "Report-Msgid-Bugs-To: docs@metabase.com\n"
-"POT-Creation-Date: 2017-09-12 12:28+0700\n"
+"POT-Creation-Date: 2017-09-12 15:09+0700\n"
 "PO-Revision-Date: 2017-08-14 18:54+0200\n"
 "Last-Translator: Tom Robinson <tom@metabase.com>\n"
 "Language-Team: German\n"
@@ -24,7 +24,7 @@ msgstr ""
 #. This is the very first log message that will get printed.
 #. It's here because this is one of the very first namespaces that gets loaded, and the first that has access to the logger
 #. It shows up a solid 10-15 seconds before the "Starting Metabase in STANDALONE mode" message because so many other namespaces need to get loaded
-#: frontend/src/metabase/admin/datamodel/containers/FieldApp.jsx:166
+#: frontend/src/metabase/admin/datamodel/containers/FieldApp.jsx:174
 #: frontend/src/metabase/admin/people/components/GroupDetail.jsx:28
 #: frontend/src/metabase/admin/people/components/GroupDetail.jsx:34
 #: frontend/src/metabase/admin/people/components/GroupDetail.jsx:38
@@ -47,19 +47,19 @@ msgstr ""
 #: frontend/src/metabase/auth/containers/LoginApp.jsx:118
 #: frontend/src/metabase/components/DatabaseDetailsForm.jsx:202
 #: frontend/src/metabase/components/DeleteQuestionModal.jsx:55
-#: frontend/src/metabase/dashboard/components/RemoveFromDashboardModal.jsx:55
 #: frontend/src/metabase/home/components/Activity.jsx:75
 #: frontend/src/metabase/home/components/Activity.jsx:133
 #: frontend/src/metabase/lib/core.js:102
 #: frontend/src/metabase/nav/components/ProfileLink.jsx:120
 #: frontend/src/metabase/nav/components/ProfileLink.jsx:147
 #: frontend/src/metabase/nav/containers/Navbar.jsx:89
+#: frontend/src/metabase/public/components/LogoBadge.jsx:23
 #: frontend/src/metabase/public/components/widgets/SharingPane.jsx:97
 #: frontend/src/metabase/pulse/components/SchedulePicker.jsx:121
 #: frontend/src/metabase/pulse/components/WhatsAPulse.jsx:26
 #: frontend/src/metabase/reference/databases/DatabaseList.jsx:27
 #: frontend/src/metabase/reference/guide/GettingStartedGuideEditForm.jsx:230
-#: frontend/src/metabase/routes.jsx:156
+#: frontend/src/metabase/routes.jsx:158
 #: frontend/src/metabase/setup/components/DatabaseConnectionStep.jsx:150
 #: frontend/src/metabase/setup/components/Setup.jsx:71
 #: frontend/src/metabase/setup/components/Setup.jsx:112
