@@ -119,7 +119,7 @@
         num-users          (db/count 'User)]
     [{:title       (tru "Add a database")
       :group       (tru "Get connected")
-      :description (tru "Connect to your data so your whole team can start to explore.")
+      :description (tru "Connect {0} to your data so your whole team can start to explore." (trs "Metabase"))
       :link        "/admin/databases/create"
       :completed   has-dbs?
       :triggered   :always}

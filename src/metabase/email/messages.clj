@@ -43,7 +43,7 @@
    :link         "http://www.metabase.com/feedback/inactive"})
 
 (def ^:private ^:const follow-up-context
-  {:heading      (trs "We hope you've been enjoying Metabase.")
+  {:heading      (trs "We hope you''ve been enjoying Metabase.")
    :callToAction (trs "Would you mind taking a fast 6 question survey to tell us how it’s going?")
    :link         "http://www.metabase.com/feedback/active"})
 
@@ -65,7 +65,7 @@
                                :logoHeader   true}
                               (random-quote-context)))]
     (email/send-message!
-      :subject      (trs "You're invited to join {0}'s {1}" company (trs "Metabase"))
+      :subject      (trs "You''re invited to join {0}''s {1}" company (trs "Metabase"))
       :recipients   [(:email invited)]
       :message-type :html
       :message      message-body)))
