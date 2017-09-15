@@ -25,24 +25,48 @@
 (when config/is-dev?
   (stencil-loader/set-cache (cache/ttl-cache-factory {} :ttl 0)))
 
+(defn- logo-url []
+  (let [url (public-settings/application-logo-url)]
+    (cond
+      (= url "app/assets/img/logo.svg") "http://static.metabase.com/email_logo.png"
+      :else url)))
+
+(defn- button-style [color]
+  (str "display: inline-block; "
+       "box-sizing: border-box; "
+       "padding: 0.5rem 1.375rem; "
+       "font-size: 1.063rem; "
+       "font-weight: bold; "
+       "text-decoration: none; "
+       "cursor: pointer; "
+       "color: #fff; "
+       "border: 1px solid " color "; "
+       "background-color: " color "; "
+       "border-radius: 4px;"))
 
 ;;; Various Context Helper Fns. Used to build Stencil template context
+
+(defn- common-context []
+  {:applicationName    (public-settings/application-name)
+   :applicationColor   (public-settings/application-color)
+   :applicationLogoUrl (logo-url)
+   :buttonStyle        (button-style (public-settings/application-color))})
 
 (defn- random-quote-context []
   (let [data-quote (quotation/random-quote)]
     {:quotation       (:quote data-quote)
      :quotationAuthor (:author data-quote)}))
 
-(def ^:private ^:const notification-context
+(defn- notification-context []
   {:emailType  "notification"
    :logoHeader true})
 
-(def ^:private ^:const abandonment-context
+(defn- abandonment-context []
   {:heading      (trs "We’d love your feedback.")
    :callToAction (trs "It looks like Metabase wasn’t quite a match for you. Would you mind taking a fast 5 question survey to help the Metabase team understand why and make things better in the future?")
    :link         "http://www.metabase.com/feedback/inactive"})
 
-(def ^:private ^:const follow-up-context
+(defn- follow-up-context []
   {:heading      (trs "We hope you''ve been enjoying Metabase.")
    :callToAction (trs "Would you mind taking a fast 6 question survey to tell us how it’s going?")
    :link         "http://www.metabase.com/feedback/active"})
@@ -55,7 +79,8 @@
   [invited invitor join-url]
   (let [company      (or (public-settings/site-name) "Unknown")
         message-body (stencil/render-file "metabase/email/new_user_invite"
-                       (merge {:emailType    "new_user_invite"
+                       (merge (common-context)
+                              {:emailType    "new_user_invite"
                                :invitedName  (:first_name invited)
                                :invitorName  (:first_name invitor)
                                :invitorEmail (:email invitor)
@@ -91,7 +116,8 @@
       :recipients   recipients
       :message-type :html
       :message      (stencil/render-file "metabase/email/user_joined_notification"
-                      (merge {:logoHeader        true
+                      (merge (common-context)
+                             {:logoHeader        true
                               :joinedUserName    (:first_name new-user)
                               :joinedViaSSO      google-auth?
                               :joinedUserEmail   (:email new-user)
@@ -109,11 +135,12 @@
          (string? hostname)
          (string? password-reset-url)]}
   (let [message-body (stencil/render-file "metabase/email/password_reset"
-                       {:emailType        "password_reset"
-                        :hostname         hostname
-                        :sso              google-auth?
-                        :passwordResetUrl password-reset-url
-                        :logoHeader       true})]
+                       (merge (common-context)
+                              {:emailType        "password_reset"
+                               :hostname         hostname
+                               :sso              google-auth?
+                               :passwordResetUrl password-reset-url
+                               :logoHeader       true}))]
     (email/send-message!
       :subject      (trs "[{0}] Password Reset Request" (trs "Metabase"))
       :recipients   [email]
@@ -149,9 +176,10 @@
   [email context]
   {:pre [(u/is-email? email) (map? context)]}
   (let [context      (merge (update context :dependencies build-dependencies)
-                            notification-context
+                            (notification-context)
                             (random-quote-context))
-        message-body (stencil/render-file "metabase/email/notification" context)]
+        message-body (stencil/render-file "metabase/email/notification"
+                                          (merge (common-context) context))]
     (email/send-message!
       :subject      (trs "[{0}] Notification" (trs "Metabase"))
       :recipients   [email]
@@ -165,12 +193,13 @@
   (let [subject      (if (= "abandon" msg-type)
                        (trs "[{0}] Help make Metabase better." (trs "Metabase"))
                        (trs "[{0}] Tell us how things are going." (trs "Metabase")))
-        context      (merge notification-context
+        context      (merge (notification-context)
                             (random-quote-context)
                             (if (= "abandon" msg-type)
-                              abandonment-context
-                              follow-up-context))
-        message-body (stencil/render-file "metabase/email/follow_up_email" context)]
+                              (abandonment-context)
+                              (follow-up-context)))
+        message-body (stencil/render-file "metabase/email/follow_up_email"
+                                          (merge (common-context) context))]
     (email/send-message!
       :subject      subject
       :recipients   [email]
@@ -221,6 +250,7 @@
                        (vec (cons :div (for [result results]
                                          (render/render-pulse-section result)))))
         message-body (stencil/render-file "metabase/email/pulse"
-                       (pulse-context body pulse))]
+                       (merge (common-context)
+                              (pulse-context body pulse)))]
     (vec (cons {:type "text/html; charset=utf-8" :content message-body}
                (mapv write-image-content (seq @images))))))
