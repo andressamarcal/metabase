@@ -236,7 +236,7 @@
   (merge {:emailType    "pulse"
           :pulse        (html body)
           :pulseName    (:name pulse)
-          :sectionStyle render/section-style
+          :sectionStyle (render/section-style)
           :colorGrey4   render/color-gray-4
           :logoFooter   true}
          (random-quote-context)))
