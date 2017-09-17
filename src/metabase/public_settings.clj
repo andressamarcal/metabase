@@ -1,5 +1,5 @@
 (ns metabase.public-settings
-  (:require [clojure.string :as s]
+  (:require [clojure.string :as str]
             [metabase
              [config :as config]
              [types :as types]]
@@ -8,6 +8,7 @@
              [setting :as setting :refer [defsetting]]]
             [metabase.util.password :as password]
             [puppetlabs.i18n.core :refer [available-locales]]
+            [schema.core :as s]
             [toucan.db :as db])
   (:import java.util.Locale
            java.util.TimeZone))
@@ -32,8 +33,8 @@
   "The base URL of this Metabase instance, e.g. \"http://metabase.my-company.com\"."
   :setter (fn [new-value]
             (setting/set-string! :site-url (when new-value
-                                             (cond->> (s/replace new-value #"/$" "")
-                                               (not (s/starts-with? new-value "http")) (str "http://"))))))
+                                             (cond->> (str/replace new-value #"/$" "")
+                                               (not (str/starts-with? new-value "http")) (str "http://"))))))
 
 (defsetting site-locale
   "The default language for this Metabase instance. This only applies to emails, Pulses, etc. Users' browsers will specify the language used in the user interface."
@@ -110,10 +111,16 @@
   :type    :string
   :default "Metabase")
 
+(def ^:private HexColor #"#([0-9a-fA-F]{3}){1,2}")
+
 (defsetting application-color
-  "The color scheme to use"
+  "The color scheme to use. A hex color code such as #509EE3"
   :type    :string
-  :default "#509EE3")
+  :default "#509EE3"
+  :setter  (fn [new-value]
+             (when new-value
+               (s/validate HexColor new-value))
+             (setting/set-string! :application-color new-value)))
 
 (defsetting application-logo-url
   "The application logo should ideally be an SVG image which has no color"

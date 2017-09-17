@@ -385,7 +385,7 @@ const SECTIONS = [
             {
                 key: "application-color",
                 display_name: "Color Scheme",
-                type: "color",
+                type: "string",
             },
             {
                 key: "application-logo-url",
