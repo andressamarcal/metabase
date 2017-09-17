@@ -393,41 +393,41 @@ const SECTIONS = [
                 type: "string",
                 widget: LogoUpload,
             },
-            {
-                key: "landing-page",
-                display_name: "Landing Page",
-                type: "select",
-                options: [
-                    { name: "Home Page", value: "" },
-                    { name: "Query Builder", value: "question" },
-                    { name: "Questions", value: "questions" },
-                    { name: "Dashboards", value: "dashboards" }
-                ]
-            },
-            {
-                key: "enable-home",
-                type: "boolean"
-            },
-            {
-                key: "enable-query-builder",
-                type: "boolean"
-            },
-            {
-                key: "enable-saved-questions",
-                type: "boolean"
-            },
-            {
-                key: "enable-dashboards",
-                type: "boolean"
-            },
-            {
-                key: "enable-pulses",
-                type: "boolean"
-            },
-            {
-                key: "enable-dataref",
-                type: "boolean"
-            },
+            // {
+            //     key: "landing-page",
+            //     display_name: "Landing Page",
+            //     type: "select",
+            //     options: [
+            //         { name: "Home Page", value: "" },
+            //         { name: "Query Builder", value: "question" },
+            //         { name: "Questions", value: "questions" },
+            //         { name: "Dashboards", value: "dashboards" }
+            //     ]
+            // },
+            // {
+            //     key: "enable-home",
+            //     type: "boolean"
+            // },
+            // {
+            //     key: "enable-query-builder",
+            //     type: "boolean"
+            // },
+            // {
+            //     key: "enable-saved-questions",
+            //     type: "boolean"
+            // },
+            // {
+            //     key: "enable-dashboards",
+            //     type: "boolean"
+            // },
+            // {
+            //     key: "enable-pulses",
+            //     type: "boolean"
+            // },
+            // {
+            //     key: "enable-dataref",
+            //     type: "boolean"
+            // },
         ]
     },
 ];
