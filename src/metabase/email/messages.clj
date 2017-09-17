@@ -2,6 +2,7 @@
   "Convenience functions for sending templated email messages.  Each function here should represent a single email.
    NOTE: we want to keep this about email formatting, so don't put heavy logic here RE: building data for emails."
   (:require [clojure.core.cache :as cache]
+            [clojure.string :as str]
             [hiccup.core :refer [html]]
             [medley.core :as m]
             [metabase
@@ -25,10 +26,35 @@
 (when config/is-dev?
   (stencil-loader/set-cache (cache/ttl-cache-factory {} :ttl 0)))
 
+(defn- decode-base64
+  [input]
+  (new java.lang.String (javax.xml.bind.DatatypeConverter/parseBase64Binary input) "UTF-8"))
+  ; (new java.lang.String (.decode (java.util.Base64/getDecoder) input) "UTF-8"))
+
+(defn- encode-base64
+  [input]
+  (javax.xml.bind.DatatypeConverter/printBase64Binary (.getBytes input "UTF-8")))
+  ; (.encodeToString (java.util.Base64/getEncoder) (.getBytes input)))
+
+(def ^:private ^:const data-uri-svg-regex #"^data:image/svg\+xml;base64,(.*)$")
+
+(defn- data-uri-svg?
+  [url]
+  (re-matches data-uri-svg-regex url))
+
+(defn- themed-image-url
+  [url color]
+  (let [base64 (second (re-matches data-uri-svg-regex url))
+        svg    (decode-base64 base64)
+        themed (str/replace svg #"<svg\b([^>]*)( fill=\"[^\"]*\")([^>]*)>" (str "<svg$1$3 fill=\"" color "\">"))]
+    (str "data:image/svg+xml;base64," (encode-base64 themed))))
+
 (defn- logo-url []
-  (let [url (public-settings/application-logo-url)]
+  (let [url   (public-settings/application-logo-url)
+        color (public-settings/application-color)]
     (cond
       (= url "app/assets/img/logo.svg") "http://static.metabase.com/email_logo.png"
+      (data-uri-svg? url) (themed-image-url url color)
       :else url)))
 
 (defn- button-style [color]
