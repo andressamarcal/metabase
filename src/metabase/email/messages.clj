@@ -109,7 +109,7 @@
                                :logoHeader   true}
                               (random-quote-context)))]
     (email/send-message!
-      :subject      (trs "You''re invited to join {0}''s {1}" company (trs "Metabase"))
+      :subject      (trs "You''re invited to join {0}''s {1}" company (u/app-name-trs))
       :recipients   [(:email invited)]
       :message-type :html
       :message      message-body)))
@@ -130,8 +130,8 @@
   (let [recipients (all-admin-recipients)]
     (email/send-message!
       :subject      (format (if google-auth?
-                              (trs "{0} created a {1} account" (:common_name new-user) (trs "Metabase"))
-                              (trs "{0} accepted their {1} invite" (:common_name new-user) (trs "Metabase"))))
+                              (trs "{0} created a {1} account" (:common_name new-user) (u/app-name-trs))
+                              (trs "{0} accepted their {1} invite" (:common_name new-user) (u/app-name-trs))))
       :recipients   recipients
       :message-type :html
       :message      (stencil/render-file "metabase/email/user_joined_notification"
@@ -161,7 +161,7 @@
                                :passwordResetUrl password-reset-url
                                :logoHeader       true}))]
     (email/send-message!
-      :subject      (trs "[{0}] Password Reset Request" (trs "Metabase"))
+      :subject      (trs "[{0}] Password Reset Request" (u/app-name-trs))
       :recipients   [email]
       :message-type :html
       :message      message-body)))
@@ -200,7 +200,7 @@
         message-body (stencil/render-file "metabase/email/notification"
                                           (merge (common-context) context))]
     (email/send-message!
-      :subject      (trs "[{0}] Notification" (trs "Metabase"))
+      :subject      (trs "[{0}] Notification" (u/app-name-trs))
       :recipients   [email]
       :message-type :html
       :message      message-body)))
@@ -210,8 +210,8 @@
   [email msg-type]
   {:pre [(u/is-email? email) (contains? #{"abandon" "follow-up"} msg-type)]}
   (let [subject      (if (= "abandon" msg-type)
-                       (trs "[{0}] Help make Metabase better." (trs "Metabase"))
-                       (trs "[{0}] Tell us how things are going." (trs "Metabase")))
+                       (trs "[{0}] Help make Metabase better." (u/app-name-trs))
+                       (trs "[{0}] Tell us how things are going." (u/app-name-trs)))
         context      (merge (notification-context)
                             (random-quote-context)
                             (if (= "abandon" msg-type)
