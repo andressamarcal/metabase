@@ -70,7 +70,7 @@ export default class ForgotPasswordApp extends Component {
 
                                   <FormField key="email" fieldName="email" formError={error}>
                                       <FormLabel title={"Email address"}  fieldName={"email"} formError={error} />
-                                      <input className="Form-input Form-offset full" name="email" placeholder="The email you use for your Metabase account" type="text" onChange={(e) => this.setState({"email": e.target.value})} defaultValue={this.state.email} autoFocus />
+                                      <input className="Form-input Form-offset full" name="email" placeholder={"The email you use for your " + t`Metabase` + " account"} type="text" onChange={(e) => this.setState({"email": e.target.value})} defaultValue={this.state.email} autoFocus />
                                       <span className="Form-charm"></span>
                                   </FormField>
 

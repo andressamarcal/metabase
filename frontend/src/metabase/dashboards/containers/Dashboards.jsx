@@ -177,7 +177,7 @@ export class Dashboards extends Component {
                             action="Create a dashboard"
                             onActionClick={this.showCreateDashboard}
                             className="mt2"
-                            imageClassName="mln2"
+                            imageClassName="mln2 brand-hue"
                         />
                     </div>
                     : <div>

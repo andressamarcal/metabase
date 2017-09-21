@@ -24,7 +24,7 @@ import {
 import * as metadataActions from "metabase/redux/metadata";
 
 const emptyStateData = {
-    title: "Metabase is no fun without any data",
+    title: t`Metabase` + " is no fun without any data",
     adminMessage: "Your databases will appear here once you connect one",
     message: "Databases will appear here once your admins have added some",
     image: "app/assets/img/databases-list",
@@ -62,14 +62,14 @@ export default class DatabaseList extends Component {
 
         return (
             <div style={style} className="full">
-                <ReferenceHeader 
+                <ReferenceHeader
                     name="Databases and tables"
                 />
                 <LoadingAndErrorWrapper loading={!loadingError && loading} error={loadingError}>
                 { () => Object.keys(entities).length > 0 ?
                     <div className="wrapper wrapper--trim">
                         <List>
-                            { 
+                            {
                                 Object.values(entities).filter(isQueryable).map((entity, index) =>
                                     entity && entity.id && entity.name &&
                                           <li className="relative" key={entity.id}>

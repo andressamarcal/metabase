@@ -120,7 +120,7 @@ export default class LdapGroupMappingsWidget extends React.Component {
                             <div className="px4">
                                 <Button className="float-right" primary onClick={this._showAddRow}>Create a mapping</Button>
                                 <p className="text-measure">
-                                    Mappings allow Metabase to automatically add and remove users from groups based on the membership information provided by the
+                                    Mappings allow {t`Metabase`} to automatically add and remove users from groups based on the membership information provided by the
                                     directory server. Membership to the Admin group can be granted through mappings, but will not be automatically removed as a
                                     failsafe measure.
                                 </p>

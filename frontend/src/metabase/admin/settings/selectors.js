@@ -13,6 +13,7 @@ import {
 import SecretKeyWidget from "./components/widgets/SecretKeyWidget.jsx";
 import EmbeddingLegalese from "./components/widgets/EmbeddingLegalese";
 import LdapGroupMappingsWidget from "./components/widgets/LdapGroupMappingsWidget";
+import LogoUpload from "./components/widgets/LogoUpload";
 
 import { UtilApi } from "metabase/services";
 
@@ -50,6 +51,13 @@ const SECTIONS = [
                 placeholder: "Select a timezone",
                 note: "Not all databases support timezones, in which case this setting won't take effect.",
                 allowValueCollection: true
+            },
+            {
+                key: "site-locale",
+                display_name: "Language",
+                type: "select",
+                options:  MetabaseSettings.get("available_locales").map(([value, name]) => ({ name, value })),
+                placeholder: "Select a language"
             },
             {
                 key: "anon-tracking-enabled",
@@ -260,7 +268,7 @@ const SECTIONS = [
             {
                 key: "map-tile-server-url",
                 display_name: "Map tile server URL",
-                note: "Metabase uses OpenStreetMaps by default.",
+                note: t`Metabase` + " uses OpenStreetMaps by default.",
                 type: "string"
             },
             {
@@ -311,7 +319,7 @@ const SECTIONS = [
             },
             {
                 key: "enable-embedding",
-                display_name: "Enable Embedding Metabase in other Applications",
+                display_name: "Enable Embedding " + t`Metabase` + " in other Applications",
                 type: "boolean",
                 getHidden: (settings) => !settings["enable-embedding"]
             },
@@ -365,7 +373,63 @@ const SECTIONS = [
                 allowValueCollection: true
             }
         ]
-    }
+    },
+    {
+        name: "Whitelabel",
+        settings: [
+            {
+                key: "application-name",
+                display_name: "Application Name",
+                type: "string",
+            },
+            {
+                key: "application-color",
+                display_name: "Color Scheme",
+                type: "string",
+            },
+            {
+                key: "application-logo-url",
+                display_name: "Logo",
+                type: "string",
+                widget: LogoUpload,
+            },
+            // {
+            //     key: "landing-page",
+            //     display_name: "Landing Page",
+            //     type: "select",
+            //     options: [
+            //         { name: "Home Page", value: "" },
+            //         { name: "Query Builder", value: "question" },
+            //         { name: "Questions", value: "questions" },
+            //         { name: "Dashboards", value: "dashboards" }
+            //     ]
+            // },
+            // {
+            //     key: "enable-home",
+            //     type: "boolean"
+            // },
+            // {
+            //     key: "enable-query-builder",
+            //     type: "boolean"
+            // },
+            // {
+            //     key: "enable-saved-questions",
+            //     type: "boolean"
+            // },
+            // {
+            //     key: "enable-dashboards",
+            //     type: "boolean"
+            // },
+            // {
+            //     key: "enable-pulses",
+            //     type: "boolean"
+            // },
+            // {
+            //     key: "enable-dataref",
+            //     type: "boolean"
+            // },
+        ]
+    },
 ];
 for (const section of SECTIONS) {
     section.slug = slugify(section.name);

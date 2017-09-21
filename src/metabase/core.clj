@@ -21,7 +21,10 @@
              [task :as task]
              [util :as u]]
             [metabase.core.initialization-status :as init-status]
-            [metabase.models.user :refer [User]]
+            [metabase.models
+             [user :refer [User]]
+             [setting :as setting]]
+            [puppetlabs.i18n.core :refer [trs locale-negotiator]]
             [ring.adapter.jetty :as ring-jetty]
             [ring.middleware
              [cookies :refer [wrap-cookies]]
@@ -31,7 +34,15 @@
              [params :refer [wrap-params]]
              [session :refer [wrap-session]]]
             [toucan.db :as db])
-  (:import org.eclipse.jetty.server.Server))
+  (:import java.util.Locale
+           org.eclipse.jetty.server.Server))
+
+;; HACK: replace this with setting event listener
+(defn sync-locale []
+  (let [new-locale     (or (not-empty (setting/get :site-locale)) "en")
+        current-locale (.toLanguageTag (Locale/getDefault))]
+    (when-not (= current-locale new-locale)
+      (Locale/setDefault (Locale/forLanguageTag new-locale)))))
 
 ;;; CONFIG
 
@@ -50,6 +61,7 @@
       mb-middleware/wrap-api-key         ; looks for a Metabase API Key on the request and assocs as :metabase-api-key
       mb-middleware/wrap-session-id      ; looks for a Metabase Session ID and assoc as :metabase-session-id
       mb-middleware/maybe-set-site-url   ; set the value of `site-url` if it hasn't been set yet
+      locale-negotiator                  ; Binds *locale* for i18n
       wrap-cookies                       ; Parses cookies in the request map and assocs as :cookies
       wrap-session                       ; reads in current HTTP session and sets :session/key
       wrap-gzip))                        ; GZIP response if client can handle it
@@ -133,8 +145,12 @@
     ;; start the metabot thread
     (metabot/start-metabot!))
 
+  (sync-locale)
+  (future (while true (do (Thread/sleep 1000) (sync-locale))))
+  ; (java.util.Locale/setDefault (new java.util.Locale "de"))
+
   (init-status/set-complete!)
-  (log/info "Metabase Initialization COMPLETE"))
+  (log/info (trs "{0} Initialization COMPLETE" (trs "Metabase"))))
 
 
 ;;; ## ---------------------------------------- Jetty (Web) Server ----------------------------------------

@@ -25,17 +25,17 @@ const GroupDescription = ({ group }) =>
         <div className="px2 text-measure">
             <p>
                 All users belong to the {group.name} group and can't be removed from it. Setting permissions for this group is a great way to
-                make sure you know what new Metabase users will be able to see.
+                make sure you know what new {t`Metabase`} users will be able to see.
             </p>
         </div>
     : isAdminGroup(group) ?
         <div className="px2 text-measure">
             <p>
-                This is a special group whose members can see everything in the Metabase instance, and who can access and make changes to the
+                This is a special group whose members can see everything in the {t`Metabase`} instance, and who can access and make changes to the
                 settings in the Admin Panel, including changing permissions! So, add people to this group with care.
             </p>
             <p>
-                To make sure you don't get locked out of Metabase, there always has to be at least one user in this group.
+                To make sure you don't get locked out of {t`Metabase`}, there always has to be at least one user in this group.
             </p>
         </div>
     :

@@ -9,6 +9,7 @@
             [clojure.java.io :as io]
             [clojure.tools.logging :as log]
             [hiccup.core :refer [h html]]
+            [metabase.public-settings :as public-settings]
             [metabase.util :as u]
             [metabase.util.urls :as urls])
   (:import cz.vutbr.web.css.MediaSpec
@@ -43,32 +44,47 @@
 (def ^:private ^:const color-gray-3 "rgb(124,131,129)")
 (def ^:const color-gray-4 "A ~25% Gray color." "rgb(57,67,64)")
 
-(def ^:private ^:const font-style    {:font-family "Lato, \"Helvetica Neue\", Helvetica, Arial, sans-serif"})
-(def ^:const section-style
-  "CSS style for a Pulse section."
-  font-style)
+(defn- primary-color []
+  (let [color (public-settings/application-color)]
+    (if (= color "#509EE3")
+      color-brand
+      color)))
 
-(def ^:private ^:const header-style
-  (merge font-style {:font-size       :16px
+(defn- secondary-color []
+  (let [primary (primary-color)]
+    (if (= primary color-brand)
+      color-purple
+      primary)))
+
+(defn- font-style []
+  {:font-family "Lato, \"Helvetica Neue\", Helvetica, Arial, sans-serif"})
+
+(defn section-style
+  "CSS style for a Pulse section."
+  []
+  (font-style))
+
+(defn- header-style []
+  (merge (font-style) {:font-size       :16px
                      :font-weight     700
                      :color           color-gray-4
                      :text-decoration :none}))
 
-(def ^:private ^:const scalar-style
-  (merge font-style {:font-size   :24px
+(defn- scalar-style []
+  (merge (font-style) {:font-size   :24px
                      :font-weight 700
-                     :color       color-brand}))
+                     :color       (primary-color)}))
 
-(def ^:private ^:const bar-th-style
-  (merge font-style {:font-size      :10px
+(defn- bar-th-style []
+  (merge (font-style) {:font-size      :10px
                      :font-weight    400
                      :color          color-gray-4
                      :border-bottom  (str "4px solid " color-gray-1)
                      :padding-top    :0px
                      :padding-bottom :10px}))
 
-(def ^:private ^:const bar-td-style
-  (merge font-style {:font-size     :16px
+(defn- bar-td-style []
+  (merge (font-style) {:font-size     :16px
                      :font-weight   400
                      :text-align    :left
                      :padding-right :1em
@@ -231,20 +247,20 @@
      [:thead
       [:tr
        (for [header-cell header-row]
-         [:th {:style (style bar-td-style bar-th-style {:min-width :60px})}
+         [:th {:style (style (bar-td-style) (bar-th-style) {:min-width :60px})}
           (h header-cell)])
        (when bar-width
-         [:th {:style (style bar-td-style bar-th-style {:width (str bar-width "%")})}])]])
+         [:th {:style (style (bar-td-style) (bar-th-style) {:width (str bar-width "%")})}])]])
    [:tbody
     (map-indexed (fn [row-idx {:keys [row bar-width]}]
                    [:tr {:style (style {:color (if (odd? row-idx) color-gray-2 color-gray-3)})}
                     (map-indexed (fn [col-idx cell]
-                                   [:td {:style (style bar-td-style (when (and bar-width (= col-idx 1)) {:font-weight 700}))}
+                                   [:td {:style (style (bar-td-style) (when (and bar-width (= col-idx 1)) {:font-weight 700}))}
                                     (h cell)])
                                  row)
                     (when bar-width
-                      [:td {:style (style bar-td-style {:width :99%})}
-                       [:div {:style (style {:background-color color-purple
+                      [:td {:style (style (bar-td-style) {:width :99%})}
+                       [:div {:style (style {:background-color (secondary-color)
                                              :max-height       :10px
                                              :height           :10px
                                              :border-radius    :2px
@@ -336,7 +352,7 @@
 
 (defn- render:scalar
   [card {:keys [cols rows]}]
-  [:div {:style (style scalar-style)}
+  [:div {:style (style (scalar-style))}
    (-> rows first first (format-cell (first cols)) h)])
 
 (defn- render-sparkline-to-png
@@ -398,7 +414,7 @@
             :src   (*render-img-fn* (render-sparkline-to-png xs' ys' 524 130))}]
      [:table
       [:tr
-       [:td {:style (style {:color         color-brand
+       [:td {:style (style {:color         (primary-color)
                             :font-size     :24px
                             :font-weight   700
                             :padding-right :16px})}
@@ -408,7 +424,7 @@
                             :font-weight 700})}
         (second values)]]
       [:tr
-       [:td {:style (style {:color         color-brand
+       [:td {:style (style {:color         (primary-color)
                             :font-size     :16px
                             :font-weight   700
                             :padding-right :16px})}
@@ -457,7 +473,7 @@
   [card {:keys [data error]}]
   [:a {:href   (card-href card)
        :target "_blank"
-       :style  (style section-style
+       :style  (style (section-style)
                       {:margin          :16px
                        :margin-bottom   :16px
                        :display         :block
@@ -467,7 +483,7 @@
                              :width         :100%})}
       [:tbody
        [:tr
-        [:td [:span {:style header-style}
+        [:td [:span {:style (header-style)}
               (-> card :name h)]]
         [:td {:style (style {:text-align :right})}
          (when *include-buttons*
@@ -483,13 +499,13 @@
       :sparkline (render:sparkline card data)
       :bar       (render:bar       card data)
       :table     (render:table     card data)
-      [:div {:style (style font-style
+      [:div {:style (style (font-style)
                            {:color       "#F9D45C"
                             :font-weight 700})}
        "We were unable to display this card." [:br] "Please view this card in Metabase."])
     (catch Throwable e
       (log/warn "Pulse card render error:" e)
-      [:div {:style (style font-style
+      [:div {:style (style (font-style)
                            {:color       "#EF8C8C"
                             :font-weight 700
                             :padding     :16px})}

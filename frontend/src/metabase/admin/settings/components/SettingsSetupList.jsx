@@ -1,7 +1,9 @@
 import React, { Component } from "react";
 import { Link } from "react-router";
+
 import Icon from "metabase/components/Icon.jsx";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper.jsx";
+
 import { SetupApi } from "metabase/services";
 
 const TaskList = ({tasks}) =>
@@ -83,7 +85,7 @@ export default class SettingsSetupList extends Component {
         return (
             <div className="px2">
               <h2>Getting set up</h2>
-              <p className="mt1">A few things you can do to get the most out of Metabase.</p>
+              <p className="mt1">A few things you can do to get the most out of {t`Metabase`}.</p>
               <LoadingAndErrorWrapper loading={!this.state.tasks} error={this.state.error} >
               { () =>
                   <div style={{maxWidth: 468}}>

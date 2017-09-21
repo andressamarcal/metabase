@@ -6,7 +6,7 @@ import Icon from "metabase/components/Icon.jsx";
 import SidebarSection from "./SidebarSection.jsx";
 import * as Urls from "metabase/lib/urls";
 
-import { normal } from "metabase/lib/colors";
+import { normal, brand } from "metabase/lib/colors";
 
 export default class RecentViews extends Component {
     static propTypes = {
@@ -35,7 +35,7 @@ export default class RecentViews extends Component {
     render() {
         const { recentViews } = this.props;
         return (
-            <SidebarSection title="Recently Viewed" icon="clock">
+            <SidebarSection title={t`Recently Viewed`} icon="clock">
                 {recentViews.length > 0 ?
                     <ul className="p2">
                         {recentViews.map((item, index) => {
@@ -45,7 +45,7 @@ export default class RecentViews extends Component {
                                     <Icon
                                         name={iconName}
                                         size={18}
-                                        style={{ color: iconName === 'dashboard' ? normal.purple : normal.blue }}
+                                        style={{ color: iconName === 'dashboard' ? normal.purple : brand.normal }}
                                     />
                                     <Link to={Urls.modelToUrl(item.model, item.model_id)} data-metabase-event={"Recent Views;"+item.model+";"+item.cnt} className="ml1 flex-full link">
                                         {item.model_object.name}
@@ -57,7 +57,7 @@ export default class RecentViews extends Component {
                 :
                     <div className="flex flex-column layout-centered text-normal text-grey-2">
                         <p className="p3 text-centered text-grey-2" style={{ "maxWidth": "100%" }}>
-                            You haven't looked at any dashboards or questions recently
+                            {t`You haven't looked at any dashboards or questions recently`}
                         </p>
                     </div>
                 }

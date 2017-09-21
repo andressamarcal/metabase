@@ -19,3 +19,5 @@ export const getContext = createSelector(
         :
             'main'
 );
+
+export const getFeatures = (state) => state.settings.values.features;

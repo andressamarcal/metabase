@@ -48,6 +48,8 @@ export const NoSavedQuestionsState = () =>
             image="/app/img/questions_illustration"
             action="Ask a question"
             link="/question"
+            imageClassName="brand-hue"
+
         />
     </div>;
 
@@ -152,4 +154,3 @@ export class QuestionIndex extends Component {
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(QuestionIndex);
-

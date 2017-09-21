@@ -99,5 +99,5 @@ export const field_visibility_types = [{
 }, {
     'id': 'sensitive',
     'name': 'Do Not Include',
-    'description': 'Metabase will never retrieve this field. Use this for sensitive or irrelevant information.'
+    'description': t`Metabase` + ' will never retrieve this field. Use this for sensitive or irrelevant information.'
 }];

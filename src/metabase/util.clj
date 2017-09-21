@@ -16,6 +16,7 @@
             [clojure.tools.namespace.find :as ns-find]
             colorize.core ; this needs to be loaded for `format-color`
             [metabase.config :as config]
+            [puppetlabs.i18n.core :as i18n :refer [trs trsn tru trun]]
             [ring.util.codec :as codec])
   (:import clojure.lang.Keyword
            [java.net InetAddress InetSocketAddress Socket]
@@ -26,10 +27,24 @@
            org.joda.time.DateTime
            org.joda.time.format.DateTimeFormatter))
 
+;; HACK: monkey patch i18n to use :application-name setting in place of "Metabase".
+;; There's almost certainly a better way to do this
+(in-ns 'puppetlabs.i18n.core)
+(def translate-original puppetlabs.i18n.core/translate)
+(defn translate
+  [namespace loc msg & args]
+  (if (= msg "Metabase")
+    (try
+      ((resolve 'metabase.models.setting/get) :application-name)
+    (catch Throwable e
+      "Metabaes"))
+    (apply translate-original (concat [namespace loc msg] args))))
+(in-ns 'metabase.util)
+
 ;; This is the very first log message that will get printed.
 ;; It's here because this is one of the very first namespaces that gets loaded, and the first that has access to the logger
 ;; It shows up a solid 10-15 seconds before the "Starting Metabase in STANDALONE mode" message because so many other namespaces need to get loaded
-(log/info "Loading Metabase...")
+(log/info (trs "Loading {0}..." (trs "Metabase")))
 
 ;; Set the default width for pprinting to 200 instead of 72. The default width is too narrow and wastes a lot of space for pprinting huge things like expanded queries
 (intern 'clojure.pprint '*print-right-margin* 200)
@@ -801,11 +816,21 @@
                   v
                   (select-nested-keys v nested-keys))})))
 
-(defn base-64-string?
+(defn base64-string?
   "Is S a Base-64 encoded string?"
   ^Boolean [s]
   (boolean (when (string? s)
              (re-find #"^[0-9A-Za-z/+]+=*$" s))))
+
+(defn decode-base64
+  "Decodes a Base64 string to a UTF-8 string"
+  [input]
+  (new java.lang.String (javax.xml.bind.DatatypeConverter/parseBase64Binary input) "UTF-8"))
+
+(defn encode-base64
+  "Encodes a string to a Base64 string"
+  [input]
+  (javax.xml.bind.DatatypeConverter/printBase64Binary (.getBytes input "UTF-8")))
 
 (defn safe-inc
   "Increment N if it is non-`nil`, otherwise return `1` (e.g. as if incrementing `0`)."

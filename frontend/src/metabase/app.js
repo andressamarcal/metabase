@@ -3,6 +3,17 @@
 import 'babel-polyfill';
 import 'number-to-locale-string';
 
+// make the i18n function "t" global so we don't have to import it in basically every file
+import { t, jt } from "c-3po";
+global.t = t;
+global.jt = jt;
+
+// set the locale before loading anything else
+import { setLocalization } from "metabase/lib/i18n";
+if (window.MetabaseLocalization) {
+    setLocalization(window.MetabaseLocalization)
+}
+
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { Provider } from 'react-redux'
@@ -19,6 +30,8 @@ import { refreshSiteSettings } from "metabase/redux/settings";
 import { Router, useRouterHistory } from "react-router";
 import { createHistory } from 'history'
 import { syncHistoryWithStore } from 'react-router-redux';
+
+import { updateColorScheme } from "metabase/lib/whitelabel";
 
 // remove trailing slash
 const BASENAME = window.MetabaseRoot.replace(/\/+$/, "");
@@ -55,6 +68,9 @@ function _init(reducers, getRoutes, callback) {
     MetabaseSettings.on("anon_tracking_enabled", () => {
         window['ga-disable-' + MetabaseSettings.get('ga_code')] = MetabaseSettings.isTrackingEnabled() ? null : true;
     });
+
+    MetabaseSettings.on("application-color", updateColorScheme);
+    updateColorScheme()
 
     if (callback) {
         callback(store);

@@ -114,10 +114,10 @@ export default class SettingsSingleSignOnForm extends Component {
                     />
                     <h2>Sign in with Google</h2>
                     <p className="text-grey-4">
-                        Allows users with existing Metabase accounts to login with a Google account that matches their email address in addition to their Metabase username and password.
+                        Allows users with existing {t`Metabase`} accounts to login with a Google account that matches their email address in addition to their {t`Metabase`} username and password.
                     </p>
                     <p className="text-grey-4">
-                        To allow users to sign in with Google you'll need to give Metabase a Google Developers console application client ID. It only takes a few steps and instructions on how to create a key can be found <a className="link" href="https://developers.google.com/identity/sign-in/web/devconsole-project" target="_blank">here.</a>
+                        To allow users to sign in with Google you'll need to give {t`Metabase`} a Google Developers console application client ID. It only takes a few steps and instructions on how to create a key can be found <a className="link" href="https://developers.google.com/identity/sign-in/web/devconsole-project" target="_blank">here.</a>
                     </p>
                     <Input
                         className="SettingsInput AdminInput bordered rounded h3"

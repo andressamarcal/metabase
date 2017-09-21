@@ -12,12 +12,13 @@ import * as Urls from "metabase/lib/urls";
 
 import ProfileLink from "metabase/nav/components/ProfileLink.jsx";
 
-import { getPath, getContext, getUser } from "../selectors";
+import { getPath, getContext, getUser, getFeatures } from "../selectors";
 
 const mapStateToProps = (state, props) => ({
     path:       getPath(state, props),
     context:    getContext(state, props),
-    user:       getUser(state)
+    user:       getUser(state),
+    features:   getFeatures(state) || {},
 });
 
 const mapDispatchToProps = {
@@ -85,7 +86,7 @@ export default class Navbar extends Component {
                 <div className="wrapper flex align-center">
                     <div className="NavTitle flex align-center">
                         <Icon name={'gear'} className="AdminGear" size={22}></Icon>
-                        <span className="NavItem-text ml1 hide sm-show text-bold">Metabase Admin Panel</span>
+                        <span className="NavItem-text ml1 hide sm-show text-bold">{t`Metabase`} Admin Panel</span>
                     </div>
 
                     <ul className="sm-ml4 flex flex-full text-strong">
@@ -117,6 +118,8 @@ export default class Navbar extends Component {
     }
 
     renderMainNav() {
+        const { features } = this.props;
+        const featuresCount = Object.values(features).filter(enabled => enabled).length;
         return (
             <nav className={cx("Nav relative bg-brand sm-py2 sm-py1 xl-py3", this.props.className)}>
                 <ul className="ml2 sm-pl4 pr1 flex align-center">
@@ -125,23 +128,33 @@ export default class Navbar extends Component {
                             <LogoIcon dark={true}></LogoIcon>
                         </Link>
                     </li>
-                    <li className="pl3 hide xs-show">
-                        <MainNavLink to="/dashboards" name="Dashboards" eventName="Dashboards" />
-                    </li>
-                    <li className="pl1 hide xs-show">
-                        <MainNavLink to="/questions" name="Questions" eventName="Questions" />
-                    </li>
-                    <li className="pl1 hide sm-show">
-                        <MainNavLink to="/pulse" name="Pulses" eventName="Pulses" />
-                    </li>
-                    <li className="pl1 hide sm-show">
-                        <MainNavLink to="/reference/guide" name="Data Reference" eventName="DataReference" />
-                    </li>
-                    <li className="pl3 hide sm-show">
-                        <Link to={Urls.newQuestion()} data-metabase-event={"Navbar;New Question"} style={BUTTON_PADDING_STYLES.newQuestion} className="NavNewQuestion rounded inline-block bg-white text-brand text-bold cursor-pointer px2 no-decoration transition-all">
-                            New <span>Question</span>
-                        </Link>
-                    </li>
+                    { features.dashboards && featuresCount > 1 &&
+                        <li className="pl3 hide xs-show">
+                            <MainNavLink to="/dashboards" name={t`Dashboards`} eventName="Dashboards" />
+                        </li>
+                    }
+                    { features.questions && featuresCount > 1 &&
+                        <li className="pl1 hide xs-show">
+                            <MainNavLink to="/questions" name={t`Questions`} eventName="Questions" />
+                        </li>
+                    }
+                    { features.pulse && featuresCount > 1 &&
+                        <li className="pl1 hide sm-show">
+                            <MainNavLink to="/pulse" name={t`Pulses`} eventName="Pulses" />
+                        </li>
+                    }
+                    { features.reference && featuresCount > 1 &&
+                        <li className="pl1 hide sm-show">
+                            <MainNavLink to="/reference/guide" name={t`Data Reference`} eventName="DataReference" />
+                        </li>
+                    }
+                    { features.question && featuresCount > 1 &&
+                        <li className="pl3 hide sm-show">
+                            <Link to={Urls.question()} data-metabase-event={"Navbar;New Question"} style={BUTTON_PADDING_STYLES.newQuestion} className="NavNewQuestion rounded inline-block bg-white text-brand text-bold cursor-pointer px2 no-decoration transition-all">
+                                {t`New Question`}
+                            </Link>
+                        </li>
+                    }
                     <li className="flex-align-right transition-background">
                         <div className="inline-block text-white"><ProfileLink {...this.props}></ProfileLink></div>
                     </li>
