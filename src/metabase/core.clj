@@ -150,7 +150,7 @@
   ; (java.util.Locale/setDefault (new java.util.Locale "de"))
 
   (init-status/set-complete!)
-  (log/info (trs "{0} Initialization COMPLETE" (trs "Metabase"))))
+  (log/info (trs "{0} Initialization COMPLETE" "Metabase")))
 
 
 ;;; ## ---------------------------------------- Jetty (Web) Server ----------------------------------------

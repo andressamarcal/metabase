@@ -27,24 +27,24 @@
            org.joda.time.DateTime
            org.joda.time.format.DateTimeFormatter))
 
-;; HACK: monkey patch i18n to use :application-name setting in place of "Metabase".
-;; There's almost certainly a better way to do this
-(in-ns 'puppetlabs.i18n.core)
-(def translate-original puppetlabs.i18n.core/translate)
-(defn translate
-  [namespace loc msg & args]
-  (if (= msg "Metabase")
-    (try
-      ((resolve 'metabase.models.setting/get) :application-name)
-    (catch Throwable e
-      "Metabaes"))
-    (apply translate-original (concat [namespace loc msg] args))))
-(in-ns 'metabase.util)
+(defn app-name-trs
+  "Return the user configured application name, or Metabase translated
+  via tru if a name isn't configured."
+  []
+  (or ((resolve 'metabase.models.setting/get) :application-name)
+      (trs "Metabase")))
+
+(defn app-name-tru
+  "Return the user configured application name, or Metabase,
+  translated via tru if a name isn't configured."
+  []
+  (or ((resolve 'metabase.models.setting/get) :application-name)
+      (tru "Metabase")))
 
 ;; This is the very first log message that will get printed.
 ;; It's here because this is one of the very first namespaces that gets loaded, and the first that has access to the logger
 ;; It shows up a solid 10-15 seconds before the "Starting Metabase in STANDALONE mode" message because so many other namespaces need to get loaded
-(log/info (trs "Loading {0}..." (trs "Metabase")))
+(log/info (trs "Loading {0}..." "Metabase"))
 
 ;; Set the default width for pprinting to 200 instead of 72. The default width is too narrow and wastes a lot of space for pprinting huge things like expanded queries
 (intern 'clojure.pprint '*print-right-margin* 200)

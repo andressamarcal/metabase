@@ -119,7 +119,7 @@
         num-users          (db/count 'User)]
     [{:title       (tru "Add a database")
       :group       (tru "Get connected")
-      :description (tru "Connect {0} to your data so your whole team can start to explore." (trs "Metabase"))
+      :description (tru "Connect {0} to your data so your whole team can start to explore." (u/app-name-tru))
       :link        "/admin/databases/create"
       :completed   has-dbs?
       :triggered   :always}
@@ -151,7 +151,7 @@
       :triggered   (>= num-tables 20)}
      {:title       (tru "Organize questions")
       :group       (tru "Curate your data")
-      :description (tru "Have a lot of saved questions in {0}? Create collections to help manage them and add context." (tru "Metabase"))
+      :description (tru "Have a lot of saved questions in {0}? Create collections to help manage them and add context." (u/app-name-tru))
       :link        "/questions/"
       :completed   has-collections?
       :triggered   (>= num-cards 30)}
