@@ -114,7 +114,8 @@
 (def ^:private HexColor #"#([0-9a-fA-F]{3}){1,2}")
 
 (defsetting application-color
-  "The color scheme to use. A hex color code such as #509EE3"
+  "The desired primary application color to use. A hex color code such as #509EE3. 
+   We'll adjust our other colors to match it."
   :type    :string
   :default "#509EE3"
   :setter  (fn [new-value]
