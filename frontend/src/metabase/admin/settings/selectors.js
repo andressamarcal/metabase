@@ -384,7 +384,7 @@ const SECTIONS = [
             },
             {
                 key: "application-color",
-                display_name: "Application Primary Color",
+                display_name: "Primary Color",
                 type: "string",
             },
             {
