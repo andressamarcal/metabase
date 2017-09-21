@@ -44,10 +44,7 @@
 ;; This is the very first log message that will get printed.
 ;; It's here because this is one of the very first namespaces that gets loaded, and the first that has access to the logger
 ;; It shows up a solid 10-15 seconds before the "Starting Metabase in STANDALONE mode" message because so many other namespaces need to get loaded
-;;
-;; Also for this same reason, the database connection for getting the application-name is also not available, this just uses the translated Metabase
-;; string until that code has been loaded
-(log/info (trs "Loading {0}..." (trs "Metabase")))
+(log/info (trs "Loading {0}..." "Metabase"))
 
 ;; Set the default width for pprinting to 200 instead of 72. The default width is too narrow and wastes a lot of space for pprinting huge things like expanded queries
 (intern 'clojure.pprint '*print-right-margin* 200)
