@@ -114,7 +114,8 @@
 (def ^:private HexColor #"#([0-9a-fA-F]{3}){1,2}")
 
 (defsetting application-color
-  "The color scheme to use. A hex color code such as #509EE3"
+  "The main theme color. It'll appear in the main nav and other places that are currently blue. 
+   We'll adjust our other colors to match it."
   :type    :string
   :default "#509EE3"
   :setter  (fn [new-value]
