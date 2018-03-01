@@ -4,6 +4,7 @@ import React from "react";
 import LogoIcon from "metabase/components/LogoIcon";
 
 import cx from "classnames";
+import { t } from "c-3po";
 
 type Props = {
   dark: boolean,
