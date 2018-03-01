@@ -1,4 +1,5 @@
 import generatePassword from "password-generator";
+import { t } from 'c-3po';
 
 function s4() {
     return Math.floor((1 + Math.random()) * 0x10000)
@@ -37,12 +38,13 @@ var MetabaseUtils = {
     },
 
     isEmpty: function(str) {
-        return (str == null || 0 === str.length);
+        if (str != null) str = String(str); // make sure 'str' is actually a string
+        return (str == null || 0 === str.length || str.match(/^\s+$/) != null);
     },
 
     // pretty limited.  just does 0-9 for right now.
     numberToWord: function(num) {
-        var names = ["zero","one","two","three","four","five","six","seven","eight","nine"];
+        var names = [t`zero`,t`one`,t`two`,t`three`,t`four`,t`five`,t`six`,t`seven`,t`eight`,t`nine`];
 
         if (num >= 0 && num <= 9) {
             return names[num];
@@ -64,7 +66,7 @@ var MetabaseUtils = {
     },
 
     isJWT(string) {
-        return typeof string === "string" && /^[A-Za-z0-9]+\.[A-Za-z0-9]+\.[A-Za-z0-9_-]+$/.test(string);
+        return typeof string === "string" && /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(string);
     },
 
     validEmail: function(email) {

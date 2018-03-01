@@ -1,7 +1,7 @@
 /* @flow */
 
 import React, { Component } from "react";
-
+import { t } from 'c-3po';
 import Icon from "metabase/components/Icon.jsx";
 import FieldName from '../FieldName.jsx';
 import Popover from "metabase/components/Popover.jsx";
@@ -9,6 +9,7 @@ import FilterPopover from "./FilterPopover.jsx";
 
 import { generateTimeFilterValuesDescriptions } from "metabase/lib/query_time";
 import { formatValue } from "metabase/lib/formatting";
+import { hasFilterOptions } from "metabase/lib/query/filter";
 
 import cx from "classnames";
 import _ from "underscore";
@@ -55,6 +56,9 @@ export default class FilterWidget extends Component {
     renderOperatorFilter() {
         const { query, filter, maxDisplayValues } = this.props;
         let [op, field, ...values] = filter;
+        if (hasFilterOptions(filter)) {
+          values = values.slice(0, -1);
+        }
 
         const dimension = query.parseFieldReference(field);
         if (!dimension) {
@@ -67,7 +71,7 @@ export default class FilterWidget extends Component {
         // $FlowFixMe: not understanding maxDisplayValues is provided by defaultProps
         if (operator && operator.multi && values.length > maxDisplayValues) {
             formattedValues = [values.length + " selections"];
-        } else if (dimension.field().isDate()) {
+        } else if (dimension.field().isDate() && !dimension.field().isTime()) {
             formattedValues = generateTimeFilterValuesDescriptions(filter);
         } else {
             // TODO Atte Keinänen 7/16/17: Move formatValue to metabase-lib
@@ -112,7 +116,7 @@ export default class FilterWidget extends Component {
             <div onClick={this.open}>
                 <div className="flex align-center" style={{padding: "0.5em", paddingTop: "0.3em", paddingBottom: "0.3em", paddingLeft: 0}}>
                     <div className="Filter-section Filter-section-field">
-                        <span className="QueryOption">Matches</span>
+                        <span className="QueryOption">{t`Matches`}</span>
                     </div>
                 </div>
                 <div className="flex align-center flex-wrap">
@@ -135,6 +139,7 @@ export default class FilterWidget extends Component {
                     isInitiallyOpen={this.props.filter[1] === null}
                     onClose={this.close}
                     horizontalAttachments={["left"]}
+                    autoWidth
                 >
                     <FilterPopover
                         query={query}

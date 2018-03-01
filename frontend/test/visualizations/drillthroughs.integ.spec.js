@@ -6,7 +6,7 @@ import { initializeQB, navigateToNewCardInsideQB } from "metabase/query_builder/
 import { parse as urlParse } from "url";
 
 import {
-    login,
+    useSharedAdminLogin,
     createTestStore
 } from "__support__/integrated_tests";
 
@@ -23,7 +23,7 @@ const store = createTestStore()
 const getVisualization = (question, results, onChangeCardAndRun) =>
     store.connectContainer(
         <Visualization
-            series={[{card: question.card(), data: results[0].data}]}
+            rawSeries={[{card: question.card(), data: results[0].data}]}
             onChangeCardAndRun={navigateToNewCardInsideQB}
             metadata={metadata}
         />
@@ -36,7 +36,7 @@ const question = Question.create({databaseId: DATABASE_ID, tableId: ORDERS_TABLE
 
 describe('Visualization drill-through', () => {
     beforeAll(async () => {
-        await login();
+        useSharedAdminLogin();
     });
 
     // NOTE: Should this be here or somewhere in QB directory?
@@ -52,7 +52,7 @@ describe('Visualization drill-through', () => {
                 // (we are intentionally simplifying things by not rendering the QB but just focusing the redux state instead)
                 await store.dispatch(initializeQB(urlParse(question.getUrl()), {}))
 
-                const results = await question.getResults();
+                const results = await question.apiGetResults();
                 const viz = shallow(getVisualization(question, results, navigateToNewCardInsideQB));
                 const clickActions = viz.find(ChartClickActions).dive();
 

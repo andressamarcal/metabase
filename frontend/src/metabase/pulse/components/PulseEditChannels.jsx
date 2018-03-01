@@ -3,30 +3,31 @@ import React, { Component } from "react";
 import PropTypes from "prop-types";
 import _ from "underscore";
 import { assoc, assocIn } from "icepick";
+import { t } from 'c-3po';
 
 import RecipientPicker from "./RecipientPicker.jsx";
-import SetupMessage from "./SetupMessage.jsx";
 
 import SchedulePicker from "metabase/components/SchedulePicker.jsx";
 import ActionButton from "metabase/components/ActionButton.jsx";
 import Select from "metabase/components/Select.jsx";
 import Toggle from "metabase/components/Toggle.jsx";
 import Icon from "metabase/components/Icon.jsx";
+import ChannelSetupMessage from "metabase/components/ChannelSetupMessage";
 
 import MetabaseAnalytics from "metabase/lib/analytics";
 
-import { channelIsValid } from "metabase/lib/pulse";
+import { channelIsValid, createChannel } from "metabase/lib/pulse";
 
 import cx from "classnames";
 
-const CHANNEL_ICONS = {
+export const CHANNEL_ICONS = {
     email: "mail",
     slack: "slack"
 };
 
 const CHANNEL_NOUN_PLURAL = {
-    "email": "Emails",
-    "slack": "Slack messages"
+    "email": t`Emails`,
+    "slack": t`Slack messages`
 };
 
 export default class PulseEditChannels extends Component {
@@ -43,8 +44,10 @@ export default class PulseEditChannels extends Component {
         user: PropTypes.object.isRequired,
         userList: PropTypes.array.isRequired,
         setPulse: PropTypes.func.isRequired,
-        testPulse: PropTypes.func.isRequired,
-        cardPreviews: PropTypes.array
+        testPulse: PropTypes.func,
+        cardPreviews: PropTypes.object,
+        hideSchedulePicker: PropTypes.bool,
+        emailRecipientText: PropTypes.string
     };
     static defaultProps = {};
 
@@ -56,27 +59,7 @@ export default class PulseEditChannels extends Component {
             return;
         }
 
-        let details = {};
-        // if (channelSpec.fields) {
-        //     for (let field of channelSpec.fields) {
-        //         if (field.required) {
-        //             if (field.type === "select") {
-        //                 details[field.name] = field.options[0];
-        //             }
-        //         }
-        //     }
-        // }
-
-        let channel = {
-            channel_type: type,
-            enabled: true,
-            recipients: [],
-            details: details,
-            schedule_type: channelSpec.schedules[0],
-            schedule_day: "mon",
-            schedule_hour: 8,
-            schedule_frame: "first"
-        };
+        let channel = createChannel(channelSpec);
 
         this.props.setPulse({ ...pulse, channels: pulse.channels.concat(channel) });
 
@@ -178,9 +161,10 @@ export default class PulseEditChannels extends Component {
                 }
                 { channelSpec.recipients &&
                     <div>
-                        <div className="h4 text-bold mb1">To:</div>
+                        <div className="h4 text-bold mb1">{ this.props.emailRecipientText || "To:" }</div>
                         <RecipientPicker
                             isNewPulse={this.props.pulseId === undefined}
+                            autoFocus={!!this.props.pulse.name}
                             recipients={channel.recipients}
                             recipientTypes={channelSpec.recipients}
                             users={this.props.userList}
@@ -191,28 +175,30 @@ export default class PulseEditChannels extends Component {
                 { channelSpec.fields &&
                     this.renderFields(channel, index, channelSpec)
                 }
-                { channelSpec.schedules &&
+                { !this.props.hideSchedulePicker && channelSpec.schedules &&
                     <SchedulePicker
                         schedule={_.pick(channel, "schedule_day", "schedule_frame", "schedule_hour", "schedule_type") }
                         scheduleOptions={channelSpec.schedules}
-                        textBeforeInterval="Sent"
-                        textBeforeSendTime={`${CHANNEL_NOUN_PLURAL[channelSpec && channelSpec.type] || "Messages"} will be sent at `}
+                        textBeforeInterval={t`Sent`}
+                        textBeforeSendTime={t`${CHANNEL_NOUN_PLURAL[channelSpec && channelSpec.type] || t`Messages`} will be sent at`}
                         onScheduleChange={this.onChannelScheduleChange.bind(this, index)}
                     />
                 }
-                <div className="pt2">
-                    <ActionButton
-                        actionFn={this.onTestPulseChannel.bind(this, channel)}
-                        className={cx("Button", { disabled: !isValid })}
-                        normalText={channelSpec.type === "email" ?
-                            "Send email now" :
-                            "Send to  " + channelSpec.name + " now"}
-                        activeText="Sending…"
-                        failedText="Sending failed"
-                        successText={ this.willPulseSkip() ?  "Didn’t send because the pulse has no results." : "Pulse sent"}
-                        forceActiveStyle={ this.willPulseSkip() }
-                    />
-                </div>
+                { this.props.testPulse &&
+                    <div className="pt2">
+                        <ActionButton
+                            actionFn={this.onTestPulseChannel.bind(this, channel)}
+                            className={cx("Button", { disabled: !isValid })}
+                            normalText={channelSpec.type === "email" ?
+                                t`Send email now` :
+                                t`Send to ${channelSpec.name} now`}
+                            activeText={t`Sending…`}
+                            failedText={t`Sending failed`}
+                            successText={ this.willPulseSkip() ?  t`Didn’t send because the pulse has no results.` : t`Pulse sent`}
+                            forceActiveStyle={ this.willPulseSkip() }
+                        />
+                    </div>
+                }
             </li>
         );
     }
@@ -233,8 +219,8 @@ export default class PulseEditChannels extends Component {
                     <ul className="bg-grey-0 px3">{channels}</ul>
                 : channels.length > 0 && !channelSpec.configured ?
                     <div className="p4 text-centered">
-                        <h3 className="mb2">{channelSpec.name} needs to be set up by an administrator.</h3>
-                        <SetupMessage user={user} channels={[channelSpec.name]} />
+                        <h3 className="mb2">{t`${channelSpec.name} needs to be set up by an administrator.`}</h3>
+                        <ChannelSetupMessage user={user} channels={[channelSpec.name]} />
                     </div>
                 : null
                 }
@@ -246,18 +232,15 @@ export default class PulseEditChannels extends Component {
         let { formInput } = this.props;
         // Default to show the default channels until full formInput is loaded
         let channels = formInput.channels || {
-            email: { name: "Email", type: "email" },
-            slack: { name: "Slack", type: "slack" }
+            email: { name: t`Email`, type: "email" },
+            slack: { name: t`Slack`, type: "slack" }
         };
         return (
-            <div className="py1 mb4">
-                <h2 className="mb3">Where should this data go?</h2>
-                <ul className="bordered rounded">
-                    {Object.values(channels).map(channelSpec =>
-                        this.renderChannelSection(channelSpec)
-                    )}
-                </ul>
-            </div>
+            <ul className="bordered rounded">
+                {Object.values(channels).map(channelSpec =>
+                    this.renderChannelSection(channelSpec)
+                )}
+            </ul>
         );
     }
 }

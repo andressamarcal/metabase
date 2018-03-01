@@ -3,7 +3,7 @@
 import React, { Component } from "react";
 import ReactDOM from "react-dom";
 import { connect } from "react-redux";
-
+import { t } from 'c-3po';
 import cx from "classnames";
 import _ from "underscore";
 
@@ -46,7 +46,9 @@ import {
     getMode,
     getQuery,
     getQuestion,
-    getOriginalQuestion
+    getOriginalQuestion,
+    getSettings,
+    getRawSeries
 } from "../selectors";
 
 import { getMetadata, getDatabasesList } from "metabase/selectors/metadata";
@@ -97,6 +99,7 @@ const mapStateToProps = (state, props) => {
 
         result:                    getQueryResult(state),
         results:                   getQueryResults(state),
+        rawSeries:                 getRawSeries(state),
 
         isDirty:                   getIsDirty(state),
         isNew:                     getIsNew(state),
@@ -116,6 +119,7 @@ const mapStateToProps = (state, props) => {
 
         loadTableAndForeignKeysFn: loadTableAndForeignKeys,
         autocompleteResultsFn:     (prefix) => autocompleteResults(state.qb.card, prefix),
+        instanceSettings:          getSettings(state)
     }
 }
 
@@ -131,7 +135,7 @@ const mapDispatchToProps = {
 
 
 @connect(mapStateToProps, mapDispatchToProps)
-@title(({ card }) => (card && card.name) || "Question")
+@title(({ card }) => (card && card.name) || t`Question`)
 export default class QueryBuilder extends Component {
     forceUpdateDebounced: () => void;
 
@@ -202,7 +206,7 @@ export default class QueryBuilder extends Component {
 
 class LegacyQueryBuilder extends Component {
     render() {
-        const { query, card, isDirty, databases, uiControls, mode } = this.props;
+        const { query, card, isDirty, databases, uiControls, mode, } = this.props;
 
         // if we don't have a card at all or no databases then we are initializing, so keep it simple
         if (!card || !databases) {

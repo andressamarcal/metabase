@@ -6,11 +6,11 @@ import {
     metadata
 } from "__support__/sample_dataset_fixture";
 import Question from "metabase-lib/lib/Question";
-import { login } from "__support__/integrated_tests";
+import { useSharedAdminLogin } from "__support__/integrated_tests";
 
 describe("PivotByCategoryDrill", () => {
     beforeAll(async () => {
-        await login();
+        useSharedAdminLogin();
     });
 
     it("should return a result for Order count pivoted by Subtotal", async () => {
@@ -26,7 +26,7 @@ describe("PivotByCategoryDrill", () => {
 
         const pivotedQuestion = question.pivot([["field-id", 4]]);
 
-        const results = await pivotedQuestion.getResults();
+        const results = await pivotedQuestion.apiGetResults();
         expect(results[0]).toBeDefined();
     });
 });

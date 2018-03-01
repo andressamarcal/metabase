@@ -3,16 +3,16 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import ReactDOM from "react-dom";
-
+import { t } from 'c-3po';
 import AggregationWidget_LEGACY from './AggregationWidget.jsx';
 import BreakoutWidget_LEGACY from './BreakoutWidget.jsx';
-import DataSelector from './DataSelector.jsx';
 import ExtendedOptions from "./ExtendedOptions.jsx";
 import FilterList from './filters/FilterList.jsx';
 import FilterPopover from './filters/FilterPopover.jsx';
 import Icon from "metabase/components/Icon.jsx";
 import IconBorder from 'metabase/components/IconBorder.jsx';
 import PopoverWithTrigger from "metabase/components/PopoverWithTrigger.jsx";
+import { DatabaseSchemaAndTableDataSelector } from "metabase/query_builder/components/DataSelector";
 
 import cx from "classnames";
 import _ from "underscore";
@@ -138,11 +138,11 @@ export default class GuiQueryEditor extends Component {
             }
 
             if (query.canAddFilter()) {
-                addFilterButton = this.renderAdd((filterList ? null : "Add filters to narrow your answer"), null, "addFilterTarget");
+                addFilterButton = this.renderAdd((filterList ? null : t`Add filters to narrow your answer`), null, "addFilterTarget");
             }
         } else {
             enabled = false;
-            addFilterButton = this.renderAdd("Add filters to narrow your answer", null, "addFilterTarget");
+            addFilterButton = this.renderAdd(t`Add filters to narrow your answer`, null, "addFilterTarget");
         }
 
         return (
@@ -158,6 +158,7 @@ export default class GuiQueryEditor extends Component {
                         triggerClasses="flex align-center"
                         getTarget={() => this.refs.addFilterTarget}
                         horizontalAttachments={["left"]}
+                        autoWidth
                     >
                         <FilterPopover
                             isNew
@@ -207,7 +208,7 @@ export default class GuiQueryEditor extends Component {
                 );
                 if (aggregations[index + 1] != null && aggregations[index + 1].length > 0) {
                     aggregationList.push(
-                        <span key={"and"+index} className="text-bold">and</span>
+                        <span key={"and"+index} className="text-bold">{t`and`}</span>
                     );
                 }
             }
@@ -216,7 +217,7 @@ export default class GuiQueryEditor extends Component {
             // TODO: move this into AggregationWidget?
             return (
                 <div className="Query-section Query-section-aggregation disabled">
-                    <a className="QueryOption p1 flex align-center">Raw data</a>
+                    <a className="QueryOption p1 flex align-center">{t`Raw data`}</a>
                 </div>
             );
         }
@@ -254,13 +255,13 @@ export default class GuiQueryEditor extends Component {
                     breakout={breakout}
                     query={query}
                     updateQuery={setDatasetQuery}
-                    addButton={this.renderAdd(i === 0 ? "Add a grouping" : null)}
+                    addButton={this.renderAdd(i === 0 ? t`Add a grouping` : null)}
                 />
             );
 
             if (breakouts[i + 1] != null) {
                 breakoutList.push(
-                    <span key={"and"+i} className="text-bold">and</span>
+                    <span key={"and"+i} className="text-bold">{t`and`}</span>
                 );
             }
         }
@@ -273,21 +274,25 @@ export default class GuiQueryEditor extends Component {
     }
 
     renderDataSection() {
-        const { query } = this.props;
+        const { databases, query, isShowingTutorial } = this.props;
         const tableMetadata = query.tableMetadata();
+        const datasetQuery = query.datasetQuery();
+        const databaseId = datasetQuery && datasetQuery.database
+        const sourceTableId = datasetQuery && datasetQuery.query && datasetQuery.query.source_table;
+        const isInitiallyOpen = (!datasetQuery.database || !sourceTableId) && !isShowingTutorial;
+
         return (
             <div className={"GuiBuilder-section GuiBuilder-data flex align-center arrow-right"}>
-                <span className="GuiBuilder-section-label Query-label">Data</span>
+                <span className="GuiBuilder-section-label Query-label">{t`Data`}</span>
                 { this.props.features.data ?
-                    <DataSelector
-                        ref="dataSection"
-                        includeTables={true}
-                        datasetQuery={query.datasetQuery()}
-                        databases={this.props.databases}
-                        tables={this.props.tables}
+                    <DatabaseSchemaAndTableDataSelector
+                        databases={databases}
+                        selected={sourceTableId}
+                        selectedDatabaseId={databaseId}
+                        selectedTableId={sourceTableId}
                         setDatabaseFn={this.props.setDatabaseFn}
                         setSourceTableFn={this.props.setSourceTableFn}
-                        isInitiallyOpen={(!query.datasetQuery().database || !query.query().source_table) && !this.props.isShowingTutorial}
+                        isInitiallyOpen={isInitiallyOpen}
                     />
                     :
                     <span className="flex align-center px2 py2 text-bold text-grey">
@@ -305,7 +310,7 @@ export default class GuiQueryEditor extends Component {
 
         return (
             <div className="GuiBuilder-section GuiBuilder-filtered-by flex align-center" ref="filterSection">
-                <span className="GuiBuilder-section-label Query-label">Filtered by</span>
+                <span className="GuiBuilder-section-label Query-label">{t`Filtered by`}</span>
                 {this.renderFilters()}
             </div>
         );
@@ -319,7 +324,7 @@ export default class GuiQueryEditor extends Component {
 
         return (
             <div className="GuiBuilder-section GuiBuilder-view flex align-center px1 pr2" ref="viewSection">
-                <span className="GuiBuilder-section-label Query-label">View</span>
+                <span className="GuiBuilder-section-label Query-label">{t`View`}</span>
                 {this.renderAggregation()}
             </div>
         );
@@ -333,7 +338,7 @@ export default class GuiQueryEditor extends Component {
 
         return (
             <div className="GuiBuilder-section GuiBuilder-groupedBy flex align-center px1" ref="viewSection">
-                <span className="GuiBuilder-section-label Query-label">Grouped By</span>
+                <span className="GuiBuilder-section-label Query-label">{t`Grouped By`}</span>
                 {this.renderBreakouts()}
             </div>
         );

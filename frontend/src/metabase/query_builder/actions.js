@@ -1,4 +1,6 @@
 /*@flow weak*/
+import { fetchAlertsForQuestion } from "metabase/alert/alert";
+
 declare var ace: any;
 
 import React from 'react'
@@ -18,7 +20,7 @@ import { isPK } from "metabase/lib/types";
 import Utils from "metabase/lib/utils";
 import { getEngineNativeType, formatJsonQuery } from "metabase/lib/engine";
 import { defer } from "metabase/lib/promise";
-import { addUndo } from "metabase/redux/undo";
+import { addUndo, createUndo } from "metabase/redux/undo";
 import Question from "metabase-lib/lib/Question";
 import { cardIsEquivalent } from "metabase/meta/Card";
 
@@ -29,7 +31,9 @@ import {
     getOriginalQuestion,
     getOriginalCard,
     getIsEditing,
-    getIsShowingDataReference
+    getIsShowingDataReference,
+    getTransformedSeries,
+    getResultsMetadata,
 } from "./selectors";
 
 import { getDatabases, getTables, getDatabasesList, getMetadata } from "metabase/selectors/metadata";
@@ -45,6 +49,8 @@ import {getCardAfterVisualizationClick} from "metabase/visualizations/lib/utils"
 import type { Card } from "metabase/meta/types/Card";
 import StructuredQuery from "metabase-lib/lib/queries/StructuredQuery";
 import NativeQuery from "metabase-lib/lib/queries/NativeQuery";
+import { getPersistableDefaultSettings } from "metabase/visualizations/lib/settings";
+import { clearRequestState } from "metabase/redux/requests";
 
 type UiControls = {
     isEditing?: boolean,
@@ -289,6 +295,9 @@ export const initializeQB = (location, params) => {
             uiControls
         });
 
+        // Fetch alerts for the current question if the question is saved
+        card && card.id && dispatch(fetchAlertsForQuestion(card.id))
+
         // Fetch the question metadata
         card && dispatch(loadMetadataForCard(card));
 
@@ -384,9 +393,11 @@ export const loadMetadataForCard = createThunkAction(LOAD_METADATA_FOR_CARD, (ca
                 await dispatch(loadTableMetadata(singleQuery.tableId()));
             }
 
-            if (singleQuery instanceof NativeQuery && singleQuery.databaseId() != null) {
-                await dispatch(loadDatabaseFields(singleQuery.databaseId()));
-            }
+            // NOTE Atte Keinänen 1/29/18:
+            // For native queries we don't normally know which table(s) we are working on.
+            // We could load all tables of the current database but historically that has caused
+            // major performance problems with users having large databases.
+            // Now components needing table metadata fetch it on-demand.
         }
 
         if (query) {
@@ -518,28 +529,6 @@ export const setParameterValue = createAction(SET_PARAMETER_VALUE, (parameterId,
     return { id: parameterId, value };
 });
 
-export const NOTIFY_CARD_CREATED = "metabase/qb/NOTIFY_CARD_CREATED";
-export const notifyCardCreatedFn = createThunkAction(NOTIFY_CARD_CREATED, (card) => {
-    return (dispatch, getState) => {
-        dispatch(updateUrl(card, { dirty: false }));
-
-        MetabaseAnalytics.trackEvent("QueryBuilder", "Create Card", card.dataset_query.type);
-
-        return card;
-    }
-});
-
-export const NOTIFY_CARD_UPDATED = "metabase/qb/NOTIFY_CARD_UPDATED";
-export const notifyCardUpdatedFn = createThunkAction(NOTIFY_CARD_UPDATED, (card) => {
-    return (dispatch, getState) => {
-        dispatch(updateUrl(card, { dirty: false }));
-
-        MetabaseAnalytics.trackEvent("QueryBuilder", "Update Card", card.dataset_query.type);
-
-        return card;
-    }
-});
-
 // reloadCard
 export const RELOAD_CARD = "metabase/qb/RELOAD_CARD";
 export const reloadCard = createThunkAction(RELOAD_CARD, () => {
@@ -618,11 +607,11 @@ export const navigateToNewCardInsideQB = createThunkAction(NAVIGATE_TO_NEW_CARD,
  * Also shows/hides the template tag editor if the number of template tags has changed.
  */
 export const UPDATE_QUESTION = "metabase/qb/UPDATE_QUESTION";
-export const updateQuestion = (newQuestion) => {
+export const updateQuestion = (newQuestion, { doNotClearNameAndId } = {}) => {
     return (dispatch, getState) => {
         // TODO Atte Keinänen 6/2/2017 Ways to have this happen automatically when modifying a question?
         // Maybe the Question class or a QB-specific question wrapper class should know whether it's being edited or not?
-        if (!getIsEditing(getState()) && newQuestion.isSaved()) {
+        if (!doNotClearNameAndId && !getIsEditing(getState()) && newQuestion.isSaved()) {
             newQuestion = newQuestion.withoutNameAndId();
         }
 
@@ -639,8 +628,69 @@ export const updateQuestion = (newQuestion) => {
         } else if (newTagCount === 0 && !getIsShowingDataReference(getState())) {
             dispatch(setIsShowingTemplateTagsEditor(false));
         }
+
     };
 };
+
+export const API_CREATE_QUESTION = "metabase/qb/API_CREATE_QUESTION";
+export const apiCreateQuestion = (question) => {
+    return async (dispatch, getState) => {
+        // Needed for persisting visualization columns for pulses/alerts, see #6749
+        const series = getTransformedSeries(getState())
+        const questionWithVizSettings = series ? getQuestionWithDefaultVisualizationSettings(question, series) : question
+
+        let resultsMetadata = getResultsMetadata(getState())
+        const createdQuestion = await (
+            questionWithVizSettings
+                .setQuery(question.query().clean())
+                .setResultsMetadata(resultsMetadata)
+                .apiCreate()
+        )
+
+        // remove the databases in the store that are used to populate the QB databases list.
+        // This is done when saving a Card because the newly saved card will be eligible for use as a source query
+        // so we want the databases list to be re-fetched next time we hit "New Question" so it shows up
+        dispatch(clearRequestState({ statePath: ["metadata", "databases"] }));
+
+        dispatch(updateUrl(createdQuestion.card(), { dirty: false }));
+        MetabaseAnalytics.trackEvent("QueryBuilder", "Create Card", createdQuestion.query().datasetQuery().type);
+
+        dispatch.action(API_CREATE_QUESTION, createdQuestion.card())
+    }
+}
+
+export const API_UPDATE_QUESTION = "metabase/qb/API_UPDATE_QUESTION";
+export const apiUpdateQuestion = (question) => {
+    return async (dispatch, getState) => {
+        question = question || getQuestion(getState())
+
+        // Needed for persisting visualization columns for pulses/alerts, see #6749
+        const series = getTransformedSeries(getState())
+        const questionWithVizSettings = series ? getQuestionWithDefaultVisualizationSettings(question, series) : question
+
+        let resultsMetadata = getResultsMetadata(getState())
+        const updatedQuestion = await (
+            questionWithVizSettings
+                .setQuery(question.query().clean())
+                .setResultsMetadata(resultsMetadata)
+                .apiUpdate()
+        )
+
+        // reload the question alerts for the current question
+        // (some of the old alerts might be removed during update)
+        await dispatch(fetchAlertsForQuestion(updatedQuestion.id()))
+
+        // remove the databases in the store that are used to populate the QB databases list.
+        // This is done when saving a Card because the newly saved card will be eligible for use as a source query
+        // so we want the databases list to be re-fetched next time we hit "New Question" so it shows up
+        dispatch(clearRequestState({ statePath: ["metadata", "databases"] }));
+
+        dispatch(updateUrl(updatedQuestion.card(), { dirty: false }));
+        MetabaseAnalytics.trackEvent("QueryBuilder", "Update Card", updatedQuestion.query().datasetQuery().type);
+
+        dispatch.action(API_UPDATE_QUESTION, updatedQuestion.card())
+    }
+}
 
 // setDatasetQuery
 // TODO Atte Keinänen 6/1/17: Deprecated, superseded by updateQuestion
@@ -974,7 +1024,7 @@ export const runQuestionQuery = ({
         const startTime = new Date();
         const cancelQueryDeferred = defer();
 
-        question.getResults({ cancelDeferred: cancelQueryDeferred, isDirty: cardIsDirty })
+        question.apiGetResults({ cancelDeferred: cancelQueryDeferred, isDirty: cardIsDirty })
             .then((queryResults) => dispatch(queryCompleted(question.card(), queryResults)))
             .catch((error) => dispatch(queryErrored(startTime, error)));
 
@@ -1020,15 +1070,34 @@ export const getDisplayTypeForCard = (card, queryResults) => {
 };
 
 export const QUERY_COMPLETED = "metabase/qb/QUERY_COMPLETED";
-export const queryCompleted = createThunkAction(QUERY_COMPLETED, (card, queryResults) => {
+export const queryCompleted = (card, queryResults) => {
     return async (dispatch, getState) => {
-        return {
+        dispatch.action(QUERY_COMPLETED, {
             card,
             cardDisplay: getDisplayTypeForCard(card, queryResults),
             queryResults
-        }
+        })
     };
-});
+};
+
+/**
+ * Saves to `visualization_settings` property of a question those visualization settings that
+ * 1) don't have a value yet and 2) have `persistDefault` flag enabled.
+ *
+ * Needed for persisting visualization columns for pulses/alerts, see #6749.
+ */
+const getQuestionWithDefaultVisualizationSettings = (question, series) => {
+    const oldVizSettings = question.visualizationSettings()
+    const newVizSettings = { ...getPersistableDefaultSettings(series), ...oldVizSettings }
+
+    // Don't update the question unnecessarily
+    // (even if fields values haven't changed, updating the settings will make the question appear dirty)
+    if (!_.isEqual(oldVizSettings, newVizSettings)) {
+        return question.setVisualizationSettings(newVizSettings)
+    } else {
+        return question
+    }
+}
 
 export const QUERY_ERRORED = "metabase/qb/QUERY_ERRORED";
 export const queryErrored = createThunkAction(QUERY_ERRORED, (startTime, error) => {
@@ -1139,20 +1208,6 @@ export const loadObjectDetailFKReferences = createThunkAction(LOAD_OBJECT_DETAIL
     };
 });
 
-// TODO - this is pretty much a duplicate of SET_ARCHIVED in questions/questions.js
-// unfortunately we have to do this because that action relies on its part of the store
-// for the card lookup
-// A simplified version of a similar method in questions/questions.js
-function createUndo(type, action) {
-    return {
-        type: type,
-        count: 1,
-        message: (undo) => // eslint-disable-line react/display-name
-                <div> { "Question  was " + type + "."} </div>,
-        actions: [action]
-    };
-}
-
 export const ARCHIVE_QUESTION = 'metabase/qb/ARCHIVE_QUESTION';
 export const archiveQuestion = createThunkAction(ARCHIVE_QUESTION, (questionId, archived = true) =>
     async (dispatch, getState) => {
@@ -1162,10 +1217,14 @@ export const archiveQuestion = createThunkAction(ARCHIVE_QUESTION, (questionId, 
         }
         let response = await CardApi.update(card)
 
-        dispatch(addUndo(createUndo(
-            archived ? "archived" : "unarchived",
-            archiveQuestion(card.id, !archived)
-        )));
+        const type = archived ? "archived" : "unarchived"
+
+        dispatch(addUndo(createUndo({
+            type,
+            // eslint-disable-next-line react/display-name
+            message: () => <div> { "Question  was " + type + "."} </div>,
+            action: archiveQuestion(card.id, !archived)
+        })));
 
         dispatch(push('/questions'))
         return response

@@ -7,7 +7,6 @@ import ActionButton from "metabase/components/ActionButton.jsx";
 import AddToDashSelectQuestionModal from "./AddToDashSelectQuestionModal.jsx";
 import ArchiveDashboardModal from "./ArchiveDashboardModal.jsx";
 import Header from "metabase/components/Header.jsx";
-import HistoryModal from "metabase/components/HistoryModal.jsx";
 import Icon from "metabase/components/Icon.jsx";
 import ModalWithTrigger from "metabase/components/ModalWithTrigger.jsx";
 import Tooltip from "metabase/components/Tooltip.jsx";
@@ -22,18 +21,18 @@ import MetabaseSettings from "metabase/lib/settings";
 
 import cx from "classnames";
 
-import type { LocationDescriptor, QueryParams, EntityType, EntityId } from "metabase/meta/types";
+import type { LocationDescriptor, QueryParams } from "metabase/meta/types";
 import type { Card, CardId } from "metabase/meta/types/Card";
 import type { Parameter, ParameterId, ParameterOption } from "metabase/meta/types/Parameter";
 import type { DashboardWithCards, DashboardId, DashCardId } from "metabase/meta/types/Dashboard";
-import type { Revision, RevisionId } from "metabase/meta/types/Revision";
+import type { RevisionId } from "metabase/meta/types/Revision";
+import { Link } from "react-router";
 
 type Props = {
     location:               LocationDescriptor,
 
     dashboard:              DashboardWithCards,
     cards:                  Card[],
-    revisions:              { [key: string]: Revision[] },
 
     isAdmin:                boolean,
     isEditable:             boolean,
@@ -46,14 +45,15 @@ type Props = {
 
     parametersWidget:       React$Element<*>,
 
-    addCardToDashboard:     ({ dashId: DashCardId, cardId: CardId }) => void,
-    archiveDashboard:        (dashboardId: DashboardId) => void,
-    fetchCards:             (filterMode?: string) => void,
-    fetchDashboard:         (dashboardId: DashboardId, queryParams: ?QueryParams) => void,
-    fetchRevisions:         ({ entity: string, id: number }) => void,
-    revertToRevision:       ({ entity: string, id: number, revision_id: RevisionId }) => void,
-    saveDashboardAndCards:  () => Promise<void>,
-    setDashboardAttribute:  (attribute: string, value: any) => void,
+    addCardToDashboard:         ({ dashId: DashCardId, cardId: CardId }) => void,
+    addTextDashCardToDashboard: ({ dashId: DashCardId }) => void,
+    archiveDashboard:           (dashboardId: DashboardId) => void,
+    fetchCards:                 (filterMode?: string) => void,
+    fetchDashboard:             (dashboardId: DashboardId, queryParams: ?QueryParams) => void,
+    fetchRevisions:             ({ entity: string, id: number }) => void,
+    revertToRevision:           ({ entity: string, id: number, revision_id: RevisionId }) => void,
+    saveDashboardAndCards:      () => Promise<void>,
+    setDashboardAttribute:      (attribute: string, value: any) => void,
 
     addParameter:           (option: ParameterOption) => Promise<Parameter>,
     setEditingParameter:    (parameterId: ?ParameterId) => void,
@@ -78,7 +78,6 @@ export default class DashboardHeader extends Component {
 
     static propTypes = {
         dashboard: PropTypes.object.isRequired,
-        revisions: PropTypes.object.isRequired,
         isEditable: PropTypes.bool.isRequired,
         isEditing: PropTypes.bool.isRequired,
         isFullscreen: PropTypes.bool.isRequired,
@@ -88,6 +87,7 @@ export default class DashboardHeader extends Component {
         refreshElapsed: PropTypes.number,
 
         addCardToDashboard: PropTypes.func.isRequired,
+        addTextDashCardToDashboard: PropTypes.func.isRequired,
         archiveDashboard: PropTypes.func.isRequired,
         fetchCards: PropTypes.func.isRequired,
         fetchDashboard: PropTypes.func.isRequired,
@@ -104,6 +104,10 @@ export default class DashboardHeader extends Component {
 
     onEdit() {
         this.props.onEditingChange(true);
+    }
+
+    onAddTextBox() {
+        this.props.addTextDashCardToDashboard({ dashId: this.props.dashboard.id });
     }
 
     onDoneEditing() {
@@ -127,22 +131,6 @@ export default class DashboardHeader extends Component {
     async onArchive() {
         await this.props.archiveDashboard(this.props.dashboard.id);
         this.props.onChangeLocation("/dashboards");
-    }
-
-    // 1. fetch revisions
-    onFetchRevisions({ entity, id }: { entity: EntityType, id: EntityId }) {
-        return this.props.fetchRevisions({ entity, id });
-    }
-
-    // 2. revert to a revision
-    onRevertToRevision({ entity, id, revision_id }: { entity: EntityType, id: EntityId, revision_id: RevisionId }) {
-        return this.props.revertToRevision({ entity, id, revision_id });
-    }
-
-    // 3. finished reverting to a revision
-    onRevertedRevision() {
-        this.refs.dashboardHistory.toggle();
-        this.props.fetchDashboard(this.props.dashboard.id, this.props.location.query);
     }
 
     getEditingButtons() {
@@ -175,7 +163,7 @@ export default class DashboardHeader extends Component {
     }
 
     getHeaderButtons() {
-        const { dashboard, parametersWidget, isEditing, isFullscreen, isEditable, isAdmin } = this.props;
+        const { dashboard, parametersWidget, isEditing, isFullscreen, isEditable, isAdmin, location } = this.props;
         const isEmpty = !dashboard || dashboard.ordered_cards.length === 0;
         const canEdit = isEditable && !!dashboard;
 
@@ -186,6 +174,32 @@ export default class DashboardHeader extends Component {
 
         if (isFullscreen && parametersWidget) {
             buttons.push(parametersWidget);
+        }
+
+        if (!isFullscreen && canEdit) {
+            buttons.push(
+                <ModalWithTrigger
+                    full
+                    key="add"
+                    ref="addQuestionModal"
+                    triggerElement={
+                        <Tooltip tooltip="Add a question">
+                            <span data-metabase-event="Dashboard;Add Card Modal" title="Add a question to this dashboard">
+                                <Icon className={cx("text-brand-hover cursor-pointer", { "Icon--pulse": isEmpty })} name="add" size={16} />
+                            </span>
+                        </Tooltip>
+                    }
+                >
+                    <AddToDashSelectQuestionModal
+                        dashboard={dashboard}
+                        cards={this.props.cards}
+                        fetchCards={this.props.fetchCards}
+                        addCardToDashboard={this.props.addCardToDashboard}
+                        onEditingChange={this.props.onEditingChange}
+                        onClose={() => this.refs.addQuestionModal.toggle()}
+                    />
+                </ModalWithTrigger>
+            );
         }
 
         if (isEditing) {
@@ -214,28 +228,21 @@ export default class DashboardHeader extends Component {
                 </span>
             );
 
+            // Add text card button
             buttons.push(
-                <ModalWithTrigger
-                    key="history"
-                    ref="dashboardHistory"
-                    triggerElement={
-                        <Tooltip tooltip="Revision history">
-                            <span data-metabase-event={"Dashboard;Revisions"}>
-                                <Icon className="text-brand-hover" name="history" size={16} />
-                            </span>
-                        </Tooltip>
-                    }
-                >
-                    <HistoryModal
-                        entityType="dashboard"
-                        entityId={dashboard.id}
-                        revisions={this.props.revisions["dashboard-"+dashboard.id]}
-                        onFetchRevisions={this.onFetchRevisions.bind(this)}
-                        onRevertToRevision={this.onRevertToRevision.bind(this)}
-                        onClose={() => this.refs.dashboardHistory.toggle()}
-                        onReverted={() => this.onRevertedRevision()}
-                    />
-                </ModalWithTrigger>
+                <Tooltip tooltip="Add a text box">
+                    <a data-metabase-event="Dashboard;Add Text Box" key="add-text" title="Add a text box" className="text-brand-hover cursor-pointer" onClick={() => this.onAddTextBox()}>
+                        <Icon name="string" size={20} />
+                    </a>
+                </Tooltip>
+            );
+
+            buttons.push(
+                <Tooltip tooltip="Revision history">
+                    <Link to={location.pathname + "/history"} data-metabase-event={"Dashboard;Revisions"}>
+                        <Icon className="text-brand-hover" name="history" size={18} />
+                    </Link>
+                </Tooltip>
             );
         }
 
@@ -246,32 +253,6 @@ export default class DashboardHeader extends Component {
                         <Icon name="pencil" size={16} />
                     </a>
                 </Tooltip>
-            );
-        }
-
-        if (!isFullscreen && canEdit) {
-            buttons.push(
-                <ModalWithTrigger
-                    full
-                    key="add"
-                    ref="addQuestionModal"
-                    triggerElement={
-                        <Tooltip tooltip="Add a question">
-                            <span data-metabase-event="Dashboard;Add Card Modal" title="Add a question to this dashboard">
-                                <Icon className={cx("text-brand-hover cursor-pointer", { "Icon--pulse": isEmpty })} name="add" size={16} />
-                            </span>
-                        </Tooltip>
-                    }
-                >
-                    <AddToDashSelectQuestionModal
-                        dashboard={dashboard}
-                        cards={this.props.cards}
-                        fetchCards={this.props.fetchCards}
-                        addCardToDashboard={this.props.addCardToDashboard}
-                        onEditingChange={this.props.onEditingChange}
-                        onClose={() => this.refs.addQuestionModal.toggle()}
-                    />
-                </ModalWithTrigger>
             );
         }
 

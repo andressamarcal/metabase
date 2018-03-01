@@ -1,6 +1,7 @@
 (ns metabase.driver.presto
   (:require [clj-http.client :as http]
             [clj-time
+             [coerce :as tcoerce]
              [core :as time]
              [format :as tformat]]
             [clojure
@@ -14,13 +15,19 @@
              [driver :as driver]
              [util :as u]]
             [metabase.driver.generic-sql :as sql]
+            [metabase.driver.generic-sql.query-processor :as sqlqp]
             [metabase.driver.generic-sql.util.unprepare :as unprepare]
             [metabase.query-processor.util :as qputil]
             [metabase.util
              [honeysql-extensions :as hx]
              [ssh :as ssh]])
-  (:import java.util.Date
-           [metabase.query_processor.interface DateTimeValue Value]))
+  (:import java.sql.Time
+           java.util.Date
+           [metabase.query_processor.interface TimeValue]))
+
+(defrecord PrestoDriver []
+  clojure.lang.Named
+  (getName [_] "Presto"))
 
 ;;; Presto API helpers
 
@@ -51,10 +58,20 @@
 (def ^:private presto-date-time-formatter
   (u/->DateTimeFormatter "yyyy-MM-dd HH:mm:ss.SSS"))
 
+(defn- parse-presto-time
+  "Parsing time from presto using a specific formatter rather than the
+  utility functions as this will be called on each row returned, so
+  performance is important"
+  [time-str]
+  (->> time-str
+       (u/parse-date :hour-minute-second-ms)
+       tcoerce/to-long
+       Time.))
+
 (defn- field-type->parser [report-timezone field-type]
   (condp re-matches field-type
     #"decimal.*"                bigdec
-    #"time"                     (partial u/parse-date :hour-minute-second-ms)
+    #"time"                     parse-presto-time
     #"time with time zone"      parse-time-with-tz
     #"timestamp"                (partial u/parse-date
                                          (if-let [report-tz (and report-timezone
@@ -85,8 +102,9 @@
 
 (defn- execute-presto-query! [details query]
   (ssh/with-ssh-tunnel [details-with-tunnel details]
-    (let [{{:keys [columns data nextUri error]} :body} (http/post (details->uri details-with-tunnel "/v1/statement")
-                                                                  (assoc (details->request details-with-tunnel) :body query, :as :json))]
+    (let [{{:keys [columns data nextUri error]} :body :as foo} (http/post (details->uri details-with-tunnel "/v1/statement")
+                                                                          (assoc (details->request details-with-tunnel) :body query, :as :json))]
+
       (when error
         (throw (ex-info (or (:message error) "Error preparing query.") error)))
       (let [rows    (parse-presto-results (:report-timezone details) (or columns []) (or data []))
@@ -151,7 +169,8 @@
     #"varbinary.*" :type/*
     #"json"        :type/Text       ; TODO - this should probably be Dictionary or something
     #"date"        :type/Date
-    #"time.*"      :type/DateTime
+    #"time"        :type/Time
+    #"time.+"      :type/DateTime
     #"array"       :type/Array
     #"map"         :type/Dictionary
     #"row.*"       :type/*          ; TODO - again, but this time we supposedly have a schema
@@ -163,23 +182,43 @@
     {:schema schema
      :name   table-name
      :fields (set (for [[name type] rows]
-                    {:name name, :base-type (presto-type->base-type type)}))}))
+                    {:name          name
+                     :database-type type
+                     :base-type     (presto-type->base-type type)}))}))
 
-(defprotocol ^:private IPrepareValue
-  (^:private prepare-value [this]))
-(extend-protocol IPrepareValue
-  nil           (prepare-value [_] nil)
-  DateTimeValue (prepare-value [{:keys [value]}] (prepare-value value))
-  Value         (prepare-value [{:keys [value]}] (prepare-value value))
-  String        (prepare-value [this] (hx/literal (str/replace this "'" "''")))
-  Boolean       (prepare-value [this] (hsql/raw (if this "TRUE" "FALSE")))
-  Date          (prepare-value [this] (hsql/call :from_iso8601_timestamp (hx/literal (u/date->iso-8601 this))))
-  Number        (prepare-value [this] this)
-  Object        (prepare-value [this] (throw (Exception. (format "Don't know how to prepare value %s %s" (class this) this)))))
+(defmethod sqlqp/->honeysql [PrestoDriver String]
+  [_ s]
+  (hx/literal (str/replace s "'" "''")))
+
+(defmethod sqlqp/->honeysql [PrestoDriver Boolean]
+  [_ bool]
+  (hsql/raw (if bool "TRUE" "FALSE")))
+
+(defmethod sqlqp/->honeysql [PrestoDriver Date]
+  [_ date]
+  (hsql/call :from_iso8601_timestamp (hx/literal (u/date->iso-8601 date))))
+
+(def ^:private time-format (tformat/formatter "HH:mm:SS.SSS"))
+
+(defn- time->str
+  ([t]
+   (time->str t nil))
+  ([t tz-id]
+   (let [tz (time/time-zone-for-id tz-id)]
+     (tformat/unparse (tformat/with-zone time-format tz) (tcoerce/to-date-time t)))))
+
+(defmethod sqlqp/->honeysql [PrestoDriver TimeValue]
+  [_ {:keys [value timezone-id]}]
+  (hx/cast :time (time->str value timezone-id)))
+
+(defmethod sqlqp/->honeysql [PrestoDriver Time]
+  [_ {:keys [value]}]
+  (hx/->time (time->str value)))
 
 (defn- execute-query [{:keys [database settings], {sql :query, params :params} :native, :as outer-query}]
-  (let [sql                    (str "-- " (qputil/query->remark outer-query) "\n"
-                                          (unprepare/unprepare (cons sql params) :quote-escape "'", :iso-8601-fn :from_iso8601_timestamp))
+  (let [sql                    (str "-- "
+                                    (qputil/query->remark outer-query) "\n"
+                                    (unprepare/unprepare (cons sql params) :quote-escape "'", :iso-8601-fn :from_iso8601_timestamp))
         details                (merge (:details database) settings)
         {:keys [columns rows]} (execute-presto-query! details sql)
         columns                (for [[col name] (map vector columns (rename-duplicates (map :name columns)))]
@@ -254,11 +293,7 @@
 
 ;;; Driver implementation
 
-(defrecord PrestoDriver []
-  clojure.lang.Named
-  (getName [_] "Presto"))
-
-(def ^:private presto-date-formatter (driver/create-db-time-formatter "yyyy-MM-dd'T'HH:mm:ss.SSSZ"))
+(def ^:private presto-date-formatters (driver/create-db-time-formatters "yyyy-MM-dd'T'HH:mm:ss.SSSZ"))
 (def ^:private presto-db-time-query "select to_iso8601(current_timestamp)")
 
 (u/strict-extend PrestoDriver
@@ -305,7 +340,7 @@
                                                                       ;; during unit tests don't treat presto as having FK support
                                                                       #{:foreign-keys})))
           :humanize-connection-error-message (u/drop-first-arg humanize-connection-error-message)
-          :current-db-time                   (driver/make-current-db-time-fn presto-date-formatter presto-db-time-query)})
+          :current-db-time                   (driver/make-current-db-time-fn presto-db-time-query presto-date-formatters)})
 
   sql/ISQLDriver
   (merge (sql/ISQLDriverDefaultsMixin)
@@ -315,7 +350,6 @@
           :current-datetime-fn       (constantly :%now)
           :date                      (u/drop-first-arg date)
           :excluded-schemas          (constantly #{"information_schema"})
-          :prepare-value             (u/drop-first-arg prepare-value)
           :quote-style               (constantly :ansi)
           :stddev-fn                 (constantly :stddev_samp)
           :string-length-fn          (u/drop-first-arg string-length-fn)

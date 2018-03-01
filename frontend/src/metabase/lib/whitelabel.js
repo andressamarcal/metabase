@@ -3,7 +3,7 @@ import MetabaseSettings from "metabase/lib/settings";
 
 import Color from "color";
 
-import { brand, normal, harmony } from "metabase/lib/colors";
+import { brand, harmony } from "metabase/lib/colors";
 import { addCSSRule } from "metabase/lib/dom";
 
 const BRAND_NORMAL_COLOR = Color(brand.normal).hsl();

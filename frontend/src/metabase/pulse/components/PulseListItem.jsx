@@ -3,6 +3,7 @@ import React, { Component } from "react";
 import PropTypes from "prop-types";
 import ReactDOM from "react-dom";
 import { Link } from "react-router";
+import { jt, t } from 'c-3po';
 
 import cx from "classnames";
 
@@ -28,16 +29,17 @@ export default class PulseListItem extends Component {
     render() {
         let { pulse, formInput, user } = this.props;
 
+        const creator = <span className="text-bold">{pulse.creator && pulse.creator.common_name}</span>;
         return (
             <div ref="pulseListItem" className={cx("PulseListItem bordered rounded mb2 pt3", {"PulseListItem--focused": this.props.scrollTo})}>
                 <div className="flex px4 mb2">
                     <div>
                         <h2 className="mb1">{pulse.name}</h2>
-                        <span>Pulse by <span className="text-bold">{pulse.creator && pulse.creator.common_name}</span></span>
+                        <span>{jt`Pulse by ${creator}`}</span>
                     </div>
                     { !pulse.read_only &&
                         <div className="flex-align-right">
-                            <Link to={"/pulse/" + pulse.id} className="PulseEditButton PulseButton Button no-decoration text-bold">Edit</Link>
+                            <Link to={"/pulse/" + pulse.id} className="PulseEditButton PulseButton Button no-decoration text-bold">{t`Edit`}</Link>
                         </div>
                     }
                 </div>

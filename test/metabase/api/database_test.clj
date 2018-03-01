@@ -68,6 +68,7 @@
    :points_of_interest          nil
    :cache_field_values_schedule "0 50 0 * * ? *"
    :metadata_sync_schedule      "0 50 * * * ? *"
+   :options                     nil
    :timezone                    nil})
 
 (defn- db-details
@@ -305,6 +306,7 @@
                                                     :special_type    "type/PK"
                                                     :name            "ID"
                                                     :display_name    "ID"
+                                                    :database_type   "BIGINT"
                                                     :base_type       "type/BigInteger"
                                                     :visibility_type "normal")
                                                   (assoc (field-details (Field (id :categories :name)))
@@ -312,6 +314,7 @@
                                                     :special_type       "type/Name"
                                                     :name               "NAME"
                                                     :display_name       "Name"
+                                                    :database_type      "VARCHAR"
                                                     :base_type          "type/Text"
                                                     :visibility_type    "normal")]
                                    :segments     []
@@ -479,10 +482,13 @@
                                    :result_metadata [{:name "age_in_bird_years"}])]]
   (saved-questions-virtual-db
     (assoc (virtual-table-for-card card)
-      :fields [{:name         "age_in_bird_years"
-                :table_id     (str "card__" (u/get-id card))
-                :id           ["field-literal" "age_in_bird_years" "type/*"]
-                :special_type nil}]))
+      :fields [{:name                     "age_in_bird_years"
+                :table_id                 (str "card__" (u/get-id card))
+                :id                       ["field-literal" "age_in_bird_years" "type/*"]
+                :special_type             nil
+                :base_type                nil
+                :default_dimension_option nil
+                :dimension_options        []}]))
   ((user->client :crowberto) :get 200 (format "database/%d/metadata" database/virtual-id)))
 
 ;; if no eligible Saved Questions exist the virtual DB metadata endpoint should just return `nil`

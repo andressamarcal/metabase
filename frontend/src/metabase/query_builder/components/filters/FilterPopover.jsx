@@ -1,11 +1,13 @@
 /* @flow */
 
 import React, { Component } from "react";
+import { t } from 'c-3po';
 
 import FieldList from "../FieldList.jsx";
 import OperatorSelector from "./OperatorSelector.jsx";
-
-import DatePicker from "./pickers/DatePicker.jsx";
+import FilterOptions from "./FilterOptions";
+import DatePicker, { getOperator } from "./pickers/DatePicker.jsx";
+import TimePicker from "./pickers/TimePicker.jsx";
 import NumberPicker from "./pickers/NumberPicker.jsx";
 import SelectPicker from "./pickers/SelectPicker.jsx";
 import TextPicker from "./pickers/TextPicker.jsx";
@@ -13,7 +15,7 @@ import TextPicker from "./pickers/TextPicker.jsx";
 import Icon from "metabase/components/Icon.jsx";
 
 import Query from "metabase/lib/query";
-import { isDate } from "metabase/lib/schema_metadata";
+import { isDate, isTime } from "metabase/lib/schema_metadata";
 import { formatField, singularize } from "metabase/lib/formatting";
 
 import cx from "classnames";
@@ -23,6 +25,7 @@ import type { Filter, FieldFilter, ConcreteField } from "metabase/meta/types/Que
 import type { FieldMetadata, Operator } from "metabase/meta/types/Metadata";
 
 type Props = {
+    maxHeight?: number,
     query: StructuredQuery,
     filter?: Filter,
     onCommitFilter: (filter: Filter) => void,
@@ -116,8 +119,8 @@ export default class FilterPopover extends Component {
     _updateOperator(oldFilter: FieldFilter, operatorName: ?string): FieldFilter {
         const { query } = this.props;
         let { field } = Query.getFieldTarget(oldFilter[1], query.table());
-        let operator = field.operators_lookup[operatorName];
-        let oldOperator = field.operators_lookup[oldFilter[0]];
+        let operator = field.operator(operatorName);
+        let oldOperator = field.operator(oldFilter[0]);
 
         // update the operator
         // $FlowFixMe
@@ -130,6 +133,9 @@ export default class FilterPopover extends Component {
                 } else {
                     filter.push(undefined);
                 }
+            }
+            if (operator.optionsDefaults) {
+                filter.push(operator.optionsDefaults);
             }
             if (oldOperator) {
                 // copy over values of the same type
@@ -181,7 +187,7 @@ export default class FilterPopover extends Component {
         let operator: ?Operator = field.operators_lookup[filter[0]];
         return operator && operator.fields.map((operatorField, index) => {
             if (!operator) {
-                return;
+                return null;
             }
             let values, onValuesChange;
             let placeholder = operator && operator.placeholders && operator.placeholders[index] || undefined;
@@ -195,6 +201,7 @@ export default class FilterPopover extends Component {
             if (operatorField.type === "select") {
                 return (
                     <SelectPicker
+                        key={index}
                         options={operatorField.values}
                         // $FlowFixMe
                         values={(values: Array<string>)}
@@ -207,6 +214,7 @@ export default class FilterPopover extends Component {
             } else if (operatorField.type === "text") {
                 return (
                     <TextPicker
+                        key={index}
                         // $FlowFixMe
                         values={(values: Array<string>)}
                         onValuesChange={onValuesChange}
@@ -218,6 +226,7 @@ export default class FilterPopover extends Component {
             } else if (operatorField.type === "number") {
                 return (
                     <NumberPicker
+                        key={index}
                         // $FlowFixMe
                         values={(values: Array<number|null>)}
                         onValuesChange={onValuesChange}
@@ -227,7 +236,11 @@ export default class FilterPopover extends Component {
                     />
                 );
             }
-            return <span>not implemented {operatorField.type} {operator.multi ? "true" : "false"}</span>;
+            return (
+              <span key={index}>
+                {t`not implemented ${operatorField.type}`} {operator.multi ? t`true` : t`false`}
+              </span>
+            );
         });
     }
 
@@ -240,13 +253,15 @@ export default class FilterPopover extends Component {
     render() {
         const { query } = this.props;
         const { filter } = this.state;
-        const [operator, field] = filter;
-        if (operator === "SEGMENT" || field == undefined) {
+        const [operator, fieldRef] = filter;
+
+        if (operator === "SEGMENT" || fieldRef == undefined) {
             return (
                 <div className="FilterPopover">
                     <FieldList
                         className="text-purple"
-                        field={field}
+                        maxHeight={this.props.maxHeight}
+                        field={fieldRef}
                         fieldOptions={query.filterFieldOptions(filter)}
                         segmentOptions={query.filterSegmentOptions(filter)}
                         tableMetadata={query.table()}
@@ -256,11 +271,13 @@ export default class FilterPopover extends Component {
                 </div>
             );
         } else {
-            let { table, field } = Query.getFieldTarget(filter[1], query.table());
-
+            let { table, field } = Query.getFieldTarget(fieldRef, query.table());
+            const dimension = query.parseFieldReference(fieldRef);
             return (
                 <div style={{
-                    minWidth: 300
+                    minWidth: 300,
+                    // $FlowFixMe
+                    maxWidth: dimension.field().isDate() ? null : 500
                 }}>
                     <div className="FilterPopover-header text-grey-3 p1 mt1 flex align-center">
                         <a className="cursor-pointer text-purple-hover transition-color flex align-center" onClick={this.clearField}>
@@ -270,7 +287,13 @@ export default class FilterPopover extends Component {
                         <h3 className="mx1">-</h3>
                         <h3 className="text-default">{formatField(field)}</h3>
                     </div>
-                    { isDate(field) ?
+                    { isTime(field) ?
+                        <TimePicker
+                            className="mt1 border-top"
+                            filter={filter}
+                            onFilterChange={this.setFilter}
+                        />
+                    : isDate(field) ?
                         <DatePicker
                             className="mt1 border-top"
                             filter={filter}
@@ -286,13 +309,24 @@ export default class FilterPopover extends Component {
                             { this.renderPicker(filter, field) }
                         </div>
                     }
-                    <div className="FilterPopover-footer p1">
+                    <div className="FilterPopover-footer border-top flex align-center p2">
+                        <FilterOptions
+                          filter={filter}
+                          onFilterChange={this.setFilter}
+                          operator={
+                            isDate(field) ?
+                              // DatePicker uses a different set of operator objects
+                              getOperator(filter) :
+                              // Normal operators defined in schema_metadata
+                              field.operator(operator)
+                          }
+                        />
                         <button
                             data-ui-tag="add-filter"
-                            className={cx("Button Button--purple full", { "disabled": !this.isValid() })}
+                            className={cx("Button Button--purple ml-auto", { "disabled": !this.isValid() })}
                             onClick={() => this.commitFilter(this.state.filter)}
                         >
-                            {!this.props.filter ? "Add filter" : "Update filter"}
+                            {!this.props.filter ? t`Add filter` : t`Update filter`}
                         </button>
                     </div>
                 </div>

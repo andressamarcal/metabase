@@ -2,13 +2,13 @@
 
 import React, { Component } from 'react';
 import PropTypes from "prop-types";
-
+import { t } from 'c-3po';
 import Calendar from "metabase/components/Calendar";
 import Input from "metabase/components/Input";
 import Icon from "metabase/components/Icon";
 import ExpandingContent from "metabase/components/ExpandingContent";
 import Tooltip from "metabase/components/Tooltip";
-import NumericInput from "./NumericInput.jsx";
+import HoursMinutesInput from "./HoursMinutesInput";
 
 import moment from "moment";
 import cx from "classnames";
@@ -82,7 +82,7 @@ export default class SpecificDatePicker extends Component {
         }
 
         return (
-            <div className="px1">
+            <div>
                 <div className="flex align-center mb1">
                     <div className={cx('border-top border-bottom full border-left', { 'border-right': !calendar })}>
                         <Input
@@ -107,7 +107,7 @@ export default class SpecificDatePicker extends Component {
                         <div className="border-right border-bottom border-top p2">
                             <Tooltip
                                 tooltip={
-                                    showCalendar ? "Hide calendar" : "Show calendar"
+                                    showCalendar ? t`Hide calendar` : t`Show calendar`
                                 }
                                 children={
                                     <Icon
@@ -146,8 +146,8 @@ export default class SpecificDatePicker extends Component {
                                 Add a time
                             </div>
                             :
-                            <HoursMinutes
-                                clear={() => this.onChange(date, null, null)}
+                            <HoursMinutesInput
+                                onClear={() => this.onChange(date, null, null)}
                                 hours={hours}
                                 minutes={minutes}
                                 onChangeHours={hours => this.onChange(date, hours, minutes)}
@@ -160,31 +160,3 @@ export default class SpecificDatePicker extends Component {
         )
     }
 }
-
-const HoursMinutes = ({ hours, minutes, onChangeHours, onChangeMinutes, clear }) =>
-    <div className="flex align-center">
-        <NumericInput
-            className="input"
-            size={2}
-            maxLength={2}
-            value={(hours % 12) === 0 ? "12" : String(hours % 12)}
-            onChange={(value) => onChangeHours((hours >= 12 ? 12 : 0) + value) }
-        />
-        <span className="px1">:</span>
-        <NumericInput
-            className="input"
-            size={2}
-            maxLength={2}
-            value={minutes}
-            onChange={(value) => onChangeMinutes(value) }
-        />
-        <div className="flex align-center pl1">
-            <span className={cx("text-purple-hover mr1", { "text-purple": hours < 12, "cursor-pointer": hours >= 12 })} onClick={hours >= 12 ? () => onChangeHours(hours - 12) : null}>AM</span>
-            <span className={cx("text-purple-hover mr1", { "text-purple": hours >= 12, "cursor-pointer": hours < 12 })} onClick={hours < 12 ? () => onChangeHours(hours + 12) : null}>PM</span>
-        </div>
-        <Icon
-            className="text-grey-2 cursor-pointer text-grey-4-hover ml-auto"
-            name="close"
-            onClick={() => clear() }
-        />
-    </div>

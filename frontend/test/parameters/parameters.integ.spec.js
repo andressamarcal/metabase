@@ -1,9 +1,10 @@
 // Converted from an old Selenium E2E test
 import {
-    login,
+    useSharedAdminLogin,
     logout,
     createTestStore,
-    restorePreviousLogin
+    restorePreviousLogin,
+    waitForRequestToComplete
 } from "__support__/integrated_tests";
 import {
     click, clickButton,
@@ -20,7 +21,7 @@ import EmbeddingLegalese from "metabase/admin/settings/components/widgets/Embedd
 import {
     CREATE_PUBLIC_LINK,
     INITIALIZE_QB,
-    NOTIFY_CARD_CREATED,
+    API_CREATE_QUESTION,
     QUERY_COMPLETED,
     RUN_QUERY,
     SET_QUERY_MODE,
@@ -33,7 +34,7 @@ import NativeQueryEditor from "metabase/query_builder/components/NativeQueryEdit
 import { delay } from "metabase/lib/promise";
 import TagEditorSidebar from "metabase/query_builder/components/template_tags/TagEditorSidebar";
 import { getQuery } from "metabase/query_builder/selectors";
-import { ADD_PARAM_VALUES, FETCH_FIELD_VALUES } from "metabase/redux/metadata";
+import { ADD_PARAM_VALUES, FETCH_TABLE_METADATA } from "metabase/redux/metadata";
 import RunButton from "metabase/query_builder/components/RunButton";
 import Scalar from "metabase/visualizations/visualizations/Scalar";
 import Parameters from "metabase/parameters/components/Parameters";
@@ -44,7 +45,10 @@ import SharingPane from "metabase/public/components/widgets/SharingPane";
 import { EmbedTitle } from "metabase/public/components/widgets/EmbedModalContent";
 import PreviewPane from "metabase/public/components/widgets/PreviewPane";
 import CopyWidget from "metabase/components/CopyWidget";
+import ListSearchField from "metabase/components/ListSearchField";
 import * as Urls from "metabase/lib/urls";
+import QuestionEmbedWidget from "metabase/query_builder/containers/QuestionEmbedWidget";
+import EmbedWidget from "metabase/public/components/widgets/EmbedWidget";
 
 async function updateQueryText(store, queryText) {
     // We don't have Ace editor so we have to trigger the Redux action manually
@@ -59,12 +63,12 @@ const getRelativeUrlWithoutHash = (url) =>
     url.replace(/#.*$/, "").replace(/http:\/\/.*?\//, "/")
 
 const COUNT_ALL = "200";
-const COUNT_DOOHICKEY = "56";
-const COUNT_GADGET = "43";
+const COUNT_DOOHICKEY = "51";
+const COUNT_GADGET = "47";
 
 describe("parameters", () => {
     beforeAll(async () =>
-        await login()
+        useSharedAdminLogin()
     );
 
     describe("questions", () => {
@@ -111,6 +115,7 @@ describe("parameters", () => {
             expect(enabledToggleContainer.text()).toBe("Enabled");
         });
 
+        // Note: Test suite is sequential, so individual test cases can't be run individually
         it("should allow users to create parameterized SQL questions", async () => {
             // Don't render Ace editor in tests because it uses many DOM methods that aren't supported by jsdom
             // NOTE Atte Keinänen 8/9/17: Ace provides a MockRenderer class which could be used for pseudo-rendering and
@@ -136,19 +141,32 @@ describe("parameters", () => {
             expect(fieldFilterVarType.text()).toBe("Field Filter");
             click(fieldFilterVarType);
 
+            // there's an async error here for some reason
             await store.waitForActions([UPDATE_TEMPLATE_TAG]);
 
-            await delay(100);
+            await delay(500);
 
-            setInputValue(tagEditorSidebar.find(".TestPopoverBody .AdminSelect").first(), "cat")
-            const categoryRow = tagEditorSidebar.find(".TestPopoverBody .ColumnarSelector-row").first();
-            expect(categoryRow.text()).toBe("ProductsCategory");
+            const productsRow = tagEditorSidebar.find(".TestPopoverBody .List-section").at(4).find("a");
+            expect(productsRow.text()).toBe("Products");
+            click(productsRow);
+
+            // Table fields should be loaded on-the-fly before showing the field selector
+            await store.waitForActions(FETCH_TABLE_METADATA)
+            // Needed due to state update after fetching metadata
+            await delay(100)
+
+            const searchField = tagEditorSidebar.find(".TestPopoverBody").find(ListSearchField).find("input").first()
+            setInputValue(searchField, "cat")
+
+            const categoryRow = tagEditorSidebar.find(".TestPopoverBody .List-section").at(2).find("a");
+            expect(categoryRow.text()).toBe("Category");
             click(categoryRow);
 
-            await store.waitForActions([UPDATE_TEMPLATE_TAG, FETCH_FIELD_VALUES])
+            await store.waitForActions([UPDATE_TEMPLATE_TAG])
 
             // close the template variable sidebar
             click(tagEditorSidebar.find(".Icon-close"));
+
 
             // test without the parameter
             click(app.find(RunButton));
@@ -157,7 +175,8 @@ describe("parameters", () => {
 
             // test the parameter
             click(app.find(Parameters).find("a").first());
-            click(app.find(CategoryWidget).find('li[children="Doohickey"]'));
+            click(app.find(CategoryWidget).find('li h4[children="Doohickey"]'));
+            clickButton(app.find(CategoryWidget).find(".Button"));
             click(app.find(RunButton));
             await store.waitForActions([RUN_QUERY, QUERY_COMPLETED])
             expect(app.find(Scalar).text()).toBe(COUNT_DOOHICKEY);
@@ -169,14 +188,15 @@ describe("parameters", () => {
             setInputValue(app.find(SaveQuestionModal).find("input[name='name']"), "sql parametrized");
 
             clickButton(app.find(SaveQuestionModal).find("button").last());
-            await store.waitForActions([NOTIFY_CARD_CREATED]);
+            await store.waitForActions([API_CREATE_QUESTION]);
+            await delay(100)
 
             click(app.find('#QuestionSavedModal .Button[children="Not now"]'))
             // wait for modal to close :'(
-            await delay(200);
+            await delay(500);
 
             // open sharing panel
-            click(app.find(".Icon-share"));
+            click(app.find(QuestionEmbedWidget).find(EmbedWidget));
 
             // "Embed this question in an application"
             click(app.find(SharingPane).find("h3").last());
@@ -186,7 +206,7 @@ describe("parameters", () => {
 
             click(app.find(".TestPopoverBody .Icon-pencil"))
 
-            await delay(200);
+            await delay(500);
 
             click(app.find("div[children='Publish']"));
             await store.waitForActions([UPDATE_ENABLE_EMBEDDING, UPDATE_EMBEDDING_PARAMS])
@@ -208,40 +228,43 @@ describe("parameters", () => {
         describe("as an anonymous user", () => {
             beforeAll(() => logout());
 
-            async function runSharedQuestionTests(store, questionUrl) {
+            async function runSharedQuestionTests(store, questionUrl, apiRegex) {
                 store.pushPath(questionUrl);
                 const app = mount(store.getAppContainer())
 
                 await store.waitForActions([ADD_PARAM_VALUES]);
 
-                // Loading the query results is done in PublicQuestion itself so we have to add a delay here
-                await delay(200);
-
-                expect(app.find(Scalar).text()).toBe(COUNT_ALL + "sql parametrized");
+                // Loading the query results is done in PublicQuestion itself so we have to listen to API request instead of Redux action
+                await waitForRequestToComplete("GET", apiRegex)
+                // use `update()` because of setState
+                expect(app.update().find(Scalar).text()).toBe(COUNT_ALL + "sql parametrized");
 
                 // manually click parameter (sadly the query results loading happens inline again)
                 click(app.find(Parameters).find("a").first());
-                click(app.find(CategoryWidget).find('li[children="Doohickey"]'));
-                await delay(200);
-                expect(app.find(Scalar).text()).toBe(COUNT_DOOHICKEY + "sql parametrized");
+                click(app.find(CategoryWidget).find('li h4[children="Doohickey"]'));
+                clickButton(app.find(CategoryWidget).find(".Button"));
+
+                await waitForRequestToComplete("GET", apiRegex)
+                expect(app.update().find(Scalar).text()).toBe(COUNT_DOOHICKEY + "sql parametrized");
 
                 // set parameter via url
                 store.pushPath("/"); // simulate a page reload by visiting other page
                 store.pushPath(questionUrl + "?category=Gadget");
-                await delay(500);
-                expect(app.find(Scalar).text()).toBe(COUNT_GADGET + "sql parametrized");
+                await waitForRequestToComplete("GET", apiRegex)
+                // use `update()` because of setState
+                expect(app.update().find(Scalar).text()).toBe(COUNT_GADGET + "sql parametrized");
             }
 
             it("should allow seeing an embedded question", async () => {
                 if (!embedUrl) throw new Error("This test fails because previous tests didn't produce an embed url.")
                 const embedUrlTestStore = await createTestStore({ embedApp: true });
-                await runSharedQuestionTests(embedUrlTestStore, embedUrl)
+                await runSharedQuestionTests(embedUrlTestStore, embedUrl, new RegExp("/api/embed/card/.*/query"))
             })
 
             it("should allow seeing a public question", async () => {
                 if (!publicUrl) throw new Error("This test fails because previous tests didn't produce a public url.")
                 const publicUrlTestStore = await createTestStore({ publicApp: true });
-                await runSharedQuestionTests(publicUrlTestStore, publicUrl)
+                await runSharedQuestionTests(publicUrlTestStore, publicUrl, new RegExp("/api/public/card/.*/query"))
             })
 
             // I think it's cleanest to restore the login here so that there are no surprises if you want to add tests

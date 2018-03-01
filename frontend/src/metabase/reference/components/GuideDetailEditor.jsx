@@ -3,15 +3,15 @@ import PropTypes from "prop-types";
 // FIXME: using pure seems to mess with redux form updates
 // import pure from "recompose/pure";
 import cx from "classnames";
-
+import { t } from 'c-3po';
 import S from "./GuideDetailEditor.css";
 
 import Select from "metabase/components/Select.jsx";
 import Icon from "metabase/components/Icon.jsx";
-import DataSelector from "metabase/query_builder/components/DataSelector.jsx";
 import Tooltip from "metabase/components/Tooltip.jsx";
 
 import { typeToBgClass } from "../utils.js";
+import { SchemaTableAndSegmentDataSelector } from "metabase/query_builder/components/DataSelector";
 
 const GuideDetailEditor = ({
     className,
@@ -78,25 +78,22 @@ const GuideDetailEditor = ({
                                 );
                             }
                         }}
-                        placeholder={'Select...'}
+                        placeholder={t`Select...`}
                     /> :
-                    <DataSelector
+                    <SchemaTableAndSegmentDataSelector
                         className={cx(selectClasses, 'inline-block', 'rounded', 'text-bold')}
                         triggerIconSize={12}
-                        includeTables={true}
-                        datasetQuery={{
-                            query: {
-                                source_table: formField.type.value === 'table' &&
-                                    Number.parseInt(formField.id.value)
-                            },
-                            database: (
-                                formField.type.value === 'table' &&
-                                tables[formField.id.value] &&
-                                tables[formField.id.value].db_id
-                            ) || Number.parseInt(Object.keys(databases)[0]),
-                            segment: formField.type.value === 'segment' &&
-                                Number.parseInt(formField.id.value)
-                        }}
+                        selectedTableId={
+                            formField.type.value === 'table' && Number.parseInt(formField.id.value)
+                        }
+                        selectedDatabaseId={
+                            formField.type.value === 'table' &&
+                            tables[formField.id.value] &&
+                            tables[formField.id.value].db_id
+                        }
+                        selectedSegmentId={
+                            formField.type.value === 'segment' && Number.parseInt(formField.id.value)
+                        }
                         databases={
                             Object.values(databases)
                                 .map(database => ({
@@ -114,8 +111,8 @@ const GuideDetailEditor = ({
                             const table = tables[tableId];
                             formField.id.onChange(table.id);
                             formField.type.onChange('table');
-                            formField.points_of_interest.onChange(table.points_of_interest || '');
-                            formField.caveats.onChange(table.caveats || '');
+                            formField.points_of_interest.onChange(table.points_of_interest || null);
+                            formField.caveats.onChange(table.caveats || null);
                         }}
                         segments={Object.values(segments)}
                         disabledSegmentIds={selectedIdTypePairs
@@ -133,7 +130,7 @@ const GuideDetailEditor = ({
                 }
             </div>
             <div className="ml-auto cursor-pointer text-grey-2">
-                <Tooltip tooltip="Remove item">
+                <Tooltip tooltip={t`Remove item`}>
                     <Icon
                         name="close"
                         width={16}
@@ -147,13 +144,13 @@ const GuideDetailEditor = ({
             <div className={cx('mb2', { 'disabled' : disabled })}>
                 <EditLabel>
                     { type === 'dashboard' ?
-                            `Why is this dashboard the most important?` :
-                            `What is useful or interesting about this ${type}?`
+                            t`Why is this dashboard the most important?` :
+                            t`What is useful or interesting about this ${type}?`
                     }
                 </EditLabel>
                 <textarea
                     className={S.guideDetailEditorTextarea}
-                    placeholder="Write something helpful here"
+                    placeholder={t`Write something helpful here`}
                     {...formField.points_of_interest}
                     disabled={disabled}
                 />
@@ -162,13 +159,13 @@ const GuideDetailEditor = ({
             <div className={cx('mb2', { 'disabled' : disabled })}>
                 <EditLabel>
                     { type === 'dashboard' ?
-                            `Is there anything users of this dashboard should be aware of?` :
-                            `Anything users should be aware of about this ${type}?`
+                            t`Is there anything users of this dashboard should be aware of?` :
+                            t`Anything users should be aware of about this ${type}?`
                     }
                 </EditLabel>
                 <textarea
                     className={S.guideDetailEditorTextarea}
-                    placeholder="Write something helpful here"
+                    placeholder={t`Write something helpful here`}
                     {...formField.caveats}
                     disabled={disabled}
                 />
@@ -176,12 +173,12 @@ const GuideDetailEditor = ({
             { type === 'metric' &&
                 <div className={cx('mb2', { 'disabled' : disabled })}>
                     <EditLabel key="metricFieldsLabel">
-                        Which 2-3 fields do you usually group this metric by?
+                        {t`Which 2-3 fields do you usually group this metric by?`}
                     </EditLabel>
                     <Select
                         options={fieldsByMetric}
                         optionNameFn={option => option.display_name || option.name}
-                        placeholder="Select..."
+                        placeholder={t`Select...`}
                         values={formField.important_fields.value || []}
                         disabledOptionIds={formField.important_fields.value && formField.important_fields.value.length === 3 ?
                             fieldsByMetric

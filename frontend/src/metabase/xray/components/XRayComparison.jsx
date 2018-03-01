@@ -2,7 +2,7 @@ import React from 'react'
 import { Link } from 'react-router'
 import Color from 'color'
 import Visualization from 'metabase/visualizations/components/Visualization'
-
+import { t } from 'c-3po';
 import Icon from 'metabase/components/Icon'
 import Tooltip from 'metabase/components/Tooltip'
 import { XRayPageWrapper, Heading } from 'metabase/xray/components/XRayLayout'
@@ -12,6 +12,7 @@ import ComparisonHeader from 'metabase/xray/components/ComparisonHeader'
 
 import { getIconForField } from 'metabase/lib/schema_metadata'
 import { distanceToPhrase } from 'metabase/xray/utils'
+import { ComparisonDropdown } from "metabase/xray/components/ComparisonDropdown";
 
 // right now we rely on knowing that itemB is the only one that
 // can contain a table
@@ -26,7 +27,7 @@ const fieldLinkUrl = (itemA, itemB, fieldName) => {
 */
 
 const itemLinkUrl = (item) =>
-    `/xray/${item.itemType}/${item.id}/approximate`
+    `/xray/${item["type-tag"]}/${item.id}/approximate`
 
 const CompareInts = ({ itemA, itemAColor, itemB, itemBColor }) =>
     <div className="flex">
@@ -53,10 +54,10 @@ const CompareInts = ({ itemA, itemAColor, itemB, itemBColor }) =>
 const Contributor = ({ contributor, itemA, itemB }) =>
     <div className="full-height">
         <h3 className="mb2">
-            {contributor.field.display_name}
+            {contributor.field.model.display_name}
         </h3>
 
-        <div className="ComparisonContributor bg-white shadowed rounded bordered full-height">
+        <div className="ComparisonContributor bg-white shadowed rounded bordered">
                 <div>
                     <div className="p2 flex align-center">
                         <h4>{contributor.feature.label}</h4>
@@ -69,7 +70,7 @@ const Contributor = ({ contributor, itemA, itemB }) =>
                         </Tooltip>
                     </div>
                     <div className="py1">
-                        { contributor.feature.type === 'histogram' ? (
+                        { contributor.feature.type.startsWith('histogram') ? (
                             <CompareHistograms
                                 itemA={contributor.feature.value.a}
                                 itemB={contributor.feature.value.b}
@@ -109,7 +110,7 @@ const CompareHistograms = ({ itemA, itemAColor, itemB, itemBColor, showAxis = fa
         <div className="flex-full">
             <Visualization
                 className="full-height"
-                series={[
+                rawSeries={[
                     {
                         card: {
                             display: "bar",
@@ -145,6 +146,7 @@ const CompareHistograms = ({ itemA, itemAColor, itemB, itemBColor, showAxis = fa
 
 const XRayComparison = ({
     contributors,
+    comparables,
     comparison,
     comparisonFields,
     itemA,
@@ -158,20 +160,44 @@ const XRayComparison = ({
                 cost={cost}
             />
             <div className="flex">
-                <ItemLink
-                    link={itemLinkUrl(itemA)}
-                    item={itemA}
+                <ComparisonDropdown
+                    models={[itemA, itemB]}
+                    comparables={
+                        comparables[0].filter((comparableModel) =>
+                            // filter out itemB
+                            !(comparableModel.id === itemB.id && comparableModel["type-tag"] === itemB["type-tag"])
+                        )
+                    }
+                    updatingModelAtIndex={0}
+                    triggerElement={
+                        <ItemLink
+                            item={itemA}
+                            dropdown
+                        />
+                    }
                 />
-                <ItemLink
-                    link={itemLinkUrl(itemB)}
-                    item={itemB}
+                <ComparisonDropdown
+                    models={[itemA, itemB]}
+                    comparables={
+                        comparables[1].filter((comparableModel) =>
+                            // filter out itemA
+                            !(comparableModel.id === itemA.id && comparableModel["type-tag"] === itemA["type-tag"])
+                        )
+                    }
+                    updatingModelAtIndex={1}
+                    triggerElement={
+                        <ItemLink
+                            item={itemB}
+                            dropdown
+                        />
+                    }
                 />
             </div>
         </div>
 
-        <Heading heading="Overview" />
+        <Heading heading={t`Overview`} />
         <div className="bordered rounded bg-white shadowed p4">
-            <h3 className="text-grey-3">Count</h3>
+            <h3 className="text-grey-3">{t`Count`}</h3>
             <div className="flex my1">
                 <h1
                     className="mr1"
@@ -188,7 +214,7 @@ const XRayComparison = ({
 
         { contributors && (
             <div>
-                <Heading heading="Potentially interesting differences" />
+                <Heading heading={t`Potentially interesting differences`} />
                 <ol className="Grid Grid--gutters Grid--1of3">
                     { contributors.map(contributor =>
                         <li className="Grid-cell" key={contributor.field.id}>
@@ -203,22 +229,26 @@ const XRayComparison = ({
             </div>
         )}
 
-        <Heading heading="Full breakdown" />
+        <Heading heading={t`Full breakdown`} />
         <div className="bordered rounded bg-white shadowed">
 
             <div className="flex p2">
-                <h4 className="mr1" style={{ color: itemA.color.text}}>
-                    {itemA.name}
-                </h4>
-                <h4 style={{ color: itemB.color.text}}>
-                    {itemB.name}
-                </h4>
+                <Link to={itemLinkUrl(itemA)} className="no-decoration">
+                    <h4 className="mr1" style={{ color: itemA.color.text}}>
+                        {itemA.name}
+                    </h4>
+                </Link>
+                <Link to={itemLinkUrl(itemB)} className="no-decoration">
+                    <h4 style={{ color: itemB.color.text}}>
+                        {itemB.name}
+                    </h4>
+                </Link>
             </div>
 
             <table className="ComparisonTable full">
                 <thead className="full border-bottom">
                     <tr>
-                        <th className="px2">Field</th>
+                        <th className="px2">{t`Field`}</th>
                         {comparisonFields.map(c =>
                             <th
                                 key={c}

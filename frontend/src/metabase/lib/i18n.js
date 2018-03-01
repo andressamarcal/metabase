@@ -1,7 +1,7 @@
-import MetabaseSettings from "metabase/lib/settings";
 
 import { addLocale, useLocale } from "c-3po";
 import { I18NApi } from "metabase/services";
+import MetabaseSettings from "metabase/lib/settings";
 
 export async function loadLocalization(locale) {
     // load and parse the locale
@@ -12,12 +12,11 @@ export async function loadLocalization(locale) {
 export function setLocalization(translationsObject) {
     const locale = translationsObject.headers.language;
 
-    // inject the application name
-    translationsObject.translations[""]["Metabase"].msgstr = [
-        MetabaseSettings.applicationName()
-    ];
-
-    console.log("translationsObject", translationsObject)
+    try {
+      translationsObject.translations[""]["Metabase"].msgstr = [MetabaseSettings.applicationName()]
+    } catch (e) {
+      console.error("Couldn't set application name", e)
+    }
 
     // add and set locale with C-3PO
     addLocale(locale, translationsObject);

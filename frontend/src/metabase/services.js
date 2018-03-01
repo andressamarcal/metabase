@@ -142,7 +142,7 @@ export const MetabaseApi = {
     // table_sync_metadata:        POST("/api/table/:tableId/sync"),
     table_rescan_values:       POST("/api/table/:tableId/rescan_values"),
     table_discard_values:      POST("/api/table/:tableId/discard_values"),
-    // field_get:                   GET("/api/field/:fieldId"),
+    field_get:                   GET("/api/field/:fieldId"),
     // field_summary:               GET("/api/field/:fieldId/summary"),
     field_values:                GET("/api/field/:fieldId/values"),
     field_values_update:        POST("/api/field/:fieldId/values"),
@@ -155,20 +155,22 @@ export const MetabaseApi = {
     dataset_duration:           POST("/api/dataset/duration")
 };
 
+export const AsyncApi = {
+    status:                     GET("/api/async/:jobId"),
+    // endpoints:                  GET("/api/async/running-jobs")
+}
+
 export const XRayApi = {
     // X-Rays
+    // NOTE Atte Keinänen 9/28/17: All xrays endpoints are asynchronous.
+    // You should use BackgroundJobRequest in `metabase/lib/promise` for invoking them.
     field_xray:                  GET("/api/x-ray/field/:fieldId"),
     table_xray:                  GET("/api/x-ray/table/:tableId"),
     segment_xray:                GET("/api/x-ray/segment/:segmentId"),
     card_xray:                   GET("/api/x-ray/card/:cardId"),
 
-    field_compare:               GET("/api/x-ray/compare/fields/:fieldId1/:fieldId2"),
-    table_compare:               GET("/api/x-ray/compare/tables/:tableId1/:tableId2"),
-    segment_compare:             GET("/api/x-ray/compare/segments/:segmentId1/:segmentId2"),
-    segment_table_compare:       GET("/api/x-ray/compare/segment/:segmentId/table/:tableId"),
-    segment_field_compare:       GET("/api/x-ray/compare/segments/:segmentId1/:segmentId2/field/:fieldName"),
-    segment_table_field_compare: GET("/api/x-ray/compare/segment/:segmentId/table/:tableId/field/:fieldName"),
-    card_compare:                GET("/api/x-ray/compare/cards/:cardId1/:cardId2")
+    compare_shared_type:         GET("/api/x-ray/compare/:modelTypePlural/:modelId1/:modelId2"),
+    compare_two_types:           GET("/api/x-ray/compare/:modelType1/:modelId1/:modelType2/:modelId2"),
 };
 
 export const PulseApi = {
@@ -180,6 +182,15 @@ export const PulseApi = {
     test:                       POST("/api/pulse/test"),
     form_input:                  GET("/api/pulse/form_input"),
     preview_card:                GET("/api/pulse/preview_card_info/:id"),
+};
+
+export const AlertApi = {
+    list:                        GET("/api/alert"),
+    list_for_question:           GET("/api/alert/question/:questionId"),
+    create:                     POST("/api/alert"),
+    update:                      PUT("/api/alert/:id"),
+    delete:                   DELETE("/api/alert/:id"),
+    unsubscribe:                 PUT("/api/alert/:id/unsubscribe"),
 };
 
 export const SegmentApi = {

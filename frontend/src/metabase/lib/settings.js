@@ -1,5 +1,6 @@
 import _ from "underscore";
 import inflection from 'inflection';
+import { t } from 'c-3po';
 import MetabaseUtils from "metabase/lib/utils";
 
 const mb_settings = _.clone(window.MetabaseBootstrap);
@@ -82,6 +83,10 @@ const MetabaseSettings = {
     features: function() {
         return Object.entries(mb_settings["features"]).filter(([key, enabled]) => enabled).map(([key]) => key);
     },
+    
+    hideEmbedBranding: () => mb_settings.hide_embed_branding,
+
+    metastoreUrl: () => mb_settings.metastore_url,
 
     newVersionAvailable: function(settings) {
         let versionInfo = _.findWhere(settings, {key: "version-info"}),
@@ -97,14 +102,14 @@ const MetabaseSettings = {
 
         const clauseDescription = function(clause) {
             switch (clause) {
-                case "lower": return "lower case letter";
-                case "upper": return "upper case letter";
-                case "digit": return "number";
-                case "special": return "special character";
+                case "lower": return t`lower case letter`;
+                case "upper": return t`upper case letter`;
+                case "digit": return t`number`;
+                case "special": return t`special character`;
             }
         };
 
-        let description = (capitalize === false) ? "must be "+complexity.total+" characters long" : "Must be "+complexity.total+" characters long",
+        let description = (capitalize === false) ? t`must be` + " " + complexity.total + " " + t`characters long` : t`Must be` + " " + complexity.total + " " + t`characters long`,
             clauses = [];
 
         ["lower", "upper", "digit", "special"].forEach(function(clause) {
@@ -115,7 +120,7 @@ const MetabaseSettings = {
         });
 
         if (clauses.length > 0) {
-            return description+" and include "+clauses.join(", ");
+            return description+" "+ t`and include` +" "+clauses.join(", ");
         } else {
             return description;
         }

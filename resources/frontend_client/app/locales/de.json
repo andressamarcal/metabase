@@ -3,10 +3,10 @@
   "headers": {
     "project-id-version": "metabase",
     "report-msgid-bugs-to": "docs@metabase.com",
-    "pot-creation-date": "2017-09-12 15:09+0700",
-    "po-revision-date": "2017-08-14 18:54+0200",
+    "pot-creation-date": "2017-08-21 21:54+0200",
+    "po-revision-date": "2017-08-21 21:17+0200",
     "last-translator": "Tom Robinson <tom@metabase.com>",
-    "language-team": "German",
+    "language-team": "German <translation-team-de@lists.sourceforge.net>",
     "language": "de",
     "mime-version": "1.0",
     "content-type": "text/plain; charset=UTF-8",
@@ -17,16 +17,16 @@
   },
   "translations": {
     "": {
-      "Metabase": {
-        "msgid": "Metabase",
-        "msgstr": [
-          "Metabaes"
-        ]
-      },
       "Hello World!": {
         "msgid": "Hello World!",
         "msgstr": [
           "Hallo Welt!"
+        ]
+      },
+      "Metabase is up and running.": {
+        "msgid": "Metabase is up and running.",
+        "msgstr": [
+          "Metabase ist auf und laufen"
         ]
       },
       "removed the filter {item.details.name}": {

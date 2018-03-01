@@ -1,6 +1,7 @@
 (ns metabase.util.stats
   "Functions which summarize the usage of an instance"
   (:require [clj-http.client :as client]
+            [clojure.string :as str]
             [clojure.tools.logging :as log]
             [medley.core :as m]
             [metabase
@@ -49,10 +50,6 @@
 
 (def ^:private ^:const ^String metabase-usage-url "https://xuq0fbkk0j.execute-api.us-east-1.amazonaws.com/prod")
 
-(def ^:private ^Integer anonymous-id
-  "Generate an anonymous id. Don't worry too much about hash collisions or localhost cases, etc.
-   The goal is to be able to get a rough sense for how many different hosts are throwing a specific error/event."
-  (hash (str (java.net.InetAddress/getLocalHost))))
 
 (defn- bin-micro-number
   "Return really small bin number. Assumes positive inputs."
@@ -140,7 +137,7 @@
    :check_for_updates    (public-settings/check-for-updates)
    :site_name            (not= (public-settings/site-name) "Metabase")
    :report_timezone      (driver/report-timezone)
-   :friendly_names       (humanization/enable-advanced-humanization)
+   :friendly_names       (= (humanization/humanization-strategy) "advanced")
    :email_configured     (email/email-configured?)
    :slack_configured     (slack/slack-configured?)
    :sso_configured       (boolean (session-api/google-auth-client-id))
@@ -347,6 +344,25 @@
     {:average_entry_size (int (or length 0))
      :num_queries_cached (bin-small-number count)}))
 
+;;; System Metrics
+
+(defn- bytes->megabytes [b]
+  (Math/round (double (/ b 1024 1024))))
+
+(def ^:private system-property-names
+  ["java.version" "java.vm.specification.version"  "java.runtime.name"
+   "user.timezone" "user.language" "user.country" "file.encoding"
+   "os.name" "os.version"])
+
+(defn- system-metrics
+  "Metadata about the environment Metabase is running in"
+  []
+  (let [runtime (Runtime/getRuntime)]
+    (merge
+     {:max_memory (bytes->megabytes (.maxMemory runtime))
+      :processors (.availableProcessors runtime)}
+     (zipmap (map #(keyword (str/replace % \. \_)) system-property-names)
+             (map #(System/getProperty %) system-property-names)))))
 
 ;;; Combined Stats & Logic for sending them in
 
@@ -354,7 +370,7 @@
   "generate a map of the usage stats for this instance"
   []
   (merge (instance-settings)
-         {:uuid anonymous-id, :timestamp (Date.)}
+         {:uuid (public-settings/site-uuid) :timestamp (Date.)}
          {:stats {:cache      (cache-metrics)
                   :collection (collection-metrics)
                   :dashboard  (dashboard-metrics)
@@ -367,6 +383,7 @@
                   :pulse      (pulse-metrics)
                   :question   (question-metrics)
                   :segment    (segment-metrics)
+                  :system     (system-metrics)
                   :table      (table-metrics)
                   :user       (user-metrics)}}))
 

@@ -6,6 +6,7 @@ import ReactDOM from "react-dom";
 
 import "./NativeQueryEditor.css";
 
+// $FlowFixMe react-resizable causes Flow errors
 import { ResizableBox } from 'react-resizable';
 
 import 'ace/ace';
@@ -22,13 +23,12 @@ import 'ace/snippets/mysql';
 import 'ace/snippets/pgsql';
 import 'ace/snippets/sqlserver';
 import 'ace/snippets/json';
-
+import { t } from 'c-3po';
 
 import { SQLBehaviour } from "metabase/lib/ace/sql_behaviour";
 
 import _ from "underscore";
 
-import DataSelector from './DataSelector.jsx';
 import Icon from "metabase/components/Icon.jsx";
 import Parameters from "metabase/parameters/components/Parameters";
 
@@ -49,6 +49,10 @@ import type { TableId } from "metabase/meta/types/Table";
 import type { ParameterId } from "metabase/meta/types/Parameter";
 import type { LocationDescriptor } from "metabase/meta/types";
 import type { RunQueryParams } from "metabase/query_builder/actions";
+import {
+    DatabaseDataSelector,
+    SchemaAndTableDataSelector,
+} from "metabase/query_builder/components/DataSelector";
 
 type AutoCompleteResult = [string, string, string];
 type AceEditor = any; // TODO;
@@ -266,10 +270,10 @@ export default class NativeQueryEditor extends Component {
             if (databases.length > 1 && (database == null || _.any(databases, (db) => db.id === database.id))) {
                 dataSelectors.push(
                     <div key="db_selector" className="GuiBuilder-section GuiBuilder-data flex align-center">
-                        <span className="GuiBuilder-section-label Query-label">Database</span>
-                        <DataSelector
+                        <span className="GuiBuilder-section-label Query-label">{t`Database`}</span>
+                        <DatabaseDataSelector
                             databases={databases}
-                            datasetQuery={query.datasetQuery()}
+                            selectedDatabaseId={database && database.id}
                             setDatabaseFn={this.setDatabaseId}
                             isInitiallyOpen={database == null}
                         />
@@ -286,18 +290,12 @@ export default class NativeQueryEditor extends Component {
 
                 dataSelectors.push(
                     <div key="table_selector" className="GuiBuilder-section GuiBuilder-data flex align-center">
-                        <span className="GuiBuilder-section-label Query-label">Table</span>
-                        <DataSelector
-                            ref="dataSection"
-                            includeTables={true}
-                            datasetQuery={{
-                                type: "query",
-                                query: { source_table: selectedTable ? selectedTable.id : null },
-                                database: database && database.id
-                            }}
+                        <span className="GuiBuilder-section-label Query-label">{t`Table`}</span>
+                        <SchemaAndTableDataSelector
+                            selectedTableId={selectedTable ? selectedTable.id : null}
+                            selectedDatabaseId={database && database.id}
                             databases={[database]}
                             tables={tables}
-                            setDatabaseFn={this.setDatabaseId}
                             setSourceTableFn={this.setTableId}
                             isInitiallyOpen={false}
                         />
@@ -305,17 +303,17 @@ export default class NativeQueryEditor extends Component {
                 );
             }
         } else {
-            dataSelectors = <span className="p2 text-grey-4">{`This question is written in ${query.nativeQueryLanguage()}.`}</span>;
+            dataSelectors = <span className="p2 text-grey-4">{t`This question is written in ${query.nativeQueryLanguage()}.`}</span>;
         }
 
         let editorClasses, toggleEditorText, toggleEditorIcon;
         if (this.state.showEditor) {
             editorClasses = "";
-            toggleEditorText = query.hasWritePermission() ? "Hide Editor" : "Hide Query";
+            toggleEditorText = query.hasWritePermission() ? t`Hide Editor` : t`Hide Query`;
             toggleEditorIcon = "contract";
         } else {
             editorClasses = "hide";
-            toggleEditorText = query.hasWritePermission() ? "Open Editor" : "Show Query";
+            toggleEditorText = query.hasWritePermission() ? t`Open Editor` : t`Show Query`;
             toggleEditorIcon = "expand";
         }
 

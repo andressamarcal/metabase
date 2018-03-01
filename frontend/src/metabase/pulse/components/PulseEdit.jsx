@@ -2,6 +2,7 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { Link } from "react-router";
+import { t, jt } from 'c-3po';
 
 import PulseEditName from "./PulseEditName.jsx";
 import PulseEditCards from "./PulseEditCards.jsx";
@@ -16,7 +17,7 @@ import ModalContent from "metabase/components/ModalContent.jsx";
 import DeleteModalWithConfirm from "metabase/components/DeleteModalWithConfirm.jsx";
 
 
-import { pulseIsValid, cleanPulse } from "metabase/lib/pulse";
+import { pulseIsValid, cleanPulse, emailIsEnabled } from "metabase/lib/pulse";
 
 import _ from "underscore";
 import cx from "classnames";
@@ -74,33 +75,29 @@ export default class PulseEdit extends Component {
         this.props.updateEditingPulse(pulse);
     }
 
-    isValid() {
-        let { pulse } = this.props;
-        return pulse.name && pulse.cards.length && pulse.channels.length > 0 && pulse.channels.filter((c) => this.channelIsValid(c)).length > 0;
-    }
-
     getConfirmItems() {
-        return this.props.pulse.channels.map(c =>
+        return this.props.pulse.channels.map((c, index) =>
             c.channel_type === "email" ?
-                <span>This pulse will no longer be emailed to <strong>{c.recipients.length} {inflect("address", c.recipients.length)}</strong> <strong>{c.schedule_type}</strong>.</span>
+                <span key={index}>{jt`This pulse will no longer be emailed to ${<strong>{c.recipients.length} {inflect("address", c.recipients.length)}</strong>} ${<strong>{c.schedule_type}</strong>}`}.</span>
             : c.channel_type === "slack" ?
-                <span>Slack channel <strong>{c.details && c.details.channel}</strong> will no longer get this pulse <strong>{c.schedule_type}</strong>.</span>
+                <span key={index}>{jt`Slack channel ${<strong>{c.details && c.details.channel}</strong>} will no longer get this pulse ${<strong>{c.schedule_type}</strong>}`}.</span>
             :
-                <span>Channel <strong>{c.channel_type}</strong> will no longer receive this pulse <strong>{c.schedule_type}</strong>.</span>
+                <span key={index}>{jt`Channel ${<strong>{c.channel_type}</strong>} will no longer receive this pulse ${<strong>{c.schedule_type}</strong>}`}.</span>
         );
     }
 
     render() {
-        let { pulse, formInput } = this.props;
-        let isValid = pulseIsValid(pulse, formInput.channels);
+        const { pulse, formInput } = this.props;
+        const isValid = pulseIsValid(pulse, formInput.channels);
+        const attachmentsEnabled = emailIsEnabled(pulse);
         return (
             <div className="PulseEdit">
                 <div className="PulseEdit-header flex align-center border-bottom py3">
-                    <h1>{pulse && pulse.id != null ? "Edit" : "New"} pulse</h1>
+                    <h1>{pulse && pulse.id != null ? t`Edit pulse` : t`New pulse`}</h1>
                     <ModalWithTrigger
                         ref="pulseInfo"
                         className="Modal WhatsAPulseModal"
-                        triggerElement="What's a Pulse?"
+                        triggerElement={t`What's a Pulse?`}
                         triggerClasses="text-brand text-bold flex-align-right"
                     >
                         <ModalContent
@@ -108,7 +105,7 @@ export default class PulseEdit extends Component {
                         >
                             <div className="mx4 mb4">
                                 <WhatsAPulse
-                                    button={<button className="Button Button--primary" onClick={() => this.refs.pulseInfo.close()}>Got it</button>}
+                                    button={<button className="Button Button--primary" onClick={() => this.refs.pulseInfo.close()}>{t`Got it`}</button>}
                                 />
                             </div>
                         </ModalContent>
@@ -116,24 +113,27 @@ export default class PulseEdit extends Component {
                 </div>
                 <div className="PulseEdit-content pt2 pb4">
                     <PulseEditName {...this.props} setPulse={this.setPulse} />
-                    <PulseEditCards {...this.props} setPulse={this.setPulse} />
-                    <PulseEditChannels {...this.props} setPulse={this.setPulse} pulseIsValid={isValid} />
+                    <PulseEditCards {...this.props} setPulse={this.setPulse} attachmentsEnabled={attachmentsEnabled} />
+                    <div className="py1 mb4">
+                        <h2 className="mb3">{t`Where should this data go?`}</h2>
+                        <PulseEditChannels {...this.props} setPulse={this.setPulse} pulseIsValid={isValid} />
+                    </div>
                     <PulseEditSkip {...this.props} setPulse={this.setPulse} />
                     { pulse && pulse.id != null &&
                         <div className="DangerZone mb2 p3 rounded bordered relative">
-                            <h3 className="text-error absolute top bg-white px1" style={{ marginTop: "-12px" }}>Danger Zone</h3>
+                            <h3 className="text-error absolute top bg-white px1" style={{ marginTop: "-12px" }}>{t`Danger Zone`}</h3>
                             <div className="ml1">
-                                <h4 className="text-bold mb1">Delete this pulse</h4>
+                                <h4 className="text-bold mb1">{t`Delete this pulse`}</h4>
                                 <div className="flex">
-                                    <p className="h4 pr2">Stop delivery and delete this pulse. There's no undo, so be careful.</p>
+                                    <p className="h4 pr2">{t`Stop delivery and delete this pulse. There's no undo, so be careful.`}</p>
                                     <ModalWithTrigger
                                         ref={"deleteModal"+pulse.id}
                                         triggerClasses="Button Button--danger flex-align-right flex-no-shrink"
-                                        triggerElement="Delete this Pulse"
+                                        triggerElement={t`Delete this Pulse`}
                                     >
                                         <DeleteModalWithConfirm
                                             objectType="pulse"
-                                            objectName={pulse.name}
+                                            title={t`Delete`+" \"" + pulse.name + "\"?"}
                                             confirmItems={this.getConfirmItems()}
                                             onClose={() => this.refs["deleteModal"+pulse.id].close()}
                                             onDelete={this.delete}
@@ -148,12 +148,12 @@ export default class PulseEdit extends Component {
                     <ActionButton
                         actionFn={this.save}
                         className={cx("Button Button--primary", { "disabled": !isValid })}
-                        normalText={pulse.id != null ? "Save changes" : "Create pulse"}
-                        activeText="Saving…"
-                        failedText="Save failed"
-                        successText="Saved"
+                        normalText={pulse.id != null ? t`Save changes` : t`Create pulse`}
+                        activeText={t`Saving…`}
+                        failedText={t`Save failed`}
+                        successText={t`Saved`}
                     />
-                  <Link to="/pulse" className="Button ml2">Cancel</Link>
+                  <Link to="/pulse" className="Button ml2">{t`Cancel`}</Link>
                 </div>
             </div>
         );

@@ -4,7 +4,7 @@ import {
     metadata
 } from "__support__/sample_dataset_fixture";
 import Question from "metabase-lib/lib/Question";
-import { login } from "__support__/integrated_tests";
+import { useSharedAdminLogin } from "__support__/integrated_tests";
 import { NATIVE_QUERY_TEMPLATE } from "metabase-lib/lib/queries/NativeQuery";
 
 // TODO Atte Keinänen 6/22/17: This could include tests that run each "question drill action" (summarize etc)
@@ -12,7 +12,7 @@ import { NATIVE_QUERY_TEMPLATE } from "metabase-lib/lib/queries/NativeQuery";
 
 describe("Question", () => {
     beforeAll(async () => {
-        await login();
+        useSharedAdminLogin();
     });
 
     describe("with SQL questions", () => {
@@ -40,13 +40,13 @@ describe("Question", () => {
             });
 
             // Without a template tag the query should fail
-            const results1 = await question.getResults({ ignoreCache: true });
+            const results1 = await question.apiGetResults({ ignoreCache: true });
             expect(results1[0].status).toBe("failed");
 
             question._parameterValues = { [templateTagId]: "5" };
-            const results2 = await question.getResults({ ignoreCache: true });
+            const results2 = await question.apiGetResults({ ignoreCache: true });
             expect(results2[0]).toBeDefined();
-            expect(results2[0].data.rows[0][0]).toEqual(18.1);
+            expect(results2[0].data.rows[0][0]).toEqual(116.35497575401975);
         });
 
         it("should return correct result with an optional template tag clause", async () => {
@@ -72,14 +72,14 @@ describe("Question", () => {
                 }
             });
 
-            const results1 = await question.getResults({ ignoreCache: true });
+            const results1 = await question.apiGetResults({ ignoreCache: true });
             expect(results1[0]).toBeDefined();
             expect(results1[0].data.rows.length).toEqual(10000);
 
             question._parameterValues = { [templateTagId]: "5" };
-            const results2 = await question.getResults({ ignoreCache: true });
+            const results2 = await question.apiGetResults({ ignoreCache: true });
             expect(results2[0]).toBeDefined();
-            expect(results2[0].data.rows[0][0]).toEqual(18.1);
+            expect(results2[0].data.rows[0][0]).toEqual(116.35497575401975);
         });
     });
 });

@@ -1,5 +1,5 @@
 import { getVisualizationRaw } from "metabase/visualizations";
-
+import { t } from 'c-3po';
 import {
     columnsAreValid,
     getChartTypeFromData,
@@ -13,6 +13,7 @@ import {
 import { isDate, isMetric, isDimension } from "metabase/lib/schema_metadata";
 
 import ChartSettingInput from "metabase/visualizations/components/settings/ChartSettingInput.jsx";
+import ChartSettingInputGroup from "metabase/visualizations/components/settings/ChartSettingInputGroup.jsx";
 import ChartSettingInputNumeric from "metabase/visualizations/components/settings/ChartSettingInputNumeric.jsx";
 import ChartSettingRadio from "metabase/visualizations/components/settings/ChartSettingRadio.jsx";
 import ChartSettingSelect from "metabase/visualizations/components/settings/ChartSettingSelect.jsx";
@@ -24,6 +25,7 @@ import ChartSettingColorsPicker from "metabase/visualizations/components/setting
 
 const WIDGETS = {
     input: ChartSettingInput,
+    inputGroup: ChartSettingInputGroup,
     number: ChartSettingInputNumeric,
     radio: ChartSettingRadio,
     select: ChartSettingSelect,
@@ -143,14 +145,14 @@ export function fieldSetting(id, filter, getDefault) {
 
 const COMMON_SETTINGS = {
     "card.title": {
-        title: "Title",
+        title: t`Title`,
         widget: "input",
         getDefault: (series) => series.length === 1 ? series[0].card.name : null,
         dashboard: true,
         useRawSeries: true
     },
     "card.description": {
-        title: "Description",
+        title: t`Description`,
         widget: "input",
         getDefault: (series) => series.length === 1 ? series[0].card.description : null,
         dashboard: true,
@@ -163,7 +165,7 @@ function getSetting(settingDefs, id, vizSettings, series) {
         return;
     }
 
-    const settingDef = settingDefs[id];
+    const settingDef = settingDefs[id] || {};
     const [{ card }] = series;
     const visualization_settings = card.visualization_settings || {};
 
@@ -187,7 +189,9 @@ function getSetting(settingDefs, id, vizSettings, series) {
         }
 
         if (settingDef.getDefault) {
-            return vizSettings[id] = settingDef.getDefault(series, vizSettings);
+            const defaultValue = settingDef.getDefault(series, vizSettings)
+
+            return vizSettings[id] = defaultValue;
         }
 
         if ("default" in settingDef) {
@@ -210,6 +214,26 @@ function getSettingDefintionsForSeries(series) {
         definitions[id].id = id
     }
     return definitions;
+}
+
+export function getPersistableDefaultSettings(series) {
+    // A complete set of settings (not only defaults) is loaded because
+    // some persistable default settings need other settings as dependency for calculating the default value
+    const completeSettings = getSettings(series)
+
+    let persistableDefaultSettings = {};
+    let settingsDefs = getSettingDefintionsForSeries(series);
+
+    for (let id in settingsDefs) {
+        const settingDef = settingsDefs[id]
+        const seriesForSettingsDef = settingDef.useRawSeries && series._raw ? series._raw : series
+
+        if (settingDef.persistDefault) {
+            persistableDefaultSettings[id] = settingDef.getDefault(seriesForSettingsDef, completeSettings)
+        }
+    }
+
+    return persistableDefaultSettings;
 }
 
 export function getSettings(series) {

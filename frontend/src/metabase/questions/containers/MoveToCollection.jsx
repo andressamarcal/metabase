@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
-
+import { t } from 'c-3po';
 import Button from "metabase/components/Button";
 import Icon from "metabase/components/Icon";
 import ModalContent from "metabase/components/ModalContent";
@@ -51,17 +51,17 @@ export default class MoveToCollection extends Component {
         const { currentCollection, error } = this.state;
         return (
             <ModalContent
-                title="Which collection should this be in?"
+                title={t`Which collection should this be in?`}
                 footer={
                     <div>
                         { error &&
                             <span className="text-error mr1">{error.data && error.data.message}</span>
                         }
                         <Button className="mr1" onClick={onClose}>
-                            Cancel
+                            {t`Cancel`}
                         </Button>
                         <Button primary disabled={currentCollection.id === undefined} onClick={() => this.onMove(currentCollection)}>
-                            Move
+                            {t`Move`}
                         </Button>
                     </div>
                 }
@@ -71,7 +71,7 @@ export default class MoveToCollection extends Component {
                 <CollectionList writable>
                     { collections =>
                         <ol className="List text-brand ml-auto mr-auto" style={{ width: 520 }}>
-                            { [{ name: "None", id: null }].concat(collections).map((collection, index) =>
+                            { [{ name: t`None`, id: null }].concat(collections).map((collection, index) =>
                                 <li
                                     className={cx("List-item flex align-center cursor-pointer mb1 p1", { "List-item--selected": collection.id === currentCollection.id })}
                                     key={index}

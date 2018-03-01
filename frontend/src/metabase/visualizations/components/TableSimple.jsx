@@ -4,7 +4,7 @@ import React, { Component } from "react";
 import PropTypes from "prop-types";
 import ReactDOM from "react-dom";
 import styles from "./Table.css";
-
+import { t } from 'c-3po';
 import ExplicitSize from "metabase/components/ExplicitSize.jsx";
 import Ellipsified from "metabase/components/Ellipsified.jsx";
 import Icon from "metabase/components/Icon.jsx";
@@ -92,7 +92,7 @@ export default class TableSimple extends Component {
         return (
             <div className={cx(this.props.className, "relative flex flex-column")}>
                 <div className="flex-full relative">
-                    <div className="absolute top bottom left right scroll-x scroll-show scroll-show--horizontal scroll-show--hover" style={{ overflowY: "hidden" }}>
+                    <div className="absolute top bottom left right scroll-x scroll-show scroll-show--hover" style={{ overflowY: "hidden" }}>
                         <table className={cx(styles.Table, styles.TableSimple, 'fullscreen-normal-text', 'fullscreen-night-text')}>
                             <thead ref="header">
                                 <tr>
@@ -148,7 +148,7 @@ export default class TableSimple extends Component {
                 </div>
                 { pageSize < rows.length ?
                     <div ref="footer" className="p1 flex flex-no-shrink flex-align-right fullscreen-normal-text fullscreen-night-text">
-                        <span className="text-bold">Rows {start + 1}-{end + 1} of {rows.length}</span>
+                        <span className="text-bold">{t`Rows ${start + 1}-${end + 1} of ${rows.length}`}</span>
                         <span className={cx("text-brand-hover px1 cursor-pointer", { disabled: start === 0 })} onClick={() => this.setState({ page: page - 1 })}>
                             <Icon name="left" size={10} />
                         </span>
