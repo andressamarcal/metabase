@@ -128,10 +128,42 @@
         (throw (ex-info "No native form returned."
                  results)))))
 
-(defn process-query
+(defn- allow-extra-keys [schema-map]
+  (assoc schema-map s/Any s/Any))
+
+(def ^:private DefaultQueryContext
+  (allow-extra-keys
+   {:database (s/cond-pre (s/eq -1337)
+                          su/IntGreaterThanZero)}))
+
+(def ^:private MBQLQuery
+  (assoc DefaultQueryContext
+    (s/optional-key :type)  (s/enum :query "query")
+    (s/optional-key :query) (allow-extra-keys
+                             {(s/optional-key :source-table) (s/cond-pre su/IntGreaterThanZero s/Str)
+                              (s/optional-key :aggregation)  (s/cond-pre {s/Any s/Any}
+                                                                         [s/Any]
+                                                                         s/Str)
+                              (s/optional-key :breakout)     [(s/cond-pre {s/Any s/Any} [s/Any])]
+                              (s/optional-key :limit)        (s/maybe su/IntGreaterThanZero)})))
+
+(def ^:private NativeQuery
+  (assoc DefaultQueryContext
+    (s/optional-key :type) (s/enum :native "native")
+    (s/optional-key :native) {:query                          s/Str
+                              (s/optional-key :template_tags) {s/Keyword {s/Any s/Any}}}))
+
+(def ^:private QueryContext
+  (s/conditional
+   #(contains? % :query)
+   MBQLQuery
+   #(contains? % :native)
+   NativeQuery))
+
+(s/defn process-query
   "A pipeline of various QP functions (including middleware) that are used to process MB queries."
   {:style/indent 0}
-  [query]
+  [query :- QueryContext]
   ((qp-pipeline execute-query) query))
 
 (def ^{:arglists '([query])} expand
