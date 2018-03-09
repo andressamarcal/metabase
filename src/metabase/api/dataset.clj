@@ -46,8 +46,10 @@
   (let [source-card-id (query->source-card-id query)]
     (api/cancellable-json-response
      (fn []
-       (qp/process-query-and-save-with-max! query {:executed-by api/*current-user-id*, :context :ad-hoc,
-                                                   :card-id     source-card-id,        :nested? (boolean source-card-id)})))))
+       (qp/process-query-and-save-with-max!
+           (api/with-user-attributes query)
+           {:executed-by api/*current-user-id*, :context :ad-hoc,
+            :card-id     source-card-id,        :nested? (boolean source-card-id)})))))
 
 
 ;;; ----------------------------------- Downloading Query Results in Other Formats -----------------------------------
@@ -127,7 +129,7 @@
   (let [query (json/parse-string query keyword)]
     (api/read-check Database (:database query))
     (as-format export-format
-      (qp/process-query-and-save-execution! (dissoc query :constraints)
+      (qp/process-query-and-save-execution! (-> query (dissoc :constraints) api/with-user-attributes)
         {:executed-by api/*current-user-id*, :context (export-format->context export-format)}))))
 
 

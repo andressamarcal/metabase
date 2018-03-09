@@ -6,6 +6,7 @@
              [driver :as driver]
              [util :as u]]
             [metabase.models
+             [database :refer [virtual-id]]
              [query :as query]
              [query-execution :as query-execution :refer [QueryExecution]]]
             [metabase.query-processor.middleware
@@ -133,8 +134,9 @@
 
 (def ^:private DefaultQueryContext
   (allow-extra-keys
-   {:database (s/cond-pre (s/eq -1337)
-                          su/IntGreaterThanZero)}))
+   {:database        (s/cond-pre (s/eq virtual-id) su/IntGreaterThanZero)
+    ;; RS - keys to this map should be strings, not keywords but that would be different than everywhere else
+    :user-attributes (s/maybe {s/Keyword (s/cond-pre s/Str s/Bool s/Num)})}))
 
 (def ^:private MBQLQuery
   (assoc DefaultQueryContext
@@ -160,11 +162,16 @@
    #(contains? % :native)
    NativeQuery))
 
+(s/defn ^:private make-canonical-query [query] :- QueryContext
+  (if (contains? query :user-attributes)
+    query
+    (assoc query :user-attributes nil)))
+
 (s/defn process-query
   "A pipeline of various QP functions (including middleware) that are used to process MB queries."
   {:style/indent 0}
-  [query :- QueryContext]
-  ((qp-pipeline execute-query) query))
+  [query]
+  ((qp-pipeline execute-query) (make-canonical-query query)))
 
 (def ^{:arglists '([query])} expand
   "Expand a QUERY the same way it would normally be done as part of query processing.

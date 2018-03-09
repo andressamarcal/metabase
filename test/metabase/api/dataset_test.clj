@@ -74,9 +74,8 @@
     :json_query             (-> (wrap-inner-query
                                   (query checkins
                                     (ql/aggregation (ql/count))))
-                                (assoc :type "query")
-                                (assoc-in [:query :aggregation] [{:aggregation-type "count", :custom-name nil}])
-                                (assoc :constraints qp/default-query-constraints))
+                                (assoc :type "query", :user-attributes nil, :constraints qp/default-query-constraints)
+                                (assoc-in [:query :aggregation] [{:aggregation-type "count", :custom-name nil}]))
     :started_at             true
     :running_time           true
     :average_execution_time nil}
@@ -111,10 +110,11 @@
     :status       "failed"
     :context      "ad-hoc"
     :error        true
-    :json_query   {:database    (id)
-                   :type        "native"
-                   :native      {:query "foobar"}
-                   :constraints qp/default-query-constraints}
+    :json_query   {:database        (id)
+                   :type            "native"
+                   :native          {:query "foobar"}
+                   :user-attributes nil
+                   :constraints     qp/default-query-constraints}
     :started_at   true
     :running_time true}
    ;; QueryExecution entry in the DB

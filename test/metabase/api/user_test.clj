@@ -127,18 +127,19 @@
 ;; Check that fetching current user will return extra fields like `is_active` and will return OrgPerms
 (expect
   (match-$ (fetch-user :rasta)
-    {:email        "rasta@metabase.com"
-     :first_name   "Rasta"
-     :last_name    "Toucan"
-     :common_name  "Rasta Toucan"
-     :date_joined  $
-     :last_login   $
-     :is_active    true
-     :is_superuser false
-     :is_qbnewb    true
-     :google_auth  false
-     :ldap_auth    false
-     :id           $})
+    {:email            "rasta@metabase.com"
+     :first_name       "Rasta"
+     :last_name        "Toucan"
+     :common_name      "Rasta Toucan"
+     :date_joined      $
+     :last_login       $
+     :is_active        true
+     :is_superuser     false
+     :is_qbnewb        true
+     :google_auth      false
+     :ldap_auth        false
+     :login_attributes nil
+     :id               $})
   ((user->client :rasta) :get 200 "user/current"))
 
 

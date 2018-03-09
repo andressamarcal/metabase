@@ -105,7 +105,8 @@
           :post-insert    post-insert
           :pre-update     pre-update
           :post-select    post-select
-          :pre-delete     pre-delete}))
+          :pre-delete     pre-delete
+          :types          (constantly {:login_attributes :json})}))
 
 
 ;;; --------------------------------------------------- Helper Fns ---------------------------------------------------
