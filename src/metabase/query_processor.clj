@@ -103,7 +103,7 @@
    #'catch-exceptions/catch-exceptions])
 ;; ▲▲▲ PRE-PROCESSING ▲▲▲ happens from BOTTOM-TO-TOP, e.g. the results of `expand-macros` are (eventually) passed to `expand-resolve`
 
-(def ^:private pipeline-functions (atom qp-pipeline-functions))
+(def pipeline-functions (atom qp-pipeline-functions))
 
 (defn- qp-pipeline
   "Construct a new Query Processor pipeline with F as the final 'piviotal' function. e.g.:
