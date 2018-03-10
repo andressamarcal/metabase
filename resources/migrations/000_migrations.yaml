@@ -4068,3 +4068,52 @@ databaseChangeLog:
               name: login_attributes
               type: text
               remarks: 'JSON serialized map with attributes used for row level permissions'
+  - changeSet:
+      id: 77
+      author: camsaul
+      comment: 'Added 0.30.0'
+      changes:
+        - createTable:
+            tableName: group_table_access_policy
+            remarks: 'Records that a given Card (Question) should automatically replace a given Table as query source for a given a Perms Group.'
+            columns:
+              - column:
+                  name: id
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: group_id
+                  type: int
+                  remarks: 'ID of the Permissions Group this policy affects.'
+                  constraints:
+                    nullable: false
+                    references: permissions_group(id)
+                    foreignKeyName: fk_gtap_group_id
+                    deleteCascade: true
+              - column:
+                  name: table_id
+                  type: int
+                  remarks: 'ID of the Table that should get automatically replaced as query source for the Permissions Group.'
+                  constraints:
+                    nullable: false
+                    references: metabase_table(id)
+                    foreignKeyName: fk_gtap_table_id
+                    deleteCascade: true
+              - column:
+                  name: card_id
+                  type: int
+                  remarks: 'ID of the Card (Question) to be used to replace the Table.'
+                  constraints:
+                    nullable: false
+                    references: report_card(id)
+                    foreignKeyName: fk_gtap_card_id
+                    # This one is not ON DELETE CASCADE because we do not want people going around deleting Cards and
+                    # accidentally deleting their GTAPs that depend on them. However since Cards get archived instead
+                    # of deleted it shouldn't matter anyway
+              - column:
+                  name: attribute_remappings
+                  type: text
+                  remarks: 'JSON-encoded map of user attribute identifier to the param name used in the Card.'
