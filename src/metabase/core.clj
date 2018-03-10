@@ -130,6 +130,7 @@
   (task/stop-scheduler!)
   (log/info "Metabase Shutdown COMPLETE"))
 
+
 (defn init!
   "General application initialization function which should be run once at application startup."
   []
@@ -144,6 +145,8 @@
   ;; load any plugins as needed
   (plugins/load-plugins!)
   (init-status/set-progress! 0.3)
+  (plugins/setup-plugins!)
+  (init-status/set-progress! 0.35)
 
   ;; Load up all of our Database drivers, which are used for app db work
   (driver/find-and-load-drivers!)

@@ -1,4 +1,4 @@
-(ns metabase.enterprise.models.group-table-access-policy
+(ns metabase.mt.models.group-table-access-policy
   "Model definition for Group Table Access Policy, aka GTAP. A GTAP is useed to control access to a certain Table for a
   certain PermissionsGroup. Whenever a member of that group attempts to query the Table in question, a Saved Question
   specified by the GTAP is instead used as the source of the query."
