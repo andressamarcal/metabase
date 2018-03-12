@@ -49,4 +49,7 @@
           (subvec query-pipeline-vars (inc resolve-index))))
     query-pipeline-vars))
 
-(swap! qp/pipeline-functions inject-row-level-permissions-middleware)
+(defn update-qp-pipeline-for-mt
+  "Update the query pipeline atom to include the row level restrictions middleware. Intended to be called on startup."
+  []
+  (swap! qp/pipeline-functions inject-row-level-permissions-middleware))
