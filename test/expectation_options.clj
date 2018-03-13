@@ -19,9 +19,6 @@
   if any instances of that model are found after each test finishes."
   [])
 
-(def ensure-plugins-loaded
-  (delay (plugins/setup-plugins!)))
-
 (defn check-table-cleanup
   "Function that will run around each test. This function is usually a noop, but it useful for helping to debug stale
   data in local development. Modify the private `models-to-check` var to check if there are any rows in the given
@@ -29,7 +26,6 @@
   and the test run will exit"
   {:expectations-options :in-context}
   [test-fn]
-  @ensure-plugins-loaded
   (let [result (test-fn)]
     ;; The typical case is no models-to-check, this then becomes a noop
     (when (seq models-to-check)
