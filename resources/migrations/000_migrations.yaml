@@ -4117,3 +4117,29 @@ databaseChangeLog:
                   name: attribute_remappings
                   type: text
                   remarks: 'JSON-encoded map of user attribute identifier to the param name used in the Card.'
+              # TODO - do we also want to include `created_at` and `updated_at` columns here? We can add them later if needed
+  # These could be part of 77 but are seperate for the time being to ease development.
+  # TODO - maybe combine 76-78 before merging this migration.
+  - changeSet:
+      id: 78
+      author: camsaul
+      comment: 'Added 0.30.0'
+      changes:
+        # Add an index on table_id + group_id since that is what the Query Processor is going to be looking up 99% of
+        # the time in order to get the corresponding Card ID for query-rewriting purposes
+        #
+        # TODO - do we want indexes on any of the other FKs? Are we going to be looking up all the GTAPs for a given
+        # Table or for a given Group with enough regularity we would want to put indexes on those columns?
+        - createIndex:
+            indexName: idx_gtap_table_id_group_id
+            tableName: group_table_access_policy
+            columns:
+              - column:
+                  name: table_id
+              - column:
+                  name: group_id
+        # There should only ever be one GTAP entry for a give Group + Table combination.
+        - addUniqueConstraint:
+            tableName: group_table_access_policy
+            columnNames: table_id, group_id
+            constraintName: unique_gtap_table_id_group_id
