@@ -17,7 +17,7 @@
   [{:keys [parameters], :as query-dict}]
   ;; params in native queries are currently only supported for SQL drivers
   (if (qputil/mbql-query? query-dict)
-    (mbql-params/expand (dissoc query-dict :parameters) parameters)
+    (mbql-params/expand query-dict parameters)
     (sql-params/expand query-dict)))
 
 (defn- expand-params-in-native-source-query

@@ -120,6 +120,9 @@
 (def ^:private current-user-fields
   (vec (concat [User :is_active :google_auth :ldap_auth :login_attributes] (models/default-fields User))))
 
+(defn- find-user [user-id]
+  (db/select-one current-user-fields, :id user-id))
+
 (defn bind-current-user
   "Middleware that binds `metabase.api.common/*current-user*`, `*current-user-id*`, `*is-superuser?*`, and
   `*current-user-permissions-set*`.
@@ -133,7 +136,7 @@
     (if-let [current-user-id (:metabase-user-id request)]
       (binding [*current-user-id*              current-user-id
                 *is-superuser?*                (:is-superuser? request)
-                *current-user*                 (delay (db/select-one current-user-fields, :id current-user-id))
+                *current-user*                 (delay (find-user current-user-id))
                 *current-user-permissions-set* (delay (user/permissions-set current-user-id))]
         (handler request))
       (handler request))))

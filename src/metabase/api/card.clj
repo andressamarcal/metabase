@@ -235,7 +235,7 @@
    This is obviously a bit wasteful so hopefully we can avoid having to do this."
   [query]
   (binding [qpi/*disable-qp-logging* true]
-    (get-in (qp/process-query (api/with-user-attributes query)) [:data :results_metadata :columns])))
+    (get-in (qp/process-query (api/with-current-user-info query)) [:data :results_metadata :columns])))
 
 (s/defn ^:private result-metadata :- (s/maybe results-metadata/ResultsMetadata)
   "Get the right results metadata for this CARD. We'll check to see whether the METADATA passed in seems valid;
@@ -604,7 +604,7 @@
                  :card-id      card-id
                  :dashboard-id dashboard-id}]
     (api/check-not-archived card)
-    (qp/process-query-and-save-execution! (api/with-user-attributes query) options)))
+    (qp/process-query-and-save-execution! (api/with-current-user-info query) options)))
 
 (api/defendpoint POST "/:card-id/query"
   "Run the query associated with a Card."

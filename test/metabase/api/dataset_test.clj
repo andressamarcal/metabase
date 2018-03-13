@@ -8,6 +8,7 @@
             [dk.ative.docjure.spreadsheet :as spreadsheet]
             [expectations :refer :all]
             [medley.core :as m]
+            [metabase.middleware :as mid]
             [metabase.models
              [database :refer [Database]]
              [query-execution :refer [QueryExecution]]]
@@ -57,6 +58,11 @@
                                 (update v :native_form boolean))]
                :else [k v]))))
 
+(defn- query-user [user-kwd]
+  ;; Find user returns a UserInstance, which isn't comparable with a map of the UserInstance data, so we need to dump
+  ;; the UserInstance defrecord into a map first
+  (into {} (#'mid/find-user (user->id user-kwd))))
+
 (defn- most-recent-query-execution [] (db/select-one QueryExecution {:order-by [[:id :desc]]}))
 
 ;;; ## POST /api/meta/dataset
@@ -74,7 +80,7 @@
     :json_query             (-> (wrap-inner-query
                                   (query checkins
                                     (ql/aggregation (ql/count))))
-                                (assoc :type "query", :user-attributes nil, :constraints qp/default-query-constraints)
+                                (assoc :type "query", :user (query-user :rasta), :constraints qp/default-query-constraints)
                                 (assoc-in [:query :aggregation] [{:aggregation-type "count", :custom-name nil}]))
     :started_at             true
     :running_time           true
@@ -110,11 +116,11 @@
     :status       "failed"
     :context      "ad-hoc"
     :error        true
-    :json_query   {:database        (id)
-                   :type            "native"
-                   :native          {:query "foobar"}
-                   :user-attributes nil
-                   :constraints     qp/default-query-constraints}
+    :json_query   {:database    (id)
+                   :type        "native"
+                   :native      {:query "foobar"}
+                   :user        (query-user :rasta)
+                   :constraints qp/default-query-constraints}
     :started_at   true
     :running_time true}
    ;; QueryExecution entry in the DB

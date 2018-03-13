@@ -28,6 +28,11 @@
     (str/starts-with? param-type "date")
     (date-params/date-string->filter (parse-param-value-for-type param-type param-value) field)
 
+    ;; TODO - We can't tell the difference between a dashboard parameter (convert to an MBQL filter) and a native
+    ;; query template tag parameter without this. There's should be a better, less fragile way to do this.
+    (and (sequential? field) (= "template-tag" (first field)))
+    []
+
     ;; single-value, non-date param. Generate MBQL [= <field> <value>] clause
     :else
     [:= field (parse-param-value-for-type param-type param-value)]))

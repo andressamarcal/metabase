@@ -18,9 +18,12 @@
 ;; 4 - If segmented, resolve the table + user to a group table access policy and associated question (TODO)
 ;; 5 - Swap the original table for the resolved GTAP question
 (defn- gtap-card-for-table [query]
-  (when (and (= "bar" (get-in query [:user-attributes :foo]))
+  (when (and (= 50 (get-in query [:user :login_attributes :cat]))
              (=  "VENUES" (:name (Table (get-in query [:query :source-table])))))
     (str "card__" (u/get-id (Card :name "magic")))))
+
+(defn- login-attr->template-tag [[attr-name attr-value]]
+  {:type "category", :value attr-value, :target ["variable" ["template-tag" (name attr-name)]]})
 
 (s/defn apply-row-level-permissions
   [qp]
@@ -30,6 +33,7 @@
           (assoc :database database/virtual-id
                  :type     :query)
           (update :query assoc :source-table gtap-card)
+          (update :parameters into (map login-attr->template-tag (get-in query [:user :login_attributes])))
           qp)
       (qp query))))
 
