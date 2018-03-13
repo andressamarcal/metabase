@@ -51,7 +51,7 @@
   "Wrap ROUTES so they may only be accessed with proper apikey credentials."
   middleware/enforce-api-key)
 
-(def +auth
+(def ^:private +auth
   "Wrap ROUTES so they may only be accessed with proper authentiaction credentials."
   middleware/enforce-authentication)
 
