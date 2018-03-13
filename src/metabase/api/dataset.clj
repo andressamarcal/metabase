@@ -47,7 +47,7 @@
     (api/cancellable-json-response
      (fn []
        (qp/process-query-and-save-with-max!
-           (api/with-user-attributes query)
+           (api/with-current-user-info query)
            {:executed-by api/*current-user-id*, :context :ad-hoc,
             :card-id     source-card-id,        :nested? (boolean source-card-id)})))))
 
@@ -129,7 +129,7 @@
   (let [query (json/parse-string query keyword)]
     (api/read-check Database (:database query))
     (as-format export-format
-      (qp/process-query-and-save-execution! (-> query (dissoc :constraints) api/with-user-attributes)
+      (qp/process-query-and-save-execution! (-> query (dissoc :constraints) api/with-current-user-info)
         {:executed-by api/*current-user-id*, :context (export-format->context export-format)}))))
 
 
