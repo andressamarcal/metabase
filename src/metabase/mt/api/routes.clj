@@ -19,8 +19,7 @@
    []
    (routes
     (context "/gtap" [] (+auth gtap/routes))
-    ;; TODO - HOW SHOULD WE SECURE THIS!!!!!!!!!!!
-    (context "/user" [] user/routes))))
+    (context "/user" [] (+auth user/routes)))))
 
 (defn install-mt-routes!
   "Swap out `metabase.api.routes/routes` with a new version that includes the multi-tenant routes. Take care to only

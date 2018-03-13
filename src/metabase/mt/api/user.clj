@@ -20,4 +20,4 @@
   (db/update! User id :login_attributes login_attributes))
 
 
-(api/define-routes)
+(api/define-routes api/+check-superuser)
