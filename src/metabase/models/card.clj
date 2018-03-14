@@ -95,10 +95,25 @@
          (if (= ::native table)
            ;; Any `::native` placeholders from above mean we need READ-OR-WRITE native permissions for this DATABASE
            (native-permissions-path read-or-write database-or-id)
-           ;; anything else (i.e., a normal table) just gets normal table permissions
-           (perms/object-path (u/get-id database-or-id)
-                              (:schema table)
-                              (or (:id table) (:table-id table)))))))
+           ;; anything else (i.e., a normal table) just gets normal table *read* permissions (explanation below)
+           ;;
+           ;; TODO -- open question -- what Table permissions should be required for someone to save a Card now? Just
+           ;; having Table read permissions means they are allowed to know the Table exists and see its metadata, but
+           ;; you need some sort of query permissions to actually run queries against it. So if we just required read
+           ;; permissions you could theoretically save a Card with a query you can't actually run. (This is a purely
+           ;; theoretical problem right now because we shouldn't be granting someone Table read permissions without
+           ;; also granting them some sort of query permissions.)
+           ;;
+           ;; On the other hand, we don't want to require full query permissions (or full permissions for that
+           ;; matter), because a subset of query permissions, for example so-called "segmented" permissions, will
+           ;; still allow you to run queries against this Table, albeit in a modified form.
+           ;;
+           ;; After typing this all out I think it makes sense to just require read permissions for the time being,
+           ;; and check for actual query permissions in the perms-check middleware in the Query Processor. This is an
+           ;; imperfect solution for the reasons described above but should be servicable for now.
+           (perms/table-read-path (u/get-id database-or-id)
+                                  (:schema table)
+                                  (or (:id table) (:table-id table)))))))
 
 (declare query-perms-set)
 
