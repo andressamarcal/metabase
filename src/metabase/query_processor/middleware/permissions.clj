@@ -22,48 +22,34 @@
 (defn- log-permissions-success-message {:style/indent 1} [format-string & format-args]
   (log-permissions-debug-message 'green (str "Yes ✅  " (apply format format-string format-args))))
 
-;; DEPRECATED because to use this function we need to have an actual `Permissions` object instead of being able to use
-;; *current-user-permissions-set*.
-;; Use `log-permissions-success-message` instead.
-(defn- ^:deprecated log-permissions-success [user-id permissions]
-  (log-permissions-success-message "because User %d is a member of Group %d (%s) which has permissions for '%s'"
-    user-id
-    (:group_id permissions)
-    (db/select-one-field :name 'PermissionsGroup :id (:group_id permissions))
-    (:object permissions)))
-
 (defn- log-permissions-error []
   (log/warn (u/format-color 'red "Permissions Check 🔐 : No 🚫"))) ; lock (closed)
 
 ;; TODO - what status code / error message should we use when someone doesn't have permissions?
-(defn- throw-permissions-exception [format-str & format-args]
+(defn- throw-permissions-exception {:style/indent 1} [format-str & format-args]
   (log-permissions-error)
   (throw (Exception. ^String (apply format format-str format-args))))
 
 ;; DEPRECATED because we should just check it the "new" way instead:
 ;; (perms/set-has-full-permissions? @*current-user-permissions-set* object-path)
-(defn- ^:deprecated permissions-for-object
-  "Return the first `Permissions` entry for USER-ID that grants permissions to OBJECT-PATH."
-  [user-id object-path]
-  {:pre [(integer? user-id) (perms/valid-object-path? object-path)]}
-  (u/prog1 (db/select-one 'Permissions
-             {:where [:and [:in :group_id (db/select-field :group_id 'PermissionsGroupMembership :user_id user-id)]
-                           [:like object-path (hx/concat :object (hx/literal "%"))]]})
-    (when <>
-      (log-permissions-success user-id <>))))
-
 
 ;;; ------------------------------------------ Permissions for MBQL queries ------------------------------------------
 
-;; TODO - All of this below should be rewritten to use `*current-user-permissions-set*` and
+;; TODO - Most of the functions below should be rewritten to use `*current-user-permissions-set*` and
 ;; `metabase.models.card/query-perms-set` instead. The functions that need to be reworked are marked DEPRECATED below.
 
-(defn- ^:deprecated user-can-run-query-referencing-table?
+(defn- user-can-run-query-referencing-table?
   "Does User with USER-ID have appropriate permissions to run an MBQL query referencing table with TABLE-ID?"
   [user-id table-id]
   {:pre [(integer? user-id) (integer? table-id)]}
-  (let [{:keys [schema database-id]} (db/select-one ['Table [:db_id :database-id] :schema] :id table-id)]
-    (permissions-for-object user-id (perms/object-path database-id schema table-id))))
+  (let [perms-path (perms/table-query-path (db/select-one ['Table :id :db_id :schema] :id table-id))]
+    ;; You are allowed to run a query against a Table *if* you have partial or full query permissions. e.g. if you
+    ;; have `query/segmented` permissions we will still let you thru the door at this point. The MT middleware will
+    ;; handle that stuff appropriately.
+    (when (perms/set-has-partial-permissions? @*current-user-permissions-set* perms-path)
+      (log-permissions-success-message "because User %d which has permissions for %s"
+        user-id @*current-user-permissions-set*)
+      :ok)))
 
 
 (defn- ^:deprecated table-id [source-or-join-table]
@@ -79,9 +65,9 @@
 (defn- ^:deprecated throw-if-cannot-run-query-referencing-table [user-id table]
   (log-permissions-debug-message 'yellow "Can User %d access Table %d (%s)?"
     user-id (table-id table) (table-identifier table))
-  (or (user-can-run-query-referencing-table? user-id (table-id table))
-      (throw-permissions-exception "You do not have permissions to run queries referencing table '%s'."
-                                   (table-identifier table))))
+  (when-not (user-can-run-query-referencing-table? user-id (table-id table))
+    (throw-permissions-exception "You do not have permissions to run queries referencing table '%s'."
+      (table-identifier table))))
 
 ;; TODO - why is this the only function here that takes `user-id`?
 (defn- throw-if-cannot-run-query

@@ -110,15 +110,15 @@
 
 ;; MBQL w/o JOIN
 (expect
-  #{(perms/object-path (data/id) "PUBLIC" (data/id :venues))}
+  #{(perms/table-read-path (data/id) "PUBLIC" (data/id :venues))}
   (query-perms-set (mbql (ql/query
                            (ql/source-table (data/id :venues))))
                    :read))
 
 ;; MBQL w/ JOIN
 (expect
-  #{(perms/object-path (data/id) "PUBLIC" (data/id :checkins))
-    (perms/object-path (data/id) "PUBLIC" (data/id :venues))}
+  #{(perms/table-read-path (data/id) "PUBLIC" (data/id :checkins))
+    (perms/table-read-path (data/id) "PUBLIC" (data/id :venues))}
   (query-perms-set (mbql (ql/query
                            (ql/source-table (data/id :checkins))
                            (ql/order-by (ql/asc (ql/fk-> (data/id :checkins :venue_id) (data/id :venues :name))))))
@@ -129,7 +129,7 @@
   {:database database/virtual-id, :type "query", :query {:source_table (str "card__" (u/get-id card))}})
 
 (expect
-  #{(perms/object-path (data/id) "PUBLIC" (data/id :venues))}
+  #{(perms/table-read-path (data/id) "PUBLIC" (data/id :venues))}
   (tt/with-temp Card [card {:dataset_query {:database (data/id)
                                             :type     :query
                                             :query    {:source-table (data/id :venues)}}}]
@@ -137,8 +137,8 @@
 
 ;; MBQL w/ nested MBQL query including a JOIN
 (expect
-  #{(perms/object-path (data/id) "PUBLIC" (data/id :checkins))
-    (perms/object-path (data/id) "PUBLIC" (data/id :users))}
+  #{(perms/table-read-path (data/id) "PUBLIC" (data/id :checkins))
+    (perms/table-read-path (data/id) "PUBLIC" (data/id :users))}
   (tt/with-temp Card [card {:dataset_query {:database (data/id)
                                             :type     :query
                                             :query    {:source-table (data/id :checkins)

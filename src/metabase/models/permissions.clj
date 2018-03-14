@@ -99,10 +99,12 @@
   ^String [database-id]
   (str (object-path database-id) "native/"))
 
-(defn ^:deprecated native-read-path
-  "Return the native query *read* permissions path for a database.
-   This grants you permissions to view the results of an *existing* native query, i.e. view native Cards created by
-   others. (Deprecated because native read permissions are being phased out in favor of Collections.)"
+(defn native-read-path
+  "Return the native query *read* permissions path for a database. This grants you permissions to view the results of an
+  *existing* native query, i.e. view native Cards created by others.
+
+  In the past, there has been discussion of phasing this out in favor of Collections. If that comes to pass, these
+  permissions will become deprecated."
   ^String [database-id]
   (str (object-path database-id) "native/read/"))
 

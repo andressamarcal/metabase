@@ -216,7 +216,7 @@
             :can_write              true
             :dashboard_count        0
             :collection             nil
-            :read_permissions       [(format "/db/%d/schema//table/%d/" database-id table-id)]
+            :read_permissions       [(format "/db/%d/schema//table/%d/read/" database-id table-id)]
             :creator                (match-$ (fetch-user :rasta)
                                       {:common_name  "Rasta Toucan"
                                        :is_superuser false
@@ -296,7 +296,7 @@
                                        :id           $})
             :updated_at             $
             :dataset_query          $
-            :read_permissions       [(format "/db/%d/schema//table/%d/" database-id table-id)]
+            :read_permissions       [(format "/db/%d/schema//table/%d/read/" database-id table-id)]
             :id                     $
             :display                "table"
             :visualization_settings {}
