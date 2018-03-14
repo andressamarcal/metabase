@@ -235,7 +235,9 @@
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
 (def ^:private TablePermissionsGraph
-  (s/enum :none :all))
+  (s/cond-pre (s/enum :none :all)
+              {:read  (s/enum :all :none)
+               :query (s/enum :all :segmented :none)}))
 
 (def ^:private SchemaPermissionsGraph
   (s/cond-pre (s/enum :none :all)
@@ -302,13 +304,25 @@
 (defn- table->table-object-path     [table] (object-path (:db_id table) (:schema table) (:id table)))
 (defn- table->all-schemas-path      [table] (all-schemas-path (:db_id table)))
 
+(s/defn ^:private table-graph :- TablePermissionsGraph [permissions-set table]
+  (case (permissions-for-path permissions-set (table->table-object-path table))
+    :all  :all
+    :none :none
+    :some {:read  (permissions-for-path permissions-set (table-read-path table))
+           :query (case (permissions-for-path permissions-set (table-query-path table))
+                    :all  :all
+                    :none :none
+                    :some (case (permissions-for-path permissions-set (table-segmented-query-path table))
+                            :all  :segmented
+                            :none :none))}))
+
 
 (s/defn ^:private schema-graph :- SchemaPermissionsGraph [permissions-set tables]
   (case (permissions-for-path permissions-set (table->schema-object-path (first tables)))
     :all  :all
     :none :none
     :some (into {} (for [table tables]
-                     {(u/get-id table) (permissions-for-path permissions-set (table->table-object-path table))}))))
+                     {(u/get-id table) (table-graph permissions-set table)}))))
 
 (s/defn ^:private db-graph :- DBPermissionsGraph [permissions-set tables]
   {:native  (case (permissions-for-path permissions-set (table->native-readwrite-path (first tables)))
@@ -440,14 +454,53 @@
 
 ;;; ---------------------------------------- Graph Updating Fns ----------------------------------------
 
+(s/defn ^:private update-table-read-perms!
+  [group-id       :- su/IntGreaterThanZero
+   db-id          :- su/IntGreaterThanZero
+   schema         :- s/Str
+   table-id       :- su/IntGreaterThanZero
+   new-read-perms :- (s/enum :all :none)]
+  ((case new-read-perms
+     :all  grant-permissions!
+     :none revoke-permissions!) group-id (table-read-path db-id schema table-id)))
+
+(s/defn ^:private update-table-query-perms!
+  [group-id        :- su/IntGreaterThanZero
+   db-id           :- su/IntGreaterThanZero
+   schema          :- s/Str
+   table-id        :- su/IntGreaterThanZero
+   new-query-perms :- (s/enum :all :segmented :none)]
+  (case new-query-perms
+    :all       (grant-permissions!  group-id (table-query-path           db-id schema table-id))
+    :segmented (grant-permissions!  group-id (table-segmented-query-path db-id schema table-id))
+    :none      (revoke-permissions! group-id (table-query-path           db-id schema table-id))))
+
 (s/defn ^:private update-table-perms!
-  [group-id :- su/IntGreaterThanZero, db-id :- su/IntGreaterThanZero, schema :- s/Str, table-id :- su/IntGreaterThanZero, new-table-perms :- SchemaPermissionsGraph]
-  (case new-table-perms
-    :all  (grant-permissions! group-id db-id schema table-id)
-    :none (revoke-permissions! group-id db-id schema table-id)))
+  [group-id        :- su/IntGreaterThanZero
+   db-id           :- su/IntGreaterThanZero
+   schema          :- s/Str
+   table-id        :- su/IntGreaterThanZero
+   new-table-perms :- TablePermissionsGraph]
+  (cond
+    (= new-table-perms :all)
+    (grant-permissions! group-id db-id schema table-id)
+
+    (= new-table-perms :none)
+    (revoke-permissions! group-id db-id schema table-id)
+
+    (map? new-table-perms)
+    (let [{new-read-perms :read, new-query-perms :query} new-table-perms]
+      ;; clear out any existing permissions
+      (revoke-permissions! group-id db-id schema table-id)
+      ;; then grant/revoke read and query perms as appropriate
+      (when new-read-perms  (update-table-read-perms!  group-id db-id schema table-id new-read-perms))
+      (when new-query-perms (update-table-query-perms! group-id db-id schema table-id new-query-perms)))))
 
 (s/defn ^:private update-schema-perms!
-  [group-id :- su/IntGreaterThanZero, db-id :- su/IntGreaterThanZero, schema :- s/Str, new-schema-perms :- SchemaPermissionsGraph]
+  [group-id         :- su/IntGreaterThanZero
+   db-id            :- su/IntGreaterThanZero
+   schema           :- s/Str
+   new-schema-perms :- SchemaPermissionsGraph]
   (cond
     (= new-schema-perms :all)  (do (revoke-permissions! group-id db-id schema) ; clear out any existing related permissions
                                    (grant-permissions! group-id db-id schema)) ; then grant full perms for the schema
