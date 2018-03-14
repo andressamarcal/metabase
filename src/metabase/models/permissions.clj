@@ -38,14 +38,17 @@
 ;;; ---------------------------------------- Validation ----------------------------------------
 
 (def ^:private ^:const valid-object-path-patterns
-  [#"^/db/(\d+)/$"                                ; permissions for the entire DB -- native and all schemas
-   #"^/db/(\d+)/native/$"                         ; permissions to create new native queries for the DB
-   #"^/db/(\d+)/native/read/$"                    ; (DEPRECATED) permissions to read the results of existing native queries (i.e. view existing cards) for the DB
-   #"^/db/(\d+)/schema/$"                         ; permissions for all schemas in the DB
-   #"^/db/(\d+)/schema/([^\\/]*)/$"               ; permissions for a specific schema
-   #"^/db/(\d+)/schema/([^\\/]*)/table/(\d+)/$"   ; permissions for a specific table
-   #"^/collection/(\d+)/$"                        ; readwrite permissions for a collection
-   #"^/collection/(\d+)/read/$"])                 ; read permissions for a collection
+  [#"^/db/(\d+)/$"                                              ; permissions for the entire DB -- native and all schemas
+   #"^/db/(\d+)/native/$"                                       ; permissions to create new native queries for the DB
+   #"^/db/(\d+)/native/read/$"                                  ; (DEPRECATED) permissions to read the results of existing native queries (i.e. view existing cards) for the DB
+   #"^/db/(\d+)/schema/$"                                       ; permissions for all schemas in the DB
+   #"^/db/(\d+)/schema/([^\\/]*)/$"                             ; permissions for a specific schema
+   #"^/db/(\d+)/schema/([^\\/]*)/table/(\d+)/$"                 ; FULL permissions for a specific table
+   #"^/db/(\d+)/schema/([^\\/]*)/table/(\d+)/read/$"            ; Permissions to fetch the Metadata for a specific Table
+   #"^/db/(\d+)/schema/([^\\/]*)/table/(\d+)/query/$"           ; Permissions to run any sort of query against a Table
+   #"^/db/(\d+)/schema/([^\\/]*)/table/(\d+)/query/segmented/$" ; Permissions to run a query against a Table using GTAP
+   #"^/collection/(\d+)/$"                                      ; readwrite permissions for a collection
+   #"^/collection/(\d+)/read/$"])                               ; read permissions for a collection
 
 (defn valid-object-path?
   "Does OBJECT-PATH follow a known, allowed format to an *object*?
@@ -117,6 +120,33 @@
   "Return the permissions path for *readwrite* access for a COLLECTION-OR-ID."
   ^String [collection-or-id]
   (str "/collection/" (u/get-id collection-or-id) "/"))
+
+(defn table-read-path
+  "Return the permissions path required to fetch the Metadata for a Table."
+  (^String [table]
+   (table-read-path (:db_id table) (:schema table) table))
+  (^String [database-or-id schema-name table-or-id]
+   {:post [(valid-object-path? %)]}
+   (str (object-path (u/get-id database-or-id) schema-name (u/get-id table-or-id)) "read/")))
+
+(defn table-query-path
+  "Return the permissions path for *full* query access for a Table. Full query access means you can run any (MBQL) query
+  you wish against a given Table, with no GTAP-specified mandatory query alterations."
+  (^String [table]
+   (table-query-path (:db_id table) (:schema table) table))
+  (^String [database-or-id schema-name table-or-id]
+   {:post [(valid-object-path? %)]}
+   (str (object-path (u/get-id database-or-id) schema-name (u/get-id table-or-id)) "query/")))
+
+(defn table-segmented-query-path
+  "Return the permissions path for *segmented* query access for a Table. Segmented access means running queries against
+  the Table will automatically replace the Table with a GTAP-specified question as the new source of the query,
+  obstensibly limiting access to the results."
+  (^String [table]
+   (table-segmented-query-path (:db_id table) (:schema table) table))
+  (^String [database-or-id schema-name table-or-id]
+   {:post [(valid-object-path? %)]}
+   (str (object-path (u/get-id database-or-id) schema-name (u/get-id table-or-id)) "query/segmented/")))
 
 
 ;;; ---------------------------------------- Permissions Checking Fns ----------------------------------------
