@@ -33,3 +33,19 @@
           (with-user-attributes {:cat 50})
           qp/process-query
           qpt/rows))))
+
+(expect
+  [[10]]
+  (data/with-db (data/get-or-create-database! defs/test-data)
+    (tt/with-temp Card [card {:name          "magic"
+                              :dataset_query {:database (data/id)
+                                              :type     :query
+                                              :query    {:source_table (data/id :venues)
+                                                         :filter ["=" ["field-id" (data/id :venues :category_id)]
+                                                                  ["param-value" (data/id :venues :category_id) "cat"]]}}}]
+      (-> (data/query venues
+            (ql/aggregation (ql/count)))
+          data/wrap-inner-query
+          (with-user-attributes {:cat 50})
+          qp/process-query
+          qpt/rows))))

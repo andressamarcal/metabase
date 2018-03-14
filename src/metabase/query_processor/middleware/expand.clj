@@ -12,7 +12,7 @@
             [metabase.util.schema :as su]
             [schema.core :as s])
   (:import [metabase.query_processor.interface AgFieldRef BetweenFilter ComparisonFilter CompoundFilter DateTimeValue
-            DateTimeField Expression ExpressionRef FieldLiteral FieldPlaceholder RelativeDatetime
+            DateTimeField Expression ExpressionRef FieldLiteral FieldPlaceholder ParamValuePlaceHolder RelativeDatetime
             RelativeDateTimeValue StringFilter Value ValuePlaceholder]))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -105,6 +105,7 @@
   (cond
     (instance? ValuePlaceholder v)      v
     (instance? Value v)                 v
+    (instance? ParamValuePlaceHolder v) v
     (instance? RelativeDateTimeValue v) v
     (instance? DateTimeValue v)         v
     (instance? RelativeDatetime v)      (i/map->RelativeDateTimeValue (assoc v :unit (datetime-unit f v), :field (datetime-field f (datetime-unit f v))))
@@ -137,6 +138,12 @@
   ([n :- s/Int, unit] (i/map->RelativeDatetime {:amount n, :unit (if (nil? unit)
                                                                    :day                        ; give :unit a default value so we can simplify the schema a bit and require a :unit
                                                                    (qputil/normalize-token unit))})))
+
+(s/defn ^:ql param-value :- ParamValuePlaceHolder
+  [f param-name]
+  (i/map->ParamValuePlaceHolder {:field-placeholder (field f)
+                                 ;; TODO - I think this should be a string to avoid issues with illegal keyword characters
+                                 :param-name        (keyword param-name)}))
 
 (s/defn ^:ql expression :- ExpressionRef
   {:added "0.17.0"}

@@ -7,6 +7,7 @@
              [core :as hsql]
              [format :as hformat]
              [helpers :as h]]
+            [medley.core :as m]
             [metabase
              [driver :as driver]
              [util :as u]]
@@ -15,12 +16,13 @@
              [annotate :as annotate]
              [interface :as i]
              [util :as qputil]]
-            [metabase.util.honeysql-extensions :as hx])
+            [metabase.util.honeysql-extensions :as hx]
+            [puppetlabs.i18n.core :refer [tru]])
   (:import clojure.lang.Keyword
            [java.sql PreparedStatement ResultSet ResultSetMetaData SQLException]
            [java.util Calendar Date TimeZone]
            [metabase.query_processor.interface AgFieldRef BinnedField DateTimeField DateTimeValue Expression
-            ExpressionRef Field FieldLiteral RelativeDateTimeValue TimeField TimeValue Value]))
+            ExpressionRef Field FieldLiteral ParamValuePlaceHolder RelativeDateTimeValue TimeField TimeValue Value]))
 
 (def ^:dynamic *query*
   "The outer query currently being processed."
@@ -192,6 +194,17 @@
   (sql/date driver field-unit (if (zero? amount)
                                 (sql/current-datetime-fn driver)
                                 (driver/date-interval driver unit amount))))
+
+(defmethod ->honeysql [Object ParamValuePlaceHolder]
+  [driver {:keys [param-name]}]
+  (let [{:keys [value]} (m/find-first (fn [{[_ [_ param-name-from-parameters]] :target}]
+                                        (= param-name (keyword param-name-from-parameters)))
+                                      (:parameters *query*))]
+    (if value
+      (->honeysql driver value)
+      (throw (RuntimeException.
+              (tru "Query included a parameter placeholder for ''{0}'', but that parameter wasn't found in ''{1}''"
+                   param-name (pr (:parameters *query*))))))))
 
 (defmethod ->honeysql [Object TimeValue]
   [driver  {:keys [value]}]

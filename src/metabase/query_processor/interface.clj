@@ -347,6 +347,9 @@
 (s/defrecord ValuePlaceholder [field-placeholder :- AnyField
                                value             :- AnyValueLiteral])
 
+(s/defrecord ParamValuePlaceHolder [field-placeholder :- AnyField
+                                    param-name        :- s/Keyword])
+
 (def OrderableValuePlaceholder
   "`ValuePlaceholder` schema with the additional constraint that the value be orderable (a number or datetime)."
   (s/constrained
@@ -370,7 +373,7 @@
 
 (def AnyValue
   "Schema that accepts anything normally considered a value or value placeholder."
-  (s/named (s/cond-pre DateTimeValue RelativeDateTimeValue Value ValuePlaceholder) "Valid value"))
+  (s/named (s/cond-pre DateTimeValue RelativeDateTimeValue Value ValuePlaceholder ParamValuePlaceHolder) "Valid value"))
 
 (def AnyFieldOrValue
   "Schema that accepts anything normally considered a field or value."
