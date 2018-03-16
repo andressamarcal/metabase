@@ -9,6 +9,7 @@
              [permissions :as perms]
              [permissions-group-membership :refer [PermissionsGroupMembership]]
              [table :refer [Table]]]
+            [metabase.query-processor.util :as qputil]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
             [metabase.query-processor.middleware.log :as log-query]
             [schema.core :as s]
@@ -18,7 +19,7 @@
   (let [groups (db/select-field :group_id PermissionsGroupMembership :user_id (u/get-id (:user query)))]
     (if (seq groups)
       (let [[gtap & more-gtaps] (db/select GroupTableAccessPolicy :group_id [:in groups]
-                                           :table_id (get-in query [:query :source-table]))]
+                                           :table_id (qputil/get-in-normalized query [:query :source-table]))]
         (if (seq more-gtaps)
           (throw (RuntimeException. (format "Found more than one group table access policy for user '%s'" (get-in query [:user :email]))))
           gtap))
@@ -37,8 +38,13 @@
     (-> query
         (assoc :database database/virtual-id
                :type     :query)
+        ;; We need to dissoc the source-table before associng a new one. Due to normalization, it's possible that
+        ;; we'll have `:source_table` and `:source-table` after this next line, removing it ensures we'll at least not
+        ;; have more source table entries after the next line
+        (update :query qputil/dissoc-normalized :source-table)
         (update :query assoc :source-table (str "card__" card_id))
-        (update :parameters into (keep #(login-attr->template-tag attribute_remappings %) (get-in query [:user :login_attributes])))
+        (update :parameters into (keep #(login-attr->template-tag attribute_remappings %)
+                                       (qputil/get-in-normalized query [:user :login-attributes])))
         qp)
     (qp query)))
 
@@ -46,9 +52,10 @@
   "Applies row level permissions if the user has segmented permissions. If the user has full permissions, the data
   just passes through with no changes"
   [qp]
-  (fn [{{table-id :source-table} :query :as query}]
-    (let [table (when (and (seq @api/*current-user-permissions-set*) (integer? table-id))
-                  (Table table-id))]
+  (fn [query]
+    (let [table-id (qputil/get-in-normalized query [:query :source-table])
+          table    (when (and (seq @api/*current-user-permissions-set*) (integer? table-id))
+                     (Table table-id))]
       (cond
         (or
          ;; TODO: This seems like it's wrong, but most of the tests break as they aren't running as a user. I need to
