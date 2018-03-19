@@ -140,10 +140,9 @@
                                                                    (qputil/normalize-token unit))})))
 
 (s/defn ^:ql param-value :- ParamValuePlaceHolder
-  [f param-name]
+  [f param-name :- s/Str]
   (i/map->ParamValuePlaceHolder {:field-placeholder (field f)
-                                 ;; TODO - I think this should be a string to avoid issues with illegal keyword characters
-                                 :param-name        (keyword param-name)}))
+                                 :param-name        param-name}))
 
 (s/defn ^:ql expression :- ExpressionRef
   {:added "0.17.0"}

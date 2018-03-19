@@ -111,7 +111,7 @@
           (-> (ql/query (ql/source-table (id' db-id :venues))
                         (ql/aggregation (ql/count)))
               data/wrap-inner-query
-              (with-user-attributes {:cat 50})
+              (with-user-attributes {"cat" 50})
               qp/process-query
               qpt/rows)))))))
 
@@ -141,7 +141,7 @@
           (-> (ql/query (ql/source-table (id' db-id :venues))
                         (ql/aggregation (ql/count)))
               data/wrap-inner-query
-              (with-user-attributes {:cat 50})
+              (with-user-attributes {"cat" 50})
               qp/process-query
               qpt/rows)))))))
 
@@ -172,6 +172,6 @@
           (-> (ql/query (ql/source-table (id' db-id :venues))
                         (ql/aggregation (ql/count)))
               data/wrap-inner-query
-              (with-user-attributes {:something.different 50})
+              (with-user-attributes {"something.different" 50})
               qp/process-query
               qpt/rows)))))))

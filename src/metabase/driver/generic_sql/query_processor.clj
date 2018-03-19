@@ -198,7 +198,7 @@
 (defmethod ->honeysql [Object ParamValuePlaceHolder]
   [driver {:keys [param-name]}]
   (let [{:keys [value]} (m/find-first (fn [{[_ [_ param-name-from-parameters]] :target}]
-                                        (= param-name (keyword param-name-from-parameters)))
+                                        (= param-name param-name-from-parameters))
                                       (:parameters *query*))]
     (if value
       (->honeysql driver value)

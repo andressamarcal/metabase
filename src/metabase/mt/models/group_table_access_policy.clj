@@ -12,7 +12,7 @@
   models/IModel
   (merge
    models/IModelDefaults
-   {:types (constantly {:attribute_remappings :json})})
+   {:types (constantly {:attribute_remappings :json-no-keywordization})})
 
   ;; only admins can work with GTAPs
   i/IObjectPermissions

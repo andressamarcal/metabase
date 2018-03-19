@@ -348,7 +348,7 @@
                                value             :- AnyValueLiteral])
 
 (s/defrecord ParamValuePlaceHolder [field-placeholder :- AnyField
-                                    param-name        :- s/Keyword])
+                                    param-name        :- s/Str])
 
 (def OrderableValuePlaceholder
   "`ValuePlaceholder` schema with the additional constraint that the value be orderable (a number or datetime)."

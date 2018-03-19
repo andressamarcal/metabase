@@ -106,7 +106,7 @@
           :pre-update     pre-update
           :post-select    post-select
           :pre-delete     pre-delete
-          :types          (constantly {:login_attributes :json})}))
+          :types          (constantly {:login_attributes :json-no-keywordization})}))
 
 
 ;;; --------------------------------------------------- Helper Fns ---------------------------------------------------
