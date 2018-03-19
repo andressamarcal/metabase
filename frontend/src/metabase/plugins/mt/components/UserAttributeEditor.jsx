@@ -3,13 +3,13 @@ import React from "react";
 import Button from "metabase/components/Button";
 
 const UserAttributeEditor = ({ user, onChange }) => {
-  const attributes = user.attributes || [];
+  const attributes = user.login_attributes || {};
   return (
     <div>
       <h3 className="pb1">{user.first_name}'s attributes</h3>
       <table>
-        {attributes.map(({ name, value }, index) => (
-          <tr>
+        {Object.entries(attributes).map(([name, value], index) => (
+          <tr key={index}>
             <td className="pb1">
               <input
                 className="input"
@@ -18,11 +18,11 @@ const UserAttributeEditor = ({ user, onChange }) => {
                 onChange={e =>
                   onChange({
                     ...user,
-                    attributes: [
-                      ...attributes.slice(0, index),
-                      { name: e.target.value, value: value },
-                      ...attributes.slice(index + 1),
-                    ],
+                    login_attributes: replaceAttributeName(
+                      attributes,
+                      name,
+                      e.target.value,
+                    ),
                   })
                 }
               />
@@ -35,11 +35,11 @@ const UserAttributeEditor = ({ user, onChange }) => {
                 onChange={e =>
                   onChange({
                     ...user,
-                    attributes: [
-                      ...attributes.slice(0, index),
-                      { name: name, value: e.target.value },
-                      ...attributes.slice(index + 1),
-                    ],
+                    login_attributes: replaceAttributeValue(
+                      attributes,
+                      name,
+                      e.target.value,
+                    ),
                   })
                 }
               />
@@ -51,10 +51,7 @@ const UserAttributeEditor = ({ user, onChange }) => {
                 onClick={() =>
                   onChange({
                     ...user,
-                    attributes: [
-                      ...attributes.slice(0, index),
-                      ...attributes.slice(index + 1),
-                    ],
+                    login_attributes: removeAttribute(attributes, name),
                   })
                 }
               />
@@ -68,16 +65,35 @@ const UserAttributeEditor = ({ user, onChange }) => {
         borderless
         className="text-brand p0 py1"
         onClick={() =>
-          onChange({
-            ...user,
-            attributes: (user.attributes || []).concat({ name: "", value: "" }),
-          })
+          onChange({ ...user, login_attributes: addAttribute(attributes) })
         }
       >
         Add an attribute
       </Button>
     </div>
   );
+};
+
+const addAttribute = attributes => {
+  return { ...attributes, "": "" };
+};
+
+const removeAttribute = (attributes, prevName) => {
+  attributes = { ...attributes };
+  delete attributes[prevName];
+  return attributes;
+};
+
+const replaceAttributeValue = (attributes, oldName, newValue) => {
+  return { ...attributes, [oldName]: newValue };
+};
+
+const replaceAttributeName = (attributes, oldName, newName) => {
+  const newAttributes = {};
+  for (const name in attributes) {
+    newAttributes[name === oldName ? newName : name] = attributes[name];
+  }
+  return newAttributes;
 };
 
 export default UserAttributeEditor;
