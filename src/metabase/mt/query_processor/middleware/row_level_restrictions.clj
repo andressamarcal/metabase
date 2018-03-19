@@ -2,18 +2,18 @@
   (:require [metabase
              [query-processor :as qp]
              [util :as u]]
-            [metabase.api.common :as api]
+            [metabase.api.common :refer [*current-user-id* *current-user-permissions-set*]]
             [metabase.models
-             [card :refer [Card]]
              [database :as database]
              [permissions :as perms]
-             [permissions-group-membership :refer [PermissionsGroupMembership]]
-             [table :refer [Table]]]
-            [metabase.query-processor.util :as qputil]
+             [permissions-group-membership :refer [PermissionsGroupMembership]]]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
-            [metabase.query-processor.middleware.log :as log-query]
-            [schema.core :as s]
-            [toucan.db :as db]))
+            [metabase.query-processor.middleware
+             [log :as log-query]
+             [permissions :as perms-middleware]]
+            [metabase.query-processor.util :as qputil]
+            [toucan.db :as db])
+  (:import metabase.query_processor.middleware.permissions.TablesPermsCheck))
 
 (defn- gtap-for-table [query]
   (let [groups (db/select-field :group_id PermissionsGroupMembership :user_id (u/get-id (:user query)))]
@@ -48,33 +48,43 @@
         qp)
     (qp query)))
 
+
+(defn- query-should-have-segmented-permissions?
+  "Determine whether we should apply segmented permissions for `query`.
+
+  This function piggybacks off of the logic for determining which permissions checks should take place in the
+  permissions-check middleware; if a `TablePermsCheck` is slated to take place, we'll look and see whether the current
+  user has either full perms for that Table, or merely segmented perms. This is currently the only type of perms check
+  that can be subject to segmentation; we can ignore the other types. Refer to the perms-check namespace for a more
+  detailed discussion of the different types of perms checks.
+
+    (query-should-have-segmented-permissions? query) ; -> true"
+  [query]
+  (boolean
+   (when *current-user-id*
+     ;; the perms-check middleware works on outer queries. Since we only have the inner query at this point (why?
+     (when-let [perms-check (perms-middleware/query->perms-check query)]
+       (when (instance? TablesPermsCheck perms-check)
+         (let [{:keys [source-table-id]} perms-check
+               table                     (db/select-one ['Table :id :db_id :schema] :id source-table-id)]
+           (cond
+             (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-query-path table))
+             false
+
+             (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-segmented-query-path table))
+             true
+
+             :else
+             (throw (Exception. "Invalid state: user does not have either full or segmented query permissions!")))))))))
+
 (defn maybe-apply-row-level-permissions
   "Applies row level permissions if the user has segmented permissions. If the user has full permissions, the data
   just passes through with no changes"
   [qp]
   (fn [query]
-    (let [table-id (qputil/get-in-normalized query [:query :source-table])
-          table    (when (and (seq @api/*current-user-permissions-set*) (integer? table-id))
-                     (Table table-id))]
-      (cond
-        (or
-         ;; TODO: This seems like it's wrong, but most of the tests break as they aren't running as a user. I need to
-         ;; go back through and either add that to the test suite or do something else here - RS
-         (empty? @api/*current-user-permissions-set*)
-         ;; If there is no table id, no need to apply row level permissions
-         (not table)
-         ;; TODO - include permissions in the query context to allow for user aware pulses
-         ;; If the user has full permissions, no need to apply row level permissions
-         (perms/set-has-full-permissions? @api/*current-user-permissions-set* (perms/table-query-path table)))
-        (qp query)
-
-        ;;If user has segmented permissions, apply row-level-permission middleware
-        (perms/set-has-full-permissions? @api/*current-user-permissions-set* (perms/table-segmented-query-path table))
-        (apply-row-level-permissions qp query)
-
-        :else
-        (throw (RuntimeException. (format "User '%s' without read permissions should not be allowed to query table"
-                                          (get-in query [:user :email]))))))))
+    (if (query-should-have-segmented-permissions? query)
+      (apply-row-level-permissions qp query)
+      (qp query))))
 
 (defn- vec-index-of [pred coll]
   (reduce (fn [new-pipeline idx]
@@ -84,7 +94,7 @@
 
 (defn- inject-row-level-permissions-middleware
   "Looks for `maybe-apply-row-level-permissions` middleware in the main query processor middleware datastructure. If
-  not found, will add itself. Is a noop if it's already present."
+  not found, will add itself, immediately after `log-query/log-initial-query`. Is a noop if it's already present."
   [query-pipeline-vars]
   (if-let [resolve-index (and (not-any? #(= #'maybe-apply-row-level-permissions %) query-pipeline-vars)
                               (vec-index-of #(= % #'log-query/log-initial-query) query-pipeline-vars))]

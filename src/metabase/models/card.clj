@@ -268,8 +268,10 @@
     ;; that way
     (when (and *current-user-id*
                (= (keyword (:type query)) :native))
-      (let [database (db/select-one ['Database :id :name], :id (:database query))]
-        (qp-perms/throw-if-cannot-run-new-native-query-referencing-db database)))))
+      ;; create, and invoke, a NewNativeQueryPermsCheck. This will check that the current user has permissions to run
+      ;; a new native query against the database in question, or will throw an Exception if not. See the perms check
+      ;; middleware namespace for more details.
+      ((qp-perms/strict-map->NewNativeQueryPermsCheck {:database-id (u/get-id (:database query))})))))
 
 (defn- post-insert [card]
   ;; if this Card has any native template tag parameters we need to update FieldValues for any Fields that are
