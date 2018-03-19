@@ -203,8 +203,8 @@
     (if value
       (->honeysql driver value)
       (throw (RuntimeException.
-              (tru "Query included a parameter placeholder for ''{0}'', but that parameter wasn't found in ''{1}''"
-                   param-name (pr (:parameters *query*))))))))
+              (tru "Query included a parameter placeholder for ''{0}'', but that parameter wasn''t found in ''{1}''"
+                   param-name (with-out-str (pr (:parameters *query*)))))))))
 
 (defmethod ->honeysql [Object TimeValue]
   [driver  {:keys [value]}]
