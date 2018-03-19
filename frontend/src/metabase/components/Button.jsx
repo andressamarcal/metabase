@@ -28,7 +28,7 @@ const Button = ({ className, icon, iconSize, children, ...props }) => {
   return (
     <button
       {..._.omit(props, ...BUTTON_VARIANTS)}
-      className={cx("Button", className, variantClasses)}
+      className={cx("Button", className, variantClasses, { p1: !children })}
     >
       <div className="flex layout-centered">
         {icon && (

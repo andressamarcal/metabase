@@ -1,7 +1,6 @@
 /* eslint "react/prop-types": "warn" */
 import React, { Component } from "react";
 import PropTypes from "prop-types";
-import ReactDOM from "react-dom";
 
 import FormField from "metabase/components/form/FormField.jsx";
 import FormLabel from "metabase/components/form/FormLabel.jsx";
@@ -19,19 +18,18 @@ import _ from "underscore";
 
 import { isAdminGroup, canEditMembership } from "metabase/lib/groups";
 
+import { EDIT_USER_FORM_PLUGINS } from "metabase/plugins";
+
 export default class EditUserForm extends Component {
   constructor(props, context) {
     super(props, context);
-
-    const user = props.user;
-
     this.state = {
       formError: null,
       valid: false,
-      selectedGroups: {},
-      firstName: user ? user.first_name : null,
-      lastName: user ? user.last_name : null,
-      email: user ? user.email : null,
+      user: {
+        groups: [],
+        ...(props.user || {}),
+      },
     };
   }
 
@@ -42,23 +40,21 @@ export default class EditUserForm extends Component {
     groups: PropTypes.array,
   };
 
-  validateForm() {
+  validate = () => {
     let { valid } = this.state;
     let isValid = true;
 
-    ["firstName", "lastName", "email"].forEach(fieldName => {
-      if (MetabaseUtils.isEmpty(this.state[fieldName])) isValid = false;
-    });
+    for (const fieldName of ["first_name", "last_name", "email"]) {
+      if (MetabaseUtils.isEmpty(this.state.user[fieldName])) {
+        isValid = false;
+      }
+    }
 
     if (isValid !== valid) {
       this.setState({
         valid: isValid,
       });
     }
-  }
-
-  onChange = e => {
-    this.validateForm();
   };
 
   formSubmitted(e) {
@@ -71,9 +67,7 @@ export default class EditUserForm extends Component {
     let formErrors = { data: { errors: {} } };
 
     // validate email address
-    let email = ReactDOM.findDOMNode(this.refs.email).value
-      ? ReactDOM.findDOMNode(this.refs.email).value.trim()
-      : null;
+    let email = (this.state.user.email || "").trim();
     if (!MetabaseUtils.validEmail(email)) {
       formErrors.data.errors.email = t`Not a valid formatted email address`;
     }
@@ -86,16 +80,8 @@ export default class EditUserForm extends Component {
     }
 
     this.props.submitFn({
-      ...(this.props.user || {}),
-      first_name: ReactDOM.findDOMNode(this.refs.firstName).value,
-      last_name: ReactDOM.findDOMNode(this.refs.lastName).value,
-      email: email,
-      groups:
-        this.props.groups && this.state.selectedGroups
-          ? Object.entries(this.state.selectedGroups)
-              .filter(([key, value]) => value)
-              .map(([key, value]) => parseInt(key, 10))
-          : null,
+      ...this.state.user,
+      email,
     });
   }
 
@@ -105,16 +91,14 @@ export default class EditUserForm extends Component {
 
   render() {
     const { buttonText, groups } = this.props;
-    const {
-      formError,
-      valid,
-      selectedGroups,
-      firstName,
-      lastName,
-      email,
-    } = this.state;
+    const { formError, valid, user } = this.state;
 
     const adminGroup = _.find(groups, isAdminGroup);
+    // several components expect { id: true } rather than [id]
+    const selectedGroups = _.chain(user.groups)
+      .map(id => [id, true])
+      .object()
+      .value();
 
     return (
       <form onSubmit={this.formSubmitted.bind(this)} noValidate>
@@ -127,14 +111,14 @@ export default class EditUserForm extends Component {
               offset={false}
             />
             <input
-              ref="firstName"
               className="Form-input full"
-              name="firstName"
+              name="first_name"
               placeholder="Johnny"
-              value={firstName}
+              value={user.first_name}
               onChange={e => {
-                this.setState({ firstName: e.target.value }, () =>
-                  this.onChange(e),
+                this.setState(
+                  { user: { ...user, first_name: e.target.value } },
+                  this.validate,
                 );
               }}
             />
@@ -148,15 +132,15 @@ export default class EditUserForm extends Component {
               offset={false}
             />
             <input
-              ref="lastName"
               className="Form-input full"
-              name="lastName"
+              name="last_name"
               placeholder="Appleseed"
               required
-              value={lastName}
+              value={user.last_name}
               onChange={e => {
-                this.setState({ lastName: e.target.value }, () =>
-                  this.onChange(e),
+                this.setState(
+                  { user: { ...user, last_name: e.target.value } },
+                  this.validate,
                 );
               }}
             />
@@ -170,15 +154,15 @@ export default class EditUserForm extends Component {
               offset={false}
             />
             <input
-              ref="email"
               className="Form-input full"
               name="email"
               placeholder="youlooknicetoday@email.com"
               required
-              value={email}
+              value={user.email}
               onChange={e => {
-                this.setState({ email: e.target.value }, () =>
-                  this.onChange(e),
+                this.setState(
+                  { user: { ...user, email: e.target.value } },
+                  this.validate,
                 );
               }}
             />
@@ -204,12 +188,18 @@ export default class EditUserForm extends Component {
                   groups={groups}
                   selectedGroups={selectedGroups}
                   onGroupChange={(group, selected) => {
-                    this.setState({
-                      selectedGroups: {
-                        ...selectedGroups,
-                        [group.id]: selected,
+                    this.setState(
+                      {
+                        user: {
+                          ...user,
+                          groups: (selected
+                            ? selectedGroups.add(group.id)
+                            : selectedGroups.delete(group.id)
+                          ).toJSON(),
+                        },
                       },
-                    });
+                      this.validate,
+                    );
                   }}
                 />
               </PopoverWithTrigger>
@@ -217,16 +207,26 @@ export default class EditUserForm extends Component {
           ) : adminGroup ? (
             <div className="flex align-center">
               <Toggle
-                value={selectedGroups[adminGroup.id]}
+                value={selectedGroups.has(adminGroup.id)}
                 onChange={isAdmin => {
-                  this.setState({
-                    selectedGroups: isAdmin ? { [adminGroup.id]: true } : {},
-                  });
+                  this.setState(
+                    {
+                      user: { ...user, groups: isAdmin ? [adminGroup.id] : [] },
+                    },
+                    this.validate,
+                  );
                 }}
               />
               <span className="ml2">{t`Make this user an admin`}</span>
             </div>
           ) : null}
+          {EDIT_USER_FORM_PLUGINS.map((Component, index) => (
+            <Component
+              key={index}
+              user={user}
+              onChange={user => this.setState({ user }, this.validate)}
+            />
+          ))}
         </div>
 
         <ModalFooter>
