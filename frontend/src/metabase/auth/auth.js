@@ -96,15 +96,15 @@ export const loginSAML = createThunkAction(LOGIN_SAML, function(
 
             // TODO - how do we get our ATTRIBUTES!
 
-            let newSession = await SessionApi.createWithSAML(userAttributes);
+            /* let newSession = await SessionApi.createWithSAML(userAttributes);
 
-            // if we get here, we succeeded. Set the session cookie
-            MetabaseCookies.setSessionCookie(newSession.id);
+             * // if we get here, we succeeded. Set the session cookie
+             * MetabaseCookies.setSessionCookie(newSession.id);
 
-            MetabaseAnalytics.trackEvent("Auth", "SAML Login");
+             * MetabaseAnalytics.trackEvent("Auth", "SAML Login");
 
-            await dispatch(refreshCurrentUser());
-            dispatch(push(redirectUrl || "/"));
+             * await dispatch(refreshCurrentUser());
+             * dispatch(push(redirectUrl || "/"));*/
         } catch (error) {
             return error;
         }

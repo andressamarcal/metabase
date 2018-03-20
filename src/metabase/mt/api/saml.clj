@@ -8,6 +8,7 @@
             [metabase.models.user :refer [User]]
             [metabase.util :as u]
             [metabase.util.schema :as su]
+            [ring.util.response :as resp]
             [schema.core :as s]
             [saml20-clj
              [routes :as saml-routes]
@@ -150,7 +151,14 @@
         saml-info                         (when valid? (saml-sp/saml-resp->assertions saml-resp decrypter))]
     (if-let [{:strs [firstName lastName email]
               :as   attrs}                     (and valid? (-> saml-info :assertions first :attrs unwrap-user-attributes))]
-      (saml-auth-fetch-or-create-user! firstName lastName email attrs)
+      (let [{session-token :id} (saml-auth-fetch-or-create-user! firstName lastName email attrs)]
+        ;; TODO - FIXME
+        #_(assoc (resp/redirect "/")
+          :cookies {:x-metabase-session {:value session-token
+                                         :path  "/"}})
+        (resp/set-cookie (resp/redirect "/")
+                         "metabase.SESSION_ID" session-token
+                         {:path "/"}))
       {:status 500
        :body   "The SAML response from IdP does not validate!"})))
 
