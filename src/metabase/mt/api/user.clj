@@ -12,6 +12,8 @@
   (su/with-api-error-message (s/maybe {su/NonBlankString s/Any})
     "value must be a valid user attributes map (name -> value)"))
 
+;; TODO - not sure we need this endpoint now that we're just letting you edit from the regular `PUT /api/user/:id
+;; endpoint
 (api/defendpoint PUT "/:id/attributes"
   "Update the `login_attributes` for a User."
   [id :as {{:keys [login_attributes]} :body}]
