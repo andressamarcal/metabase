@@ -210,7 +210,6 @@
                             :img-src     ["*"
                                           "'self' data:"]
                             :connect-src ["'self'"
-                                          "localhost:7000" ; NOCOMMIT - for testing SAML integration only!
                                           "metabase.us10.list-manage.com"
                                           (when config/is-dev?
                                             "localhost:8080 ws://localhost:8080")]}]

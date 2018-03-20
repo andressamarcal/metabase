@@ -91,9 +91,10 @@ export const loginSAML = createThunkAction(LOGIN_SAML, function(
     return async function(dispatch, getState) {
         try {
             console.log("here!"); // NOCOMMIT
-            const response = await SessionApi.startSAMLLogin();
+            // FIXME!
+            window.location = "http://localhost:3000/api/mt/saml";
 
-            console.log("response:", response); // NOCOMMIT
+            // TODO - how do we get our ATTRIBUTES!
 
             let newSession = await SessionApi.createWithSAML(userAttributes);
 
