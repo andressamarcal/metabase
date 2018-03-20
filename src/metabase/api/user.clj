@@ -22,6 +22,7 @@
 (api/defendpoint GET "/"
   "Fetch a list of all active `Users` for the admin People page."
   []
+  (api/check-superuser)
   (db/select [User :id :first_name :last_name :email :is_superuser :google_auth :ldap_auth :last_login :login_attributes]
     :is_active true))
 
