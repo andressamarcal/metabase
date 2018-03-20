@@ -27,7 +27,7 @@
    card_id              su/IntGreaterThanZero
    group_id             su/IntGreaterThanZero
    #_attribute_remappings #_AttributeRemappings} ; TODO -  fix me
-  (db/insert! GroupTableAccessPolicyx
+  (db/insert! GroupTableAccessPolicy
     {:table_id             table_id
      :card_id              card_id
      :group_id             group_id
