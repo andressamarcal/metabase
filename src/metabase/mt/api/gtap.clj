@@ -22,11 +22,11 @@
 
 (api/defendpoint POST "/"
   "Create a new GTAP."
+  [:as {{:keys [table_id card_id group_id attribute_remappings]} :body}]
   {table_id             su/IntGreaterThanZero
    card_id              su/IntGreaterThanZero
    group_id             su/IntGreaterThanZero
    attribute_remappings AttributeRemappings}
-  [:as {{:keys [table_id card_id group_id attribute_remappings]} :body}]
   (db/insert! GroupTableAccessPolicy
     {:table_id             table_id
      :card_id              card_id

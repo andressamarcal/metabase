@@ -90,6 +90,11 @@ export const loginSAML = createThunkAction(LOGIN_SAML, function(
 ) {
     return async function(dispatch, getState) {
         try {
+            console.log("here!"); // NOCOMMIT
+            const response = await SessionApi.startSAMLLogin();
+
+            console.log("response:", response); // NOCOMMIT
+
             let newSession = await SessionApi.createWithSAML(userAttributes);
 
             // if we get here, we succeeded. Set the session cookie
