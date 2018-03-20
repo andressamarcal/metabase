@@ -254,6 +254,7 @@ export const LabelApi = {
 export const SessionApi = {
   create: POST("/api/session"),
   createWithGoogleAuth: POST("/api/session/google_auth"),
+  createWithSAML: POST("/api/mt/saml/"),
   delete: DELETE("/api/session"),
   properties: GET("/api/session/properties"),
   forgot_password: POST("/api/session/forgot_password"),

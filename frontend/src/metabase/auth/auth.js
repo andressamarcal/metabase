@@ -83,6 +83,28 @@ export const loginGoogle = createThunkAction(LOGIN_GOOGLE, function(
   };
 });
 
+export const LOGIN_SAML = "metabase/auth/LOGIN_SAML";
+export const loginSAML = createThunkAction(LOGIN_SAML, function(
+    userAttributes,
+    redirectUrl
+) {
+    return async function(dispatch, getState) {
+        try {
+            let newSession = await SessionApi.createWithSAML(userAttributes);
+
+            // if we get here, we succeeded. Set the session cookie
+            MetabaseCookies.setSessionCookie(newSession.id);
+
+            MetabaseAnalytics.trackEvent("Auth", "SAML Login");
+
+            await dispatch(refreshCurrentUser());
+            dispatch(push(redirectUrl || "/"));
+        } catch (error) {
+            return error;
+        }
+    }
+});
+
 // logout
 export const LOGOUT = "metabase/auth/LOGOUT";
 export const logout = createThunkAction(LOGOUT, function() {
