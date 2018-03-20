@@ -23,7 +23,7 @@
             [throttle.core :as throttle]
             [toucan.db :as db]))
 
-(defn- create-session!
+(defn create-session!
   "Generate a new `Session` for a given `User`. Returns the newly generated session ID."
   [user]
   {:pre  [(map? user) (integer? (:id user)) (contains? user :last_login)]
@@ -194,7 +194,9 @@
   (when-let [domain (google-auth-auto-create-accounts-domain)]
     (email-in-domain? email domain)))
 
-(defn- check-autocreate-user-allowed-for-email [email]
+(defn check-autocreate-user-allowed-for-email
+  "Throws if an admin needs to intervene in the account creation"
+  [email]
   (when-not (autocreate-user-allowed-for-email? email)
     ;; Use some wacky status code (428 - Precondition Required) so we will know when to so the error screen specific
     ;; to this situation
