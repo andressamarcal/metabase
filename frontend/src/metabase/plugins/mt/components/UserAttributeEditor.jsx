@@ -2,7 +2,6 @@
 
 import React from "react";
 
-import Button from "metabase/components/Button";
 import MappingEditor from "./MappingEditor";
 
 type User = {

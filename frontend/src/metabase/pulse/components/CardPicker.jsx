@@ -19,9 +19,11 @@ export default class CardPicker extends Component {
   };
 
   static propTypes = {
-    cardList: PropTypes.array.isRequired,
+    value: PropTypes.number,
     onChange: PropTypes.func.isRequired,
+    cardList: PropTypes.array.isRequired,
     attachmentsEnabled: PropTypes.bool,
+    autoFocus: PropTypes.bool,
   };
 
   componentWillUnmount() {
