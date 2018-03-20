@@ -101,22 +101,27 @@ export default class CardPicker extends Component {
   }
 
   render() {
-    let { cardList } = this.props;
+    let { value, cardList, autoFocus } = this.props;
 
     let { isOpen, inputValue, inputWidth, collectionId } = this.state;
 
     let cardByCollectionId = _.groupBy(cardList, "collection_id");
     let collectionIds = Object.keys(cardByCollectionId);
 
-    const collections = _.chain(cardList)
-      .map(card => card.collection)
-      .uniq(c => c && c.id)
-      .filter(c => c)
-      .sortBy("name")
-      // add "Everything else" as the last option for cards without a
-      // collection
-      .concat([{ id: null, name: t`Everything else` }])
-      .value();
+    let selectedCard;
+    const collectionById = {};
+    for (const card of cardList) {
+      if (card.collection) {
+        collectionById[card.collection.id] = card.collection;
+      }
+      if (value != null && card.id === value) {
+        selectedCard = card;
+      }
+    }
+    const collections = collectionIds
+      .map(id => collectionById[id])
+      // add "Everything else" as the last option for cards without a collection
+      .concat([{ id: null, name: t`Everything else` }]);
 
     let visibleCardList;
     if (inputValue) {
@@ -141,10 +146,11 @@ export default class CardPicker extends Component {
           ref="input"
           className="input no-focus full text-bold"
           placeholder={t`Type a question name to filter`}
-          value={this.inputValue}
+          value={!isOpen && selectedCard ? selectedCard.name : inputValue}
           onFocus={this.onInputFocus}
           onBlur={this.onInputBlur}
           onChange={this.onInputChange}
+          autoFocus={autoFocus}
         />
         <Popover
           isOpen={isOpen && cardList.length > 0}

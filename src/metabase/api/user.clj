@@ -80,7 +80,7 @@
   {email            su/Email
    first_name       (s/maybe su/NonBlankString)
    last_name        (s/maybe su/NonBlankString)
-   login_attributes (s/maybe UserAttributes)}
+   #_login_attributes #_(s/maybe UserAttributes)}
   (check-self-or-superuser id)
   ;; only allow updates if the specified account is active
   (api/check-404 (db/exists? User, :id id, :is_active true))

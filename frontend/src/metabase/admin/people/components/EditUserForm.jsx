@@ -94,6 +94,9 @@ export default class EditUserForm extends Component {
     const { formError, valid, user } = this.state;
 
     const adminGroup = _.find(groups, isAdminGroup);
+    const otherGroups = groups
+      ? groups.filter(g => canEditMembership(g) && !isAdminGroup(g))
+      : [];
     // several components expect { id: true } rather than [id]
     const selectedGroups = _.chain(user.groups)
       .map(id => [id, true])
@@ -168,9 +171,7 @@ export default class EditUserForm extends Component {
             />
           </FormField>
 
-          {groups &&
-          groups.filter(g => canEditMembership(g) && !isAdminGroup(g)).length >
-            0 ? (
+          {otherGroups.length > 0 ? (
             <FormField>
               <FormLabel title={t`Permission Groups`} offset={false} />
               <PopoverWithTrigger
@@ -192,10 +193,12 @@ export default class EditUserForm extends Component {
                       {
                         user: {
                           ...user,
-                          groups: (selected
-                            ? selectedGroups.add(group.id)
-                            : selectedGroups.delete(group.id)
-                          ).toJSON(),
+                          groups: Object.entries({
+                            ...selectedGroups,
+                            [group.id]: selected,
+                          })
+                            .filter(([k, v]) => v)
+                            .map(([k, v]) => k),
                         },
                       },
                       this.validate,
@@ -207,7 +210,7 @@ export default class EditUserForm extends Component {
           ) : adminGroup ? (
             <div className="flex align-center">
               <Toggle
-                value={selectedGroups.has(adminGroup.id)}
+                value={selectedGroups[adminGroup.id]}
                 onChange={isAdmin => {
                   this.setState(
                     {

@@ -39,9 +39,13 @@ const SET_ARCHIVED = "metabase/questions/SET_ARCHIVED";
 const SET_LABELED = "metabase/questions/SET_LABELED";
 const SET_COLLECTION = "metabase/collections/SET_COLLECTION";
 
+// simple wrapper for loading questions using loadEntities
+export const loadQuestions = (entityQueryObject = {}) =>
+  loadEntities("cards", entityQueryObject);
+
 export const loadEntities = createThunkAction(
   LOAD_ENTITIES,
-  (entityType, entityQueryObject) => {
+  (entityType, entityQueryObject = {}) => {
     return async (dispatch, getState) => {
       let entityQuery = JSON.stringify(entityQueryObject);
       try {

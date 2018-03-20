@@ -295,7 +295,12 @@ export function updateFieldsPermission(
     permissions,
     groupId,
     [databaseId, "schemas", schemaName, tableId],
-    value /* TODO: field ids, when enabled "controlled" fields */,
+    value === "controlled"
+      ? {
+          read: "all",
+          query: "segmented",
+        }
+      : value,
   );
 
   return permissions;

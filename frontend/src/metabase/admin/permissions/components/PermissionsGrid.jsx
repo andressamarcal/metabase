@@ -158,6 +158,8 @@ class GroupPermissionCell extends Component {
     const { confirmations } = this.state;
 
     const value = permission.getter(group.id, entity.id);
+    const actions =
+      permission.actions && permission.actions(group.id, entity.id);
     const options = permission.options(group.id, entity.id);
     const warning =
       permission.warning && permission.warning(group.id, entity.id);
@@ -232,6 +234,9 @@ class GroupPermissionCell extends Component {
           </Tooltip>
         }
       >
+        {actions && actions.length > 0 ? (
+          <ActionsList actions={actions} />
+        ) : null}
         <AccessOptionList
           value={value}
           options={options}
@@ -297,6 +302,18 @@ const AccessOptionList = ({ value, options, onChange }) => (
     })}
   </ul>
 );
+
+import { connect } from "react-redux";
+
+const ActionsList = connect()(({ actions, dispatch }) => (
+  <ul className="py1 border-bottom">
+    {actions.map(action => (
+      <li>
+        <AccessOption option={action} onChange={dispatch} />
+      </li>
+    ))}
+  </ul>
+));
 
 const EntityRowHeader = ({ entity, icon }) => (
   <div

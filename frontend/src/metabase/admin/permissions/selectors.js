@@ -234,6 +234,10 @@ const OPTION_RED = {
   iconColor: "#EEA5A5",
   bgColor: "#FDF3F3",
 };
+const OPTION_BLUE = {
+  iconColor: "#509EE3",
+  bgColor: "#e5f1fb",
+};
 
 const OPTION_ALL = {
   ...OPTION_GREEN,
@@ -286,6 +290,30 @@ const OPTION_COLLECTION_READ = {
   tooltip: t`Can view questions in this collection`,
 };
 
+const OPTION_SEGMENTED = {
+  ...OPTION_BLUE,
+  value: "controlled",
+  title: t`Grant segmented access`,
+  tooltip: t`Segmented access`,
+  icon: "permissionsLimited",
+};
+
+const getEditSegementedAccessUrl = (
+  groupId,
+  { databaseId, schemaName, tableId },
+) =>
+  `/admin/permissions` +
+  `/databases/${databaseId}` +
+  `/schemas/${encodeURIComponent(schemaName)}` +
+  `/tables/${tableId}/segmented/group/${groupId}`;
+
+const getEditSegementedAccessAction = (groupId, entityId) => ({
+  ...OPTION_BLUE,
+  title: t`Edit segmented access`,
+  icon: "pencil",
+  value: push(getEditSegementedAccessUrl(groupId, entityId)),
+});
+
 export const getTablesPermissionsGrid = createSelector(
   getMetadata,
   getGroups,
@@ -327,7 +355,13 @@ export const getTablesPermissionsGrid = createSelector(
         fields: {
           header: t`Data Access`,
           options(groupId, entityId) {
-            return [OPTION_ALL, OPTION_NONE];
+            return [OPTION_ALL, OPTION_SEGMENTED, OPTION_NONE];
+          },
+          actions(groupId, entityId) {
+            return getFieldsPermission(permissions, groupId, entityId) ===
+              "controlled"
+              ? [getEditSegementedAccessAction(groupId, entityId)]
+              : [];
           },
           getter(groupId, entityId) {
             return getFieldsPermission(permissions, groupId, entityId);
@@ -347,6 +381,11 @@ export const getTablesPermissionsGrid = createSelector(
               entityId,
               metadata,
             );
+          },
+          postAction(groupId, entityId, value) {
+            if (value === "controlled") {
+              return push(getEditSegementedAccessUrl(groupId, entityId));
+            }
           },
           confirm(groupId, entityId, value) {
             return [

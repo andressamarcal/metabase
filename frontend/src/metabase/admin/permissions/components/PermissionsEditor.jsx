@@ -26,6 +26,7 @@ const PermissionsEditor = ({
   saveError,
   diff,
   location,
+  children,
 }) => {
   const saveButton = (
     <Confirm
@@ -89,6 +90,7 @@ const PermissionsEditor = ({
                 <h2>{title}</h2>
               )}
             </div>
+            {children}
             <PermissionsGrid
               className="flex-full"
               grid={grid}

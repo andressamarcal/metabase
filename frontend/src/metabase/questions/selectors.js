@@ -110,6 +110,9 @@ export const getAllEntities = createSelector(
     entityIds.map(entityId => getIn(entities, [entityType, entityId])),
 );
 
+export const getAllQuestions = state =>
+  getAllEntities(state, { entityType: "cards" });
+
 export const getVisibleEntities = createSelector(
   [getAllEntities, getSearchText],
   (allEntities, searchText) =>

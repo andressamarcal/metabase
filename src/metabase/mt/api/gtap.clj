@@ -39,17 +39,18 @@
   one. If that's what you want to do, do so explicity with appropriate calls to the `DELETE` and `POST` endpoints."
   [id :as {{:keys [card_id attribute_remappings], :as body} :body}]
   {card_id              (s/maybe su/IntGreaterThanZero)
-   attribute_remappings AttributeRemappings}
-  (api/check-404 GroupTableAccessPolicy id)
+   #_attribute_remappings #_AttributeRemappings} ; TODO -  fix me
+  (api/check-404 (GroupTableAccessPolicy id))
   ;; only update `card_id` and/or `attribute_remappings` if non-nil values were passed in. That way this endpoint can
   ;; be used to update only one value or the other. Ignore everything else.
   (db/update! GroupTableAccessPolicy id
-    (u/select-non-nil-keys body [:card_id :attribute_remappings])))
+    (u/select-non-nil-keys body [:card_id :attribute_remappings]))
+  (GroupTableAccessPolicy id))
 
 (api/defendpoint DELETE "/:id"
   "Delete a GTAP entry."
   [id]
-  (api/check-404 GroupTableAccessPolicy id)
+  (api/check-404 (GroupTableAccessPolicy id))
   (db/delete! GroupTableAccessPolicy :id id)
   api/generic-204-no-content)
 
