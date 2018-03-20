@@ -12,6 +12,7 @@
             [metabase.query-processor.util :as qputil]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
             [metabase.query-processor.middleware.log :as log-query]
+            [puppetlabs.i18n.core :refer [tru]]
             [schema.core :as s]
             [toucan.db :as db]))
 
@@ -21,9 +22,9 @@
       (let [[gtap & more-gtaps] (db/select GroupTableAccessPolicy :group_id [:in groups]
                                            :table_id (qputil/get-in-normalized query [:query :source-table]))]
         (if (seq more-gtaps)
-          (throw (RuntimeException. (format "Found more than one group table access policy for user '%s'" (get-in query [:user :email]))))
+          (throw (RuntimeException. (tru "Found more than one group table access policy for user ''{0}''" (get-in query [:user :email]))))
           gtap))
-      (throw (RuntimeException. (format "User with email '%s' is not a member of any group") (get-in query [:user :email]))))))
+      (throw (RuntimeException. (tru "User with email ''{0}'' is not a member of any group") (get-in query [:user :email]))))))
 
 (defn- login-attr->template-tag [attribute_remappings [attr-name attr-value]]
   (let [remapped-name (get attribute_remappings attr-name ::not-found)]
@@ -73,8 +74,8 @@
         (apply-row-level-permissions qp query)
 
         :else
-        (throw (RuntimeException. (format "User '%s' without read permissions should not be allowed to query table"
-                                          (get-in query [:user :email]))))))))
+        (throw (RuntimeException. (tru "User ''{0}'' without read permissions should not be allowed to query table"
+                                       (get-in query [:user :email]))))))))
 
 (defn- vec-index-of [pred coll]
   (reduce (fn [new-pipeline idx]
