@@ -4143,3 +4143,20 @@ databaseChangeLog:
             tableName: group_table_access_policy
             columnNames: table_id, group_id
             constraintName: unique_gtap_table_id_group_id
+  # This is temporary and models the same approach we had for google auth. My guess is we probably want to switch
+  # from a boolean here (and with google auth) to something more flexible. Another option is having another metadata
+  # table with authentication provider information and have this table include an FK to that
+  - changeSet:
+      id: 79
+      author: senior
+      comment: 'Added 0.30.0'
+      changes:
+        - addColumn:
+            tableName: core_user
+            columns:
+              name: saml_auth
+              type: boolean
+              defaultValueBoolean: false
+              constraints:
+                nullable: false
+              remarks: 'Boolean to indicate if this user is authenticated via SAML'
