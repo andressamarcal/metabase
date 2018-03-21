@@ -43,6 +43,7 @@
         ;; have more source table entries after the next line
         (update :query qputil/dissoc-normalized :source-table)
         (update :query assoc :source-table (str "card__" card_id))
+        (assoc :source-table-is-gtap? true)
         (update :parameters into (keep #(login-attr->template-tag attribute_remappings %)
                                        (qputil/get-in-normalized query [:user :login-attributes])))
         qp)

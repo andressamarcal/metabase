@@ -138,11 +138,7 @@
 (s/defn query->perms-check :- (s/maybe QueryPermsCheck)
   "Given a `query`, return an object representing the permissions check that needs to take place. Object will be one of
   the record types above, or `nil` if no permissions check needs to happen."
-  [{query-type        :type
-    database          :database
-    query             :query
-    {:keys [card-id]} :info
-    :as               outer-query}]
+  [{query-type :type, :keys [database query source-table-is-gtap?], {:keys [card-id]} :info, :as outer-query}]
   {:pre [(map? outer-query)]}
   (let [native?      (= (keyword query-type) :native)
         source-query (qputil/get-normalized query :source-query)
@@ -177,7 +173,8 @@
 
       ;; for MBQL queries (existing card or not), check that we can run against the source-table and each of the
       ;; join-tables, if any
-      (not native?)
+      (and (not native?)
+           (not source-table-is-gtap?))
       (strict-map->TablesPermsCheck {:source-table-id (table->id (qputil/get-normalized query :source-table))
                                      :join-table-ids  (set (map table->id (qputil/get-normalized query :join-tables)))}))))
 
