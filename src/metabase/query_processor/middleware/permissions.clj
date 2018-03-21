@@ -163,6 +163,11 @@
         ;; for an MBQL source query, recusively check whether we have permissions to run it
         (query->perms-check (assoc outer-query :query source-query)))
 
+      ;; if we're dealing with a GTAP we don't want to check perms since it was actually put in place specifically
+      ;; because of the permissions for the current user
+      source-table-is-gtap?
+      nil
+
       ;; for native queries that are *not* part of an existing card, check that we have native permissions for the DB
       (and native? (not card-id))
       (strict-map->NewNativeQueryPermsCheck {:database-id (u/get-id database)})
@@ -173,8 +178,7 @@
 
       ;; for MBQL queries (existing card or not), check that we can run against the source-table and each of the
       ;; join-tables, if any
-      (and (not native?)
-           (not source-table-is-gtap?))
+      (not native?)
       (strict-map->TablesPermsCheck {:source-table-id (table->id (qputil/get-normalized query :source-table))
                                      :join-table-ids  (set (map table->id (qputil/get-normalized query :join-tables)))}))))
 
