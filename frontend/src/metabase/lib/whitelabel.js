@@ -70,28 +70,37 @@ function initBrandHueUpdator() {
   });
 }
 
-function initBrandColorUpdators() {
-  // look for CSS rules which have colors matching the brand colors or very light or desaturated
-  for (const sheet of document.styleSheets) {
+function walkStyleSheets(sheets, fn) {
+  for (const sheet of sheets) {
     for (const rule of sheet.cssRules || sheet.rules || []) {
-      if (COLOR_REGEX.test(rule.cssText) && rule.style) {
-        for (const [prop, value] of Object.entries(rule.style)) {
-          // try replacing with a random color to see if we actually need to
-          if (
-            COLOR_REGEX.test(value) &&
-            value !== replaceBrandColors(value, "#ABCDEF")
-          ) {
-            STYLE_UPDATORS.push(colorScheme => {
-              rule.style[prop] = replaceBrandColors(value, colorScheme);
-            });
-            STYLE_RESETERS.push(() => {
-              rule.style[prop] = value;
-            });
-          }
-        }
+      if (rule.cssRules) {
+        // child sheets, e.x. media queries
+        walkStyleSheets([rule], fn);
+      }
+      for (const prop in rule.style || {}) {
+        fn(rule.style, prop);
       }
     }
   }
+}
+
+function initBrandColorUpdators() {
+  // look for CSS rules which have colors matching the brand colors or very light or desaturated
+  walkStyleSheets(document.styleSheets, (style, prop) => {
+    const value = style[prop];
+    // try replacing with a random color to see if we actually need to
+    if (
+      COLOR_REGEX.test(value) &&
+      value !== replaceBrandColors(value, "#ABCDEF")
+    ) {
+      STYLE_UPDATORS.push(colorScheme => {
+        style[prop] = replaceBrandColors(value, colorScheme);
+      });
+      STYLE_RESETERS.push(() => {
+        style[prop] = value;
+      });
+    }
+  });
 }
 
 // colors.css, etc: CSS rules
