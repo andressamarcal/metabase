@@ -350,7 +350,8 @@ const SECTIONS = [
       },
       {
         widget: EmbeddingLevel,
-        getHidden: settings => !settings["enable-embedding"],
+        // WHITELABEL: always hide this setting
+        getHidden: () => true,
       },
       {
         key: "embedding-secret-key",
