@@ -112,8 +112,6 @@ The button below will deploy the branch where this README.md lives onto Heroku. 
 
 # License
 
-Unless otherwise noted, all Metabase source files are made available under the terms of the GNU Affero General Public License (AGPL).
-
-See [LICENSE.txt](https://github.com/metabase/metabase/blob/master/LICENSE.txt) for details and exceptions.
+This Edition of Metabase is made available only to those with a fully paid up commerical license from Metabase. Access to this repository does not provide the permission to use the application. 
 
 Unless otherwise noted, all files © 2017 Metabase, Inc.
