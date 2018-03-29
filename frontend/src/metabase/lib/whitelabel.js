@@ -10,12 +10,13 @@ const COLOR_REGEX = /rgba?\([^)]+\)/g;
 
 const BRAND_THRESHOLD = 15;
 const DESATURATE_THRESHOLD = 0; // NOTE: disabled for now, increased BRAND_THRESHOLD instead
+const MAX_LIGHTNESS = 98;
 
 const hasSimilarHue = (colorA, colorB, threshold) =>
   Math.abs(colorA.hue() - colorB.hue()) < threshold;
 
-export const colorForScheme = (scheme, original) =>
-  original
+export const colorForScheme = (scheme, original) => {
+  let color = original
     .hue(scheme.hue())
     .saturationl(
       scheme.saturationl() *
@@ -28,27 +29,48 @@ export const colorForScheme = (scheme, original) =>
         (1 +
           (original.lightness() - BRAND_NORMAL_COLOR.lightness()) /
             BRAND_NORMAL_COLOR.lightness()),
-    )
-    .string();
+    );
+  if (color.lightness() > MAX_LIGHTNESS) {
+    color = color.lightness(MAX_LIGHTNESS);
+  }
+  return color.string();
+};
 
-const replaceBrandColors = (value, colorScheme) => {
-  const scheme = Color(colorScheme).hsl();
-
-  return value.replace(COLOR_REGEX, colorOriginal => {
-    const original = Color(colorOriginal).hsl();
-    if (hasSimilarHue(BRAND_NORMAL_COLOR, original, BRAND_THRESHOLD)) {
-      // match the scheme's hue and offset the scheme's saturation and lightness by the same
-      // percentage as the original color is offset from the default brand color
-      return colorForScheme(scheme, original);
-    } else if (
-      hasSimilarHue(BRAND_NORMAL_COLOR, original, DESATURATE_THRESHOLD)
-    ) {
-      // TODO: also check that the color is sufficiently desaturated or lightened?
-      return original.saturationl(0).string();
-    } else {
-      return colorOriginal;
+class PrimaryBasedScheme {
+  constructor(primaryColor) {
+    this._primary = Color(primaryColor).hsl();
+    this._colors = new Map();
+  }
+  map = colorOriginal => {
+    let color = this._colors.get(colorOriginal);
+    if (!color) {
+      const original = Color(colorOriginal).hsl();
+      if (hasSimilarHue(BRAND_NORMAL_COLOR, original, BRAND_THRESHOLD)) {
+        // match the scheme's hue and offset the scheme's saturation and lightness by the same
+        // percentage as the original color is offset from the default brand color
+        color = colorForScheme(this._primary, original);
+      } else if (
+        hasSimilarHue(BRAND_NORMAL_COLOR, original, DESATURATE_THRESHOLD)
+      ) {
+        // TODO: also check that the color is sufficiently desaturated or lightened?
+        color = original.saturationl(0).string();
+      } else {
+        color = colorOriginal;
+      }
+      this._colors.set(colorOriginal, color);
     }
-  });
+    return color;
+  };
+}
+
+const schemes = new Map();
+
+const replaceBrandColors = (value, primaryColor) => {
+  let scheme = schemes.get(primaryColor);
+  if (!scheme) {
+    schemes.set(primaryColor, (scheme = new PrimaryBasedScheme(primaryColor)));
+  }
+  return value.replace(COLOR_REGEX, scheme.map);
 };
 
 const STYLE_UPDATORS = [];
