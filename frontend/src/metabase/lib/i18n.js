@@ -19,7 +19,20 @@ export function setLocalization(translationsObject) {
     console.error("Couldn't set application name", e);
   }
 
+  addMsgIds(translationsObject);
+
   // add and set locale with C-3PO
   addLocale(locale, translationsObject);
   useLocale(locale);
+}
+
+// we delete msgid property since it's redundant, but have to add it back in to
+// make c-3po happy
+function addMsgIds(translationsObject) {
+  const msgs = translationsObject.translations[""];
+  for (const msgid in msgs) {
+    if (msgs[msgid].msgid === undefined) {
+      msgs[msgid].msgid = msgid;
+    }
+  }
 }

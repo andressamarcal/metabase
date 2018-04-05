@@ -6,13 +6,14 @@ import EventEmitter from "events";
 
 type TransformFn = (o: any) => any;
 
-type Options = {
+export type Options = {
   noEvent?: boolean,
   json?: boolean,
   transformResponse?: TransformFn,
   cancelled?: Promise<any>,
+  raw?: { [key: string]: boolean },
 };
-type Data = {
+export type Data = {
   [key: string]: any,
 };
 
@@ -20,6 +21,7 @@ const DEFAULT_OPTIONS: Options = {
   json: true,
   noEvent: false,
   transformResponse: o => o,
+  raw: {},
 };
 
 class Api extends EventEmitter {
@@ -64,13 +66,17 @@ class Api extends EventEmitter {
         let url = urlTemplate;
         data = { ...data };
         for (let tag of url.match(/:\w+/g) || []) {
-          let value = data[tag.slice(1)];
+          const paramName = tag.slice(1);
+          let value = data[paramName];
+          delete data[paramName];
           if (value === undefined) {
             console.warn("Warning: calling", method, "without", tag);
             value = "";
           }
-          url = url.replace(tag, encodeURIComponent(data[tag.slice(1)]));
-          delete data[tag.slice(1)];
+          if (!options.raw || !options.raw[paramName]) {
+            value = encodeURIComponent(value);
+          }
+          url = url.replace(tag, value);
         }
 
         let headers: { [key: string]: string } = options.json
