@@ -52,11 +52,11 @@ const SPECIAL_GROUP_FILTERS = [
 
 function getTooltipForGroup(group) {
   if (isAdminGroup(group)) {
-    return t`Administrators always have the highest level of access to everything in Metabase.`;
+    return t`Administrators always have the highest level of access to everything in ${t`Metabase`}.`;
   } else if (isDefaultGroup(group)) {
-    return t`Every Metabase user belongs to the All Users group. If you want to limit or restrict a group's access to something, make sure the All Users group has an equal or lower level of access.`;
+    return t`Every ${t`Metabase`} user belongs to the All Users group. If you want to limit or restrict a group's access to something, make sure the All Users group has an equal or lower level of access.`;
   } else if (isMetaBotGroup(group)) {
-    return t`MetaBot is Metabase's Slack bot. You can choose what it has access to here.`;
+    return t`MetaBot is ${t`Metabase`}'s Slack bot. You can choose what it has access to here.`;
   }
   return null;
 }

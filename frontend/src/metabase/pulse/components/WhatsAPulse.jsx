@@ -17,6 +17,7 @@ export default class WhatsAPulse extends Component {
         </h2>
         <div className="mx4">
           <RetinaImage
+            className="brand-hue"
             width={574}
             src="app/assets/img/pulse_empty_illustration.png"
             forceOriginalDimensions={false}
@@ -27,7 +28,7 @@ export default class WhatsAPulse extends Component {
           className="h3 my3 text-centered text-grey-2 text-bold"
           style={{ maxWidth: "500px" }}
         >
-          {t`Pulses let you send data from Metabase to email or Slack on the schedule of your choice.`}
+          {t`Pulses let you send data from ${t`Metabase`} to email or Slack on the schedule of your choice.`}
         </div>
         {this.props.button}
       </div>

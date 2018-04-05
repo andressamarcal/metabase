@@ -14,6 +14,7 @@ import SecretKeyWidget from "./components/widgets/SecretKeyWidget.jsx";
 import EmbeddingLegalese from "./components/widgets/EmbeddingLegalese";
 import EmbeddingLevel from "./components/widgets/EmbeddingLevel";
 import LdapGroupMappingsWidget from "./components/widgets/LdapGroupMappingsWidget";
+import LogoUpload from "./components/widgets/LogoUpload";
 
 import { UtilApi } from "metabase/services";
 
@@ -282,7 +283,7 @@ const SECTIONS = [
       {
         key: "map-tile-server-url",
         display_name: t`Map tile server URL`,
-        note: t`Metabase uses OpenStreetMaps by default.`,
+        note: t`${t`Metabase`} uses OpenStreetMaps by default.`,
         type: "string",
       },
       {
@@ -343,13 +344,14 @@ const SECTIONS = [
       },
       {
         key: "enable-embedding",
-        display_name: t`Enable Embedding Metabase in other Applications`,
+        display_name: t`Enable Embedding ${t`Metabase`} in other Applications`,
         type: "boolean",
         getHidden: settings => !settings["enable-embedding"],
       },
       {
         widget: EmbeddingLevel,
-        getHidden: settings => !settings["enable-embedding"],
+        // WHITELABEL: always hide this setting
+        getHidden: () => true,
       },
       {
         key: "embedding-secret-key",
@@ -400,6 +402,62 @@ const SECTIONS = [
         getHidden: settings => !settings["enable-query-caching"],
         allowValueCollection: true,
       },
+    ],
+  },
+  {
+    name: "Whitelabel",
+    settings: [
+      {
+        key: "application-name",
+        display_name: "Application Name",
+        type: "string",
+      },
+      {
+        key: "application-color",
+        display_name: "Primary Color",
+        type: "string",
+      },
+      {
+        key: "application-logo-url",
+        display_name: "Logo",
+        type: "string",
+        widget: LogoUpload,
+      },
+      // {
+      //     key: "landing-page",
+      //     display_name: "Landing Page",
+      //     type: "select",
+      //     options: [
+      //         { name: "Home Page", value: "" },
+      //         { name: "Query Builder", value: "question" },
+      //         { name: "Questions", value: "questions" },
+      //         { name: "Dashboards", value: "dashboards" }
+      //     ]
+      // },
+      // {
+      //     key: "enable-home",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-query-builder",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-saved-questions",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-dashboards",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-pulses",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-dataref",
+      //     type: "boolean"
+      // },
     ],
   },
   {

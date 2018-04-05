@@ -99,6 +99,5 @@
   "Should we hide the 'Powered by Metabase' attribution on the embedding pages? `true` if we have a valid premium
    embedding token."
   []
-  (boolean
-   (u/ignore-exceptions
-     (check-embedding-token-is-valid (premium-embedding-token)))))
+  ;; WHITELABEL: hardcoded to true
+  true)

@@ -61,6 +61,7 @@ export const NoSavedQuestionsState = () => (
       image="/app/img/questions_illustration"
       action={t`Ask a question`}
       link="/question"
+      imageClassName="brand-hue"
     />
   </div>
 );

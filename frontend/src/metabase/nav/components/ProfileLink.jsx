@@ -167,7 +167,7 @@ export default class ProfileLink extends Component {
                     onClick={this.openModal.bind(this, "about")}
                     className="Dropdown-item block text-white no-decoration"
                   >
-                    {t`About Metabase`}
+                    {t`About ${t`Metabase`}`}
                   </a>
                 </li>
 
@@ -197,9 +197,10 @@ export default class ProfileLink extends Component {
               <div className="text-brand pb2">
                 <LogoIcon width={48} height={48} />
               </div>
-              <h2 style={{ fontSize: "1.75em" }} className="text-dark">
-                {t`Thanks for using`} Metabase!
-              </h2>
+              <h2
+                style={{ fontSize: "1.75em" }}
+                className="text-dark"
+              >{t`Thanks for using ${t`Metabase`}!`}</h2>
               <div className="pt2">
                 <h3 className="text-dark mb1">
                   {t`You're on version`} {tag}

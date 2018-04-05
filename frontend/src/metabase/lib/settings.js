@@ -59,6 +59,36 @@ const MetabaseSettings = {
     return mb_settings.ldap_configured;
   },
 
+  colorScheme: function() {
+    // FIXME: Ugh? initially load public setting as "application_color" but if the admin updates it
+    // we need to use "application-color"
+    return mb_settings["application-color"] || mb_settings.application_color;
+  },
+
+  applicationName: function() {
+    // FIXME: Ugh? see comment in colorScheme()
+    return mb_settings["application-name"] || mb_settings.application_name;
+  },
+
+  landingPage: function() {
+    // FIXME: Ugh? see comment in colorScheme()
+    const features = MetabaseSettings.features();
+    let page;
+    if (features.length === 1) {
+      // NOTE: assumes features are named same as their URL
+      page = features[0];
+    } else {
+      page = mb_settings["landing-page"] || mb_settings.landing_page;
+    }
+    return "/" + (page || "");
+  },
+
+  features: function() {
+    return Object.entries(mb_settings["features"])
+      .filter(([key, enabled]) => enabled)
+      .map(([key]) => key);
+  },
+
   hideEmbedBranding: () => mb_settings.hide_embed_branding,
 
   metastoreUrl: () => mb_settings.metastore_url,

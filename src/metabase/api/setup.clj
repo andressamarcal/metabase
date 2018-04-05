@@ -14,6 +14,7 @@
              [database :refer [Database]]
              [session :refer [Session]]
              [user :as user :refer [User]]]
+            [metabase.util :as u]
             [metabase.util.schema :as su]
             [puppetlabs.i18n.core :refer [tru]]
             [schema.core :as s]
@@ -109,7 +110,7 @@
         num-users          (db/count 'User)]
     [{:title       (tru "Add a database")
       :group       (tru "Get connected")
-      :description (tru "Connect to your data so your whole team can start to explore.")
+      :description (tru "Connect {0} to your data so your whole team can start to explore." (u/app-name-tru))
       :link        "/admin/databases/create"
       :completed   has-dbs?
       :triggered   :always}
@@ -141,7 +142,7 @@
       :triggered   (>= num-tables 20)}
      {:title       (tru "Organize questions")
       :group       (tru "Curate your data")
-      :description (tru "Have a lot of saved questions in {0}? Create collections to help manage them and add context." (tru "Metabase"))
+      :description (tru "Have a lot of saved questions in {0}? Create collections to help manage them and add context." (u/app-name-tru))
       :link        "/questions/"
       :completed   has-collections?
       :triggered   (>= num-cards 30)}

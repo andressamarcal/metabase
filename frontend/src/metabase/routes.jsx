@@ -163,7 +163,7 @@ const IsNotAuthenticated = MetabaseIsSetup(
 );
 
 export const getRoutes = store => (
-  <Route title="Metabase" component={App}>
+  <Route title={t`Metabase`} component={App}>
     {/* SETUP */}
     <Route
       path="/setup"
@@ -203,7 +203,18 @@ export const getRoutes = store => (
       {/* MAIN */}
       <Route component={IsAuthenticated}>
         {/* HOME */}
-        <Route path="/" component={HomepageApp} />
+        <Route
+          path="/"
+          component={HomepageApp}
+          onEnter={(nextState, replace) => {
+            // TODO: also check that this feature is enabled, and if not redirect to the landing page
+            // TODO: same for other (all?) routes
+            const page = MetabaseSettings.landingPage();
+            if (page && page !== "/") {
+              replace(page);
+            }
+          }}
+        />
         <Route path="/ready" component={PostSetupApp} />
 
         {/* DASHBOARD LIST */}

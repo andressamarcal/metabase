@@ -23,7 +23,7 @@
              [setting :as setting]
              [user :refer [User]]]
             [metabase.util.i18n :refer [set-locale]]
-            [puppetlabs.i18n.core :refer [locale-negotiator]]
+            [puppetlabs.i18n.core :refer [trs locale-negotiator]]
             [ring.adapter.jetty :as ring-jetty]
             [ring.middleware
              [cookies :refer [wrap-cookies]]
@@ -190,7 +190,7 @@
   (set-locale (setting/get :site-locale))
 
   (init-status/set-complete!)
-  (log/info "Metabase Initialization COMPLETE"))
+  (log/info (trs "{0} Initialization COMPLETE" "Metabase")))
 
 
 ;;; ## ---------------------------------------- Jetty (Web) Server ----------------------------------------

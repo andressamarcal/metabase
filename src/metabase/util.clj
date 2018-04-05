@@ -16,7 +16,7 @@
             [clojure.tools.namespace.find :as ns-find]
             colorize.core ; this needs to be loaded for `format-color`
             [metabase.config :as config]
-            [puppetlabs.i18n.core :as i18n :refer [trs]]
+            [puppetlabs.i18n.core :as i18n :refer [trs tru]]
             [ring.util.codec :as codec])
   (:import clojure.lang.Keyword
            [java.net InetAddress InetSocketAddress Socket]
@@ -26,10 +26,24 @@
            org.joda.time.DateTime
            org.joda.time.format.DateTimeFormatter))
 
-;; This is the very first log message that will get printed.  It's here because this is one of the very first
-;; namespaces that gets loaded, and the first that has access to the logger It shows up a solid 10-15 seconds before
-;; the "Starting Metabase in STANDALONE mode" message because so many other namespaces need to get loaded
-(log/info (trs "Loading Metabase..."))
+(defn app-name-trs
+  "Return the user configured application name, or Metabase translated
+  via tru if a name isn't configured."
+  []
+  (or ((resolve 'metabase.models.setting/get) :application-name)
+      (trs "Metabase")))
+
+(defn app-name-tru
+  "Return the user configured application name, or Metabase,
+  translated via tru if a name isn't configured."
+  []
+  (or ((resolve 'metabase.models.setting/get) :application-name)
+      (tru "Metabase")))
+
+;; This is the very first log message that will get printed.
+;; It's here because this is one of the very first namespaces that gets loaded, and the first that has access to the logger
+;; It shows up a solid 10-15 seconds before the "Starting Metabase in STANDALONE mode" message because so many other namespaces need to get loaded
+(log/info (trs "Loading {0}..." "Metabase"))
 
 ;; Set the default width for pprinting to 200 instead of 72. The default width is too narrow and wastes a lot of space
 ;; for pprinting huge things like expanded queries
@@ -817,11 +831,21 @@
                   v
                   (select-nested-keys v nested-keys))})))
 
-(defn base-64-string?
+(defn base64-string?
   "Is S a Base-64 encoded string?"
   ^Boolean [s]
   (boolean (when (string? s)
              (re-find #"^[0-9A-Za-z/+]+=*$" s))))
+
+(defn decode-base64
+  "Decodes a Base64 string to a UTF-8 string"
+  [input]
+  (new java.lang.String (javax.xml.bind.DatatypeConverter/parseBase64Binary input) "UTF-8"))
+
+(defn encode-base64
+  "Encodes a string to a Base64 string"
+  [input]
+  (javax.xml.bind.DatatypeConverter/printBase64Binary (.getBytes input "UTF-8")))
 
 (defn safe-inc
   "Increment N if it is non-`nil`, otherwise return `1` (e.g. as if incrementing `0`)."

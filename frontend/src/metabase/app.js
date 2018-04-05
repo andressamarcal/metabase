@@ -37,6 +37,8 @@ import { Router, useRouterHistory } from "react-router";
 import { createHistory } from "history";
 import { syncHistoryWithStore } from "react-router-redux";
 
+import { updateColorScheme } from "metabase/lib/whitelabel";
+
 // remove trailing slash
 const BASENAME = window.MetabaseRoot.replace(/\/+$/, "");
 
@@ -73,6 +75,9 @@ function _init(reducers, getRoutes, callback) {
       "ga-disable-" + MetabaseSettings.get("ga_code")
     ] = MetabaseSettings.isTrackingEnabled() ? null : true;
   });
+
+  MetabaseSettings.on("application-color", updateColorScheme);
+  updateColorScheme();
 
   if (callback) {
     callback(store);

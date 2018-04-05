@@ -13,12 +13,13 @@ import * as Urls from "metabase/lib/urls";
 
 import ProfileLink from "metabase/nav/components/ProfileLink.jsx";
 
-import { getPath, getContext, getUser } from "../selectors";
+import { getPath, getContext, getUser, getFeatures } from "../selectors";
 
 const mapStateToProps = (state, props) => ({
   path: getPath(state, props),
   context: getContext(state, props),
   user: getUser(state),
+  features: getFeatures(state) || {},
 });
 
 const mapDispatchToProps = {
@@ -88,7 +89,7 @@ export default class Navbar extends Component {
         <div className="sm-pl4 flex align-center pr1">
           <div className="NavTitle flex align-center">
             <Icon name={"gear"} className="AdminGear" size={22} />
-            <span className="NavItem-text ml1 hide sm-show text-bold">{t`Metabase Admin`}</span>
+            <span className="NavItem-text ml1 hide sm-show text-bold">{t`${t`Metabase`} Admin`}</span>
           </div>
 
           <ul className="sm-ml4 flex flex-full">
@@ -144,6 +145,9 @@ export default class Navbar extends Component {
   }
 
   renderMainNav() {
+    const { features } = this.props;
+    const featuresCount = Object.values(features).filter(enabled => enabled)
+      .length;
     return (
       <nav className="Nav relative bg-brand">
         <ul className="md-pl4 flex align-center md-pr1">
@@ -157,48 +161,63 @@ export default class Navbar extends Component {
               <LogoIcon dark={true} />
             </Link>
           </li>
-          <li className="md-pl3 hide xs-show">
-            <MainNavLink
-              to="/dashboards"
-              name={t`Dashboards`}
-              eventName="Dashboards"
-              icon="dashboard"
-            />
-          </li>
-          <li className="md-pl1 hide xs-show">
-            <MainNavLink
-              to="/questions"
-              name={t`Questions`}
-              eventName="Questions"
-              icon="all"
-            />
-          </li>
-          <li className="md-pl1 hide xs-show">
-            <MainNavLink
-              to="/pulse"
-              name={t`Pulses`}
-              eventName="Pulses"
-              icon="pulse"
-            />
-          </li>
-          <li className="md-pl1 hide xs-show">
-            <MainNavLink
-              to="/reference/guide"
-              name={t`Data Reference`}
-              eventName="DataReference"
-              icon="reference"
-            />
-          </li>
-          <li className="md-pl3 hide sm-show">
-            <Link
-              to={Urls.newQuestion()}
-              data-metabase-event={"Navbar;New Question"}
-              style={BUTTON_PADDING_STYLES.newQuestion}
-              className="NavNewQuestion rounded inline-block bg-white text-brand text-bold cursor-pointer px2 no-decoration transition-all"
-            >
-              {t`New Question`}
-            </Link>
-          </li>
+          {features.dashboards &&
+            featuresCount > 1 && (
+              <li className="md-pl3 hide xs-show">
+                <MainNavLink
+                  to="/dashboards"
+                  name={t`Dashboards`}
+                  eventName="Dashboards"
+                  icon="dashboard"
+                />
+              </li>
+            )}
+          {features.questions &&
+            featuresCount > 1 && (
+              <li className="md-pl1 hide xs-show">
+                <MainNavLink
+                  to="/questions"
+                  name={t`Questions`}
+                  eventName="Questions"
+                  icon="all"
+                />
+              </li>
+            )}
+          {features.pulse &&
+            featuresCount > 1 && (
+              <li className="md-pl1 hide xs-show">
+                <MainNavLink
+                  to="/pulse"
+                  name={t`Pulses`}
+                  eventName="Pulses"
+                  icon="pulse"
+                />
+              </li>
+            )}
+          {features.reference &&
+            featuresCount > 1 && (
+              <li className="md-pl1 hide xs-show">
+                <MainNavLink
+                  to="/reference/guide"
+                  name={t`Data Reference`}
+                  eventName="DataReference"
+                  icon="reference"
+                />
+              </li>
+            )}
+          {features.question &&
+            featuresCount > 1 && (
+              <li className="md-pl3 hide sm-show">
+                <Link
+                  to={Urls.newQuestion()}
+                  data-metabase-event={"Navbar;New Question"}
+                  style={BUTTON_PADDING_STYLES.newQuestion}
+                  className="NavNewQuestion rounded inline-block bg-white text-brand text-bold cursor-pointer px2 no-decoration transition-all"
+                >
+                  {t`New Question`}
+                </Link>
+              </li>
+            )}
           <li className="flex-align-right transition-background hide sm-show">
             <div className="inline-block text-white">
               <ProfileLink {...this.props} />

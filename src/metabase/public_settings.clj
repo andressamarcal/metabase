@@ -1,5 +1,5 @@
 (ns metabase.public-settings
-  (:require [clojure.string :as s]
+  (:require [clojure.string :as str]
             [metabase
              [config :as config]
              [types :as types]]
@@ -9,7 +9,8 @@
             [metabase.public-settings.metastore :as metastore]
             [metabase.util.i18n :refer [available-locales-with-names set-locale]]
             [metabase.util.password :as password]
-            [puppetlabs.i18n.core :refer [tru]]
+            [puppetlabs.i18n.core :refer [tru available-locales]]
+            [schema.core :as s]
             [toucan.db :as db])
   (:import [java.util Locale TimeZone UUID]))
 
@@ -47,8 +48,8 @@
   (tru "The base URL of this Metabase instance, e.g. \"http://metabase.my-company.com\".")
   :setter (fn [new-value]
             (setting/set-string! :site-url (when new-value
-                                             (cond->> (s/replace new-value #"/$" "")
-                                               (not (s/starts-with? new-value "http")) (str "http://"))))))
+                                             (cond->> (str/replace new-value #"/$" "")
+                                               (not (str/starts-with? new-value "http")) (str "http://"))))))
 
 (defsetting site-locale
   (str  (tru "The default language for this Metabase instance.")
@@ -70,6 +71,11 @@
 (defsetting map-tile-server-url
   (tru "The map tile server URL template used in map visualizations, for example from OpenStreetMaps or MapBox.")
   :default "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png")
+
+(defsetting landing-page
+  "Default page to show the user"
+  :type    :string
+  :default "")
 
 (defsetting enable-public-sharing
   (tru "Enable admins to create publicly viewable links (and embeddable iframes) for Questions and Dashboards?")
@@ -116,6 +122,58 @@
   :type    :integer
   :default 10)
 
+(defsetting application-name
+  "The name of the application"
+  :type    :string
+  :default "Metabase")
+
+(def ^:private HexColor #"#([0-9a-fA-F]{3}){1,2}")
+
+(defsetting application-color
+  "The main theme color. It'll appear in the main nav and other places that are currently blue.
+   We'll adjust our other colors to match it."
+  :type    :string
+  :default "#509EE3"
+  :setter  (fn [new-value]
+             (when new-value
+               (s/validate HexColor new-value))
+             (setting/set-string! :application-color new-value)))
+
+(defsetting application-logo-url
+  "The application logo should ideally be an SVG image which has no color"
+  :type :string
+  :default "app/assets/img/logo.svg")
+
+(defsetting enable-home
+  "Enable the home screen"
+  :type    :boolean
+  :default true)
+
+(defsetting enable-query-builder
+  "Enable the query builder"
+  :type    :boolean
+  :default true)
+
+(defsetting enable-saved-questions
+  "Enable saved questions"
+  :type    :boolean
+  :default true)
+
+(defsetting enable-dashboards
+  "Enable dashboards"
+  :type    :boolean
+  :default true)
+
+(defsetting enable-pulses
+  "Enable pulses"
+  :type    :boolean
+  :default true)
+
+(defsetting enable-dataref
+  "Enable data reference"
+  :type    :boolean
+  :default true)
+
 (defsetting breakout-bins-num
   (tru "When using the default binning strategy and a number of bins is not provided, this number will be used as the default.")
   :type :integer
@@ -154,16 +212,26 @@
   {:admin_email           (admin-email)
    :anon_tracking_enabled (anon-tracking-enabled)
    :custom_geojson        (setting/get :custom-geojson)
+   :application_color     (setting/get :application-color)
+   :application_logo_url  (setting/get :application-logo-url)
+   :application_name      (setting/get :application-name)
    :email_configured      ((resolve 'metabase.email/email-configured?))
    :embedding             (enable-embedding)
    :enable_query_caching  (enable-query-caching)
    :enable_nested_queries (enable-nested-queries)
    :enable_xrays          (setting/get :enable-xrays)
    :engines               ((resolve 'metabase.driver/available-drivers))
+   :features              {:home       (setting/get :enable-home)
+                           :question   (setting/get :enable-query-builder)
+                           :questions  (setting/get :enable-saved-questions)
+                           :dashboards (setting/get :enable-dashboards)
+                           :pulse      (setting/get :enable-pulses)
+                           :reference  (setting/get :enable-dataref)}
    :ga_code               "UA-60817802-1"
    :google_auth_client_id (setting/get :google-auth-client-id)
    :has_sample_dataset    (db/exists? 'Database, :is_sample true)
    :hide_embed_branding   (metastore/hide-embed-branding?)
+   :landing_page          (setting/get :landing-page)
    :ldap_configured       ((resolve 'metabase.integrations.ldap/ldap-configured?))
    :available_locales     (available-locales-with-names)
    :map_tile_server_url   (map-tile-server-url)

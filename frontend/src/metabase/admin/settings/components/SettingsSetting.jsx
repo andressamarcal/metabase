@@ -10,6 +10,7 @@ import SettingPassword from "./widgets/SettingPassword.jsx";
 import SettingRadio from "./widgets/SettingRadio.jsx";
 import SettingToggle from "./widgets/SettingToggle.jsx";
 import SettingSelect from "./widgets/SettingSelect.jsx";
+import SettingColor from "./widgets/SettingColor.jsx";
 
 const SETTING_WIDGET_MAP = {
   string: SettingInput,
@@ -18,6 +19,7 @@ const SETTING_WIDGET_MAP = {
   select: SettingSelect,
   radio: SettingRadio,
   boolean: SettingToggle,
+  color: SettingColor,
 };
 
 const updatePlaceholderForEnvironmentVars = props => {
