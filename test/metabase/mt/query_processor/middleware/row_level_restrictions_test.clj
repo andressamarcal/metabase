@@ -84,16 +84,14 @@
   (tt/with-temp* [Card [{card-id :id :as card} {:name          "magic"
                                                 :dataset_query {:database (data/id)
                                                                 :type     :query
-                                                                :query    {:source_table (data/id :venues)
-                                                                           :filter ["=" ["field-id" (data/id :venues :category_id)]
-                                                                                    ["param-value" (data/id :venues :category_id) "cat"]]}}}]
+                                                                :query    {:source_table (data/id :venues)}}}]
                   PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
                   PermissionsGroupMembership [_ {:group_id group-id
                                                  :user_id  (users/user->id :rasta)}]
                   GroupTableAccessPolicy [gtap {:group_id group-id
                                                 :table_id (data/id :venues)
                                                 :card_id card-id
-                                                :attribute_remappings {:cat :cat}}]]
+                                                :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]}}]]
 
     (users/call-with-api-vars
      :rasta
@@ -145,16 +143,14 @@
      (tt/with-temp* [Card [{card-id :id :as card} {:name          "magic"
                                                    :dataset_query {:database db-id
                                                                    :type     :query
-                                                                   :query    {:source_table (id' db-id :venues)
-                                                                              :filter ["=" ["field-id" (id' db-id :venues :category_id)]
-                                                                                       ["param-value" (id' db-id :venues :category_id) "cat"]]}}}]
+                                                                   :query    {:source_table (id' db-id :venues)}}}]
                      PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
                      PermissionsGroupMembership [_ {:group_id group-id
                                                     :user_id  (users/user->id :rasta)}]
                      GroupTableAccessPolicy [gtap {:group_id group-id
                                                    :table_id (id' db-id :venues)
                                                    :card_id card-id
-                                                   :attribute_remappings {:cat :cat}}]]
+                                                   :attribute_remappings {:cat ["variable" [:field-id (id' db-id :venues :category_id)]]}}]]
        (add-segmented-perms db-id)
 
        (users/call-with-api-vars
@@ -174,10 +170,9 @@
    (fn [db-id]
      (tt/with-temp* [Card [{card-id :id :as card} {:name          "magic"
                                                    :dataset_query {:database db-id
-                                                                   :type     :query
-                                                                   :query    {:source_table (id' db-id :venues)
-                                                                              :filter ["=" ["field-id" (id' db-id :venues :category_id)]
-                                                                                       ["param-value" (id' db-id :venues :category_id) "cat"]]}}}]
+                                                                   :type     :native
+                                                                   :native   {:query "SELECT * FROM VENUES WHERE category_id = {{cat}}"
+                                                                              :template_tags {:cat {:name "cat" :display_name "cat" :type "number" :required true}}}}}]
                      PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
                      PermissionsGroupMembership [_ {:group_id group-id
                                                     :user_id  (users/user->id :rasta)}]
@@ -187,6 +182,7 @@
                                                    :attribute_remappings {:something.different :cat}}]]
 
        (add-segmented-perms db-id)
+       (add-native-read-perms db-id)
 
        (users/call-with-api-vars
         :rasta
