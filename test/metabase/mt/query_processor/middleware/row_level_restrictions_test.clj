@@ -1,18 +1,21 @@
 (ns metabase.mt.query-processor.middleware.row-level-restrictions-test
-  (:require [expectations :refer :all]
+  (:require [clojure.string :as str]
+            [expectations :refer :all]
             [metabase
              [middleware :as mid]
              [query-processor :as qp]
-             [query-processor-test :as qpt]]
+             [query-processor-test :as qpt]
+             [sync :as sync]
+             [util :as u]]
+            [metabase.api.common :refer [*current-user-id* *current-user-permissions-set*]]
             [metabase.models
              [card :refer [Card]]
              [database :refer [Database]]
              [field :refer [Field]]
-             [permissions :as perms]
+             [permissions :refer [Permissions] :as perms]
              [permissions-group :as perms-group :refer [PermissionsGroup]]
              [permissions-group-membership :refer [PermissionsGroupMembership]]
              [table :refer [Table]]]
-            metabase.mt.query-processor.middleware.row-level-restrictions
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
             [metabase.query-processor.middleware.expand :as ql]
             [metabase.test.data :as data]
@@ -26,13 +29,32 @@
   (assoc query-context :user (assoc (#'mid/find-user (users/user->id :rasta))
                                :login_attributes user-attributes)))
 
+(defn- table [database-or-id table-kw & {:keys [fields]}]
+  (or (db/select-one (if (seq fields)
+                       (vec (cons Table fields))
+                       Table)
+        :db_id       (u/get-id database-or-id)
+        :%lower.name (str/lower-case (name table-kw)))
+      (throw (Exception. (format "Table '%s' not found, found: %s"
+                                 (name table-kw)
+                                 (db/select-field :name Table :db_id (u/get-id database-or-id)))))))
+
+(defn- field [database-or-id table-kw field-kw & {:keys [fields]}]
+  (let [table-id (u/get-id (table database-or-id table-kw, :fields [:id]))]
+    (or (db/select-one (if (seq fields)
+                         (vec (cons Field fields))
+                         Field)
+          :table_id    table-id
+          :%lower.name (str/lower-case (name field-kw)))
+        (throw (Exception. (format "Field '%s' not found, found: %s"
+                                   (name field-kw)
+                                   (db/select-field :name Field :table_id table-id)))))))
+
 (defn- id'
   "Similar to `metabase.test.data/id`, but looks for the table/field id associated with `db-id` "
-  ([db-id table-kwd]
-   (db/select-one-id metabase.models.table/Table :db_id db-id :name (data/format-name table-kwd)))
-  ([db-id table-kwd field-kwd]
-   (let [table-id (id' db-id table-kwd)]
-     (db/select-one-id Field, :active true, :table_id table-id, :name (data/format-name field-kwd)))))
+  ([database-or-id table-kw]          (u/get-id (table database-or-id table-kw,          :fields [:id])))
+  ([database-or-id table-kw field-kw] (u/get-id (field database-or-id table-kw field-kw, :fields [:id]))))
+
 
 (defn- call-with-segmented-perms
   [f]
@@ -66,8 +88,8 @@
                                                                            :filter ["=" ["field-id" (data/id :venues :category_id)]
                                                                                     ["param-value" (data/id :venues :category_id) "cat"]]}}}]
                   PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
-                  PermissionsGroupMembership [{perm-group-id :id} {:group_id group-id
-                                                                   :user_id  (users/user->id :rasta)}]
+                  PermissionsGroupMembership [_ {:group_id group-id
+                                                 :user_id  (users/user->id :rasta)}]
                   GroupTableAccessPolicy [gtap {:group_id group-id
                                                 :table_id (data/id :venues)
                                                 :card_id card-id
@@ -77,7 +99,7 @@
      :rasta
      (fn []
        (-> (data/query :venues
-             (ql/aggregation (ql/count)))
+                       (ql/aggregation (ql/count)))
            data/wrap-inner-query
            (with-user-attributes {:cat 50})
            qp/process-query
@@ -95,8 +117,8 @@
                                                                    :native   {:query "SELECT * FROM VENUES WHERE category_id = {{cat}}"
                                                                               :template_tags {:cat {:name "cat" :display_name "cat" :type "number" :required true}}}}}]
                      PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
-                     PermissionsGroupMembership [{perm-group-id :id} {:group_id group-id
-                                                                      :user_id  (users/user->id :rasta)}]
+                     PermissionsGroupMembership [_ {:group_id group-id
+                                                    :user_id  (users/user->id :rasta)}]
                      GroupTableAccessPolicy [gtap {:group_id group-id
                                                    :table_id (id' db-id :venues)
                                                    :card_id card-id
@@ -127,8 +149,8 @@
                                                                               :filter ["=" ["field-id" (id' db-id :venues :category_id)]
                                                                                        ["param-value" (id' db-id :venues :category_id) "cat"]]}}}]
                      PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
-                     PermissionsGroupMembership [{perm-group-id :id} {:group_id group-id
-                                                                      :user_id  (users/user->id :rasta)}]
+                     PermissionsGroupMembership [_ {:group_id group-id
+                                                    :user_id  (users/user->id :rasta)}]
                      GroupTableAccessPolicy [gtap {:group_id group-id
                                                    :table_id (id' db-id :venues)
                                                    :card_id card-id
@@ -157,8 +179,8 @@
                                                                               :filter ["=" ["field-id" (id' db-id :venues :category_id)]
                                                                                        ["param-value" (id' db-id :venues :category_id) "cat"]]}}}]
                      PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
-                     PermissionsGroupMembership [{perm-group-id :id} {:group_id group-id
-                                                                      :user_id  (users/user->id :rasta)}]
+                     PermissionsGroupMembership [_ {:group_id group-id
+                                                    :user_id  (users/user->id :rasta)}]
                      GroupTableAccessPolicy [gtap {:group_id group-id
                                                    :table_id (id' db-id :venues)
                                                    :card_id card-id
@@ -175,3 +197,31 @@
               (with-user-attributes {"something.different" 50})
               qp/process-query
               qpt/rows)))))))
+
+;; Make sure that you can still use a SQL-based GTAP without needing to have SQL read perms for the Database
+(expect
+ [["20th Century Cafe" 1000]]
+ (tt/with-temp* [Database                   [db (select-keys (data/db) [:details :engine])]
+                 PermissionsGroup           [group {:name "Segmented Access Group :/"}]
+                 PermissionsGroupMembership [_ {:group_id (u/get-id group), :user_id (users/user->id :rasta)}]]
+   (sync/sync-database! db)
+   (tt/with-temp* [Card [gtap-card {:dataset_query {:database (u/get-id db)
+                                                    :type     :native
+                                                    :native   {:query (str "SELECT name AS \"venue_name\","
+                                                                           " 1000 AS \"one_thousand\" "
+                                                                           "FROM venues "
+                                                                           "ORDER BY lower(name);")}}}]
+                   GroupTableAccessPolicy [_ {:group_id (u/get-id group)
+                                              :table_id (id' db :venues)
+                                              :card_id  (u/get-id gtap-card)}]]
+     (perms/revoke-permissions! (perms-group/all-users) (u/get-id db))
+     (perms/grant-permissions! group (perms/table-segmented-query-path (table db :venues)))
+     (binding [*current-user-id*              (users/user->id :rasta)
+               *current-user-permissions-set* (let [perms (db/select-field :object Permissions :group_id (u/get-id group))]
+                                                (atom perms))]
+       (-> (qp/process-query {:database (u/get-id db)
+                              :type     :query
+                              :query    {:source-table (id' db :venues)
+                                         :limit 1}
+                              :user     (users/fetch-user :rasta)})
+           qpt/rows)))))

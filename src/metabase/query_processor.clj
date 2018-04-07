@@ -71,6 +71,7 @@
 ;; PRE-PROCESSING fns are applied from bottom to top, and POST-PROCESSING from top to bottom;
 ;; the easiest way to wrap your head around this is picturing a the query as a ball being thrown in the air
 ;; (up through the preprocessing fns, back down through the post-processing ones)
+
 (def ^:private qp-pipeline-functions
   "Data structure of vars used to create the query pipeline"
   ;; ▼▼▼ POST-PROCESSING ▼▼▼  happens from TOP-TO-BOTTOM, e.g. the results of `f` are (eventually) passed to `limit`
