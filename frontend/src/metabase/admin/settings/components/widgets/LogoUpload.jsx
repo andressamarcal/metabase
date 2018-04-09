@@ -4,7 +4,7 @@ import Icon from "metabase/components/Icon";
 import LogoIcon from "metabase/components/LogoIcon";
 import SettingInput from "./SettingInput";
 
-const LogoUpload = ({ setting, updateSetting, ...props }) => (
+const LogoUpload = ({ setting, onChange, ...props }) => (
   <div>
     <div className="mb1">
       <LogoIcon />
@@ -15,19 +15,15 @@ const LogoUpload = ({ setting, updateSetting, ...props }) => (
         onChange={e => {
           if (e.target.files.length > 0) {
             const reader = new FileReader();
-            reader.onload = e => updateSetting(e.target.result);
+            reader.onload = e => onChange(e.target.result);
             reader.readAsDataURL(e.target.files[0]);
           }
         }}
       />
     ) : (
-      <SettingInput
-        setting={setting}
-        updateSetting={updateSetting}
-        {...props}
-      />
+      <SettingInput setting={setting} onChange={onChange} {...props} />
     )}
-    <Icon name="close" onClick={() => updateSetting(undefined)} />
+    <Icon name="close" onClick={() => onChange(undefined)} />
   </div>
 );
 
