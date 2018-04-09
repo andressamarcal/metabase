@@ -107,9 +107,13 @@ export default class GTAPModal extends React.Component {
 
   render() {
     const { params } = this.props;
-    const { gtap, attributes } = this.state;
+    const { gtap } = this.state;
 
     const valid = this.isValid();
+
+    const attributes = this.state.attributes.filter(
+      attribute => !(attribute in gtap.attribute_remappings),
+    );
 
     return (
       <ModalContent
@@ -162,7 +166,7 @@ export default class GTAPModal extends React.Component {
                       <AttributePicker
                         value={value}
                         onChange={onChange}
-                        attributes={attributes}
+                        attributes={(value ? [value] : []).concat(attributes)}
                       />
                     )}
                     render
@@ -180,8 +184,8 @@ export default class GTAPModal extends React.Component {
                       />
                     )}
                     divider={<span className="px2 text-bold">maps to</span>}
-                    // canAdd={false}
                     addText="Add a mapping"
+                    canAdd={attributes.length > 0}
                     canDelete={
                       Object.keys(gtap.attribute_remappings).length > 1
                     }
@@ -198,25 +202,29 @@ export default class GTAPModal extends React.Component {
 }
 
 const AttributePicker = ({ value, onChange, attributes }) => (
-  <Select
-    value={value}
-    onChange={e => onChange(e.target.value)}
-    placeholder="Select attribute"
-  >
-    {attributes.map(attribute => (
-      <Option key={attribute} value={attribute}>
-        {attribute}
-      </Option>
-    ))}
-  </Select>
+  <div style={{ minWidth: 200 }}>
+    <Select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder="Select attribute"
+    >
+      {attributes.map(attribute => (
+        <Option key={attribute} value={attribute}>
+          {attribute}
+        </Option>
+      ))}
+    </Select>
+  </div>
 );
 
 const TargetPicker = ({ value, onChange, questionId }) => (
-  <QuestionParameterTargetWidget
-    questionId={questionId}
-    target={value}
-    onChange={onChange}
-  />
+  <div style={{ minWidth: 200 }}>
+    <QuestionParameterTargetWidget
+      questionId={questionId}
+      target={value}
+      onChange={onChange}
+    />
+  </div>
 );
 
 const OkMessage = ({ group, gtap }: { group: string, gtap: GTAP }) => {

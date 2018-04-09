@@ -4,6 +4,7 @@ import React from "react";
 
 import PopoverWithTrigger from "metabase/components/PopoverWithTrigger.jsx";
 import ParameterTargetList from "../components/ParameterTargetList";
+import SelectButton from "metabase/components/SelectButton";
 
 import _ from "underscore";
 import cx from "classnames";
@@ -22,6 +23,14 @@ type Props = {
 
 export default class ParameterTargetWidget extends React.Component {
   props: Props;
+
+  static defaultProps = {
+    children: ({ selected }) => (
+      <SelectButton hasValue={!!selected} className="border-med">
+        {selected ? selected.name : "Select a target"}
+      </SelectButton>
+    ),
+  };
 
   render() {
     const { target, onChange, mappingOptions, children } = this.props;
