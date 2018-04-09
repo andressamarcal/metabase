@@ -122,6 +122,7 @@ export default class CardPicker extends Component {
     }
     const collections = collectionIds
       .map(id => collectionById[id])
+      .filter(c => c)
       // add "Everything else" as the last option for cards without a collection
       .concat([{ id: null, name: t`Everything else` }]);
 
