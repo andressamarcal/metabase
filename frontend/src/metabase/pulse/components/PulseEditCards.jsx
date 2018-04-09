@@ -7,6 +7,7 @@ import cx from "classnames";
 import CardPicker from "./CardPicker.jsx";
 import PulseCardPreview from "./PulseCardPreview.jsx";
 
+import Query from "metabase/lib/query";
 import MetabaseAnalytics from "metabase/lib/analytics";
 
 const SOFT_LIMIT = 10;
@@ -193,7 +194,25 @@ export default class PulseEditCards extends Component {
                       <CardPicker
                         cardList={cardList}
                         onChange={this.addCard.bind(this, index)}
-                        attachmentsEnabled={this.props.attachmentsEnabled}
+                        checkCard={card => {
+                          const { attachmentsEnabled } = this.props;
+                          try {
+                            if (
+                              !attachmentsEnabled &&
+                              Query.isBareRows(card.dataset_query.query)
+                            ) {
+                              return t`Raw data cannot be included in pulses`;
+                            }
+                          } catch (e) {}
+                          if (
+                            !attachmentsEnabled &&
+                            (card.display === "pin_map" ||
+                              card.display === "state" ||
+                              card.display === "country")
+                          ) {
+                            return t`Maps cannot be included in pulses`;
+                          }
+                        }}
                       />
                     )}
                   </div>

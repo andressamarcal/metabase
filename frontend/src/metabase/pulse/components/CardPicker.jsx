@@ -6,7 +6,6 @@ import { t } from "c-3po";
 
 import Icon from "metabase/components/Icon.jsx";
 import Popover from "metabase/components/Popover.jsx";
-import Query from "metabase/lib/query";
 
 import _ from "underscore";
 
@@ -24,6 +23,13 @@ export default class CardPicker extends Component {
     cardList: PropTypes.array.isRequired,
     attachmentsEnabled: PropTypes.bool,
     autoFocus: PropTypes.bool,
+    // function that takes a card object and  returns an error string if the
+    // card can't be selected
+    checkCard: PropTypes.func,
+  };
+
+  static defaultProps = {
+    checkCard: () => null,
   };
 
   componentWillUnmount() {
@@ -58,22 +64,7 @@ export default class CardPicker extends Component {
   };
 
   renderItem(card) {
-    const { attachmentsEnabled } = this.props;
-    let error;
-    try {
-      if (!attachmentsEnabled && Query.isBareRows(card.dataset_query.query)) {
-        error = t`Raw data cannot be included in pulses`;
-      }
-    } catch (e) {}
-    if (
-      !attachmentsEnabled &&
-      (card.display === "pin_map" ||
-        card.display === "state" ||
-        card.display === "country")
-    ) {
-      error = t`Maps cannot be included in pulses`;
-    }
-
+    const error = this.props.checkCard(card);
     if (error) {
       return (
         <li key={card.id} className="px2 py1">
