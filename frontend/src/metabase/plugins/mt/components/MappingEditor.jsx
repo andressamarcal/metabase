@@ -24,8 +24,20 @@ type Props = {
   divider?: React.Element<any>,
   canAdd?: boolean,
   canDelete?: boolean,
+  addText?: string,
   swapKeyAndValue?: boolean,
+  renderKeyInput?: any, // FIXME
+  renderValueInput?: any, // FIXME
 };
+
+const DefaultRenderInput = ({ value, onChange, placeholder }) => (
+  <input
+    className="input"
+    value={value}
+    placeholder={placeholder}
+    onChange={e => onChange(e.target.value)}
+  />
+);
 
 const MappingEditor = ({
   value,
@@ -36,9 +48,12 @@ const MappingEditor = ({
   valueHeader,
   keyPlaceholder = "Key",
   valuePlaceholder = "Value",
+  renderKeyInput = DefaultRenderInput,
+  renderValueInput = DefaultRenderInput,
   divider,
   canAdd = true,
   canDelete = true,
+  addText = "Add",
   swapKeyAndValue,
 }: Props) => {
   const mapping = value;
@@ -56,32 +71,27 @@ const MappingEditor = ({
       ) : null}
       <tbody>
         {entries.map(([key, value], index) => {
-          const keyCell = (
-            <input
-              className="input"
-              value={key}
-              placeholder={keyPlaceholder}
-              onChange={e =>
-                onChange(replaceMappingKey(mapping, key, e.target.value))
-              }
-            />
-          );
-          const valueCell = (
-            <input
-              className="input"
-              value={value}
-              placeholder={valuePlaceholder}
-              onChange={e =>
-                onChange(replaceMappingValue(mapping, key, e.target.value))
-              }
-            />
-          );
-
+          const keyInput = renderKeyInput({
+            value: key,
+            placeholder: keyPlaceholder,
+            onChange: newKey =>
+              onChange(replaceMappingKey(mapping, key, newKey)),
+          });
+          const valueInput = renderValueInput({
+            value: value,
+            placeholder: valuePlaceholder,
+            onChange: newValue =>
+              onChange(replaceMappingValue(mapping, key, newValue)),
+          });
           return (
             <tr key={index}>
-              <td className="pb1">{!swapKeyAndValue ? keyCell : valueCell}</td>
+              <td className="pb1">
+                {!swapKeyAndValue ? keyInput : valueInput}
+              </td>
               <td className="pb1 px1">{divider}</td>
-              <td className="pb1">{!swapKeyAndValue ? valueCell : keyCell}</td>
+              <td className="pb1">
+                {!swapKeyAndValue ? valueInput : keyInput}
+              </td>
               {canDelete && (
                 <td>
                   <Button
@@ -106,7 +116,7 @@ const MappingEditor = ({
                   className="text-brand p0 py1"
                   onClick={() => onChange(addMapping(mapping))}
                 >
-                  Add an attribute
+                  {addText}
                 </Button>
               </td>
             </tr>

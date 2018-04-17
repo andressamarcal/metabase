@@ -155,6 +155,11 @@
       collection-id
       (strict-map->CollectionPermsCheck {:collection-id collection-id})
 
+      ;; if we're dealing with a GTAP we don't want to check perms since it was actually put in place specifically
+      ;; because of the permissions for the current user
+      source-table-is-gtap?
+      nil
+
       ;; Otherwise if this is a NESTED query then we should check permissions for the source query
       source-query
       (if (:native source-query)
@@ -162,11 +167,6 @@
         (strict-map->ExistingNativeQueryPermsCheck {:database-id (u/get-id database)})
         ;; for an MBQL source query, recusively check whether we have permissions to run it
         (query->perms-check (assoc outer-query :query source-query)))
-
-      ;; if we're dealing with a GTAP we don't want to check perms since it was actually put in place specifically
-      ;; because of the permissions for the current user
-      source-table-is-gtap?
-      nil
 
       ;; for native queries that are *not* part of an existing card, check that we have native permissions for the DB
       (and native? (not card-id))
