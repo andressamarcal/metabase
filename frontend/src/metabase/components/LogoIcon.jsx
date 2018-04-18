@@ -41,6 +41,11 @@ export default class LogoIcon extends Component {
   }
 
   loadImage(url) {
+    if (this.xhr) {
+      this.xhr.abort();
+      this.xhr = null;
+    }
+
     removeAllChildren(this._container);
 
     const parsed = parseDataUri(url);
@@ -58,7 +63,7 @@ export default class LogoIcon extends Component {
         this.loadImageFallback(url);
       }
     } else {
-      const xhr = new XMLHttpRequest();
+      const xhr = (this.xhr = new XMLHttpRequest());
       xhr.open("GET", url);
       xhr.onload = () => {
         if (xhr.status < 200 || xhr.status >= 300) {
