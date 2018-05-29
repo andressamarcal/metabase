@@ -39,7 +39,8 @@
 ;;; --------------------------------------------------- Validation ---------------------------------------------------
 
 (def ^:private ^:const valid-object-path-patterns
-  [#"^/db/(\d+)/$"                                              ; permissions for the entire DB -- native and all schemas
+  [#"^/db/(\d+)/$"
+                                        ; permissions for the entire DB -- native and all schemas
    #"^/db/(\d+)/native/$"                                       ; permissions to create new native queries for the DB
    #"^/db/(\d+)/native/read/$"                                  ; Permissions to read the results of existing native queries (i.e. view existing cards) for the DB
    #"^/db/(\d+)/schema/$"                                       ; permissions for all schemas in the DB
@@ -86,6 +87,7 @@
   (assert-not-admin-group permissions)
   (assert-valid-object permissions))
 
+
 ;;; ------------------------------------------------- Path Util Fns --------------------------------------------------
 
 (defn object-path
@@ -100,12 +102,10 @@
   ^String [database-id]
   (str (object-path database-id) "native/"))
 
-(defn native-read-path
-  "Return the native query *read* permissions path for a database. This grants you permissions to view the results of an
-  *existing* native query, i.e. view native Cards created by others.
-
-  In the past, there has been discussion of phasing this out in favor of Collections. If that comes to pass, these
-  permissions will become deprecated."
+(defn ^:deprecated native-read-path
+  "Return the native query *read* permissions path for a database.
+   This grants you permissions to view the results of an *existing* native query, i.e. view native Cards created by
+   others. (Deprecated because native read permissions are being phased out in favor of Collections.)"
   ^String [database-id]
   (str (object-path database-id) "native/read/"))
 
@@ -381,8 +381,9 @@
 
 ;; TODO - why does this take a PATH when everything else takes PATH-COMPONENTS or IDs?
 (defn delete-related-permissions!
-  "Delete all permissions for GROUP-OR-ID for ancestors or descendant objects of object with PATH. You can optionally
-  include OTHER-CONDITIONS, which are anded into the filter clause, to further restrict what is deleted."
+  "Delete all permissions for GROUP-OR-ID for ancestors or descendant objects of object with PATH.
+   You can optionally include OTHER-CONDITIONS, which are anded into the filter clause, to further restrict what is
+   deleted."
   {:style/indent 2}
   [group-or-id path & other-conditions]
   {:pre [(integer? (u/get-id group-or-id)) (valid-object-path? path)]}
@@ -566,9 +567,10 @@
 
 
 (defn check-revision-numbers
-  "Check that the revision number coming in as part of NEW-GRAPH matches the one from OLD-GRAPH. This way we can make
-  sure people don't submit a new graph based on something out of date, which would otherwise stomp over changes made
-  in the interim. Return a 409 (Conflict) if the numbers don't match up."
+  "Check that the revision number coming in as part of NEW-GRAPH matches the one from OLD-GRAPH.
+   This way we can make sure people don't submit a new graph based on something out of date,
+   which would otherwise stomp over changes made in the interim.
+   Return a 409 (Conflict) if the numbers don't match up."
   [old-graph new-graph]
   (when (not= (:revision old-graph) (:revision new-graph))
     (throw (ex-info (str (tru "Looks like someone else edited the permissions and your data is out of date.")
@@ -577,8 +579,8 @@
              {:status-code 409}))))
 
 (defn- save-perms-revision!
-  "Save changes made to the permissions graph for logging/auditing purposes. This doesn't do anything if
-  `*current-user-id*` is unset (e.g. for testing or REPL usage)."
+  "Save changes made to the permissions graph for logging/auditing purposes.
+   This doesn't do anything if `*current-user-id*` is unset (e.g. for testing or REPL usage)."
   [current-revision old new]
   (when *current-user-id*
     (db/insert! PermissionsRevision
@@ -597,11 +599,11 @@
                      (u/pprint-to-str 'blue new))))
 
 (s/defn update-graph!
-  "Update the permissions graph, making any changes neccesary to make it match NEW-GRAPH. This should take in a graph
-  that is exactly the same as the one obtained by `graph` with any changes made as needed. The graph is revisioned, so
-  if it has been updated by a third party since you fetched it this function will fail and return a 409 (Conflict)
-  exception. If nothing needs to be done, this function returns `nil`; otherwise it returns the newly created
-  `PermissionsRevision` entry."
+  "Update the permissions graph, making any changes neccesary to make it match NEW-GRAPH.
+   This should take in a graph that is exactly the same as the one obtained by `graph` with any changes made as
+   needed. The graph is revisioned, so if it has been updated by a third party since you fetched it this function will
+   fail and return a 409 (Conflict) exception. If nothing needs to be done, this function returns `nil`; otherwise it
+   returns the newly created `PermissionsRevision` entry."
   ([new-graph :- StrictPermissionsGraph]
    (let [old-graph (graph)
          [old new] (data/diff (:groups old-graph) (:groups new-graph))]

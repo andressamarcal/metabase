@@ -14,10 +14,6 @@
 ;;; |                                                     Java 8                                                     |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-;;; +----------------------------------------------------------------------------------------------------------------+
-;;; |                                          Adding JARs to the Classpath                                          |
-;;; +----------------------------------------------------------------------------------------------------------------+
-
 (defn- plugins-dir
   "The Metabase plugins directory. This defaults to `plugins/` in the same directory as `metabase.jar`, but can be
   configured via the env var `MB_PLUGINS_DIR`."
@@ -30,8 +26,8 @@
 
 
 (defn- add-jar-to-classpath!
-  "Dynamically add a JAR file to the classpath. See also
-  http://stackoverflow.com/questions/60764/how-should-i-load-jars-dynamically-at-runtime/60766#60766"
+  "Dynamically add a JAR file to the classpath.
+   See also [this SO post](http://stackoverflow.com/questions/60764/how-should-i-load-jars-dynamically-at-runtime/60766#60766)"
   [^java.io.File jar-file]
   (let [sysloader (ClassLoader/getSystemClassLoader)]
     (dynapath/add-classpath-url sysloader (.toURL (.toURI jar-file)))))
@@ -47,7 +43,7 @@
             :when (and (.isFile file)
                        (.canRead file)
                        (re-find #"\.jar$" (.getPath file)))]
-      (log/info (u/format-color 'magenta "Adding JAR to classpath %s... %s" file (u/emoji "🔌")))
+      (log/info (u/format-color 'magenta (str (trs "Loading plugin {0}... " file) (u/emoji "🔌"))))
       (add-jar-to-classpath! file))))
 
 
