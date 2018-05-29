@@ -100,6 +100,7 @@
    #'driver-specific/process-query-in-context      ; (drivers can inject custom middleware if they implement IDriver's `process-query-in-context`)
    #'add-settings/add-settings
    #'resolve-driver/resolve-driver                 ; ▲▲▲ DRIVER RESOLUTION POINT ▲▲▲ All functions *above* will have access to the driver during PRE- *and* POST-PROCESSING
+   #'bind-timezone/bind-effective-timezone
    #'fetch-source-query/fetch-source-query
    #'log-query/log-initial-query
    #'cache/maybe-return-cached-results

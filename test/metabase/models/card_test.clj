@@ -3,17 +3,17 @@
             [expectations :refer :all]
             [metabase.api.common :refer [*current-user-permissions-set*]]
             [metabase.models
-             [card :refer :all :as card]
+             [card :as card :refer :all]
              [dashboard :refer [Dashboard]]
              [dashboard-card :refer [DashboardCard]]
              [database :as database]
              [interface :as mi]
-             [permissions :as perms]]
+             [permissions :as perms]
+             [table :refer [Table]]]
             [metabase.query-processor.middleware.expand :as ql]
             [metabase.test
              [data :as data]
              [util :as tu]]
-            [metabase.test.data.users :refer :all]
             [metabase.util :as u]
             [toucan.db :as db]
             [toucan.util.test :as tt]))
@@ -242,8 +242,8 @@
 
 ;; No circular references = it should work!
 (expect
-  {:card-a #{(perms/object-path (data/id) "PUBLIC" (data/id :venues))}
-   :card-b #{(perms/object-path (data/id) "PUBLIC" (data/id :venues))}}
+  {:card-a #{(perms/table-read-path (Table (data/id :venues)))}
+   :card-b #{(perms/table-read-path (Table (data/id :venues)))}}
   ;; Make two cards. Card B references Card A.
   (tt/with-temp* [Card [card-a (card-with-source-table (data/id :venues))]
                   Card [card-b (card-with-source-table (str "card__" (u/get-id card-a)))]]
@@ -321,7 +321,7 @@
 
 ;; Make sure when updating a Card's query read perms get updated
 (expect
-  #{(format "/db/%d/schema/PUBLIC/table/%d/" (data/id) (data/id :venues))}
+  #{(perms/table-read-path (Table (data/id :venues)))}
   (tt/with-temp Card [card {:dataset_query {:database (data/id)
                                             :type     :native
                                             :native   {:query "SELECT 1"}}}]
