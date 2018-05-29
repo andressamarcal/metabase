@@ -24,35 +24,26 @@ const DEFAULT_OPTIONS: Options = {
   raw: {},
 };
 
+export type APIMethod = (d?: Data, o?: Options) => Promise<any>;
+export type APICreator = (t: string, o?: Options | TransformFn) => APIMethod;
+
 class Api extends EventEmitter {
   basename: "";
 
-  GET: (
-    t: string,
-    o?: Options | TransformFn,
-  ) => (d?: Data, o?: Options) => Promise<any>;
-  POST: (
-    t: string,
-    o?: Options | TransformFn,
-  ) => (d?: Data, o?: Options) => Promise<any>;
-  PUT: (
-    t: string,
-    o?: Options | TransformFn,
-  ) => (d?: Data, o?: Options) => Promise<any>;
-  DELETE: (
-    t: string,
-    o?: Options | TransformFn,
-  ) => (d?: Data, o?: Options) => Promise<any>;
+  GET: APICreator;
+  POST: APICreator;
+  PUT: APICreator;
+  DELETE: APICreator;
 
   constructor() {
     super();
-    this.GET = this._makeMethod("GET").bind(this);
-    this.DELETE = this._makeMethod("DELETE").bind(this);
-    this.POST = this._makeMethod("POST", true).bind(this);
-    this.PUT = this._makeMethod("PUT", true).bind(this);
+    this.GET = this._makeMethod("GET");
+    this.DELETE = this._makeMethod("DELETE");
+    this.POST = this._makeMethod("POST", true);
+    this.PUT = this._makeMethod("PUT", true);
   }
 
-  _makeMethod(method: string, hasBody: boolean = false) {
+  _makeMethod(method: string, hasBody: boolean = false): APICreator {
     return (
       urlTemplate: string,
       methodOptions?: Options | TransformFn = {},
@@ -77,6 +68,12 @@ class Api extends EventEmitter {
             value = encodeURIComponent(value);
           }
           url = url.replace(tag, value);
+        }
+        // remove undefined
+        for (const name in data) {
+          if (data[name] === undefined) {
+            delete data[name];
+          }
         }
 
         let headers: { [key: string]: string } = options.json
@@ -146,4 +143,7 @@ class Api extends EventEmitter {
   }
 }
 
-export default new Api();
+const instance = new Api();
+
+export default instance;
+export const { GET, POST, PUT, DELETE } = instance;

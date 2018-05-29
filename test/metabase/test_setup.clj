@@ -1,6 +1,7 @@
 (ns metabase.test-setup
   "Functions that run before + after unit tests (setup DB, start web server, load test data)."
-  (:require [clojure data
+  (:require [clojure
+             [data :as data]
              [set :as set]]
             [clojure.tools.logging :as log]
             [expectations :refer :all]
@@ -15,12 +16,6 @@
 
 ;;; ---------------------------------------- Expectations Framework Settings -----------------------------------------
 
-;; ## GENERAL SETTINGS
-
-;; Don't run unit tests whenever JVM shuts down
-(expectations/disable-run-on-shutdown)
-
-
 ;; ## EXPECTATIONS FORMATTING OVERRIDES
 
 ;; These overrides the methods Expectations usually uses for printing failed tests.
@@ -29,9 +24,9 @@
 ;; lot of data, like Query Processor or API tests.
 (defn- format-failure [e a str-e str-a]
   {:type             :fail
-   :expected-message (when-let [in-e (first (clojure.data/diff e a))]
+   :expected-message (when-let [in-e (first (data/diff e a))]
                        (format "\nin expected, not actual:\n%s" (u/pprint-to-str 'green in-e)))
-   :actual-message   (when-let [in-a (first (clojure.data/diff a e))]
+   :actual-message   (when-let [in-a (first (data/diff a e))]
                        (format "\nin actual, not expected:\n%s" (u/pprint-to-str 'red in-a)))
    :raw              [str-e str-a]
    :result           ["\nexpected:\n"
@@ -40,7 +35,7 @@
                       (u/pprint-to-str 'red a)]})
 
 (defmethod compare-expr :expectations/maps [e a str-e str-a]
-  (let [[in-e in-a] (clojure.data/diff e a)]
+  (let [[in-e in-a] (data/diff e a)]
     (if (and (nil? in-e) (nil? in-a))
       {:type :pass}
       (format-failure e a str-e str-a))))

@@ -2,13 +2,14 @@
   (:require [clojure
              [data :as data]
              [string :as str]]
-            [metabase.api.common :refer [*current-user-id*]]
+            [metabase.api.common :refer [*current-user-id* *current-user-permissions-set*] :as api]
             [metabase.models
              [collection-revision :as collection-revision :refer [CollectionRevision]]
              [interface :as i]
              [permissions :as perms]]
             [metabase.util :as u]
             [metabase.util.schema :as su]
+            [puppetlabs.i18n.core :refer [tru]]
             [schema.core :as s]
             [toucan
              [db :as db]
@@ -22,8 +23,8 @@
 
 (defn- assert-unique-slug [slug]
   (when (db/exists? Collection :slug slug)
-    (throw (ex-info "Name already taken"
-             {:status-code 400, :errors {:name "A collection with this name already exists"}}))))
+    (throw (ex-info (tru "Name already taken")
+             {:status-code 400, :errors {:name (tru "A collection with this name already exists")}}))))
 
 (def ^:const ^java.util.regex.Pattern hex-color-regex
   "Regex for a valid value of `:color`, a 7-character hex string including the preceding hash sign."
@@ -32,14 +33,14 @@
 (defn- assert-valid-hex-color [^String hex-color]
   (when (or (not (string? hex-color))
             (not (re-matches hex-color-regex hex-color)))
-    (throw (ex-info "Invalid color"
-             {:status-code 400, :errors {:color "must be a valid 6-character hex color code"}}))))
+    (throw (ex-info (tru "Invalid color")
+             {:status-code 400, :errors {:color (tru "must be a valid 6-character hex color code")}}))))
 
 (defn- slugify [collection-name]
   ;; double-check that someone isn't trying to use a blank string as the collection name
   (when (str/blank? collection-name)
-    (throw (ex-info "Collection name cannot be blank!"
-             {:status-code 400, :errors {:name "cannot be blank"}})))
+    (throw (ex-info (tru "Collection name cannot be blank!")
+             {:status-code 400, :errors {:name (tru "cannot be blank")}})))
   (u/slugify collection-name collection-slug-max-length))
 
 (defn- pre-insert [{collection-name :name, color :color, :as collection}]
@@ -64,10 +65,11 @@
                                   (assert-unique-slug <>))))))
 
 (defn- pre-delete [collection]
-  ;; unset the collection_id for Cards in this collection. This is mostly for the sake of tests since IRL we shouldn't
-  ;; be deleting collections, but rather archiving them instead
-  (db/update-where! 'Card {:collection_id (u/get-id collection)}
-    :collection_id nil))
+  ;; unset the collection_id for Cards/Pulses in this collection. This is mostly for the sake of tests since IRL we
+  ;; shouldn't be deleting Collections, but rather archiving them instead
+  (doseq [model ['Card 'Pulse 'Dashboard]]
+    (db/update-where! model {:collection_id (u/get-id collection)}
+      :collection_id nil)))
 
 (defn perms-objects-set
   "Return the required set of permissions to READ-OR-WRITE COLLECTION-OR-ID."
@@ -189,3 +191,25 @@
   ([ks new-value]
    {:pre [(sequential? ks)]}
    (update-graph! (assoc-in (graph) (cons :groups ks) new-value))))
+
+
+;;; ------------------------------------------- Perms Checking Helper Fns --------------------------------------------
+
+(defn check-write-perms-for-collection
+  "Check that we have write permissions for Collection with `collection-id`, or throw a 403 Exception. If
+  `collection-id` is `nil`, this check is skipped."
+  [collection-or-id]
+  (when collection-or-id
+    (api/check-403 (perms/set-has-full-permissions? @*current-user-permissions-set*
+                     (perms/collection-readwrite-path collection-or-id)))))
+
+(defn check-allowed-to-change-collection
+  "If we're changing the `collection_id` of an `object`, make sure we have write permissions for the new Collection, and
+  throw a 403 if not. If `collection-id` is `nil`, or hasn't changed from the original `object`, this check does
+  nothing."
+  [object collection-or-id]
+  ;; TODO - what about when someone wants to *unset* the Collection? We should tweak this check to handle that case as
+  ;; well
+  (when (and collection-or-id
+             (not= (u/get-id collection-or-id) (:collection_id object)))
+    (check-write-perms-for-collection collection-or-id)))

@@ -2,7 +2,6 @@ import _ from "underscore";
 import { createSelector } from "reselect";
 import MetabaseSettings from "metabase/lib/settings";
 import { t } from "c-3po";
-import { slugify } from "metabase/lib/formatting";
 import CustomGeoJSONWidget from "./components/widgets/CustomGeoJSONWidget.jsx";
 import {
   PublicLinksDashboardListing,
@@ -18,13 +17,16 @@ import LogoUpload from "./components/widgets/LogoUpload";
 
 import { UtilApi } from "metabase/services";
 
+/* Note - do not translate slugs */
 const SECTIONS = [
   {
     name: t`Setup`,
+    slug: "setup",
     settings: [],
   },
   {
     name: t`General`,
+    slug: "general",
     settings: [
       {
         key: "site-name",
@@ -93,6 +95,7 @@ const SECTIONS = [
   },
   {
     name: t`Updates`,
+    slug: "updates",
     settings: [
       {
         key: "check-for-updates",
@@ -103,6 +106,7 @@ const SECTIONS = [
   },
   {
     name: t`Email`,
+    slug: "email",
     settings: [
       {
         key: "email-smtp-host",
@@ -154,6 +158,7 @@ const SECTIONS = [
   },
   {
     name: "Slack",
+    slug: "slack",
     settings: [
       {
         key: "slack-token",
@@ -177,6 +182,7 @@ const SECTIONS = [
   },
   {
     name: t`Single Sign-On`,
+    slug: "single_sign_on",
     sidebar: false,
     settings: [
       {
@@ -189,10 +195,12 @@ const SECTIONS = [
   },
   {
     name: t`Authentication`,
+    slug: "authentication",
     settings: [],
   },
   {
     name: t`LDAP`,
+    slug: "ldap",
     sidebar: false,
     settings: [
       {
@@ -279,6 +287,7 @@ const SECTIONS = [
   },
   {
     name: t`Maps`,
+    slug: "maps",
     settings: [
       {
         key: "map-tile-server-url",
@@ -297,6 +306,7 @@ const SECTIONS = [
   },
   {
     name: t`Public Sharing`,
+    slug: "public_sharing",
     settings: [
       {
         key: "enable-public-sharing",
@@ -319,6 +329,7 @@ const SECTIONS = [
   },
   {
     name: t`Embedding in other Applications`,
+    slug: "embedding_in_other_applications",
     settings: [
       {
         key: "enable-embedding",
@@ -375,6 +386,7 @@ const SECTIONS = [
   },
   {
     name: t`Caching`,
+    slug: "caching",
     settings: [
       {
         key: "enable-query-caching",
@@ -460,22 +472,6 @@ const SECTIONS = [
       // },
     ],
   },
-  {
-    name: t`X-Rays`,
-    settings: [
-      {
-        key: "enable-xrays",
-        display_name: t`Enable X-Rays`,
-        type: "boolean",
-        allowValueCollection: true,
-      },
-      {
-        key: "xray-max-cost",
-        type: "string",
-        allowValueCollection: true,
-      },
-    ],
-  },
   /*
     {
         name: "Premium Embedding",
@@ -489,9 +485,6 @@ const SECTIONS = [
     }
     */
 ];
-for (const section of SECTIONS) {
-  section.slug = slugify(section.name);
-}
 
 export const getSettings = createSelector(
   state => state.settings.settings,

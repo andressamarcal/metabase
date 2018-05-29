@@ -3,7 +3,7 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { connect } from "react-redux";
-
+import { t } from "c-3po";
 import S from "./DashCardCardParameterMapper.css";
 
 import Icon from "metabase/components/Icon.jsx";
@@ -160,8 +160,8 @@ export default class DashCardCardParameterMapper extends Component {
               >
                 <span className="text-centered mr1">
                   {disabled
-                    ? "No valid fields"
-                    : selected ? selected.name : "Select…"}
+                    ? t`No valid fields`
+                    : selected ? selected.name : t`Select…`}
                 </span>
                 {selected ? (
                   <Icon

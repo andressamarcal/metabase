@@ -79,6 +79,9 @@ function _init(reducers, getRoutes, callback) {
   MetabaseSettings.on("application-color", updateColorScheme);
   updateColorScheme();
 
+  window.Metabase = window.Metabase || {};
+  window.Metabase.store = store;
+
   if (callback) {
     callback(store);
   }
