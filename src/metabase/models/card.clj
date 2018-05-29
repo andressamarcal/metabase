@@ -1,8 +1,7 @@
 (ns metabase.models.card
   "Underlying DB model for what is now most commonly referred to as a 'Question' in most user-facing situations. Card
   is a historical name, but is the same thing; both terms are used interchangeably in the backend codebase."
-  (:require [clojure.core.memoize :as memoize]
-            [clojure.set :as set]
+  (:require [clojure.set :as set]
             [clojure.tools.logging :as log]
             [metabase
              [public-settings :as public-settings]
@@ -10,18 +9,18 @@
              [util :as u]]
             [metabase.api.common :as api :refer [*current-user-id*]]
             [metabase.models
-             [card-label :refer [CardLabel]]
              [collection :as collection]
              [dependency :as dependency]
              [field-values :as field-values]
              [interface :as i]
-             [label :refer [Label]]
              [params :as params]
              [permissions :as perms]
+             [query :as query]
              [revision :as revision]]
             [metabase.query-processor.middleware.permissions :as qp-perms]
             [metabase.query-processor.util :as qputil]
             [metabase.util.query :as q]
+            [puppetlabs.i18n.core :refer [tru]]
             [toucan
              [db :as db]
              [models :as models]]))
@@ -35,14 +34,6 @@
   {:hydrate :dashboard_count}
   [{:keys [id]}]
   (db/count 'DashboardCard, :card_id id))
-
-(defn labels
-  "Return `Labels` for CARD."
-  {:hydrate :labels}
-  [{:keys [id]}]
-  (if-let [label-ids (seq (db/select-field :label_id CardLabel, :card_id id))]
-    (db/select Label, :id [:in label-ids], {:order-by [:%lower.name]})
-    []))
 
 (defn with-in-public-dashboard
   "Efficiently add a `:in_public_dashboard` key to each item in a sequence of `cards`. This boolean key predictably
@@ -178,8 +169,8 @@
        (when ((set disallowed-source-card-ids) source-card-id)
          (throw
           (Exception.
-           (str "Cannot calculate permissions due to circular references. This means a question is either using itself "
-                "as a source or one or more questions are using each other as sources."))))
+           (str (tru "Cannot calculate permissions due to circular references.")
+                (tru "This means a question is either using itself as a source or one or more questions are using each other as sources.")))))
        ;; ok, if we've decided that this is not a loooopy situation then go ahead and recurse
        (query-perms-set (db/select-one-field :dataset_query Card :id source-card-id)
                         :read
@@ -213,7 +204,7 @@
     (empty? query)                   #{}
     (= (keyword query-type) :native) #{(native-permissions-path read-or-write database)}
     (= (keyword query-type) :query)  (mbql-permissions-path-set read-or-write query disallowed-source-card-ids throw-exceptions?)
-    :else                            (throw (Exception. (str "Invalid query type: " query-type)))))
+    :else                            (throw (Exception. (str (tru "Invalid query type: {0}" query-type))))))
 
 
 (defn- card-perms-set-for-query
@@ -246,7 +237,7 @@
     outer-query :dataset_query, card-id :id, :as card}
    read-or-write]
   (when-not (seq card)
-    (throw (Exception. "`card` is nil or empty. Cannot calculate permissions.")))
+    (throw (Exception. (str (tru "`card` is nil or empty. Cannot calculate permissions.")))))
   (let [source-card-id (qputil/query->source-card-id outer-query)]
     (cond
       ;; you don't need any permissions to READ a public card, which is PUBLIC by definition :D
@@ -287,30 +278,11 @@
 
 ;;; -------------------------------------------------- Lifecycle --------------------------------------------------
 
-(defn- native-query? [query-type]
-  (or (= query-type "native")
-      (= query-type :native)))
-
-(defn query->database-and-table-ids
-  "Return a map with `:database-id` and source `:table-id` that should be saved for a Card. Handles queries that use
-   other queries as their source (ones that come in with a `:source-table` like `card__100`) recursively, as well as
-   normal queries."
-  [outer-query]
-  (let [database-id  (qputil/get-normalized outer-query :database)
-        query-type   (qputil/get-normalized outer-query :type)
-        source-table (qputil/get-in-normalized outer-query [:query :source-table])]
-    (cond
-      (native-query? query-type) {:database-id database-id, :table-id nil}
-      (integer? source-table)    {:database-id database-id, :table-id source-table}
-      (string? source-table)     (let [[_ card-id] (re-find #"^card__(\d+)$" source-table)]
-                                   (db/select-one [Card [:table_id :table-id] [:database_id :database-id]]
-                                     :id (Integer/parseInt card-id))))))
-
 (defn populate-query-fields
   "Lift `database_id`, `table_id`, and `query_type` from query definition."
   [{{query-type :type, :as outer-query} :dataset_query, :as card}]
   (merge (when-let [{:keys [database-id table-id]} (and query-type
-                                                        (query->database-and-table-ids outer-query))]
+                                                        (query/query->database-and-table-ids outer-query))]
            {:database_id database-id
             :table_id    table-id
             :query_type  (keyword query-type)})
@@ -392,8 +364,7 @@
   (db/delete! 'Revision :model "Card", :model_id id)
   (db/delete! 'DashboardCardSeries :card_id id)
   (db/delete! 'DashboardCard :card_id id)
-  (db/delete! 'CardFavorite :card_id id)
-  (db/delete! 'CardLabel :card_id id))
+  (db/delete! 'CardFavorite :card_id id))
 
 
 (u/strict-extend (class Card)

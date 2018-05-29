@@ -13,6 +13,7 @@
             [metabase.util
              [honeysql-extensions :as hx]
              [schema :as su]]
+            [puppetlabs.i18n.core :refer [tru]]
             [schema.core :as s]
             [toucan
              [db :as db]
@@ -23,7 +24,6 @@
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
 ;;; -------------------------------------------------- Dynamic Vars --------------------------------------------------
-
 
 (def ^:dynamic ^Boolean *allow-root-entries*
   "Show we allow permissions entries like `/`? By default, this is disallowed, but you can temporarily disable it here
@@ -66,7 +66,7 @@
   [{:keys [group_id]}]
   (when (and (= group_id (:id (group/admin)))
              (not *allow-admin-permissions-changes*))
-    (throw (ex-info "You cannot create or revoke permissions for the 'Admin' group."
+    (throw (ex-info (tru "You cannot create or revoke permissions for the 'Admin' group.")
              {:status-code 400}))))
 
 (defn- assert-valid-object
@@ -76,7 +76,7 @@
              (not (valid-object-path? object))
              (or (not= object "/")
                  (not *allow-root-entries*)))
-    (throw (ex-info (format "Invalid permissions object path: '%s'." object)
+    (throw (ex-info (tru "Invalid permissions object path: ''{0}''." object)
              {:status-code 400}))))
 
 (defn- assert-valid
@@ -219,7 +219,8 @@
     (log/debug (u/format-color 'green "Granting permissions for group %d: %s" (:group_id permissions) (:object permissions)))))
 
 (defn- pre-update [_]
-  (throw (Exception. "You cannot update a permissions entry! Delete it and create a new one.")))
+  (throw (Exception. (str (tru "You cannot update a permissions entry!")
+                          (tru "Delete it and create a new one.")))))
 
 (defn- pre-delete [permissions]
   (log/debug (u/format-color 'red "Revoking permissions for group %d: %s" (:group_id permissions) (:object permissions)))
@@ -570,8 +571,9 @@
   in the interim. Return a 409 (Conflict) if the numbers don't match up."
   [old-graph new-graph]
   (when (not= (:revision old-graph) (:revision new-graph))
-    (throw (ex-info (str "Looks like someone else edited the permissions and your data is out of date.\n"
-                         "Please fetch new data and try again.")
+    (throw (ex-info (str (tru "Looks like someone else edited the permissions and your data is out of date.")
+                         " "
+                         (tru "Please fetch new data and try again."))
              {:status-code 409}))))
 
 (defn- save-perms-revision!
