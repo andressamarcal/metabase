@@ -71,7 +71,7 @@
   (check-self-or-superuser id)
   (api/check-404 (User :id id, :is_active true)))
 
-(def ^:private UserAttributes
+#_(def ^:private UserAttributes
   (su/with-api-error-message (s/maybe {su/NonBlankString s/Any})
     "value must be a valid user attributes map (name -> value)"))
 

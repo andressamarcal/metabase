@@ -166,7 +166,8 @@
    #(contains? % :native)
    NativeQuery))
 
-(s/defn ^:private make-canonical-query [query] :- QueryContext
+(s/defn ^:private make-canonical-query :- QueryContext
+  [query]
   (if (contains? query :user-attributes)
     query
     (assoc query :user-attributes nil)))
