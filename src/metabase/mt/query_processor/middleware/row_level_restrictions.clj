@@ -25,19 +25,18 @@
           gtap))
       (throw (RuntimeException. (format "User with email '%s' is not a member of any group") (get-in query [:user :email]))))))
 
-(defn- login-attr->template-tag [mbql? attribute_remappings [attr-name attr-value]]
-  (let [remapped-name (get attribute_remappings attr-name ::not-found)]
-    (when-not (= remapped-name ::not-found)
-      (if mbql?
-        {:type "category", :value attr-value, :target remapped-name}
-        {:type "category", :value attr-value, :target ["variable" ["template-tag" (name remapped-name)]]}))))
+(defn- attr-remapping->parameter [login-attributes [attr-name target]]
+  ;; defaults attr-value to "" because if it's nil the parameter is ignored
+  ;; TODO: maybe we should just throw an exception
+  (let [attr-value (get login-attributes attr-name "")]
+    {:type "category", :value attr-value, :target target}))
 
 (defn- apply-row-level-permissions
   "Does the work of swapping the given table the user was querying against with a nested subquery that restricts the
   rows returned"
   [qp query]
   (if-let [{:keys [card_id attribute_remappings] :as gtap} (gtap-for-table query)]
-    (let [mbql? (= :query (:query_type (metabase.models.card/Card card_id)))]
+    (let [login-attributes (qputil/get-in-normalized query [:user :login-attributes])]
       (-> query
           (assoc :database database/virtual-id
                  :type     :query)
@@ -47,8 +46,8 @@
           (update :query qputil/dissoc-normalized :source-table)
           (update :query assoc :source-table (str "card__" card_id))
           (assoc :source-table-is-gtap? true)
-          (update :parameters into (keep #(login-attr->template-tag mbql? attribute_remappings %)
-                                         (qputil/get-in-normalized query [:user :login-attributes])))
+          (update :parameters into (map #(attr-remapping->parameter login-attributes %)
+                                         attribute_remappings))
           qp))
     (qp query)))
 

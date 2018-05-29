@@ -23,6 +23,7 @@ const UserAttributeEditor = ({ user, onChange }: Props) => (
     <MappingEditor
       value={user.login_attributes || {}}
       onChange={login_attributes => onChange({ ...user, login_attributes })}
+      addText="Add an attribute"
     />
   </div>
 );

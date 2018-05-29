@@ -1,6 +1,7 @@
 /* @flow */
 
 import React from "react";
+import renderPropToHOC from "metabase/hoc/RenderPropToHOC";
 
 import AdHocQuestionLoader from "metabase/containers/AdHocQuestionLoader";
 import SavedQuestionLoader from "metabase/containers/SavedQuestionLoader";
@@ -67,3 +68,5 @@ const QuestionLoader = ({ questionId, questionHash, children }: Props) =>
   null;
 
 export default QuestionLoader;
+
+export const QuestionLoaderHOC = renderPropToHOC(QuestionLoader);
