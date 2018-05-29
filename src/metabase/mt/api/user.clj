@@ -1,13 +1,12 @@
 (ns metabase.mt.api.user
   "Endpoint(s)for setting user attributes."
-  (:require [compojure.core :refer [DELETE GET POST PUT]]
+  (:require [clojure.set :as set]
+            [compojure.core :refer [GET PUT]]
             [metabase.api.common :as api]
             [metabase.models.user :refer [User]]
-            [metabase.util :as u]
             [metabase.util.schema :as su]
             [schema.core :as s]
-            [toucan.db :as db]
-            [clojure.set :as set]))
+            [toucan.db :as db]))
 
 (def ^:private UserAttributes
   (su/with-api-error-message (s/maybe {su/NonBlankString s/Any})

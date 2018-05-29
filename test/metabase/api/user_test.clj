@@ -26,35 +26,38 @@
 ;; Check that anyone can get a list of all active Users
 (expect
   #{(match-$ (fetch-user :crowberto)
-      {:common_name  "Crowberto Corv"
-       :last_name    "Corv"
-       :id           $
-       :is_superuser true
-       :last_login   $
-       :first_name   "Crowberto"
-       :email        "crowberto@metabase.com"
-       :google_auth  false
-       :ldap_auth    false})
+      {:common_name      "Crowberto Corv"
+       :last_name        "Corv"
+       :id               $
+       :is_superuser     true
+       :last_login       $
+       :first_name       "Crowberto"
+       :email            "crowberto@metabase.com"
+       :login_attributes nil
+       :google_auth      false
+       :ldap_auth        false})
     (match-$ (fetch-user :lucky)
-      {:common_name  "Lucky Pigeon"
-       :last_name    "Pigeon"
-       :id           $
-       :is_superuser false
-       :last_login   $
-       :first_name   "Lucky"
-       :email        "lucky@metabase.com"
-       :google_auth  false
-       :ldap_auth    false})
+      {:common_name      "Lucky Pigeon"
+       :last_name        "Pigeon"
+       :id               $
+       :is_superuser     false
+       :last_login       $
+       :first_name       "Lucky"
+       :email            "lucky@metabase.com"
+       :login_attributes nil
+       :google_auth      false
+       :ldap_auth        false})
     (match-$ (fetch-user :rasta)
-      {:common_name  "Rasta Toucan"
-       :last_name    "Toucan"
-       :id           $
-       :is_superuser false
-       :last_login   $
-       :first_name   "Rasta"
-       :email        "rasta@metabase.com"
-       :google_auth  false
-       :ldap_auth    false})}
+      {:common_name      "Rasta Toucan"
+       :last_name        "Toucan"
+       :id               $
+       :is_superuser     false
+       :last_login       $
+       :first_name       "Rasta"
+       :email            "rasta@metabase.com"
+       :login_attributes nil
+       :google_auth      false
+       :ldap_auth        false})}
   (do
     ;; Delete all the other random Users we've created so far
     (let [user-ids (set (map user->id [:crowberto :rasta :lucky :trashbird]))]

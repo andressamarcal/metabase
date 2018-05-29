@@ -313,10 +313,12 @@
      (api/define-routes api/+check-superuser) ; all API endpoints in this namespace will require superuser access"
   {:style/indent 0}
   [& middleware]
-  (let [api-route-fns (namespace->api-route-fns *ns*)]
+  (let [api-route-fns (namespace->api-route-fns *ns*)
+        routes        `(compojure/routes ~@api-route-fns)]
     `(def ~(vary-meta 'routes assoc :doc (api-routes-docstring *ns* api-route-fns middleware))
-       (-> (compojure/routes ~@api-route-fns)
-           ~@middleware))))
+       ~(if (seq middleware)
+          `(-> ~routes ~@middleware)
+          routes))))
 
 (defn +check-superuser
   "Wrap a Ring handler to make sure the current user is a superuser before handling any requests.
