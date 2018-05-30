@@ -120,7 +120,7 @@
                      GroupTableAccessPolicy [gtap {:group_id group-id
                                                    :table_id (id' db-id :venues)
                                                    :card_id card-id
-                                                   :attribute_remappings {:cat :cat}}]]
+                                                   :attribute_remappings {:cat ["variable" ["template-tag" "cat"]]}}]]
 
        (add-segmented-perms db-id)
        (add-native-read-perms db-id)
@@ -179,7 +179,7 @@
                      GroupTableAccessPolicy [gtap {:group_id group-id
                                                    :table_id (id' db-id :venues)
                                                    :card_id card-id
-                                                   :attribute_remappings {:something.different :cat}}]]
+                                                   :attribute_remappings {:something.different ["variable" ["template-tag" "cat"]]}}]]
 
        (add-segmented-perms db-id)
        (add-native-read-perms db-id)
