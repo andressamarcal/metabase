@@ -46,6 +46,8 @@ import {
   RevisionApi,
   PublicApi,
   EmbedApi,
+  AutoApi,
+  MetabaseApi,
 } from "metabase/services";
 
 import { getDashboard, getDashboardComplete } from "./selectors";
@@ -112,6 +114,8 @@ function getDashboardType(id) {
     return "public";
   } else if (Utils.isJWT(id)) {
     return "embed";
+  } else if (/\/auto\/dashboard/.test(id)) {
+    return "transient";
   } else {
     return "normal";
   }
@@ -134,7 +138,7 @@ export const fetchCards = createThunkAction(FETCH_CARDS, function(
 ) {
   return async function(dispatch, getState) {
     let cards = await CardApi.list({ f: filterMode });
-    for (var c of cards) {
+    for (let c of cards) {
       c.updated_at = moment(c.updated_at);
     }
     return normalize(cards, [card]);
@@ -468,6 +472,8 @@ export const fetchCardData = createThunkAction(FETCH_CARD_DATA, function(
           ...getParametersBySlug(dashboard.parameters, parameterValues),
         }),
       );
+    } else if (dashboardType === "transient") {
+      result = await fetchDataOrError(MetabaseApi.dataset(datasetQuery));
     } else {
       result = await fetchDataOrError(
         CardApi.query({ cardId: card.id, parameters: datasetQuery.parameters }),
@@ -517,6 +523,20 @@ export const fetchDashboard = createThunkAction(FETCH_DASHBOARD, function(
           dashboard_id: dashId,
         })),
       };
+    } else if (dashboardType === "transient") {
+      const subPath = dashId
+        .split("/")
+        .slice(3)
+        .join("/");
+      result = await AutoApi.dashboard({ subPath });
+      result = {
+        ...result,
+        id: dashId,
+        ordered_cards: result.ordered_cards.map(dc => ({
+          ...dc,
+          dashboard_id: dashId,
+        })),
+      };
     } else {
       result = await DashboardApi.get({ dashId: dashId });
     }
@@ -532,7 +552,7 @@ export const fetchDashboard = createThunkAction(FETCH_DASHBOARD, function(
       }
     }
 
-    if (dashboardType === "normal") {
+    if (dashboardType === "normal" || dashboardType === "transient") {
       // fetch database metadata for every card
       _.chain(result.ordered_cards)
         .map(dc => [dc.card].concat(dc.series))
@@ -548,7 +568,10 @@ export const fetchDashboard = createThunkAction(FETCH_DASHBOARD, function(
     // copy over any virtual cards from the dashcard to the underlying card/question
     result.ordered_cards.forEach(card => {
       if (card.visualization_settings.virtual_card) {
-        _.extend(card.card, card.visualization_settings.virtual_card);
+        card.card = Object.assign(
+          card.card || {},
+          card.visualization_settings.virtual_card,
+        );
       }
     });
 

@@ -4063,13 +4063,24 @@ databaseChangeLog:
       comment: 'Added 0.30.0'
       changes:
         - addColumn:
+            tableName: metabase_table
+            columns:
+              name: fields_hash
+              type: text
+              remarks: 'Computed hash of all of the fields associated to this table'
+  - changeSet:
+      id: 77
+      author: senior
+      comment: 'Added 0.30.0'
+      changes:
+        - addColumn:
             tableName: core_user
             columns:
               name: login_attributes
               type: text
               remarks: 'JSON serialized map with attributes used for row level permissions'
   - changeSet:
-      id: 77
+      id: 78
       author: camsaul
       comment: 'Added 0.30.0'
       changes:
@@ -4118,13 +4129,6 @@ databaseChangeLog:
                   type: text
                   remarks: 'JSON-encoded map of user attribute identifier to the param name used in the Card.'
               # TODO - do we also want to include `created_at` and `updated_at` columns here? We can add them later if needed
-  # These could be part of 77 but are seperate for the time being to ease development.
-  # TODO - maybe combine 76-78 before merging this migration.
-  - changeSet:
-      id: 78
-      author: camsaul
-      comment: 'Added 0.30.0'
-      changes:
         # Add an index on table_id + group_id since that is what the Query Processor is going to be looking up 99% of
         # the time in order to get the corresponding Card ID for query-rewriting purposes
         #
@@ -4143,11 +4147,72 @@ databaseChangeLog:
             tableName: group_table_access_policy
             columnNames: table_id, group_id
             constraintName: unique_gtap_table_id_group_id
+  - changeSet:
+      id: 79
+      author: camsaul
+      comment: 'Added 0.30.0'
+      changes:
+        - addColumn:
+            tableName: report_dashboard
+            columns:
+              name: collection_id
+              type: int
+              remarks: 'Optional ID of Collection this Dashboard belongs to.'
+              constraints:
+                references: collection(id)
+                foreignKeyName: fk_dashboard_collection_id
+              # TODO - if someone deletes a collection, what should happen to the Dashboards that are in it? Should they
+              # get deleted as well? Or should collection_id be cleared, effectively putting them in the so-called
+              # "root" collection?
+        - createIndex:
+            tableName: report_dashboard
+            indexName: idx_dashboard_collection_id
+            columns:
+              - column:
+                  name: collection_id
+        - addColumn:
+            tableName: pulse
+            columns:
+              name: collection_id
+              type: int
+              remarks: 'Options ID of Collection this Pulse belongs to.'
+              constraints:
+                references: collection(id)
+                foreignKeyName: fk_pulse_collection_id
+        - createIndex:
+            tableName: pulse
+            indexName: idx_pulse_collection_id
+            columns:
+              - column:
+                  name: collection_id
+  - changeSet:
+      id: 81
+      author: camsaul
+      comment: 'Added 0.30.0'
+      changes:
+        - addColumn:
+            tableName: report_dashboard
+            columns:
+              name: collection_position
+              type: smallint
+              remarks: 'Optional pinned position for this item in its Collection. NULL means item is not pinned.'
+        - addColumn:
+            tableName: report_card
+            columns:
+              name: collection_position
+              type: smallint
+              remarks: 'Optional pinned position for this item in its Collection. NULL means item is not pinned.'
+        - addColumn:
+            tableName: pulse
+            columns:
+              name: collection_position
+              type: smallint
+              remarks: 'Optional pinned position for this item in its Collection. NULL means item is not pinned.'
   # This is temporary and models the same approach we had for google auth. My guess is we probably want to switch
   # from a boolean here (and with google auth) to something more flexible. Another option is having another metadata
   # table with authentication provider information and have this table include an FK to that
   - changeSet:
-      id: 79
+      id: 83
       author: senior
       comment: 'Added 0.30.0'
       changes:

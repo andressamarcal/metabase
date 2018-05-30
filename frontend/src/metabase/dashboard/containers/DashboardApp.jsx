@@ -5,7 +5,7 @@ import { connect } from "react-redux";
 import { push } from "react-router-redux";
 import title from "metabase/hoc/Title";
 
-import Dashboard from "../components/Dashboard.jsx";
+import Dashboard from "metabase/dashboard/components/Dashboard.jsx";
 
 import { fetchDatabaseMetadata } from "metabase/redux/metadata";
 import { setErrorPage } from "metabase/redux/app";
@@ -32,7 +32,7 @@ import { parseHashOptions } from "metabase/lib/browser";
 
 const mapStateToProps = (state, props) => {
   return {
-    dashboardId: props.params.dashboardId,
+    dashboardId: props.dashboardId || props.params.dashboardId,
 
     isAdmin: getUserIsAdmin(state, props),
     isEditing: getIsEditing(state, props),

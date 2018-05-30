@@ -1,10 +1,9 @@
 import React from "react";
 import PropTypes from "prop-types";
+import sys from "system-components";
 
 import Icon from "metabase/components/Icon.jsx";
-
 import cx from "classnames";
-
 import _ from "underscore";
 
 const BUTTON_VARIANTS = [
@@ -20,7 +19,14 @@ const BUTTON_VARIANTS = [
   "onlyIcon",
 ];
 
-const Button = ({ className, icon, iconSize, children, ...props }) => {
+const BaseButton = ({
+  className,
+  icon,
+  iconRight,
+  iconSize,
+  children,
+  ...props
+}) => {
   let variantClasses = BUTTON_VARIANTS.filter(variant => props[variant]).map(
     variant => "Button--" + variant,
   );
@@ -28,7 +34,7 @@ const Button = ({ className, icon, iconSize, children, ...props }) => {
   return (
     <button
       {..._.omit(props, ...BUTTON_VARIANTS)}
-      className={cx("Button", className, variantClasses)}
+      className={cx("Button", className, variantClasses, { p1: !children })}
     >
       <div className="flex layout-centered">
         {icon && (
@@ -39,12 +45,19 @@ const Button = ({ className, icon, iconSize, children, ...props }) => {
           />
         )}
         <div>{children}</div>
+        {iconRight && (
+          <Icon
+            name={iconRight}
+            size={iconSize ? iconSize : 14}
+            className={cx({ ml1: !props.onlyIcon })}
+          />
+        )}
       </div>
     </button>
   );
 };
 
-Button.propTypes = {
+BaseButton.propTypes = {
   className: PropTypes.string,
   icon: PropTypes.string,
   iconSize: PropTypes.number,
@@ -62,5 +75,13 @@ Button.propTypes = {
   borderless: PropTypes.bool,
   onlyIcon: PropTypes.bool,
 };
+
+const Button = sys(
+  {
+    is: BaseButton,
+  },
+  "space",
+  "color",
+);
 
 export default Button;

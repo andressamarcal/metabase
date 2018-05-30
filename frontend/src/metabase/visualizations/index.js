@@ -26,6 +26,9 @@ visualizations.get = function(key) {
 };
 
 export function registerVisualization(visualization) {
+  if (visualization == null) {
+    throw new Error(t`Visualization is null`);
+  }
   let identifier = visualization.identifier;
   if (identifier == null) {
     throw new Error(
@@ -70,7 +73,6 @@ export function getVisualizationTransformed(series: Series) {
       series = CardVisualization.transformSeries(series);
     }
     if (series !== lastSeries) {
-      // $FlowFixMe
       series = [...series];
       // $FlowFixMe
       series._raw = lastSeries;

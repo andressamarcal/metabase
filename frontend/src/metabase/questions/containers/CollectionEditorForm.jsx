@@ -2,9 +2,10 @@ import React, { Component } from "react";
 import { t } from "c-3po";
 import Button from "metabase/components/Button";
 import ColorPicker from "metabase/components/ColorPicker";
-import FormField from "metabase/components/FormField";
+import FormField from "metabase/components/form/FormField";
 import Input from "metabase/components/Input";
-import Modal from "metabase/components/Modal";
+import ModalContent from "metabase/components/ModalContent";
+import { Box, Flex } from "grid-styled";
 
 import { reduxForm } from "redux-form";
 
@@ -65,14 +66,11 @@ export class CollectionEditorForm extends Component {
   render() {
     const { fields, onClose } = this.props;
     return (
-      <Modal
-        inline
-        form
-        title={getFormTitle(fields)}
-        footer={<CollectionEditorFormActions {...this.props} />}
-        onClose={onClose}
-      >
-        <div className="NewForm ml-auto mr-auto mt4 pt2" style={{ width: 540 }}>
+      <ModalContent title={getFormTitle(fields)} onClose={onClose}>
+        <div
+          className="NewForm ml-auto mr-auto mt4 pt2"
+          style={{ width: "100%", maxWidth: 540 }}
+        >
           <FormField displayName={t`Name`} {...fields.name}>
             <Input
               className="Form-input full"
@@ -91,8 +89,13 @@ export class CollectionEditorForm extends Component {
           <FormField displayName={t`Color`} {...fields.color}>
             <ColorPicker {...fields.color} />
           </FormField>
+          <Flex align="center" py={2}>
+            <Box ml="auto">
+              <CollectionEditorFormActions {...this.props} />
+            </Box>
+          </Flex>
         </div>
-      </Modal>
+      </ModalContent>
     );
   }
 }

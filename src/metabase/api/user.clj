@@ -22,8 +22,10 @@
 (api/defendpoint GET "/"
   "Fetch a list of all active `Users` for the admin People page."
   []
-  (db/select [User :id :first_name :last_name :email :is_superuser :google_auth :ldap_auth :last_login]
-    :is_active true))
+  (db/select [User :id :first_name :last_name :email :is_superuser :google_auth :ldap_auth :last_login :login_attributes]
+    :is_active true
+    {:order-by [[:%lower.last_name :asc]
+                [:%lower.first_name :asc]]}))
 
 (defn- reactivate-user! [existing-user first-name last-name]
   (when-not (:is_active existing-user)
@@ -69,24 +71,32 @@
   (check-self-or-superuser id)
   (api/check-404 (User :id id, :is_active true)))
 
+#_(def ^:private UserAttributes
+  (su/with-api-error-message (s/maybe {su/NonBlankString s/Any})
+    "value must be a valid user attributes map (name -> value)"))
 
 (api/defendpoint PUT "/:id"
   "Update a `User`."
-  [id :as {{:keys [email first_name last_name is_superuser]} :body}]
-  {email      su/Email
-   first_name (s/maybe su/NonBlankString)
-   last_name  (s/maybe su/NonBlankString)}
+  [id :as {{:keys [email first_name last_name is_superuser login_attributes]} :body}]
+  {email            su/Email
+   first_name       (s/maybe su/NonBlankString)
+   last_name        (s/maybe su/NonBlankString)
+   #_login_attributes #_(s/maybe UserAttributes)}
   (check-self-or-superuser id)
   ;; only allow updates if the specified account is active
   (api/check-404 (db/exists? User, :id id, :is_active true))
   ;; can't change email if it's already taken BY ANOTHER ACCOUNT
   (api/check-400 (not (db/exists? User, :email email, :id [:not= id])))
   (api/check-500 (db/update-non-nil-keys! User id
-                   :email        email
-                   :first_name   first_name
-                   :last_name    last_name
-                   :is_superuser (when (:is_superuser @api/*current-user*)
-                                   is_superuser)))
+                   :email            email
+                   :first_name       first_name
+                   :last_name        last_name
+                   ;; To edit `login_attributes` or `is_superuser` you have to be a superuser. Ignore anything passed
+                   ;; in if you are not.
+                   :login_attributes (when (:is_superuser @api/*current-user*)
+                                       login_attributes)
+                   :is_superuser     (when (:is_superuser @api/*current-user*)
+                                       is_superuser)))
   (User id))
 
 

@@ -16,6 +16,7 @@
              [add-settings :as add-settings]
              [annotate-and-sort :as annotate-and-sort]
              [binning :as binning]
+             [bind-effective-timezone :as bind-timezone]
              [cache :as cache]
              [catch-exceptions :as catch-exceptions]
              [cumulative-aggregations :as cumulative-ags]
@@ -35,7 +36,9 @@
              [resolve :as resolve]
              [source-table :as source-table]]
             [metabase.query-processor.util :as qputil]
-            [metabase.util.schema :as su]
+            [metabase.util
+             [date :as du]
+             [schema :as su]]
             [schema.core :as s]
             [toucan.db :as db]))
 
@@ -71,11 +74,12 @@
 ;; PRE-PROCESSING fns are applied from bottom to top, and POST-PROCESSING from top to bottom;
 ;; the easiest way to wrap your head around this is picturing a the query as a ball being thrown in the air
 ;; (up through the preprocessing fns, back down through the post-processing ones)
+
 (def ^:private qp-pipeline-functions
   "Data structure of vars used to create the query pipeline"
   ;; ▼▼▼ POST-PROCESSING ▼▼▼  happens from TOP-TO-BOTTOM, e.g. the results of `f` are (eventually) passed to `limit`
   [#'dev/guard-multiple-calls
-   #'mbql-to-native/mbql->native ; ▲▲▲ NATIVE-ONLY POINT ▲▲▲ Query converted from MBQL to native here; all functions *above* will only see the native query
+   #'mbql-to-native/mbql->native                   ; ▲▲▲ NATIVE-ONLY POINT ▲▲▲ Query converted from MBQL to native here; all functions *above* will only see the native query
    #'annotate-and-sort/annotate-and-sort
    #'perms/check-query-permissions
    #'log-query/log-expanded-query
@@ -89,13 +93,14 @@
    #'add-dim/add-remapping
    #'implicit-clauses/add-implicit-clauses
    #'source-table/resolve-source-table-middleware
-   #'expand/expand-middleware ; ▲▲▲ QUERY EXPANSION POINT  ▲▲▲ All functions *above* will see EXPANDED query during PRE-PROCESSING
+   #'expand/expand-middleware                      ; ▲▲▲ QUERY EXPANSION POINT  ▲▲▲ All functions *above* will see EXPANDED query during PRE-PROCESSING
    #'row-count-and-status/add-row-count-and-status ; ▼▼▼ RESULTS WRAPPING POINT ▼▼▼ All functions *below* will see results WRAPPED in `:data` during POST-PROCESSING
    #'parameters/substitute-parameters
    #'expand-macros/expand-macros
-   #'driver-specific/process-query-in-context ; (drivers can inject custom middleware if they implement IDriver's `process-query-in-context`)
+   #'driver-specific/process-query-in-context      ; (drivers can inject custom middleware if they implement IDriver's `process-query-in-context`)
    #'add-settings/add-settings
-   #'resolve-driver/resolve-driver ; ▲▲▲ DRIVER RESOLUTION POINT ▲▲▲ All functions *above* will have access to the driver during PRE- *and* POST-PROCESSING
+   #'resolve-driver/resolve-driver                 ; ▲▲▲ DRIVER RESOLUTION POINT ▲▲▲ All functions *above* will have access to the driver during PRE- *and* POST-PROCESSING
+   #'bind-timezone/bind-effective-timezone
    #'fetch-source-query/fetch-source-query
    #'log-query/log-initial-query
    #'cache/maybe-return-cached-results
@@ -162,7 +167,8 @@
    #(contains? % :native)
    NativeQuery))
 
-(s/defn ^:private make-canonical-query [query] :- QueryContext
+(s/defn ^:private make-canonical-query :- QueryContext
+  [query]
   (if (contains? query :user-attributes)
     query
     (assoc query :user-attributes nil)))
@@ -182,7 +188,10 @@
        expand/expand-middleware
        parameters/substitute-parameters
        expand-macros/expand-macros
-       fetch-source-query/fetch-source-query))
+       driver-specific/process-query-in-context
+       resolve-driver/resolve-driver
+       fetch-source-query/fetch-source-query
+       bind-timezone/bind-effective-timezone))
 ;; ▲▲▲ This only does PRE-PROCESSING, so it happens from bottom to top, eventually returning the preprocessed query
 ;; instead of running it
 
@@ -271,7 +280,7 @@
    :hash              (or query-hash (throw (Exception. "Missing query hash!")))
    :native            (= query-type "native")
    :json_query        (dissoc query :info)
-   :started_at        (u/new-sql-timestamp)
+   :started_at        (du/new-sql-timestamp)
    :running_time      0
    :result_rows       0
    :start_time_millis (System/currentTimeMillis)})

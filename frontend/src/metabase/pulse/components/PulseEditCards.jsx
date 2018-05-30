@@ -7,6 +7,7 @@ import cx from "classnames";
 import CardPicker from "./CardPicker.jsx";
 import PulseCardPreview from "./PulseCardPreview.jsx";
 
+import Query from "metabase/lib/query";
 import MetabaseAnalytics from "metabase/lib/analytics";
 
 const SOFT_LIMIT = 10;
@@ -62,7 +63,7 @@ export default class PulseEditCards extends Component {
   };
 
   addCard(index, cardId) {
-    this.setCard(index, { id: cardId });
+    this.setCard(index, { id: cardId, include_csv: false, include_xls: false });
     this.trackPulseEvent("AddCard", index);
   }
 
@@ -116,7 +117,7 @@ export default class PulseEditCards extends Component {
       notices.push({
         type: "warning",
         head: t`Looks like this pulse is getting big`,
-        body: t`We recommend keeping pulses small and focused to help keep them digestable and useful to the whole team.`,
+        body: t`We recommend keeping pulses small and focused to help keep them digestible and useful to the whole team.`,
       });
     }
     return notices;
@@ -193,7 +194,25 @@ export default class PulseEditCards extends Component {
                       <CardPicker
                         cardList={cardList}
                         onChange={this.addCard.bind(this, index)}
-                        attachmentsEnabled={this.props.attachmentsEnabled}
+                        checkCard={card => {
+                          const { attachmentsEnabled } = this.props;
+                          try {
+                            if (
+                              !attachmentsEnabled &&
+                              Query.isBareRows(card.dataset_query.query)
+                            ) {
+                              return t`Raw data cannot be included in pulses`;
+                            }
+                          } catch (e) {}
+                          if (
+                            !attachmentsEnabled &&
+                            (card.display === "pin_map" ||
+                              card.display === "state" ||
+                              card.display === "country")
+                          ) {
+                            return t`Maps cannot be included in pulses`;
+                          }
+                        }}
                       />
                     )}
                   </div>

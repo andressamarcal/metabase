@@ -49,6 +49,8 @@ import AggregationWrapper from "./Aggregation";
 import AggregationOption from "metabase-lib/lib/metadata/AggregationOption";
 import Utils from "metabase/lib/utils";
 
+import { isSegmentFilter } from "metabase/lib/query/filter";
+
 export const STRUCTURED_QUERY_TEMPLATE = {
   database: null,
   type: "query",
@@ -171,6 +173,16 @@ export default class StructuredQuery extends AtomicQuery {
    */
   query(): StructuredQueryObject {
     return this._structuredDatasetQuery.query;
+  }
+
+  setQuery(query: StructuredQueryObject): StructuredQuery {
+    return this._updateQuery(() => query, []);
+  }
+
+  updateQuery(
+    fn: (q: StructuredQueryObject) => StructuredQueryObject,
+  ): StructuredQuery {
+    return this._updateQuery(fn, []);
   }
 
   /**
@@ -472,10 +484,25 @@ export default class StructuredQuery extends AtomicQuery {
 
   /**
    * @returns @type {Segment}s that can be used as filters.
-   * TODO: exclude used segments
    */
   filterSegmentOptions(): Segment[] {
-    return this.table().segments.filter(sgmt => sgmt.is_active === true);
+    return this.table().segments.filter(
+      sgmt => sgmt.is_active === true && !this.segments().includes(sgmt),
+    );
+  }
+
+  /**
+   *  @returns @type {Segment}s that are currently applied to the question
+   */
+  segments() {
+    return this.filters()
+      .filter(f => isSegmentFilter(f))
+      .map(segmentFilter => {
+        // segment id is stored as the second part of the filter clause
+        // e.x. ["SEGMENT", 1]
+        const segmentId = segmentFilter[1];
+        return this.metadata().segment(segmentId);
+      });
   }
 
   /**

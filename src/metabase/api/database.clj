@@ -23,6 +23,7 @@
              [table :refer [Table]]]
             [metabase.query-processor.util :as qputil]
             [metabase.sync
+             [analyze :as analyze]
              [field-values :as sync-field-values]
              [sync-metadata :as sync-metadata]]
             [metabase.util
@@ -198,7 +199,7 @@
 
 (defn- db-metadata [id]
   (-> (api/read-check Database id)
-      (hydrate [:tables [:fields :target :has_field_values] :segments :metrics])
+      (hydrate [:tables [:fields [:target :has_field_values] :has_field_values] :segments :metrics])
       (update :tables (fn [tables]
                         (for [table tables
                               :when (mi/can-read? table)]
@@ -507,7 +508,8 @@
   ;; just wrap this in a future so it happens async
   (api/let-404 [db (Database id)]
     (future
-      (sync-metadata/sync-db-metadata! db)))
+      (sync-metadata/sync-db-metadata! db)
+      (analyze/analyze-db! db)))
   {:status :ok})
 
 ;; TODO - do we also want an endpoint to manually trigger analysis. Or separate ones for classification/fingerprinting?
@@ -546,5 +548,21 @@
   (delete-all-field-values-for-database! id)
   {:status :ok})
 
+;;; ------------------------------------------ GET /api/database/:id/schemas -----------------------------------------
+
+(api/defendpoint GET "/:id/schemas"
+  "Returns a list of all the schemas found for the database `id`"
+  [id]
+  (let [db (api/read-check Database id)]
+    (sort (db/select-field :schema Table :db_id id))))
+
+;;; ------------------------------------- GET /api/database/:id/schema/:schema ---------------------------------------
+
+(api/defendpoint GET "/:id/schema/:schema"
+  "Returns a list of tables for the given database `id` and `schema`"
+  [id schema]
+  (let [db (api/read-check Database id)]
+    (api/let-404 [tables (seq (db/select Table :db_id id :schema schema {:order-by [[:name :asc]]}))]
+      tables)))
 
 (api/define-routes)

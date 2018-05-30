@@ -10,12 +10,15 @@
              [database :as database :refer [Database]]
              [field :refer [Field]]
              [field-values :refer [FieldValues]]
+             [permissions :as perms]
+             [permissions-group :as perms-group]
              [table :refer [Table]]]
             [metabase.sync
+             [analyze :as analyze]
              [field-values :as field-values]
              [sync-metadata :as sync-metadata]]
             [metabase.test
-             [data :as data :refer :all]
+             [data :as data]
              [util :as tu :refer [match-$]]]
             [metabase.test.data
              [datasets :as datasets]
@@ -72,9 +75,9 @@
    :timezone                    nil})
 
 (defn- db-details
-  "Return default column values for a database (either the test database, via `(db)`, or optionally passed in)."
+  "Return default column values for a database (either the test database, via `(data/db)`, or optionally passed in)."
   ([]
-   (db-details (db)))
+   (db-details (data/db)))
   ([db]
    (merge default-db-details
           (match-$ db
@@ -102,12 +105,12 @@
 ;; regular users *should not* see DB details
 (expect
   (add-schedules (dissoc (db-details) :details))
-  ((user->client :rasta) :get 200 (format "database/%d" (id))))
+  ((user->client :rasta) :get 200 (format "database/%d" (data/id))))
 
 ;; superusers *should* see DB details
 (expect
   (add-schedules (db-details))
-  ((user->client :crowberto) :get 200 (format "database/%d" (id))))
+  ((user->client :crowberto) :get 200 (format "database/%d" (data/id))))
 
 ;; ## POST /api/database
 ;; Check that we can create a Database
@@ -149,7 +152,7 @@
 (def ^:private default-table-details
   {:description             nil
    :entity_name             nil
-   :entity_type             nil
+   :entity_type             "entity/GenericTable"
    :caveats                 nil
    :points_of_interest      nil
    :visibility_type         nil
@@ -157,22 +160,24 @@
    :show_in_getting_started false})
 
 (defn- table-details [table]
-  (merge default-table-details
-         (match-$ table
-           {:description     $
-            :entity_type     $
-            :visibility_type $
-            :schema          $
-            :name            $
-            :display_name    $
-            :rows            $
-            :updated_at      $
-            :entity_name     $
-            :active          $
-            :id              $
-            :db_id           $
-            :raw_table_id    $
-            :created_at      $})))
+  (-> default-table-details
+      (merge (match-$ table
+               {:description     $
+                :entity_type     $
+                :visibility_type $
+                :schema          $
+                :name            $
+                :display_name    $
+                :rows            $
+                :updated_at      $
+                :entity_name     $
+                :active          $
+                :id              $
+                :db_id           $
+                :raw_table_id    $
+                :created_at      $
+                :fields_hash     $}))
+      (update :entity_type (comp (partial str "entity/") name))))
 
 
 ;; TODO - this is a test code smell, each test should clean up after itself and this step shouldn't be neccessary. One day we should be able to remove this!
@@ -184,7 +189,7 @@
   (let [ids-to-skip (into (set skip)
                           (for [engine datasets/all-valid-engines
                                 :let   [id (datasets/when-testing-engine engine
-                                             (:id (get-or-create-test-data-db! (driver/engine->driver engine))))]
+                                             (:id (data/get-or-create-test-data-db! (driver/engine->driver engine))))]
                                 :when  id]
                             id))]
     (when-let [dbs (seq (db/select [Database :name :engine :id] :id [:not-in ids-to-skip]))]
@@ -203,7 +208,7 @@
   (set (filter identity (conj (for [engine datasets/all-valid-engines]
                                 (datasets/when-testing-engine engine
                                   (merge default-db-details
-                                         (match-$ (get-or-create-test-data-db! (driver/engine->driver engine))
+                                         (match-$ (data/get-or-create-test-data-db! (driver/engine->driver engine))
                                            {:created_at         $
                                             :engine             (name $engine)
                                             :id                 $
@@ -243,7 +248,7 @@
                        :features           (map name (driver/features (driver/engine->driver :postgres)))}))
              (filter identity (for [engine datasets/all-valid-engines]
                                 (datasets/when-testing-engine engine
-                                  (let [database (get-or-create-test-data-db! (driver/engine->driver engine))]
+                                  (let [database (data/get-or-create-test-data-db! (driver/engine->driver engine))]
                                     (merge default-db-details
                                            (match-$ database
                                              {:created_at         $
@@ -286,7 +291,7 @@
 ;; ## GET /api/database/:id/metadata
 (expect
   (merge default-db-details
-         (match-$ (db)
+         (match-$ (data/db)
            {:created_at $
             :engine     "h2"
             :id         $
@@ -295,21 +300,21 @@
             :timezone   $
             :features   (mapv name (driver/features (driver/engine->driver :h2)))
             :tables     [(merge default-table-details
-                                (match-$ (Table (id :categories))
+                                (match-$ (Table (data/id :categories))
                                   {:schema       "PUBLIC"
                                    :name         "CATEGORIES"
                                    :display_name "Categories"
-                                   :fields       [(assoc (field-details (Field (id :categories :id)))
-                                                    :table_id         (id :categories)
+                                   :fields       [(assoc (field-details (Field (data/id :categories :id)))
+                                                    :table_id         (data/id :categories)
                                                     :special_type     "type/PK"
                                                     :name             "ID"
                                                     :display_name     "ID"
                                                     :database_type    "BIGINT"
                                                     :base_type        "type/BigInteger"
                                                     :visibility_type  "normal"
-                                                    :has_field_values "search")
-                                                  (assoc (field-details (Field (id :categories :name)))
-                                                    :table_id         (id :categories)
+                                                    :has_field_values "none")
+                                                  (assoc (field-details (Field (data/id :categories :name)))
+                                                    :table_id         (data/id :categories)
                                                     :special_type     "type/Name"
                                                     :name             "NAME"
                                                     :display_name     "Name"
@@ -319,13 +324,14 @@
                                                     :has_field_values "list")]
                                    :segments     []
                                    :metrics      []
-                                   :rows         75
+                                   :rows         nil
                                    :updated_at   $
-                                   :id           (id :categories)
+                                   :id           (data/id :categories)
                                    :raw_table_id $
-                                   :db_id        (id)
-                                   :created_at   $}))]}))
-  (let [resp ((user->client :rasta) :get 200 (format "database/%d/metadata" (id)))]
+                                   :db_id        (data/id)
+                                   :created_at   $
+                                   :fields_hash  $}))]}))
+  (let [resp ((user->client :rasta) :get 200 (format "database/%d/metadata" (data/id)))]
     (assoc resp :tables (filter #(= "CATEGORIES" (:name %)) (:tables resp)))))
 
 
@@ -334,18 +340,18 @@
 (expect
   [["USERS" "Table"]
    ["USER_ID" "CHECKINS :type/Integer :type/FK"]]
-  ((user->client :rasta) :get 200 (format "database/%d/autocomplete_suggestions" (id)) :prefix "u"))
+  ((user->client :rasta) :get 200 (format "database/%d/autocomplete_suggestions" (data/id)) :prefix "u"))
 
 (expect
   [["CATEGORIES" "Table"]
    ["CHECKINS" "Table"]
    ["CATEGORY_ID" "VENUES :type/Integer :type/FK"]]
-  ((user->client :rasta) :get 200 (format "database/%d/autocomplete_suggestions" (id)) :prefix "c"))
+  ((user->client :rasta) :get 200 (format "database/%d/autocomplete_suggestions" (data/id)) :prefix "c"))
 
 (expect
   [["CATEGORIES" "Table"]
    ["CATEGORY_ID" "VENUES :type/Integer :type/FK"]]
-  ((user->client :rasta) :get 200 (format "database/%d/autocomplete_suggestions" (id)) :prefix "cat"))
+  ((user->client :rasta) :get 200 (format "database/%d/autocomplete_suggestions" (data/id)) :prefix "cat"))
 
 
 ;;; GET /api/database?include_cards=true
@@ -459,18 +465,18 @@
                       Card [_ (assoc (card-with-mbql-query "Cum Count Card"
                                        :source-table (data/id :checkins)
                                        :aggregation  [[:cum-count]]
-                                       :breakout     [[:datetime-field [:field-id (data/id :checkins :date) :month]]])
+                                       :breakout     [[:datetime-field [:field-id (data/id :checkins :date)] :month]])
                                 :result_metadata [{:name "num_toucans"}])]]
   (saved-questions-virtual-db
     (virtual-table-for-card ok-card))
   (fetch-virtual-database))
 
-;; cum sum using old-style single aggregation syntax
+;; cum count using old-style single aggregation syntax
 (tt/expect-with-temp [Card [ok-card (ok-mbql-card)]
                       Card [_ (assoc (card-with-mbql-query "Cum Sum Card"
                                        :source-table (data/id :checkins)
-                                       :aggregation  [:cum-sum]
-                                       :breakout     [[:datetime-field [:field-id (data/id :checkins :date) :month]]])
+                                       :aggregation  [:cum-count]
+                                       :breakout     [[:datetime-field [:field-id (data/id :checkins :date)] :month]])
                                 :result_metadata [{:name "num_toucans"}])]]
   (saved-questions-virtual-db
     (virtual-table-for-card ok-card))
@@ -544,15 +550,27 @@
     (-> ((user->client :crowberto) :get 200 (format "database/%d" (u/get-id db)))
         (select-keys [:cache_field_values_schedule :metadata_sync_schedule :schedules]))))
 
+;; Five minutes
+(def ^:private long-timeout (* 5 60 1000))
+
+(defn- deliver-when-db [promise-to-deliver expected-db]
+  (fn [db]
+    (when (= (u/get-id db) (u/get-id expected-db))
+      (deliver promise-to-deliver true))))
+
 ;; Can we trigger a metadata sync for a DB?
 (expect
-  (let [sync-called? (atom false)]
+  [true true]
+  (let [sync-called?    (promise)
+        analyze-called? (promise)]
     (tt/with-temp Database [db {:engine "h2", :details (:details (data/db))}]
-      (with-redefs [sync-metadata/sync-db-metadata! (fn [synced-db]
-                                                      (when (= (u/get-id synced-db) (u/get-id db))
-                                                        (reset! sync-called? true)))]
+      (with-redefs [sync-metadata/sync-db-metadata! (deliver-when-db sync-called? db)
+                    analyze/analyze-db!             (deliver-when-db analyze-called? db)]
         ((user->client :crowberto) :post 200 (format "database/%d/sync_schema" (u/get-id db)))
-        @sync-called?))))
+        ;; Block waiting for the promises from sync and analyze to be delivered. Should be delivered instantly,
+        ;; however if something went wrong, don't hang forever, eventually timeout and fail
+        [(deref sync-called? long-timeout :sync-never-called)
+         (deref analyze-called? long-timeout :analyze-never-called)]))))
 
 ;; (Non-admins should not be allowed to trigger sync)
 (expect
@@ -633,3 +651,57 @@
   (with-redefs [database-api/test-database-connection test-database-connection]
     ((user->client :crowberto) :post 200 "database/validate"
      {:details {:engine :h2, :details {:db "ABC"}}})))
+
+;; Tests for GET /api/database/:id/schemas
+(expect
+  ["schema1"]
+  (tt/with-temp* [Database [{db-id :id}]
+                  Table    [t1          {:db_id db-id, :schema "schema1"}]
+                  Table    [t2          {:db_id db-id, :schema "schema1"}]]
+    ((user->client :crowberto) :get 200 (format "database/%d/schemas" db-id))))
+
+;; Multiple schemas are ordered by name
+(expect
+  ["schema1" "schema2" "schema3"]
+  (tt/with-temp* [Database [{db-id :id}]
+                  Table    [t1          {:db_id db-id, :schema "schema3"}]
+                  Table    [t2          {:db_id db-id, :schema "schema2"}]
+                  Table    [t3          {:db_id db-id, :schema "schema1"}]]
+    ((user->client :crowberto) :get 200 (format "database/%d/schemas" db-id))))
+
+;; Multiple schemas are ordered by name
+(expect
+  ["t1" "t3"]
+  (tt/with-temp* [Database [{db-id :id}]
+                  Table    [{t1-id :id} {:db_id db-id, :schema "schema1", :name "t1"}]
+                  Table    [t2          {:db_id db-id, :schema "schema2"}]
+                  Table    [{t3-id :id} {:db_id db-id, :schema "schema1", :name "t3"}]]
+    (map :name ((user->client :crowberto) :get 200 (format "database/%d/schema/%s" db-id "schema1")))))
+
+;; GET /api/database/:id/schemas should return a 403 for a user that doesn't have read permissions
+(expect
+  "You don't have permissions to do that."
+  (tt/with-temp* [Database [{database-id :id}]
+                  Table    [{table-id :id} {:db_id database-id, :schema "test"}]]
+    (perms/delete-related-permissions! (perms-group/all-users) (perms/object-path database-id))
+    ((user->client :rasta) :get 403 (format "database/%s/schemas" database-id))))
+
+;; GET /api/database/:id/schemas should return a 403 for a user that doesn't have read permissions
+(expect
+  "You don't have permissions to do that."
+  (tt/with-temp* [Database [{database-id :id}]
+                  Table    [{table-id :id} {:db_id database-id, :schema "test"}]]
+    (perms/delete-related-permissions! (perms-group/all-users) (perms/object-path database-id))
+    ((user->client :rasta) :get 403 (format "database/%s/schema/%s" database-id "test"))))
+
+;; Looking for a database that doesn't exist should return a 404
+(expect
+  "Not found."
+  ((user->client :rasta) :get 404 (format "database/%s/schemas" Integer/MAX_VALUE)))
+
+;; Check that a 404 returns if the schema isn't found
+(expect
+  "Not found."
+  (tt/with-temp* [Database [{db-id :id}]
+                  Table    [{t1-id :id} {:db_id db-id, :schema "schema1"}]]
+    ((user->client :crowberto) :get 404 (format "database/%d/schema/%s" db-id "not schema1"))))

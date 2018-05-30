@@ -71,7 +71,7 @@ export function updatePermission(
   } else {
     newValue = value;
   }
-  for (var i = 0; i < fullPath.length; i++) {
+  for (let i = 0; i < fullPath.length; i++) {
     if (typeof getIn(permissions, fullPath.slice(0, i)) === "string") {
       permissions = setIn(permissions, fullPath.slice(0, i), {});
     }
@@ -295,7 +295,12 @@ export function updateFieldsPermission(
     permissions,
     groupId,
     [databaseId, "schemas", schemaName, tableId],
-    value /* TODO: field ids, when enabled "controlled" fields */,
+    value === "controlled"
+      ? {
+          read: "all",
+          query: "segmented",
+        }
+      : value,
   );
 
   return permissions;

@@ -6,7 +6,6 @@ import { t } from "c-3po";
 
 import Icon from "metabase/components/Icon.jsx";
 import Popover from "metabase/components/Popover.jsx";
-import Query from "metabase/lib/query";
 
 import _ from "underscore";
 
@@ -19,9 +18,18 @@ export default class CardPicker extends Component {
   };
 
   static propTypes = {
-    cardList: PropTypes.array.isRequired,
+    value: PropTypes.number,
     onChange: PropTypes.func.isRequired,
+    cardList: PropTypes.array.isRequired,
     attachmentsEnabled: PropTypes.bool,
+    autoFocus: PropTypes.bool,
+    // function that takes a card object and  returns an error string if the
+    // card can't be selected
+    checkCard: PropTypes.func,
+  };
+
+  static defaultProps = {
+    checkCard: () => null,
   };
 
   componentWillUnmount() {
@@ -56,22 +64,7 @@ export default class CardPicker extends Component {
   };
 
   renderItem(card) {
-    const { attachmentsEnabled } = this.props;
-    let error;
-    try {
-      if (!attachmentsEnabled && Query.isBareRows(card.dataset_query.query)) {
-        error = t`Raw data cannot be included in pulses`;
-      }
-    } catch (e) {}
-    if (
-      !attachmentsEnabled &&
-      (card.display === "pin_map" ||
-        card.display === "state" ||
-        card.display === "country")
-    ) {
-      error = t`Maps cannot be included in pulses`;
-    }
-
+    const error = this.props.checkCard(card);
     if (error) {
       return (
         <li key={card.id} className="px2 py1">
@@ -101,22 +94,28 @@ export default class CardPicker extends Component {
   }
 
   render() {
-    let { cardList } = this.props;
+    let { value, cardList, autoFocus } = this.props;
 
     let { isOpen, inputValue, inputWidth, collectionId } = this.state;
 
     let cardByCollectionId = _.groupBy(cardList, "collection_id");
     let collectionIds = Object.keys(cardByCollectionId);
 
-    const collections = _.chain(cardList)
-      .map(card => card.collection)
-      .uniq(c => c && c.id)
+    let selectedCard;
+    const collectionById = {};
+    for (const card of cardList) {
+      if (card.collection) {
+        collectionById[card.collection.id] = card.collection;
+      }
+      if (value != null && card.id === value) {
+        selectedCard = card;
+      }
+    }
+    const collections = collectionIds
+      .map(id => collectionById[id])
       .filter(c => c)
-      .sortBy("name")
-      // add "Everything else" as the last option for cards without a
-      // collection
-      .concat([{ id: null, name: t`Everything else` }])
-      .value();
+      // add "Everything else" as the last option for cards without a collection
+      .concat([{ id: null, name: t`Everything else` }]);
 
     let visibleCardList;
     if (inputValue) {
@@ -141,10 +140,11 @@ export default class CardPicker extends Component {
           ref="input"
           className="input no-focus full text-bold"
           placeholder={t`Type a question name to filter`}
-          value={this.inputValue}
+          value={!isOpen && selectedCard ? selectedCard.name : inputValue}
           onFocus={this.onInputFocus}
           onBlur={this.onInputBlur}
           onChange={this.onInputChange}
+          autoFocus={autoFocus}
         />
         <Popover
           isOpen={isOpen && cardList.length > 0}

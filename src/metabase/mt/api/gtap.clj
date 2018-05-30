@@ -16,7 +16,7 @@
 
 ;; TODO - not sure what other endpoints we might need, e.g. for fetching the list above but for a given group or Table
 
-(def ^:private AttributeRemappings
+#_(def ^:private AttributeRemappings
   (su/with-api-error-message (s/maybe {su/NonBlankString su/NonBlankString})
     "value must be a valid attribute remappings map (attribute name -> remapped name)"))
 
@@ -26,7 +26,7 @@
   {table_id             su/IntGreaterThanZero
    card_id              su/IntGreaterThanZero
    group_id             su/IntGreaterThanZero
-   attribute_remappings AttributeRemappings}
+   #_attribute_remappings #_AttributeRemappings} ; TODO -  fix me
   (db/insert! GroupTableAccessPolicy
     {:table_id             table_id
      :card_id              card_id
@@ -39,17 +39,18 @@
   one. If that's what you want to do, do so explicity with appropriate calls to the `DELETE` and `POST` endpoints."
   [id :as {{:keys [card_id attribute_remappings], :as body} :body}]
   {card_id              (s/maybe su/IntGreaterThanZero)
-   attribute_remappings AttributeRemappings}
-  (api/check-404 GroupTableAccessPolicy id)
+   #_attribute_remappings #_AttributeRemappings} ; TODO -  fix me
+  (api/check-404 (GroupTableAccessPolicy id))
   ;; only update `card_id` and/or `attribute_remappings` if non-nil values were passed in. That way this endpoint can
   ;; be used to update only one value or the other. Ignore everything else.
   (db/update! GroupTableAccessPolicy id
-    (u/select-non-nil-keys body [:card_id :attribute_remappings])))
+    (u/select-non-nil-keys body [:card_id :attribute_remappings]))
+  (GroupTableAccessPolicy id))
 
 (api/defendpoint DELETE "/:id"
   "Delete a GTAP entry."
   [id]
-  (api/check-404 GroupTableAccessPolicy id)
+  (api/check-404 (GroupTableAccessPolicy id))
   (db/delete! GroupTableAccessPolicy :id id)
   api/generic-204-no-content)
 
