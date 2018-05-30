@@ -13,7 +13,7 @@
              [permissions :as perms-middleware]]
             [metabase.query-processor.util :as qputil]
             [toucan.db :as db])
-  (:import metabase.query_processor.middleware.permissions.TablesPermsCheck))
+  (:import [metabase.query_processor.middleware.permissions CollectionPermsCheck TablesPermsCheck]))
 
 (defn- gtap-for-table [query]
   (let [groups (db/select-field :group_id PermissionsGroupMembership :user_id (u/get-id (:user query)))]
@@ -67,7 +67,9 @@
    (when *current-user-id*
      ;; the perms-check middleware works on outer queries. Since we only have the inner query at this point (why?
      (when-let [perms-check (perms-middleware/query->perms-check query)]
-       (when (instance? TablesPermsCheck perms-check)
+       (println "(u/pprint-to-str 'magenta perms-check):" (u/pprint-to-str 'magenta perms-check)) ; NOCOMMIT
+       (println "(class perms-check):" (class perms-check)) ; NOCOMMIT
+       (when (#{TablesPermsCheck CollectionPermsCheck} (class perms-check))
          (let [{:keys [source-table-id]} perms-check
                table                     (db/select-one ['Table :id :db_id :schema] :id source-table-id)]
            (cond
@@ -85,6 +87,7 @@
   just passes through with no changes"
   [qp]
   (fn [query]
+    (println "(query-should-have-segmented-permissions? query):" (query-should-have-segmented-permissions? query)) ; NOCOMMIT
     (if (query-should-have-segmented-permissions? query)
       (apply-row-level-permissions qp query)
       (qp query))))
