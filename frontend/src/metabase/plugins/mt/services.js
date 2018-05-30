@@ -1,7 +1,6 @@
 /* @flow weak */
 
-import api from "metabase/lib/api";
-const { GET, POST, PUT } = api;
+import { GET, POST, PUT } from "metabase/lib/api";
 
 export const GTAPApi = {
   list: GET("/api/mt/gtap"),
