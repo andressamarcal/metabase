@@ -24,7 +24,7 @@ import Dimension from "metabase-lib/lib/Dimension";
 import { mbqlEq } from "metabase/lib/query/util";
 
 import _ from "underscore";
-import { jt } from "c-3po";
+import { jt, t } from "c-3po";
 
 const mapStateToProps = () => ({});
 const mapDispatchToProps = {
@@ -124,17 +124,17 @@ export default class GTAPModal extends React.Component {
 
     return (
       <ModalContent
-        title="Which question should this table be filtered by?"
+        title={t`Which question should this table be filtered by?`}
         footer={
           <div>
-            <Button onClick={this.close}>Cancel</Button>
+            <Button onClick={this.close}>{t`Cancel`}</Button>
             <ActionButton
               className="ml1"
               actionFn={this.save}
               primary
               disabled={!valid}
             >
-              Save
+              {t`Save`}
             </ActionButton>
           </div>
         }
@@ -163,10 +163,10 @@ export default class GTAPModal extends React.Component {
                     onChange={attribute_remappings =>
                       this.setState({ gtap: { ...gtap, attribute_remappings } })
                     }
-                    keyPlaceholder="Attribute"
+                    keyPlaceholder={t`Attribute`}
                     keyHeader={
                       <span className="text-uppercase text-small text-grey-4 pb2">
-                        User attribute
+                        {t`User attribute`}
                       </span>
                     }
                     renderKeyInput={({ value, onChange }) => (
@@ -177,10 +177,10 @@ export default class GTAPModal extends React.Component {
                       />
                     )}
                     render
-                    valuePlaceholder="Parameter"
+                    valuePlaceholder={t`Parameter`}
                     valueHeader={
                       <span className="text-uppercase text-small text-grey-4 pb2">
-                        Parameter
+                        {t`Parameter`}
                       </span>
                     }
                     renderValueInput={({ value, onChange }) => (
@@ -190,8 +190,10 @@ export default class GTAPModal extends React.Component {
                         questionId={gtap.card_id}
                       />
                     )}
-                    divider={<span className="px2 text-bold">maps to</span>}
-                    addText="Add a mapping"
+                    divider={
+                      <span className="px2 text-bold">{t`maps to`}</span>
+                    }
+                    addText={t`Add a mapping`}
                     canAdd={attributes.length > 0}
                     canDelete={
                       Object.keys(gtap.attribute_remappings).length > 1
@@ -213,7 +215,7 @@ const AttributePicker = ({ value, onChange, attributes }) => (
     <Select
       value={value}
       onChange={e => onChange(e.target.value)}
-      placeholder="Select attribute"
+      placeholder={t`Select attribute`}
     >
       {attributes.map(attribute => (
         <Option key={attribute} value={attribute}>
