@@ -17,7 +17,14 @@ import ModalContent from "metabase/components/ModalContent";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
 import Select, { Option } from "metabase/components/Select";
 
+import EntityObjectLoader from "metabase/entities/containers/EntityObjectLoader";
+import SavedQuestionLoader from "metabase/containers/SavedQuestionLoader";
+
+import Dimension from "metabase-lib/lib/Dimension";
+import { mbqlEq } from "metabase/lib/query/util";
+
 import _ from "underscore";
+import { jt } from "c-3po";
 
 const mapStateToProps = () => ({});
 const mapDispatchToProps = {
@@ -229,13 +236,57 @@ const TargetPicker = ({ value, onChange, questionId }) => (
 
 const OkMessage = ({ group, gtap }: { group: string, gtap: GTAP }) => {
   const [attribute, target] = Object.entries(gtap.attribute_remappings)[0];
-  // FIXME: target formatting
   return (
     <span>
-      Okay, when users in the group <strong>{" " + group + " "}</strong> look at
-      this table, it will be filtered by the <strong>{target}</strong> parameter
-      in this question, with each user’s <strong>{attribute}</strong> attribute
-      as the filter’s value.
+      {jt`Okay, when users in the ${(
+        <GroupName group={group} />
+      )} group look at this table, it will be filtered by the ${(
+        <TargetName target={target} gtap={gtap} />
+      )} in this question, with each user’s ${(
+        <strong>{attribute}</strong>
+      )} attribute as the filter’s value.`}
     </span>
   );
+};
+
+const GroupName = ({ group }) => (
+  <EntityObjectLoader
+    entityType="groups"
+    entityId={group}
+    properties={["name"]}
+    loadingAndErrorWrapper={false}
+  >
+    {({ object }) => <strong>{object && object.name}</strong>}
+  </EntityObjectLoader>
+);
+
+const TargetName = ({ gtap, target }) => {
+  if (Array.isArray(target)) {
+    if (
+      (mbqlEq(target[0], "variable") || mbqlEq(target[0], "dimension")) &&
+      mbqlEq(target[1][0], "template-tag")
+    ) {
+      return (
+        <span>
+          <strong>{target[1][1]}</strong> variable
+        </span>
+      );
+    } else if (mbqlEq(target[0], "dimension")) {
+      return (
+        <SavedQuestionLoader questionId={gtap.card_id}>
+          {({ question }) =>
+            question && (
+              <span>
+                <strong>
+                  {Dimension.parseMBQL(target[1], question.metadata()).render()}
+                </strong>{" "}
+                field
+              </span>
+            )
+          }
+        </SavedQuestionLoader>
+      );
+    }
+  }
+  return <emphasis>[Unknown target]</emphasis>;
 };
