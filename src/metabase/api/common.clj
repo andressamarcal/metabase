@@ -227,6 +227,11 @@
   [& body]
   `(api-let ~generic-403 ~@body))
 
+(defn throw-403
+  "Throw a generic 403 (no permissions) error response."
+  []
+  (throw (ex-info (tru "You don''t have permissions to do that.") {:status-code 403})))
+
 ;; #### GENERIC 500 RESPONSE HELPERS
 ;; For when you don't feel like writing something useful
 (def ^:private generic-500

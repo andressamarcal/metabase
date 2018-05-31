@@ -17,7 +17,14 @@ import ModalContent from "metabase/components/ModalContent";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
 import Select, { Option } from "metabase/components/Select";
 
+import EntityObjectLoader from "metabase/entities/containers/EntityObjectLoader";
+import SavedQuestionLoader from "metabase/containers/SavedQuestionLoader";
+
+import Dimension from "metabase-lib/lib/Dimension";
+import { mbqlEq } from "metabase/lib/query/util";
+
 import _ from "underscore";
+import { jt, t } from "c-3po";
 
 const mapStateToProps = () => ({});
 const mapDispatchToProps = {
@@ -117,17 +124,17 @@ export default class GTAPModal extends React.Component {
 
     return (
       <ModalContent
-        title="Which question should this table be filtered by?"
+        title={t`Which question should this table be filtered by?`}
         footer={
           <div>
-            <Button onClick={this.close}>Cancel</Button>
+            <Button onClick={this.close}>{t`Cancel`}</Button>
             <ActionButton
               className="ml1"
               actionFn={this.save}
               primary
               disabled={!valid}
             >
-              Save
+              {t`Save`}
             </ActionButton>
           </div>
         }
@@ -156,10 +163,10 @@ export default class GTAPModal extends React.Component {
                     onChange={attribute_remappings =>
                       this.setState({ gtap: { ...gtap, attribute_remappings } })
                     }
-                    keyPlaceholder="Attribute"
+                    keyPlaceholder={t`Attribute`}
                     keyHeader={
                       <span className="text-uppercase text-small text-grey-4 pb2">
-                        User attribute
+                        {t`User attribute`}
                       </span>
                     }
                     renderKeyInput={({ value, onChange }) => (
@@ -170,10 +177,10 @@ export default class GTAPModal extends React.Component {
                       />
                     )}
                     render
-                    valuePlaceholder="Parameter"
+                    valuePlaceholder={t`Parameter`}
                     valueHeader={
                       <span className="text-uppercase text-small text-grey-4 pb2">
-                        Parameter
+                        {t`Parameter`}
                       </span>
                     }
                     renderValueInput={({ value, onChange }) => (
@@ -183,8 +190,10 @@ export default class GTAPModal extends React.Component {
                         questionId={gtap.card_id}
                       />
                     )}
-                    divider={<span className="px2 text-bold">maps to</span>}
-                    addText="Add a mapping"
+                    divider={
+                      <span className="px2 text-bold">{t`maps to`}</span>
+                    }
+                    addText={t`Add a mapping`}
                     canAdd={attributes.length > 0}
                     canDelete={
                       Object.keys(gtap.attribute_remappings).length > 1
@@ -206,7 +215,7 @@ const AttributePicker = ({ value, onChange, attributes }) => (
     <Select
       value={value}
       onChange={e => onChange(e.target.value)}
-      placeholder="Select attribute"
+      placeholder={t`Select attribute`}
     >
       {attributes.map(attribute => (
         <Option key={attribute} value={attribute}>
@@ -229,13 +238,57 @@ const TargetPicker = ({ value, onChange, questionId }) => (
 
 const OkMessage = ({ group, gtap }: { group: string, gtap: GTAP }) => {
   const [attribute, target] = Object.entries(gtap.attribute_remappings)[0];
-  // FIXME: target formatting
   return (
     <span>
-      Okay, when users in the group <strong>{" " + group + " "}</strong> look at
-      this table, it will be filtered by the <strong>{target}</strong> parameter
-      in this question, with each user’s <strong>{attribute}</strong> attribute
-      as the filter’s value.
+      {jt`Okay, when users in the ${(
+        <GroupName group={group} />
+      )} group look at this table, it will be filtered by the ${(
+        <TargetName target={target} gtap={gtap} />
+      )} in this question, with each user’s ${(
+        <strong>{attribute}</strong>
+      )} attribute as the filter’s value.`}
     </span>
   );
+};
+
+const GroupName = ({ group }) => (
+  <EntityObjectLoader
+    entityType="groups"
+    entityId={group}
+    properties={["name"]}
+    loadingAndErrorWrapper={false}
+  >
+    {({ object }) => <strong>{object && object.name}</strong>}
+  </EntityObjectLoader>
+);
+
+const TargetName = ({ gtap, target }) => {
+  if (Array.isArray(target)) {
+    if (
+      (mbqlEq(target[0], "variable") || mbqlEq(target[0], "dimension")) &&
+      mbqlEq(target[1][0], "template-tag")
+    ) {
+      return (
+        <span>
+          <strong>{target[1][1]}</strong> variable
+        </span>
+      );
+    } else if (mbqlEq(target[0], "dimension")) {
+      return (
+        <SavedQuestionLoader questionId={gtap.card_id}>
+          {({ question }) =>
+            question && (
+              <span>
+                <strong>
+                  {Dimension.parseMBQL(target[1], question.metadata()).render()}
+                </strong>{" "}
+                field
+              </span>
+            )
+          }
+        </SavedQuestionLoader>
+      );
+    }
+  }
+  return <emphasis>[Unknown target]</emphasis>;
 };

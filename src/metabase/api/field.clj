@@ -6,6 +6,8 @@
              [dimension :refer [Dimension]]
              [field :as field :refer [Field]]
              [field-values :as field-values :refer [FieldValues]]
+             [interface :as mi]
+             [permissions :as perms]
              [table :refer [Table]]]
             [metabase.query-processor :as qp]
             [metabase.related :as related]
@@ -28,12 +30,32 @@
   "Schema for a valid `Field` visibility type."
   (apply s/enum (map name field/visibility-types)))
 
+(defn- has-segmented-query-permissions?
+  "Does the Current User have segmented query permissions for `table`?"
+  [table]
+  (perms/set-has-full-permissions? @api/*current-user-permissions-set*
+    (perms/table-segmented-query-path table)))
 
 (api/defendpoint GET "/:id"
   "Get `Field` with ID."
   [id]
-  (-> (api/read-check Field id)
-      (hydrate [:table :db] :has_field_values :dimensions :name_field)))
+  (let [field (-> (api/check-404 (Field id))
+                  (hydrate [:table :db] :has_field_values :dimensions :name_field))]
+    (cond
+      ;; Normal read perms = normal access
+      (mi/can-read? field)
+      field
+
+      ;; There's a special case where we allow you to fetch a Field even if you don't have full read permissions for
+      ;; it: if you have segmented query access to the Table it belongs to. In this case, we'll still let you fetch
+      ;; the Field, since this is required to power features like Dashboard filters, but if it's `has_field_values` =
+      ;; `list`, we'll change that to `search`, since you still won't be able to access the FieldValues endpoint, and
+      ;; we want the GTAP to be applied when filtering the values, which will be fetched via a 'search' query.
+      (has-segmented-query-permissions? (:table field))
+      (update field :has_field_values #(or ({:list :search} %) %))
+
+      :else
+      (api/throw-403))))
 
 (defn- clear-dimension-on-fk-change! [{{dimension-id :id dimension-type :type} :dimensions :as field}]
   (when (and dimension-id (= :external dimension-type))
@@ -164,8 +186,8 @@
     {:values [], :field_id (:id field)}))
 
 (api/defendpoint GET "/:id/values"
-  "If `Field`'s special type derives from `type/Category`, or its base type is `type/Boolean`, return all distinct
-  values of the field, and a map of human-readable values defined by the user."
+  "If a Field's value of `has_field_values` is `list`, return a list of all the distinct values of the Field, and (if
+  defined by a User) a map of human-readable remapped values."
   [id]
   (field->values (api/read-check Field id)))
 
