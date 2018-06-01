@@ -198,7 +198,7 @@ export default class EditUserForm extends Component {
                             [group.id]: selected,
                           })
                             .filter(([k, v]) => v)
-                            .map(([k, v]) => k),
+                            .map(([k, v]) => parseInt(k)),
                         },
                       },
                       this.validate,
