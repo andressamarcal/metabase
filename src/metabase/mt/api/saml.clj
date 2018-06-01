@@ -19,11 +19,28 @@
 (def ^:private config
   {:app-name "Test SAML app"
    :base-uri "http://localhost:3000"
-   :idp-uri "http://localhost:7000"
-   :idp-cert "MIIEMDCCAxigAwIBAgIJAPZcPVjOJlnMMA0GCSqGSIb3DQEBBQUAMG0xCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlhMRYwFAYDVQQHEw1TYW4gRnJhbmNpc2NvMRAwDgYDVQQKEwdKYW5reUNvMR8wHQYDVQQDExZUZXN0IElkZW50aXR5IFByb3ZpZGVyMB4XDTE3MDMxMjE5MjkzNFoXDTM3MDMwNzE5MjkzNFowbTELMAkGA1UEBhMCVVMxEzARBgNVBAgTCkNhbGlmb3JuaWExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xEDAOBgNVBAoTB0phbmt5Q28xHzAdBgNVBAMTFlRlc3QgSWRlbnRpdHkgUHJvdmlkZXIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC02ay1lhBNntX3p+8Wlsq0wlq31rJkBkmlz/CAJz1kQmhwBxpc0icLHdcWwF4BJ3zcV/CtpNpWv8uD+7EPVJKpavbdi318Ug2K2vqZI7Dyvqi3X50+s3uyAG/gIy63h1qwfFOdIVj7YbJiKvUF4/6w4BWbnNgQL3dBNOPEGdzNgzRlffIbRJwDaIpgiY8nE8sAkTmPzaAuKAGc5eedYDZW+xkDHHHFHtpCxnAaDVfwCPxv+uGRP7emSp7TvFHFKmKQUTZh+FYyJfk8yUs6AJTaJOR2mRFrFxht7pRlavWeAbRDaa4wUUgwHNqvjBI47RZnOeplljN4TyLOL9J9tvXJAgMBAAGjgdIwgc8wHQYDVR0OBBYEFD9Q9rcVIp+s4unYzstD/T5hZjNHMIGfBgNVHSMEgZcwgZSAFD9Q9rcVIp+s4unYzstD/T5hZjNHoXGkbzBtMQswCQYDVQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEQMA4GA1UEChMHSmFua3lDbzEfMB0GA1UEAxMWVGVzdCBJZGVudGl0eSBQcm92aWRlcoIJAPZcPVjOJlnMMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEFBQADggEBAJDIaTj9PimXTExXGLAU7p8HzACvXXmO7fMZWxahvWDwrgmlhJ+7S5oYYqkYkCleBtYbHduakGPeWbEwcZjNzLsMFYxQntiM3gz1dUS3DpR5lP+/UhO7HNN81XSgj63K56YO1iS8hX6NzLylOcfxw3wgMtguzIyxLLGfE1rbZkC67D/kfz+jLp6U9ChjqHE3FbSFrl2dhHltdHJ4ErM1vlbTIoa+52ka4WKD2uArgilgTo7wvG1fE9n7SXcK5QdUlb4Voi71UchkkauuNXhq090i6Y6GP1EicHuK6ymT4P9sGwnGoXHPik9v6QuTwxcAZIoR9J6P8CyrL2OHIseh6xQ="
-   :keystore-file "keystore.jks"
-   :keystore-password "changeit"
-   :key-alias "mylocalsp"})
+   :idp-uri "https://saml-metabase-test.auth0.com/samlp/W1R5HozFA9cnbFVbmIT8KPdVmH0pU85k"
+   :idp-cert "MIIDEzCCAfugAwIBAgIJYpjQiNMYxf1GMA0GCSqGSIb3DQEBCwUAMCcxJTAjBgNV
+BAMTHHNhbWwtbWV0YWJhc2UtdGVzdC5hdXRoMC5jb20wHhcNMTgwNTI5MjEwMDIz
+WhcNMzIwMjA1MjEwMDIzWjAnMSUwIwYDVQQDExxzYW1sLW1ldGFiYXNlLXRlc3Qu
+YXV0aDAuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzNcrpju4
+sILZQNe1adwg3beXtAMFGB+Buuc414+FDv2OG7X7b9OSYar/nsYfWwiazZRxEGri
+agd0Sj5mJ4Qqx+zmB/r4UgX3q/KgocRLlShvvz5gTD99hR7LonDPSWET1E9PD4XE
+1fRaq+BwftFBl45pKTcCR9QrUAFZJ2R/3g06NPZdhe4bg/lTssY5emCxaZpQEku/
+v+zzpV2nLF4by0vSj7AHsubrsLgsCfV3JvJyTxCyo1aIOlv4Vrx7h9rOgl9eEmoU
+5XJAl3D7DuvSTEOy7MyDnKF17m7l5nOPZCVOSzmCWvxSCyysijgsM5DSgAE8DPJy
+oYezV3gTX2OO2QIDAQABo0IwQDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSp
+B3lvrtbSDuXkB6fhbjeUpFmL2DAOBgNVHQ8BAf8EBAMCAoQwDQYJKoZIhvcNAQEL
+BQADggEBAAEHGIAhR5GPD2JxgLtpNtZMCYiAM4Gr7hoTQMaKiXgVtdQu4iMFfbpE
+wIr6UVaDU2HKhvSRFIilOjRGmCGrIzvJgR2l+RL1Z3KrZypI1AXKJT5pF5g5FitB
+sZq+kiUpdRILl2hICzw9Q1M2Le+JSUcHcbHTVgF24xuzOZonxeE56Oc26Ju4CorL
+pM3Nb5iYaGOlQ+48/GP82cLxlVyi02va8tp7KP03ePSaZeBEKGpFtBtEN/dC3NKO
+1mmrT9284H0tvete6KLUH+dsS6bDEYGHZM5KGoSLWRr3qYlCB3AmAw+KvuiuSczL
+g9oYBkdxlhK9zZvkjCgaLCen+0aY67A="
+;;   :keystore-file "keystore.jks"
+;;   :keystore-password "changeit"
+;;   :key-alias "mylocalsp"
+   })
 
 ;; The SP routes. They can be combined with application specific routes. Also it is assumed that
 ;; they are wrapped with compojure.handler/site or wrap-params and wrap-session.
@@ -110,7 +127,8 @@
   (let [{:keys [acs-uri certificate-x509]} @saml-state]
     {:status 200
      :headers {"Content-type" "text/xml"}
-     :body (saml-sp/metadata (:app-name config) acs-uri certificate-x509)}))
+     :body (slurp "/home/ryan/Downloads/saml-metabase-test_auth0_com-metadata.xml")
+     #_(saml-sp/metadata (:app-name config) acs-uri certificate-x509)}))
 
 (api/defendpoint GET "/"
   "Initial call that will result in a redirect to the IDP along with information about how the IDP can authenticate
@@ -119,7 +137,10 @@
   (let [{:keys [idp-uri]} config
         {:keys [saml-req-factory! mutables]} @saml-state
         saml-request (saml-req-factory!)
-        hmac-relay-state (saml-routes/create-hmac-relay-state (:secret-key-spec mutables) "http://www.google.com")]
+        ;; We don't really use RelayState. It's intended to be something like an identifier from the Service Provider
+        ;; (that's us) that we apss to the Identity Provider (i.e. Auth0) and it will include that state in it's
+        ;; response. The IDP treats it as an opaque string and just returns it without examining/changing it
+        hmac-relay-state (saml-routes/create-hmac-relay-state (:secret-key-spec mutables) "no-op")]
     (saml-sp/get-idp-redirect idp-uri saml-request hmac-relay-state)))
 
 (defn- unwrap-user-attributes
@@ -132,6 +153,15 @@
                   (first maybe-coll)
                   maybe-coll))
               m))
+
+(def ^:private email-key
+  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")
+
+(def ^:private first-name-key
+  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname")
+
+(def ^:private last-name-key
+  "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname")
 
 (api/defendpoint POST "/"
   "Does the verification of the IDP's response and 'logs the user in'. The attributes are available in the
@@ -149,16 +179,23 @@
                                             false)
         valid?                            (and valid-relay-state? valid-signature?)
         saml-info                         (when valid? (saml-sp/saml-resp->assertions saml-resp decrypter))]
-    (if-let [{:strs [firstName lastName email]
-              :as   attrs}                     (and valid? (-> saml-info :assertions first :attrs unwrap-user-attributes))]
-      (let [{session-token :id} (saml-auth-fetch-or-create-user! firstName lastName email attrs)]
-        ;; TODO - FIXME
-        #_(assoc (resp/redirect "/")
-          :cookies {:x-metabase-session {:value session-token
-                                         :path  "/"}})
-        (resp/set-cookie (resp/redirect "/")
-                         "metabase.SESSION_ID" session-token
-                         {:path "/"}))
+    (if-let [attrs (and valid? (-> saml-info :assertions first :attrs unwrap-user-attributes))]
+      (do
+        (println "All assertsion")
+        (clojure.pprint/pprint (:assertions saml-info))
+        (println "Attrs")
+        (clojure.pprint/pprint attrs)
+        (let [email (get attrs email-key)
+              first-name (get attrs first-name-key "Unknown")
+              last-name (get attrs last-name-key "Unknown")
+              {session-token :id} (saml-auth-fetch-or-create-user! first-name last-name email attrs)]
+          ;; TODO - FIXME
+          #_(assoc (resp/redirect "/")
+              :cookies {:x-metabase-session {:value session-token
+                                             :path  "/"}})
+          (resp/set-cookie (resp/redirect "/")
+                           "metabase.SESSION_ID" session-token
+                           {:path "/"})))
       {:status 500
        :body   "The SAML response from IdP does not validate!"})))
 
