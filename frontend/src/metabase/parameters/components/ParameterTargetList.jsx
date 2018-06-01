@@ -36,11 +36,7 @@ export default class ParameterTargetList extends React.Component {
     return (
       <AccordianList
         className="text-brand"
-        maxHeight={
-          this.props.maxHeight != null
-            ? Math.min(this.props.maxHeight, 600)
-            : 600
-        }
+        maxHeight={this.props.maxHeight || 600}
         sections={sections}
         onChange={item => this.props.onChange(item.target)}
         itemIsSelected={item => _.isEqual(item.target, target)}

@@ -4,6 +4,8 @@ import React from "react";
 
 import Button from "metabase/components/Button";
 
+import _ from "underscore";
+
 type Mapping = {
   [key: string]: string,
 };
@@ -106,6 +108,7 @@ const MappingEditor = ({
           );
         })}
         {!("" in mapping) &&
+          _.every(mapping, value => value != null) &&
           canAdd && (
             <tr>
               <td colSpan={2}>
@@ -127,7 +130,7 @@ const MappingEditor = ({
 };
 
 const addMapping = mappings => {
-  return { ...mappings, "": "" };
+  return { ...mappings, "": null };
 };
 
 const removeMapping = (mappings, prevKey) => {

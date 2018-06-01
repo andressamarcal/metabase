@@ -10,7 +10,8 @@ import * as Dashboard from "metabase/meta/Dashboard";
 import type { Parameter, ParameterTarget } from "metabase/meta/types/Parameter";
 
 type Props = {
-  questionId: ?number,
+  questionId?: number,
+  questionHash?: string,
   parameter?: Parameter,
   target: ?ParameterTarget,
   onChange: (target: ?ParameterTarget) => void,

@@ -48,12 +48,14 @@ class BrowserSelect extends Component {
     // we should not allow this
     className: PropTypes.string,
     compact: PropTypes.bool,
+    disabled: PropTypes.bool,
   };
   static defaultProps = {
     className: "",
     width: 320,
     height: 320,
     rowHeight: 40,
+    disabled: false,
   };
 
   isSelected(otherValue) {
@@ -78,6 +80,7 @@ class BrowserSelect extends Component {
       width,
       height,
       rowHeight,
+      disabled,
     } = this.props;
 
     let children = this.props.children;
@@ -134,6 +137,7 @@ class BrowserSelect extends Component {
         triggerClasses={className}
         verticalAttachments={["top", "bottom"]}
         isInitiallyOpen={isInitiallyOpen}
+        disabled={disabled}
         {...extraProps}
       >
         <div className="flex flex-column">

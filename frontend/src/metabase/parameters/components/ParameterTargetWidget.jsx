@@ -18,6 +18,7 @@ type Props = {
   target: ?ParameterTarget,
   onChange: (target: ?ParameterTarget) => void,
   mappingOptions: ParameterMappingUIOption[],
+  placeholder?: string,
   children?: React$Element<any> | (any => React$Element<any>),
 };
 
@@ -25,15 +26,21 @@ export default class ParameterTargetWidget extends React.Component {
   props: Props;
 
   static defaultProps = {
-    children: ({ selected }) => (
+    children: ({ selected, placeholder }) => (
       <SelectButton hasValue={!!selected} className="border-med">
-        {selected ? selected.name : "Select a target"}
+        {selected ? selected.name : placeholder || "Select a target"}
       </SelectButton>
     ),
   };
 
   render() {
-    const { target, onChange, mappingOptions, children } = this.props;
+    const {
+      target,
+      onChange,
+      mappingOptions,
+      placeholder,
+      children,
+    } = this.props;
 
     const disabled = mappingOptions.length === 0;
     const selected = _.find(mappingOptions, o => _.isEqual(o.target, target));
@@ -53,7 +60,7 @@ export default class ParameterTargetWidget extends React.Component {
         sizeToFit
         triggerElement={
           typeof children === "function"
-            ? children({ selected, disabled })
+            ? children({ selected, disabled, placeholder })
             : children
         }
       >
