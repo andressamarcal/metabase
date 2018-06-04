@@ -6,14 +6,15 @@
             [metabase.models
              [database :as database]
              [permissions :as perms]
-             [permissions-group-membership :refer [PermissionsGroupMembership]]]
+             [permissions-group-membership :refer [PermissionsGroupMembership]]
+             [table :refer [Table]]]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
             [metabase.query-processor.middleware
              [log :as log-query]
              [permissions :as perms-middleware]]
             [metabase.query-processor.util :as qputil]
             [toucan.db :as db])
-  (:import metabase.query_processor.middleware.permissions.TablesPermsCheck))
+  (:import [metabase.query_processor.middleware.permissions CollectionPermsCheck TablesPermsCheck]))
 
 (defn- gtap-for-table [query]
   (let [groups (db/select-field :group_id PermissionsGroupMembership :user_id (u/get-id (:user query)))]
@@ -31,21 +32,31 @@
   (let [attr-value (get login-attributes attr-name "")]
     {:type "category", :value attr-value, :target target}))
 
+(defn- gtap->database-id [{:keys [card_id table_id] :as gtap}]
+  (if card_id
+    database/virtual-id
+    (db/select-one-field :db_id Table :id table_id)))
+
+(defn- gtap->source-table [{:keys [card_id table_id] :as gtap}]
+  (if card_id
+    (str "card__" card_id)
+    table_id))
+
 (defn- apply-row-level-permissions
   "Does the work of swapping the given table the user was querying against with a nested subquery that restricts the
   rows returned"
   [qp query]
-  (if-let [{:keys [card_id attribute_remappings] :as gtap} (gtap-for-table query)]
+  (if-let [{:keys [attribute_remappings] :as gtap} (gtap-for-table query)]
     (let [login-attributes (qputil/get-in-normalized query [:user :login-attributes])]
       (-> query
-          (assoc :database database/virtual-id
-                 :type     :query)
+          (assoc :database              (gtap->database-id gtap)
+                 :type                  :query
+                 :source-table-is-gtap? true)
           ;; We need to dissoc the source-table before associng a new one. Due to normalization, it's possible that
           ;; we'll have `:source_table` and `:source-table` after this next line, removing it ensures we'll at least not
           ;; have more source table entries after the next line
           (update :query qputil/dissoc-normalized :source-table)
-          (update :query assoc :source-table (str "card__" card_id))
-          (assoc :source-table-is-gtap? true)
+          (update :query assoc :source-table (gtap->source-table gtap))
           (update :parameters into (map #(attr-remapping->parameter login-attributes %)
                                          attribute_remappings))
           qp))
@@ -67,7 +78,9 @@
    (when *current-user-id*
      ;; the perms-check middleware works on outer queries. Since we only have the inner query at this point (why?
      (when-let [perms-check (perms-middleware/query->perms-check query)]
-       (when (instance? TablesPermsCheck perms-check)
+       (println "(u/pprint-to-str 'magenta perms-check):" (u/pprint-to-str 'magenta perms-check)) ; NOCOMMIT
+       (println "(class perms-check):" (class perms-check)) ; NOCOMMIT
+       (when (#{TablesPermsCheck CollectionPermsCheck} (class perms-check))
          (let [{:keys [source-table-id]} perms-check
                table                     (db/select-one ['Table :id :db_id :schema] :id source-table-id)]
            (cond
@@ -85,6 +98,7 @@
   just passes through with no changes"
   [qp]
   (fn [query]
+    (println "(query-should-have-segmented-permissions? query):" (query-should-have-segmented-permissions? query)) ; NOCOMMIT
     (if (query-should-have-segmented-permissions? query)
       (apply-row-level-permissions qp query)
       (qp query))))

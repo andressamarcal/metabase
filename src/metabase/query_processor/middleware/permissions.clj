@@ -82,23 +82,35 @@
 ;; (such as segmented permissions) they can instead be introspected to see which source-table the query references and
 ;; check permissions appropriately.
 
-(s/defrecord CollectionPermsCheck [collection-id :- su/IntGreaterThanZero]
+(s/defrecord CollectionPermsCheck [collection-id   :- su/IntGreaterThanZero
+                                   ;; These aren't needed to do a Collection perms check, but are needed for the GTAP
+                                   ;; perms check implementation, so let's record them anyway...
+                                   source-table-id :- (s/maybe su/IntGreaterThanZero)
+                                   join-table-ids  :- (s/maybe #{su/IntGreaterThanZero})]
+  nil
+  :load-ns true
   clojure.lang.IFn
   (invoke [_]
     (throw-if-user-doesnt-have-permissions-for-path (perms/collection-read-path collection-id))))
 
 (s/defrecord NewNativeQueryPermsCheck [database-id :- su/IntGreaterThanZero]
+  nil
+  :load-ns true
   clojure.lang.IFn
   (invoke [_]
     (throw-if-user-doesnt-have-permissions-for-path (perms/native-readwrite-path database-id))))
 
 (s/defrecord ExistingNativeQueryPermsCheck [database-id :- su/IntGreaterThanZero]
+  nil
+  :load-ns true
   clojure.lang.IFn
   (invoke [_]
     (throw-if-user-doesnt-have-permissions-for-path (perms/native-read-path database-id))))
 
 (s/defrecord TablesPermsCheck [source-table-id :- su/IntGreaterThanZero
                                join-table-ids  :- (s/maybe #{su/IntGreaterThanZero})]
+  nil
+  :load-ns true
   clojure.lang.IFn
   (invoke [_]
     ;; You are allowed to run a query against a Table *if* you have partial or full query permissions. e.g. if you
@@ -153,7 +165,9 @@
 
       ;; if the card is in a COLLECTION, then see if the current user has permissions for that collection
       collection-id
-      (strict-map->CollectionPermsCheck {:collection-id collection-id})
+      (strict-map->CollectionPermsCheck {:collection-id   collection-id
+                                         :source-table-id (some-> (qputil/get-normalized query :source-table) table->id)
+                                         :join-table-ids  (set (map table->id (qputil/get-normalized query :join-tables)))})
 
       ;; if we're dealing with a GTAP we don't want to check perms since it was actually put in place specifically
       ;; because of the permissions for the current user

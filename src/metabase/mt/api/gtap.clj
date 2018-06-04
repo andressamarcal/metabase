@@ -14,6 +14,11 @@
   ;; TODO - do we need to hydrate anything here?
   (db/select GroupTableAccessPolicy))
 
+(api/defendpoint GET "/:id"
+  "Fetch GTAP by `id`"
+  [id]
+  (api/check-404 (GroupTableAccessPolicy id)))
+
 ;; TODO - not sure what other endpoints we might need, e.g. for fetching the list above but for a given group or Table
 
 #_(def ^:private AttributeRemappings
@@ -24,7 +29,7 @@
   "Create a new GTAP."
   [:as {{:keys [table_id card_id group_id attribute_remappings]} :body}]
   {table_id             su/IntGreaterThanZero
-   card_id              su/IntGreaterThanZero
+   card_id              (s/maybe su/IntGreaterThanZero)
    group_id             su/IntGreaterThanZero
    #_attribute_remappings #_AttributeRemappings} ; TODO -  fix me
   (db/insert! GroupTableAccessPolicy

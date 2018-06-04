@@ -4208,11 +4208,18 @@ databaseChangeLog:
               name: collection_position
               type: smallint
               remarks: 'Optional pinned position for this item in its Collection. NULL means item is not pinned.'
-  # This is temporary and models the same approach we had for google auth. My guess is we probably want to switch
-  # from a boolean here (and with google auth) to something more flexible. Another option is having another metadata
-  # table with authentication provider information and have this table include an FK to that
+# Remove the GTAP card_id constraint. When not included, will default to querying against the GTAP table_id.
   - changeSet:
       id: 83
+      author: senior
+      comment: 'Added 0.30.0'
+      changes:
+        - dropNotNullConstraint:
+            tableName: group_table_access_policy
+            columnName: card_id
+            columnDataType: int
+  - changeSet:
+      id: 84
       author: senior
       comment: 'Added 0.30.0'
       changes:

@@ -16,8 +16,17 @@ import ActionButton from "metabase/components/ActionButton";
 import ModalContent from "metabase/components/ModalContent";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
 import Select, { Option } from "metabase/components/Select";
+import Radio from "metabase/components/Radio";
+import Icon from "metabase/components/Icon";
+
+import EntityObjectLoader from "metabase/entities/containers/EntityObjectLoader";
+import SavedQuestionLoader from "metabase/containers/SavedQuestionLoader";
+
+import Dimension from "metabase-lib/lib/Dimension";
+import { mbqlEq } from "metabase/lib/query/util";
 
 import _ from "underscore";
+import { jt, t } from "c-3po";
 
 const mapStateToProps = () => ({});
 const mapDispatchToProps = {
@@ -37,7 +46,7 @@ type Props = {
 };
 type State = {
   gtap: ?GTAP,
-  attributes: string[],
+  attributesOptions: string[],
 };
 
 @withRouter
@@ -46,13 +55,16 @@ export default class GTAPModal extends React.Component {
   props: Props;
   state: State = {
     gtap: null,
-    attributes: [],
+    attributesOptions: [],
+    simple: true,
   };
   // $FlowFixMe: componentWillMount expected to return void
   async componentWillMount() {
     const { params } = this.props;
 
-    GTAPApi.attributes().then(attributes => this.setState({ attributes }));
+    GTAPApi.attributes().then(attributesOptions =>
+      this.setState({ attributesOptions }),
+    );
 
     const groupId = parseInt(params.groupId);
     const tableId = parseInt(params.tableId);
@@ -63,10 +75,13 @@ export default class GTAPModal extends React.Component {
         table_id: tableId,
         group_id: groupId,
         card_id: null,
-        attribute_remappings: { "": "" },
+        attribute_remappings: { "": null },
       };
     }
-    this.setState({ gtap });
+    if (Object.keys(gtap.attribute_remappings).length === 0) {
+      gtap.attribute_remappings = { "": null };
+    }
+    this.setState({ gtap, simple: gtap.card_id == null });
   }
 
   close = () => {
@@ -78,8 +93,23 @@ export default class GTAPModal extends React.Component {
     );
   };
 
+  _getCanonicalGTAP() {
+    let { gtap, simple } = this.state;
+    if (!gtap) {
+      return null;
+    }
+    return {
+      ...gtap,
+      card_id: simple ? null : gtap.card_id,
+      attribute_remappings: _.pick(
+        gtap.attribute_remappings,
+        (value, key) => value && key,
+      ),
+    };
+  }
+
   save = async () => {
-    const { gtap } = this.state;
+    const gtap = this._getCanonicalGTAP();
     if (!gtap) {
       throw new Error("No GTAP");
     }
@@ -92,150 +122,301 @@ export default class GTAPModal extends React.Component {
   };
 
   isValid() {
-    const { gtap } = this.state;
-    return (
-      // has a new or saved gtap
-      gtap &&
-      // has a card_id
-      gtap.card_id != null &&
-      // has at least one non-empty attribute_remappings
-      Object.entries(gtap.attribute_remappings).filter(
-        ([attribute, target]) => attribute && target,
-      ).length > 0
-    );
+    const gtap = this._getCanonicalGTAP();
+    const { simple } = this.state;
+    if (!gtap) {
+      return false;
+    } else if (simple) {
+      return Object.entries(gtap.attribute_remappings).length > 0;
+    } else {
+      return gtap.card_id != null;
+    }
   }
 
   render() {
     const { params } = this.props;
-    const { gtap } = this.state;
+    const { gtap, simple } = this.state;
 
     const valid = this.isValid();
 
-    const attributes = this.state.attributes.filter(
+    const attributesOptions = this.state.attributesOptions.filter(
       attribute => !(attribute in gtap.attribute_remappings),
     );
 
     return (
-      <ModalContent
-        title="Which question should this table be filtered by?"
-        footer={
-          <div>
-            <Button onClick={this.close}>Cancel</Button>
+      <div>
+        <h2 className="p3">{t`Grant segmented access to this table`}</h2>
+        <LoadingAndErrorWrapper loading={!gtap}>
+          {() =>
+            gtap && (
+              <div className="flex-full pb2">
+                <div className="px3 pb3 border-bottom">
+                  <div className="mb3">
+                    {t`When users in this group view this table they'll see a version of it that's filtered by a column or variable that's equal to one of their user attributes`}
+                  </div>
+                  <h4 className="mb1">
+                    {t`How do you want to filter this table for users in this group?`}
+                  </h4>
+                  <Radio
+                    value={this.state.simple}
+                    options={[
+                      { name: "Filter by a column in the table", value: true },
+                      {
+                        name: "Use a saved question to create a custom filter",
+                        value: false,
+                      },
+                    ]}
+                    onChange={simple => this.setState({ simple })}
+                    isVertical
+                  />
+                </div>
+                <div className="px3 py2">
+                  {!this.state.simple && (
+                    <div className="pb2">
+                      <QuestionPicker
+                        value={gtap.card_id}
+                        onChange={card_id =>
+                          this.setState({ gtap: { ...gtap, card_id } })
+                        }
+                      />
+                    </div>
+                  )}
+                  {gtap && (
+                    <MappingEditor
+                      style={{ width: "100%" }}
+                      value={gtap.attribute_remappings}
+                      onChange={attribute_remappings =>
+                        this.setState({
+                          gtap: { ...gtap, attribute_remappings },
+                        })
+                      }
+                      keyPlaceholder={t`Pick a user attribute`}
+                      // keyHeader={
+                      //   <span className="text-uppercase text-small text-grey-4 pb2">
+                      //     {t`User attribute`}
+                      //   </span>
+                      // }
+                      renderKeyInput={({ value, onChange }) => (
+                        <AttributePicker
+                          value={value}
+                          onChange={onChange}
+                          attributesOptions={(value ? [value] : []).concat(
+                            attributesOptions,
+                          )}
+                        />
+                      )}
+                      render
+                      valuePlaceholder={
+                        simple ? t`Pick a column` : t`Pick a parameter`
+                      }
+                      // valueHeader={
+                      //   <span className="text-uppercase text-small text-grey-4 pb2">
+                      //     {t`Parameter`}
+                      //   </span>
+                      // }
+                      renderValueInput={({ value, onChange }) =>
+                        simple ? (
+                          <TableTargetPicker
+                            value={value}
+                            onChange={onChange}
+                            tableId={gtap.table_id}
+                          />
+                        ) : (
+                          <QuestionTargetPicker
+                            value={value}
+                            onChange={onChange}
+                            questionId={gtap.card_id}
+                          />
+                        )
+                      }
+                      divider={
+                        <span className="px2 text-bold">{t`equals`}</span>
+                      }
+                      addText={t`Add a mapping`}
+                      canAdd={attributesOptions.length > 0}
+                      canDelete={true}
+                      swapKeyAndValue
+                    />
+                  )}
+                </div>
+              </div>
+            )
+          }
+        </LoadingAndErrorWrapper>
+        <div className="p3 border-top">
+          {valid && (
+            <div className="pb1">
+              <GTAPSummary gtap={this._getCanonicalGTAP()} />
+            </div>
+          )}
+          <div className="flex align-center justify-end">
+            <Button onClick={this.close}>{t`Cancel`}</Button>
             <ActionButton
               className="ml1"
               actionFn={this.save}
               primary
               disabled={!valid}
             >
-              Save
+              {t`Save`}
             </ActionButton>
           </div>
-        }
-        formModal
-      >
-        <LoadingAndErrorWrapper loading={!gtap}>
-          {() =>
-            gtap && (
-              <div className="flex-full pb2">
-                <div className="pb2">
-                  <QuestionPicker
-                    value={gtap.card_id}
-                    onChange={card_id =>
-                      this.setState({ gtap: { ...gtap, card_id } })
-                    }
-                  />
-                </div>
-                {valid && (
-                  <div className="pb2">
-                    <OkMessage group={params.groupId} gtap={gtap} />
-                  </div>
-                )}
-                {gtap && (
-                  <MappingEditor
-                    value={gtap.attribute_remappings}
-                    onChange={attribute_remappings =>
-                      this.setState({ gtap: { ...gtap, attribute_remappings } })
-                    }
-                    keyPlaceholder="Attribute"
-                    keyHeader={
-                      <span className="text-uppercase text-small text-grey-4 pb2">
-                        User attribute
-                      </span>
-                    }
-                    renderKeyInput={({ value, onChange }) => (
-                      <AttributePicker
-                        value={value}
-                        onChange={onChange}
-                        attributes={(value ? [value] : []).concat(attributes)}
-                      />
-                    )}
-                    render
-                    valuePlaceholder="Parameter"
-                    valueHeader={
-                      <span className="text-uppercase text-small text-grey-4 pb2">
-                        Parameter
-                      </span>
-                    }
-                    renderValueInput={({ value, onChange }) => (
-                      <TargetPicker
-                        value={value}
-                        onChange={onChange}
-                        questionId={gtap.card_id}
-                      />
-                    )}
-                    divider={<span className="px2 text-bold">maps to</span>}
-                    addText="Add a mapping"
-                    canAdd={attributes.length > 0}
-                    canDelete={
-                      Object.keys(gtap.attribute_remappings).length > 1
-                    }
-                    swapKeyAndValue
-                  />
-                )}
-              </div>
-            )
-          }
-        </LoadingAndErrorWrapper>
-      </ModalContent>
+        </div>
+      </div>
     );
   }
 }
 
-const AttributePicker = ({ value, onChange, attributes }) => (
+const AttributePicker = ({ value, onChange, attributesOptions }) => (
   <div style={{ minWidth: 200 }}>
     <Select
       value={value}
       onChange={e => onChange(e.target.value)}
-      placeholder="Select attribute"
+      placeholder={
+        attributesOptions.length === 0
+          ? t`No user attributes`
+          : t`Pick a user attribute`
+      }
+      disabled={attributesOptions.length === 0}
     >
-      {attributes.map(attribute => (
-        <Option key={attribute} value={attribute}>
-          {attribute}
+      {attributesOptions.map(attributesOption => (
+        <Option key={attributesOption} value={attributesOption}>
+          {attributesOption}
         </Option>
       ))}
     </Select>
   </div>
 );
 
-const TargetPicker = ({ value, onChange, questionId }) => (
+const QuestionTargetPicker = ({ value, onChange, questionId }) => (
   <div style={{ minWidth: 200 }}>
     <QuestionParameterTargetWidget
       questionId={questionId}
       target={value}
       onChange={onChange}
+      placeholder={t`Pick a parameter`}
     />
   </div>
 );
 
-const OkMessage = ({ group, gtap }: { group: string, gtap: GTAP }) => {
-  const [attribute, target] = Object.entries(gtap.attribute_remappings)[0];
-  // FIXME: target formatting
+import { serializeCardForUrl } from "metabase/lib/card";
+
+const TableTargetPicker = ({ value, onChange, tableId }) => (
+  <div style={{ minWidth: 200 }}>
+    <QuestionParameterTargetWidget
+      // HACK: uses QuestionLoader which only takes questionId or questionHash
+      questionHash={serializeCardForUrl({
+        dataset_query: {
+          type: "query",
+          query: { source_table: tableId },
+        },
+      })}
+      target={value}
+      onChange={onChange}
+      placeholder={t`Pick a column`}
+    />
+  </div>
+);
+
+const SummaryRow = ({ icon, content }) => (
+  <div className="flex align-center">
+    <Icon className="p1" name={icon} />
+    <span>{content}</span>
+  </div>
+);
+
+const GTAPSummary = ({ gtap }: { gtap: GTAP }) => {
   return (
-    <span>
-      Okay, when users in the group <strong>{" " + group + " "}</strong> look at
-      this table, it will be filtered by the <strong>{target}</strong> parameter
-      in this question, with each user’s <strong>{attribute}</strong> attribute
-      as the filter’s value.
-    </span>
+    <div>
+      <div className="px1 pb2 text-uppercase text-small text-grey-4">
+        Summary
+      </div>
+      <SummaryRow
+        icon="mine"
+        content={jt`${<GroupName groupId={gtap.group_id} />} can view`}
+      />
+      <SummaryRow
+        icon="table2"
+        content={
+          gtap.card_id
+            ? jt`rows in the ${(
+                <QuestionName questionId={gtap.card_id} />
+              )} question`
+            : jt`rows in the ${<TableName tableId={gtap.table_id} />} table`
+        }
+      />
+      {Object.entries(gtap.attribute_remappings).map(([attribute, target]) => (
+        <SummaryRow
+          key={attribute}
+          icon="funneloutline"
+          content={jt`where ${(
+            <TargetName gtap={gtap} target={target} />
+          )} equals ${<span className="text-code">{attribute}</span>}`}
+        />
+      ))}
+    </div>
   );
+};
+
+const GroupName = ({ groupId }) => (
+  <EntityObjectLoader
+    entityType="groups"
+    entityId={groupId}
+    properties={["name"]}
+    loadingAndErrorWrapper={false}
+  >
+    {({ object }) => <strong>{object && object.name}</strong>}
+  </EntityObjectLoader>
+);
+
+const QuestionName = ({ questionId }) => (
+  <EntityObjectLoader
+    entityType="questions"
+    entityId={questionId}
+    properties={["name"]}
+    loadingAndErrorWrapper={false}
+  >
+    {({ object }) => <strong>{object && object.name}</strong>}
+  </EntityObjectLoader>
+);
+
+const TableName = ({ tableId }) => (
+  <EntityObjectLoader
+    entityType="tables"
+    entityId={tableId}
+    properties={["display_name"]}
+    loadingAndErrorWrapper={false}
+  >
+    {({ object }) => <strong>{object && object.display_name}</strong>}
+  </EntityObjectLoader>
+);
+
+const TargetName = ({ gtap, target }) => {
+  if (Array.isArray(target)) {
+    if (
+      (mbqlEq(target[0], "variable") || mbqlEq(target[0], "dimension")) &&
+      mbqlEq(target[1][0], "template-tag")
+    ) {
+      return (
+        <span>
+          <strong>{target[1][1]}</strong> variable
+        </span>
+      );
+    } else if (mbqlEq(target[0], "dimension")) {
+      return (
+        <SavedQuestionLoader questionId={gtap.card_id}>
+          {({ question }) =>
+            question && (
+              <span>
+                <strong>
+                  {Dimension.parseMBQL(target[1], question.metadata()).render()}
+                </strong>{" "}
+                field
+              </span>
+            )
+          }
+        </SavedQuestionLoader>
+      );
+    }
+  }
+  return <emphasis>[Unknown target]</emphasis>;
 };
