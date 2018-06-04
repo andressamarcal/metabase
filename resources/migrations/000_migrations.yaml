@@ -4208,3 +4208,13 @@ databaseChangeLog:
               name: collection_position
               type: smallint
               remarks: 'Optional pinned position for this item in its Collection. NULL means item is not pinned.'
+# Remove the GTAP card_id constraint. When not included, will default to querying against the GTAP table_id.
+  - changeSet:
+      id: 83
+      author: senior
+      comment: 'Added 0.30.0'
+      changes:
+        - dropNotNullConstraint:
+            tableName: group_table_access_policy
+            columnName: card_id
+            columnDataType: int

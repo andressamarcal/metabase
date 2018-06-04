@@ -221,3 +221,27 @@
                                          :limit 1}
                               :user     (users/fetch-user :rasta)})
            qpt/rows)))))
+
+;; When no card_id is included in the GTAP, should default to a query against the table, with the GTAP criteria applied
+(expect
+  [[10]]
+  (call-with-segmented-perms
+   (fn [db-id]
+     (tt/with-temp* [PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
+                     PermissionsGroupMembership [_ {:group_id group-id
+                                                    :user_id  (users/user->id :rasta)}]
+                     GroupTableAccessPolicy [gtap {:group_id             group-id
+                                                   :table_id             (id' db-id :venues)
+                                                   :card_id              nil
+                                                   :attribute_remappings {:cat ["variable" [:field-id (id' db-id :venues :category_id)]]}}]]
+       (add-segmented-perms db-id)
+
+       (users/call-with-api-vars
+        :rasta
+        (fn []
+          (-> (ql/query (ql/source-table (id' db-id :venues))
+                        (ql/aggregation (ql/count)))
+              data/wrap-inner-query
+              (with-user-attributes {"cat" 50})
+              qp/process-query
+              qpt/rows)))))))
