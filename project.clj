@@ -61,7 +61,6 @@
                  [dk.ative/docjure "1.11.0"]                          ; Excel export
                  [environ "1.1.0"]                                    ; easy environment management
                  [hiccup "1.0.5"]                                     ; HTML templating
-
                  [honeysql "0.9.2"                                    ; Transform Clojure data structures to SQL
                   :exclusions [org.clojure/clojurescript]]
                  [io.crate/crate-jdbc "2.3.0"]                        ; Crate JDBC driver

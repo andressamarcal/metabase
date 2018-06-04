@@ -9,32 +9,6 @@
              [shared :as saml-shared]
              [sp :as saml-sp]]))
 
-;; The SP routes. They can be combined with application specific routes. Also it is assumed that
-;; they are wrapped with compojure.handler/site or wrap-params and wrap-session.
-;; The single argument is a map containing the following fields:
-;; :app-name - The application's name
-;; :base-uri - The Base URI for the application i.e. its remotely accessible hostname and
-;;             (if needed) port, e.g. https://example.org:8443 This is used for building the
-;;             'AssertionConsumerService' URI for the HTTP-POST Binding, by prepending the
-;;             base-uri to the '/saml' string.
-;; :idp-uri  - The URI for the IdP to use. This should be the URI for the HTTP-Redirect SAML Binding
-;; :idp-cert - The IdP certificate that contains the public key used by IdP for signing responses.
-;;             This is optional: if not used no signature validation will be performed in the responses
-;; :keystore-file - The filename that is the Java keystore for the private key used by this SP for the
-;;                  decryption of responses coming from IdP
-;; :keystore-password - The password for opening the keystore file
-;; :key-alias - The alias for the private key in the keystore
-;; The created routes are the following:
-;; - GET /saml/meta : This returns a SAML metadata XML file that has the needed information
-;;                    for registering this SP. For example, it has the public key for this SP.
-;; - GET /saml : it redirects to the IdP with the SAML request envcoded in the URI per the
-;;               HTTP-Redirect binding. This route accepts a 'continue' parameter that can
-;;               have the relative URI, where the browser should be redirected to after the
-;;               successful login in the IdP.
-;; - POST /saml : this is the endpoint for accepting the responses from the IdP. It then redirects
-;;                the browser to the 'continue-url' that is found in the RelayState paramete, or the '/' root
-;;                of the app.
-
 (def ^:private saml-state
   (delay
    (let [keystore-file     (isaml/keystore-path)
@@ -52,15 +26,24 @@
                                                            acs-uri)
          prune-fn!         (partial saml-sp/prune-timed-out-ids!
                                     (:saml-id-timeouts mutables))]
-     {:mutables           mutables
+
+     {
+      ;; `mutables` is a bundle of mutable data needed by the SAML library. It has things like an id counter to track
+      ;; number of messages sent etc
+      :mutables           mutables
+      ;; Also required for making SAML requests, used for creating SAML requests
       :saml-req-factory!  saml-req-factory!
+      ;; Used for timing out old SAML requests
       :timeout-pruner-fn! prune-fn!
+      ;; Our certificate, optional, but will validate the integrity of the data returned
       :certificate-x509   sp-cert
+      ;; URL that the SAML IDP (i.e. Auth0) will redirect the user to upon successful login
       :acs-uri            acs-uri
+      ;; Uses `sp-cert` to decrypt valid responses from the SAML IDP
       :decrypter          decrypter})))
 
 (api/defendpoint GET "/meta"
-  "Endpoint that gets SAML metadata"
+  "Endpoint that gets SAML metadata. Not sure if this has any real value to us, but is included in SAML demo/tutorial"
   []
   (let [{:keys [acs-uri certificate-x509]} @saml-state]
     {:status 200
@@ -75,7 +58,7 @@
         {:keys [saml-req-factory! mutables]} @saml-state
         saml-request (saml-req-factory!)
         ;; We don't really use RelayState. It's intended to be something like an identifier from the Service Provider
-        ;; (that's us) that we apss to the Identity Provider (i.e. Auth0) and it will include that state in it's
+        ;; (that's us) that we pass to the Identity Provider (i.e. Auth0) and it will include that state in it's
         ;; response. The IDP treats it as an opaque string and just returns it without examining/changing it
         hmac-relay-state (saml-routes/create-hmac-relay-state (:secret-key-spec mutables) "no-op")]
     (saml-sp/get-idp-redirect idp-uri saml-request hmac-relay-state)))

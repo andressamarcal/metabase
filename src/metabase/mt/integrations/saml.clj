@@ -46,11 +46,10 @@
   (tru "SAML attribute for the user''s last name")
   :default "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname")
 
-
 ;; TODO - refactor the `core_user` model and the construction functions to get some reuse here
 (defn- create-new-saml-auth-user!
   "This function is basically the same thing as the `create-new-google-auth-user` from `metabase.models.user`. We need
-  to refactor the `core_user` table structure and the function used to populate it so that the enterprise produce can
+  to refactor the `core_user` table structure and the function used to populate it so that the enterprise product can
   reuse it"
   [first-name last-name email]
   {:pre [(string? first-name) (string? last-name) (u/email? email)]}
@@ -72,7 +71,9 @@
         (db/update! User (:id user) :login_attributes login_attributes)
         (assoc user :login_attributes login_attributes)))))
 
-(defn saml-auth-fetch-or-create-user! [first-name last-name email user-attributes]
+(defn saml-auth-fetch-or-create-user!
+  "Returns a session map for the given `email`. Will create the user if needed."
+  [first-name last-name email user-attributes]
   (when-let [user (or (fetch-and-update-login-attributes! first-name last-name email user-attributes)
                       (create-new-saml-auth-user! first-name last-name email))]
     {:id (session/create-session! user)}))
