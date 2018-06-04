@@ -95,10 +95,6 @@
             first-name          (get attrs (isaml/first-name-attribute) "Unknown")
             last-name           (get attrs (isaml/last-name-attribute) "Unknown")
             {session-token :id} (isaml/saml-auth-fetch-or-create-user! first-name last-name email attrs)]
-        ;; TODO - FIXME
-        #_(assoc (resp/redirect "/")
-            :cookies {:x-metabase-session {:value session-token
-                                           :path  "/"}})
         (resp/set-cookie (resp/redirect "/")
                          "metabase.SESSION_ID" session-token
                          {:path "/"}))
