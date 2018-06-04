@@ -79,17 +79,20 @@
      ;; the perms-check middleware works on outer queries. Since we only have the inner query at this point (why?
      (when-let [perms-check (perms-middleware/query->perms-check query)]
        (when (#{TablesPermsCheck CollectionPermsCheck} (class perms-check))
-         (let [{:keys [source-table-id]} perms-check
-               table                     (db/select-one ['Table :id :db_id :schema] :id source-table-id)]
-           (cond
-             (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-query-path table))
-             false
+         (let [{:keys [source-table-id]} perms-check]
+           ;; source-table-id will be nil for CollectionPermsChecks that apply to native queries. For native queries,
+           ;; we can't do GTAP-ping, obviously. So only apply logic below for MBQL queries
+           (when source-table-id
+             (let [table (db/select-one ['Table :id :db_id :schema] :id source-table-id)]
+               (cond
+                 (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-query-path table))
+                 false
 
-             (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-segmented-query-path table))
-             true
+                 (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-segmented-query-path table))
+                 true
 
-             :else
-             (throw (Exception. "Invalid state: user does not have either full or segmented query permissions!")))))))))
+                 :else
+                 (throw (Exception. "Invalid state: user does not have either full or segmented query permissions!")))))))))))
 
 (defn maybe-apply-row-level-permissions
   "Applies row level permissions if the user has segmented permissions. If the user has full permissions, the data

@@ -85,6 +85,8 @@
 (s/defrecord CollectionPermsCheck [collection-id   :- su/IntGreaterThanZero
                                    ;; These aren't needed to do a Collection perms check, but are needed for the GTAP
                                    ;; perms check implementation, so let's record them anyway...
+                                   ;; NOTE that these will be `nil` for native queries. They will only be set for MBQL
+                                   ;; queries.
                                    source-table-id :- (s/maybe su/IntGreaterThanZero)
                                    join-table-ids  :- (s/maybe #{su/IntGreaterThanZero})]
   nil
