@@ -21,7 +21,7 @@ import Tooltip from "metabase/components/Tooltip";
 import RetinaImage from "react-retina-image";
 
 import EntityObjectLoader from "metabase/entities/containers/EntityObjectLoader";
-import SavedQuestionLoader from "metabase/containers/SavedQuestionLoader";
+import QuestionLoader from "metabase/containers/QuestionLoader";
 
 import Dimension from "metabase-lib/lib/Dimension";
 import { mbqlEq } from "metabase/lib/query/util";
@@ -285,18 +285,17 @@ const QuestionTargetPicker = ({ value, onChange, questionId }) => (
   </div>
 );
 
-import { serializeCardForUrl } from "metabase/lib/card";
+const rawDataQuestionForTable = tableId => ({
+  dataset_query: {
+    type: "query",
+    query: { source_table: tableId },
+  },
+});
 
 const TableTargetPicker = ({ value, onChange, tableId }) => (
   <div style={{ minWidth: 200 }}>
     <QuestionParameterTargetWidget
-      // HACK: uses QuestionLoader which only takes questionId or questionHash
-      questionHash={serializeCardForUrl({
-        dataset_query: {
-          type: "query",
-          query: { source_table: tableId },
-        },
-      })}
+      questionObject={rawDataQuestionForTable(tableId)}
       target={value}
       onChange={onChange}
       placeholder={t`Pick a column`}
@@ -398,7 +397,12 @@ const TargetName = ({ gtap, target }: { gtap: GTAP, target: any }) => {
       );
     } else if (mbqlEq(target[0], "dimension")) {
       return (
-        <SavedQuestionLoader questionId={gtap.card_id}>
+        <QuestionLoader
+          questionId={gtap.card_id}
+          questionObject={
+            gtap.card_id == null ? rawDataQuestionForTable(gtap.table_id) : null
+          }
+        >
           {({ question }) =>
             question && (
               <span>
@@ -409,7 +413,7 @@ const TargetName = ({ gtap, target }: { gtap: GTAP, target: any }) => {
               </span>
             )
           }
-        </SavedQuestionLoader>
+        </QuestionLoader>
       );
     }
   }

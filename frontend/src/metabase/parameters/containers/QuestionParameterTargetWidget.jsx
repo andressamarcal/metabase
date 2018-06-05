@@ -10,6 +10,7 @@ import * as Dashboard from "metabase/meta/Dashboard";
 import type { Parameter, ParameterTarget } from "metabase/meta/types/Parameter";
 
 type Props = {
+  questionObject?: any, // FIXME: minimal card
   questionId?: number,
   questionHash?: string,
   parameter?: Parameter,
