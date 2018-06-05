@@ -19,10 +19,9 @@
 ;; Must be authenticated to query for gtaps
 (expect (get middleware/response-unauthentic :body) (http/client :get 401 "mt/gtap"))
 
-;; TODO - This seems wrong. In other areasy we return a 403. This looks to return a Jetty page with a 500
 (expect
-  #"You don&apos;t have permissions"
-  ((user->client :rasta) :get 500 (str "mt/gtap")))
+  "You don't have permissions to do that."
+  ((user->client :rasta) :get 403 (str "mt/gtap")))
 
 (def ^:private default-gtap-results
   {:id                   true
