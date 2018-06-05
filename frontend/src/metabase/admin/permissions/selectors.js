@@ -293,8 +293,8 @@ const OPTION_COLLECTION_READ = {
 const OPTION_SEGMENTED = {
   ...OPTION_BLUE,
   value: "controlled",
-  title: t`Grant segmented access`,
-  tooltip: t`Segmented access`,
+  title: t`Grant sandboxed access`,
+  tooltip: t`Sandboxed access`,
   icon: "permissionsLimited",
 };
 
@@ -309,7 +309,7 @@ const getEditSegementedAccessUrl = (
 
 const getEditSegementedAccessAction = (groupId, entityId) => ({
   ...OPTION_BLUE,
-  title: t`Edit segmented access`,
+  title: t`Edit sandboxed access`,
   icon: "pencil",
   value: push(getEditSegementedAccessUrl(groupId, entityId)),
 });
