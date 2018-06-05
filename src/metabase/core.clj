@@ -88,9 +88,9 @@
   "The primary entry point to the Ring HTTP server."
   ;; ▼▼▼ POST-PROCESSING ▼▼▼ happens from TOP-TO-BOTTOM
   (-> #'routes/routes                    ; the #' is to allow tests to redefine endpoints
+      mb-middleware/catch-api-exceptions ; catch exceptions and return them in our expected format
       (mb-middleware/log-api-call
        jetty-stats)
-      mb-middleware/catch-api-exceptions ; catch exceptions and return them in our expected format
       mb-middleware/add-security-headers ; Add HTTP headers to API responses to prevent them from being cached
       (wrap-json-body                    ; extracts json POST body and makes it avaliable on request
         {:keywords? true})
