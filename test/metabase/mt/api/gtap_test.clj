@@ -19,10 +19,9 @@
 ;; Must be authenticated to query for gtaps
 (expect (get middleware/response-unauthentic :body) (http/client :get 401 "mt/gtap"))
 
-;; TODO - This seems wrong. In other areasy we return a 403. This looks to return a Jetty page with a 500
 (expect
-  #"You don&apos;t have permissions"
-  ((user->client :rasta) :get 500 (str "mt/gtap")))
+  "You don't have permissions to do that."
+  ((user->client :rasta) :get 403 (str "mt/gtap")))
 
 (def ^:private default-gtap-results
   {:id                   true
@@ -88,3 +87,61 @@
          (do
            ((user->client :crowberto) :delete 204 (format "mt/gtap/%s" id))
            ((user->client :crowberto) :get 404 (format "mt/gtap/%s" id)))]))))
+
+;; ## PUT /api/mt/gtap
+;; Test that we can update only the attribute remappings for a GTAP
+(expect
+  (assoc default-gtap-results :attribute_remappings {:bar 2})
+  (tt/with-temp* [Table                  [{table-id :id}]
+                  PermissionsGroup       [{group-id :id}]
+                  Card                   [{card-id :id}]
+                  GroupTableAccessPolicy [{gtap-id :id} {:table_id             table-id
+                                                         :group_id             group-id
+                                                         :card_id              card-id
+                                                         :attribute_remappings {"foo" 1}}]]
+    (tu/boolean-ids-and-timestamps
+     ((user->client :crowberto) :put 200 (format "mt/gtap/%s" gtap-id)
+      {:attribute_remappings {:bar 2}}))))
+
+;; Test that we can add a card_id via PUT
+(expect
+  default-gtap-results
+  (tt/with-temp* [Table                  [{table-id :id}]
+                  PermissionsGroup       [{group-id :id}]
+                  Card                   [{card-id :id}]
+                  GroupTableAccessPolicy [{gtap-id :id} {:table_id             table-id
+                                                         :group_id             group-id
+                                                         :card_id              nil
+                                                         :attribute_remappings {"foo" 1}}]]
+    (tu/boolean-ids-and-timestamps
+     ((user->client :crowberto) :put 200 (format "mt/gtap/%s" gtap-id)
+      {:card_id card-id}))))
+
+;; Test that we can remove a card_id via PUT
+(expect
+  (assoc default-gtap-results :card_id false)
+  (tt/with-temp* [Table                  [{table-id :id}]
+                  PermissionsGroup       [{group-id :id}]
+                  Card                   [{card-id :id}]
+                  GroupTableAccessPolicy [{gtap-id :id} {:table_id             table-id
+                                                         :group_id             group-id
+                                                         :card_id              card-id
+                                                         :attribute_remappings {"foo" 1}}]]
+    (tu/boolean-ids-and-timestamps
+     ((user->client :crowberto) :put 200 (format "mt/gtap/%s" gtap-id)
+      {:card_id nil}))))
+
+;; Test that we can remove a card_id and change attribute remappings via PUT
+(expect
+  (assoc default-gtap-results :card_id false, :attribute_remappings {:bar 2})
+  (tt/with-temp* [Table                  [{table-id :id}]
+                  PermissionsGroup       [{group-id :id}]
+                  Card                   [{card-id :id}]
+                  GroupTableAccessPolicy [{gtap-id :id} {:table_id             table-id
+                                                         :group_id             group-id
+                                                         :card_id              card-id
+                                                         :attribute_remappings {"foo" 1}}]]
+    (tu/boolean-ids-and-timestamps
+     ((user->client :crowberto) :put 200 (format "mt/gtap/%s" gtap-id)
+      {:card_id              nil
+       :attribute_remappings {:bar 2}}))))

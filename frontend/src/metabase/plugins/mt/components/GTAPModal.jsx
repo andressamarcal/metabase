@@ -155,14 +155,14 @@ export default class GTAPModal extends React.Component {
 
     return (
       <div>
-        <h2 className="p3">{t`Grant segmented access to this table`}</h2>
+        <h2 className="p3">{t`Grant sandboxed access to this table`}</h2>
         <LoadingAndErrorWrapper loading={!gtap}>
           {() =>
             gtap && (
               <div>
                 <div className="px3 pb3">
                   <div className="pb3">
-                    {t`When users in this group view this table they'll see a version of it that's filtered by a column or variable that's equal to one of their user attributes`}
+                    {t`When users in this group view this table they'll see a version of it that's filtered by their user attributes, or a custom view of it based on a saved question.`}
                   </div>
                   <h4 className="pb1">
                     {t`How do you want to filter this table for users in this group?`}
@@ -172,7 +172,7 @@ export default class GTAPModal extends React.Component {
                     options={[
                       { name: "Filter by a column in the table", value: true },
                       {
-                        name: "Use a saved question to create a custom filter",
+                        name: "Use a saved question to create a custom view for this table",
                         value: false,
                       },
                     ]}
@@ -183,7 +183,7 @@ export default class GTAPModal extends React.Component {
                 {!simple && (
                   <div className="px3 pb3">
                     <div className="pb2">
-                      {t`Pick a saved question that filters this table or that has variables that you want to fill with user attributes.`}
+                      {t`Pick a saved question that returns the custom view of this table that these users should see.`}
                     </div>
                     <QuestionPicker
                       value={gtap.card_id}
@@ -318,10 +318,10 @@ const GTAPSummary = ({ gtap }: { gtap: GTAP }) => {
       </div>
       <SummaryRow
         icon="group"
-        content={jt`${<GroupName groupId={gtap.group_id} />} can view`}
+        content={jt`Users in ${<GroupName groupId={gtap.group_id} />} can view`}
       />
       <SummaryRow
-        icon="table2"
+        icon="table"
         content={
           gtap.card_id
             ? jt`rows in the ${(
