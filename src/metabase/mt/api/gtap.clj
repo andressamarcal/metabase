@@ -46,10 +46,12 @@
   {card_id              (s/maybe su/IntGreaterThanZero)
    #_attribute_remappings #_AttributeRemappings} ; TODO -  fix me
   (api/check-404 (GroupTableAccessPolicy id))
-  ;; only update `card_id` and/or `attribute_remappings` if non-nil values were passed in. That way this endpoint can
-  ;; be used to update only one value or the other. Ignore everything else.
-  (db/update! GroupTableAccessPolicy id
-    (u/select-non-nil-keys body [:card_id :attribute_remappings]))
+  ;; Only update `card_id` and/or `attribute_remappings` if the values are present in the body of the request.
+  ;; This allows existing values to be "cleared" by being set to nil
+  (when (some #(contains? body %) [:card_id :attribute_remappings])
+    (db/update! GroupTableAccessPolicy id
+      (u/select-keys-when body
+        :present #{:card_id :attribute_remappings})))
   (GroupTableAccessPolicy id))
 
 (api/defendpoint DELETE "/:id"
