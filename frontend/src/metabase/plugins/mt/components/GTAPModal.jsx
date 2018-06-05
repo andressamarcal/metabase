@@ -13,7 +13,6 @@ import QuestionPicker from "metabase/containers/QuestionPicker";
 import QuestionParameterTargetWidget from "metabase/parameters/containers/QuestionParameterTargetWidget";
 import Button from "metabase/components/Button";
 import ActionButton from "metabase/components/ActionButton";
-import ModalContent from "metabase/components/ModalContent";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
 import Select, { Option } from "metabase/components/Select";
 import Radio from "metabase/components/Radio";
@@ -136,7 +135,6 @@ export default class GTAPModal extends React.Component {
   }
 
   render() {
-    const { params } = this.props;
     const { gtap, simple, attributesOptions } = this.state;
 
     const valid = this.isValid();
@@ -149,8 +147,6 @@ export default class GTAPModal extends React.Component {
         : null;
 
     const hasAttributesOptions =
-      Object.keys(attributesOptions || {}).length > 0;
-    const hasAttributesOptionsRemaining =
       Object.keys(attributesOptions || {}).length > 0;
     const hasValidMappings =
       Object.keys((this._getCanonicalGTAP() || {}).attribute_remappings || {})
@@ -198,6 +194,8 @@ export default class GTAPModal extends React.Component {
                 )}
                 {gtap &&
                   attributesOptions &&
+                  // show if in simple mode, or the admin has selected a card
+                  (simple || gtap.card_id != null) &&
                   (hasAttributesOptions || hasValidMappings ? (
                     <div className="p3 border-top border-bottom">
                       <div className="pb2">
