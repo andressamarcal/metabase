@@ -38,7 +38,7 @@ type GTAP = {
   table_id: ?number,
   group_id: ?number,
   card_id: ?number,
-  attribute_remappings: { [attribute: string]: string },
+  attribute_remappings: { [attribute: string]: any },
 };
 
 type Props = {
@@ -47,7 +47,8 @@ type Props = {
 };
 type State = {
   gtap: ?GTAP,
-  attributesOptions: string[],
+  attributesOptions: ?(string[]),
+  simple: boolean,
 };
 
 @withRouter
@@ -138,19 +139,19 @@ export default class GTAPModal extends React.Component {
     const { gtap, simple, attributesOptions } = this.state;
 
     const valid = this.isValid();
+    const canonicalGTAP = this._getCanonicalGTAP();
 
     const remainingAttributesOptions =
       gtap && attributesOptions
         ? attributesOptions.filter(
             attribute => !(attribute in gtap.attribute_remappings),
           )
-        : null;
+        : [];
 
     const hasAttributesOptions =
-      Object.keys(attributesOptions || {}).length > 0;
+      attributesOptions && attributesOptions.length > 0;
     const hasValidMappings =
-      Object.keys((this._getCanonicalGTAP() || {}).attribute_remappings || {})
-        .length > 0;
+      Object.keys((canonicalGTAP || {}).attribute_remappings || {}).length > 0;
 
     return (
       <div>
@@ -229,11 +230,12 @@ export default class GTAPModal extends React.Component {
           }
         </LoadingAndErrorWrapper>
         <div className="p3">
-          {valid && (
-            <div className="pb1">
-              <GTAPSummary gtap={this._getCanonicalGTAP()} />
-            </div>
-          )}
+          {valid &&
+            canonicalGTAP && (
+              <div className="pb1">
+                <GTAPSummary gtap={canonicalGTAP} />
+              </div>
+            )}
           <div className="flex align-center justify-end">
             <Button onClick={this.close}>{t`Cancel`}</Button>
             <ActionButton
@@ -383,7 +385,7 @@ const TableName = ({ tableId }) => (
   </EntityObjectLoader>
 );
 
-const TargetName = ({ gtap, target }) => {
+const TargetName = ({ gtap, target }: { gtap: GTAP, target: any }) => {
   if (Array.isArray(target)) {
     if (
       (mbqlEq(target[0], "variable") || mbqlEq(target[0], "dimension")) &&
@@ -465,19 +467,19 @@ const AttributeMappingEditor = ({
       </div>
     }
     renderValueInput={({ value, onChange }) =>
-      simple ? (
+      simple && gtap.table_id != null ? (
         <TableTargetPicker
           value={value}
           onChange={onChange}
           tableId={gtap.table_id}
         />
-      ) : (
+      ) : !simple && gtap.card_id != null ? (
         <QuestionTargetPicker
           value={value}
           onChange={onChange}
           questionId={gtap.card_id}
         />
-      )
+      ) : null
     }
     divider={<span className="px2 text-bold">{t`equals`}</span>}
     addText={t`Add a mapping`}

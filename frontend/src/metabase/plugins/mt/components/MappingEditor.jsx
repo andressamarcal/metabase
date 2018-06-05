@@ -7,7 +7,7 @@ import Button from "metabase/components/Button";
 import _ from "underscore";
 
 type Mapping = {
-  [key: string]: string,
+  [key: string]: any,
 };
 
 type Style = {
