@@ -199,9 +199,11 @@ export default class GTAPModal extends React.Component {
                   (simple || gtap.card_id != null) &&
                   (hasAttributesOptions || hasValidMappings ? (
                     <div className="p3 border-top border-bottom">
-                      <div className="pb2">
-                        {t`You can optionally add additional filters here based on user attributes. These filters will be applied on top of any filters that are already in this saved question.`}
-                      </div>
+                      {!simple &&
+                        <div className="pb2">
+                          {t`You can optionally add additional filters here based on user attributes. These filters will be applied on top of any filters that are already in this saved question.`}
+                        </div>
+                      }
                       <AttributeMappingEditor
                         value={gtap.attribute_remappings}
                         onChange={attribute_remappings =>
@@ -450,7 +452,7 @@ const AttributeMappingEditor = ({
       <div className="text-uppercase text-small text-grey-4 flex align-center">
         {t`User attribute`}
         <Tooltip
-          tooltip={t`We can automatically get your users’ attributes if you’ve set up SSO, or you can add them manually from the menu in the People section of the Admin Panel.`}
+          tooltip={t`We can automatically get your users’ attributes if you’ve set up SSO, or you can add them manually from the "…" menu in the People section of the Admin Panel.`}
         >
           <Icon className="ml1" name="infooutlined" />
         </Tooltip>
@@ -486,7 +488,7 @@ const AttributeMappingEditor = ({
       ) : null
     }
     divider={<span className="px2 text-bold">{t`equals`}</span>}
-    addText={t`Add a mapping`}
+    addText={t`Add a filter`}
     canAdd={attributesOptions.length > 0}
     canDelete={true}
     swapKeyAndValue
