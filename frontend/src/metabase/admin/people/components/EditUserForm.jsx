@@ -81,7 +81,7 @@ export default class EditUserForm extends Component {
 
     try {
       await this.props.submitFn({
-        ...this.state.user
+        ...this.state.user,
         email: email,
         groups:
           this.props.groups && this.state.selectedGroups
