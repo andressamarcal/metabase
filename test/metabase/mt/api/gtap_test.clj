@@ -5,15 +5,11 @@
              [middleware :as middleware]]
             [metabase.models
              [card :refer [Card]]
-             [database :refer [Database]]
              [permissions-group :refer [PermissionsGroup]]
-
              [table :refer [Table]]]
-            [metabase.mt.api.gtap :refer :all]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
-            [metabase.test.util :as tu]
             [metabase.test.data.users :refer :all]
-            [metabase.util :as u]
+            [metabase.test.util :as tu]
             [toucan.util.test :as tt]))
 
 ;; Must be authenticated to query for gtaps
