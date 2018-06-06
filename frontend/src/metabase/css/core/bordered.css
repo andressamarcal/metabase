@@ -96,6 +96,10 @@
   border-color: var(--brand-color) !important;
 }
 
+.border-transparent {
+  border-color: transparent;
+}
+
 .border-brand-hover:hover {
   border-color: var(--brand-color);
 }

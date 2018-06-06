@@ -17,9 +17,7 @@
              [user :as user :refer [User]]]
             [metabase.util.date :as du]
             [puppetlabs.i18n.core :refer [tru]]
-            [toucan
-             [db :as db]
-             [models :as models]])
+            [toucan.db :as db])
   (:import com.fasterxml.jackson.core.JsonGenerator
            java.sql.SQLException))
 
@@ -119,7 +117,7 @@
       response-unauthentic)))
 
 (def ^:private current-user-fields
-  (vec (concat [User :is_active :google_auth :ldap_auth :login_attributes] (models/default-fields User))))
+  (vec (cons User user/all-user-fields)))
 
 (defn- find-user [user-id]
   (db/select-one current-user-fields, :id user-id))
