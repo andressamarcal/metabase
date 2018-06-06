@@ -273,7 +273,6 @@
             :table_id               (u/get-id table)
             :can_write              true
             :dashboard_count        0
-            :collection             nil
             :read_permissions       nil
             :creator                (match-$ (fetch-user :rasta)
                                       {:common_name  "Rasta Toucan"

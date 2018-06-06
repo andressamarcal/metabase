@@ -50,9 +50,9 @@
            ;; Any `::native` placeholders from above mean we need native ad-hoc query permissions for this DATABASE
            (perms/adhoc-native-query-path database-or-id)
            ;; anything else (i.e., a normal table) just gets normal table permissions
-           (perms/object-path (u/get-id database-or-id)
-                              (:schema table)
-                              (or (:id table) (:table-id table)))))))
+           (perms/table-query-path (u/get-id database-or-id)
+                                   (:schema table)
+                                   (or (:id table) (:table-id table)))))))
 
 (s/defn ^:private source-card-read-perms :- #{perms/ObjectPath}
   "Calculate the permissions needed to run an ad-hoc query that uses a Card with `source-card-id` as its source

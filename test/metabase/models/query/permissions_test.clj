@@ -129,7 +129,7 @@
    :query    query})
 
 (expect
-  #{(perms/object-path (data/id) "PUBLIC" (data/id :venues))}
+  #{(perms/table-query-path (data/id) "PUBLIC" (data/id :venues))}
   (query-perms/perms-set (mbql (ql/query
                                  (ql/source-table (data/id :venues))))))
 
@@ -138,8 +138,8 @@
 
 ;; you should need perms for both tables if you include a JOIN
 (expect
-  #{(perms/object-path (data/id) "PUBLIC" (data/id :checkins))
-    (perms/object-path (data/id) "PUBLIC" (data/id :venues))}
+  #{(perms/table-query-path (data/id) "PUBLIC" (data/id :checkins))
+    (perms/table-query-path (data/id) "PUBLIC" (data/id :venues))}
   (query-perms/perms-set
    (mbql (ql/query
            (ql/source-table (data/id :checkins))
