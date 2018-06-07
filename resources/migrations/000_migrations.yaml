@@ -4250,3 +4250,12 @@ databaseChangeLog:
             tableName: group_table_access_policy
             columnName: card_id
             columnDataType: int
+# In 0.30.0 we finally removed the long-deprecated native read permissions. Since they're no longer considered valid by
+# our permissions code, remove any entries for them so they don't cause problems.
+  - changeSet:
+      id: 86
+      author: camsaul
+      comment: 'Added 0.30.0'
+      changes:
+        - sql:
+            sql: DELETE FROM permissions WHERE object LIKE '%/native/read/'
