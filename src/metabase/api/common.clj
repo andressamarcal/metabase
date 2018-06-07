@@ -256,7 +256,7 @@
 ;;; --------------------------------------- DEFENDPOINT AND RELATED FUNCTIONS ----------------------------------------
 
 ;; TODO - several of the things `defendpoint` does could and should just be done by custom Ring middleware instead
-;; e.g. `catch-api-exceptions` and `auto-parse`
+;; e.g. `auto-parse`
 (defmacro defendpoint
   "Define an API function.
    This automatically does several things:
@@ -288,10 +288,9 @@
                       :doc (route-dox method route docstr args (m/map-vals eval arg->schema) body)
                       :is-endpoint? true)
        (~method ~route ~args
-        (catch-api-exceptions
-          (auto-parse ~args
-            ~@validate-param-calls
-            (wrap-response-if-needed (do ~@body))))))))
+        (auto-parse ~args
+          ~@validate-param-calls
+          (wrap-response-if-needed (do ~@body)))))))
 
 (defn- namespace->api-route-fns
   "Return a sequence of all API endpoint functions defined by `defendpoint` in a namespace."

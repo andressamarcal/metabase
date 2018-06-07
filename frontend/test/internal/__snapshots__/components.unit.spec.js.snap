@@ -401,6 +401,147 @@ exports[`ProgressBar should render "Default" correctly 1`] = `
 </div>
 `;
 
+exports[`Radio should render "default" correctly 1`] = `
+<ul
+  className="flex text-bold h3"
+>
+  <li
+    className="flex align-center cursor-pointer mt1 mr2 text-brand-hover"
+    onClick={[Function]}
+  >
+    <input
+      checked={true}
+      className="Form-radio"
+      id="radio-1-0"
+      name="radio-1"
+      type="radio"
+      value={0}
+    />
+    <span
+      className="text-brand"
+    >
+      Gadget
+    </span>
+  </li>
+  <li
+    className="flex align-center cursor-pointer mt1 mr2 text-brand-hover"
+    onClick={[Function]}
+  >
+    <input
+      checked={false}
+      className="Form-radio"
+      id="radio-1-1"
+      name="radio-1"
+      type="radio"
+      value={1}
+    />
+    <span
+      className=""
+    >
+      Gizmo
+    </span>
+  </li>
+</ul>
+`;
+
+exports[`Radio should render "show buttons" correctly 1`] = `
+<ul
+  className="flex"
+>
+  <li
+    className="flex align-center cursor-pointer mt1 mr2"
+    onClick={[Function]}
+  >
+    <input
+      checked={true}
+      className="Form-radio"
+      id="radio-2-0"
+      name="radio-2"
+      type="radio"
+      value={0}
+    />
+    <label
+      htmlFor="radio-2-0"
+    />
+    <span
+      className="text-brand"
+    >
+      Gadget
+    </span>
+  </li>
+  <li
+    className="flex align-center cursor-pointer mt1 mr2"
+    onClick={[Function]}
+  >
+    <input
+      checked={false}
+      className="Form-radio"
+      id="radio-2-1"
+      name="radio-2"
+      type="radio"
+      value={1}
+    />
+    <label
+      htmlFor="radio-2-1"
+    />
+    <span
+      className=""
+    >
+      Gizmo
+    </span>
+  </li>
+</ul>
+`;
+
+exports[`Radio should render "vertical" correctly 1`] = `
+<ul
+  className="flex flex-column"
+>
+  <li
+    className="flex align-center cursor-pointer mt1 mr2"
+    onClick={[Function]}
+  >
+    <input
+      checked={true}
+      className="Form-radio"
+      id="radio-3-0"
+      name="radio-3"
+      type="radio"
+      value={0}
+    />
+    <label
+      htmlFor="radio-3-0"
+    />
+    <span
+      className="text-brand"
+    >
+      Gadget
+    </span>
+  </li>
+  <li
+    className="flex align-center cursor-pointer mt1 mr2"
+    onClick={[Function]}
+  >
+    <input
+      checked={false}
+      className="Form-radio"
+      id="radio-3-1"
+      name="radio-3"
+      type="radio"
+      value={1}
+    />
+    <label
+      htmlFor="radio-3-1"
+    />
+    <span
+      className=""
+    >
+      Gizmo
+    </span>
+  </li>
+</ul>
+`;
+
 exports[`Select should render "Default" correctly 1`] = `
 <a
   className="no-decoration"
@@ -409,13 +550,11 @@ exports[`Select should render "Default" correctly 1`] = `
   style={undefined}
 >
   <div
-    className="AdminSelect border-med flex align-center  text-grey-3"
+    className="AdminSelect border-med flex align-center "
   >
     <span
       className="AdminSelect-content mr1"
-    >
-      Yellow
-    </span>
+    />
     <svg
       className="Icon Icon-chevrondown AdminSelect-chevron flex-align-right Icon-cxuQhR kTAgZA"
       fill="currentcolor"
@@ -444,13 +583,11 @@ exports[`Select should render "With search" correctly 1`] = `
   style={undefined}
 >
   <div
-    className="AdminSelect border-med flex align-center  text-grey-3"
+    className="AdminSelect border-med flex align-center "
   >
     <span
       className="AdminSelect-content mr1"
-    >
-      Yellow
-    </span>
+    />
     <svg
       className="Icon Icon-chevrondown AdminSelect-chevron flex-align-right Icon-cxuQhR kTAgZA"
       fill="currentcolor"

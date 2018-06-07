@@ -61,6 +61,7 @@ export default class CardPicker extends Component {
   onChange = id => {
     this.props.onChange(id);
     ReactDOM.findDOMNode(this.refs.input).blur();
+    this.setState({ isOpen: false });
   };
 
   renderItem(card) {

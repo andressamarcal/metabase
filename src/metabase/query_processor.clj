@@ -15,8 +15,8 @@
              [add-row-count-and-status :as row-count-and-status]
              [add-settings :as add-settings]
              [annotate-and-sort :as annotate-and-sort]
-             [binning :as binning]
              [bind-effective-timezone :as bind-timezone]
+             [binning :as binning]
              [cache :as cache]
              [catch-exceptions :as catch-exceptions]
              [cumulative-aggregations :as cumulative-ags]
@@ -31,9 +31,9 @@
              [mbql-to-native :as mbql-to-native]
              [parameters :as parameters]
              [permissions :as perms]
-             [results-metadata :as results-metadata]
-             [resolve-driver :as resolve-driver]
              [resolve :as resolve]
+             [resolve-driver :as resolve-driver]
+             [results-metadata :as results-metadata]
              [source-table :as source-table]]
             [metabase.query-processor.util :as qputil]
             [metabase.util
@@ -42,9 +42,9 @@
             [schema.core :as s]
             [toucan.db :as db]))
 
-;;; +-------------------------------------------------------------------------------------------------------+
-;;; |                                           QUERY PROCESSOR                                             |
-;;; +-------------------------------------------------------------------------------------------------------+
+;;; +----------------------------------------------------------------------------------------------------------------+
+;;; |                                                QUERY PROCESSOR                                                 |
+;;; +----------------------------------------------------------------------------------------------------------------+
 
 (defn- execute-query
   "The pivotal stage of the `process-query` pipeline where the query is actually executed by the driver's Query
@@ -77,7 +77,7 @@
 
 (def ^:private qp-pipeline-functions
   "Data structure of vars used to create the query pipeline"
-  ;; ▼▼▼ POST-PROCESSING ▼▼▼  happens from TOP-TO-BOTTOM, e.g. the results of `f` are (eventually) passed to `limit`
+  ;; ▼▼▼ POST-PROCESSING ▼▼▼ happens from TOP-TO-BOTTOM, e.g. the results of `f` are (eventually) passed to `limit`
   [#'dev/guard-multiple-calls
    #'mbql-to-native/mbql->native                   ; ▲▲▲ NATIVE-ONLY POINT ▲▲▲ Query converted from MBQL to native here; all functions *above* will only see the native query
    #'annotate-and-sort/annotate-and-sort
@@ -106,7 +106,8 @@
    #'cache/maybe-return-cached-results
    #'log-query/log-results-metadata
    #'catch-exceptions/catch-exceptions])
-;; ▲▲▲ PRE-PROCESSING ▲▲▲ happens from BOTTOM-TO-TOP, e.g. the results of `expand-macros` are (eventually) passed to `expand-resolve`
+;; ▲▲▲ PRE-PROCESSING ▲▲▲ happens from BOTTOM-TO-TOP, e.g. the results of `expand-macros` are passed to
+;; `substitute-parameters`
 
 (def pipeline-functions (atom qp-pipeline-functions))
 
@@ -196,9 +197,9 @@
 ;; instead of running it
 
 
-;;; +----------------------------------------------------------------------------------------------------+
-;;; |                                     DATASET-QUERY PUBLIC API                                       |
-;;; +----------------------------------------------------------------------------------------------------+
+;;; +----------------------------------------------------------------------------------------------------------------+
+;;; |                                            DATASET-QUERY PUBLIC API                                            |
+;;; +----------------------------------------------------------------------------------------------------------------+
 
 ;; The only difference between `process-query` and `process-query-and-save-execution!` (below) is that the
 ;; latter records a `QueryExecution` (inserts a new row) recording some stats about this Query run including

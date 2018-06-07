@@ -14,6 +14,11 @@
   ;; TODO - do we need to hydrate anything here?
   (db/select GroupTableAccessPolicy))
 
+(api/defendpoint GET "/:id"
+  "Fetch GTAP by `id`"
+  [id]
+  (api/check-404 (GroupTableAccessPolicy id)))
+
 ;; TODO - not sure what other endpoints we might need, e.g. for fetching the list above but for a given group or Table
 
 #_(def ^:private AttributeRemappings
@@ -24,7 +29,7 @@
   "Create a new GTAP."
   [:as {{:keys [table_id card_id group_id attribute_remappings]} :body}]
   {table_id             su/IntGreaterThanZero
-   card_id              su/IntGreaterThanZero
+   card_id              (s/maybe su/IntGreaterThanZero)
    group_id             su/IntGreaterThanZero
    #_attribute_remappings #_AttributeRemappings} ; TODO -  fix me
   (db/insert! GroupTableAccessPolicy
@@ -41,10 +46,12 @@
   {card_id              (s/maybe su/IntGreaterThanZero)
    #_attribute_remappings #_AttributeRemappings} ; TODO -  fix me
   (api/check-404 (GroupTableAccessPolicy id))
-  ;; only update `card_id` and/or `attribute_remappings` if non-nil values were passed in. That way this endpoint can
-  ;; be used to update only one value or the other. Ignore everything else.
-  (db/update! GroupTableAccessPolicy id
-    (u/select-non-nil-keys body [:card_id :attribute_remappings]))
+  ;; Only update `card_id` and/or `attribute_remappings` if the values are present in the body of the request.
+  ;; This allows existing values to be "cleared" by being set to nil
+  (when (some #(contains? body %) [:card_id :attribute_remappings])
+    (db/update! GroupTableAccessPolicy id
+      (u/select-keys-when body
+        :present #{:card_id :attribute_remappings})))
   (GroupTableAccessPolicy id))
 
 (api/defendpoint DELETE "/:id"
