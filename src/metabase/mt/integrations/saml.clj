@@ -63,17 +63,17 @@
     ;; send an email to everyone including the site admin if that's set
     (email/send-user-joined-admin-notification-email! <>, :google-auth? true)))
 
-(defn- fetch-and-update-login-attributes! [first-name last-name email old-user-attributes]
-  (when-let [{:keys [id login_attributes] :as user} (db/select-one [User :id :last_login :login_attributes] :email email)]
-    (if (= login_attributes old-user-attributes)
+(defn- fetch-and-update-login-attributes! [email new-user-attributes]
+  (when-let [{:keys [id login_attributes] :as user} (db/select-one User :email email)]
+    (if (= login_attributes new-user-attributes)
       user
       (do
-        (db/update! User (:id user) :login_attributes login_attributes)
-        (assoc user :login_attributes login_attributes)))))
+        (db/update! User id :login_attributes new-user-attributes)
+        (User id)))))
 
 (defn saml-auth-fetch-or-create-user!
   "Returns a session map for the given `email`. Will create the user if needed."
   [first-name last-name email user-attributes]
-  (when-let [user (or (fetch-and-update-login-attributes! first-name last-name email user-attributes)
+  (when-let [user (or (fetch-and-update-login-attributes! email user-attributes)
                       (create-new-saml-auth-user! first-name last-name email))]
     {:id (session/create-session! user)}))
