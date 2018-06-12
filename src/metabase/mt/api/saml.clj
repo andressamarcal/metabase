@@ -1,5 +1,6 @@
 (ns metabase.mt.api.saml
-  (:require [compojure.core :refer [GET POST]]
+  (:require [clojure.string :as str]
+            [compojure.core :refer [GET POST]]
             [medley.core :as m]
             [metabase.api.common :as api]
             [metabase.mt.integrations.saml :as isaml]
@@ -50,6 +51,22 @@
      :headers {"Content-type" "text/xml"}
      :body (saml-sp/metadata (isaml/application-name) acs-uri certificate-x509)}))
 
+(defn get-idp-redirect
+  "This is similar to `saml/get-idp-redirect` but allows existing parameters on the `idp-url`. The original version
+  assumed no paramters and always included a `?` before the SAML parameters. This version will check for a `?` and if
+  present just append the parameters.
+
+  Returns Ring response for HTTP 302 redirect."
+  [idp-url saml-request relay-state]
+  (resp/redirect
+   (str idp-url
+        (if (str/includes? idp-url "?")
+          "&"
+          "?")
+        (let [saml-request (saml-shared/str->deflate->base64 saml-request)]
+          (saml-shared/uri-query-str
+           {:SAMLRequest saml-request :RelayState relay-state})))))
+
 (api/defendpoint GET "/"
   "Initial call that will result in a redirect to the IDP along with information about how the IDP can authenticate
   and redirect them back to us"
@@ -61,7 +78,7 @@
         ;; (that's us) that we pass to the Identity Provider (i.e. Auth0) and it will include that state in it's
         ;; response. The IDP treats it as an opaque string and just returns it without examining/changing it
         hmac-relay-state (saml-routes/create-hmac-relay-state (:secret-key-spec mutables) "no-op")]
-    (saml-sp/get-idp-redirect idp-uri saml-request hmac-relay-state)))
+    (get-idp-redirect idp-uri saml-request hmac-relay-state)))
 
 (defn- unwrap-user-attributes
   "For some reason all of the user attributes coming back from the saml library are wrapped in a list, instead of 'Ryan',
