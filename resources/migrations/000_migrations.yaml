@@ -4186,6 +4186,25 @@ databaseChangeLog:
               - column:
                   name: collection_id
   - changeSet:
+      id: 80
+      author: camsaul
+      changes:
+        - addColumn:
+            tableName: collection
+            columns:
+              name: location
+              type: varchar(254)
+              remarks: 'Directory-structure path of ancestor Collections. e.g. "/1/2/" means our Parent is Collection 2, and their parent is Collection 1.'
+              constraints:
+                nullable: false
+              defaultValue: "/"
+        - createIndex:
+            tableName: collection
+            indexName: idx_collection_location
+            columns:
+              - column:
+                  name: location
+  - changeSet:
       id: 81
       author: camsaul
       comment: 'Added 0.30.0'
@@ -4208,6 +4227,19 @@ databaseChangeLog:
               name: collection_position
               type: smallint
               remarks: 'Optional pinned position for this item in its Collection. NULL means item is not pinned.'
+  - changeSet:
+      id: 82
+      author: senior
+      comment: 'Added 0.30.0'
+      changes:
+        - addColumn:
+            tableName: core_user
+            columns:
+              name: updated_at
+              type: datetime
+              remarks: 'When was this User last updated?'
+        - sql:
+            sql: update core_user set updated_at=date_joined
 # Remove the GTAP card_id constraint. When not included, will default to querying against the GTAP table_id.
   - changeSet:
       id: 83
@@ -4232,3 +4264,12 @@ databaseChangeLog:
               constraints:
                 nullable: false
               remarks: 'Boolean to indicate if this user is authenticated via SAML'
+# In 0.30.0 we finally removed the long-deprecated native read permissions. Since they're no longer considered valid by
+# our permissions code, remove any entries for them so they don't cause problems.
+  - changeSet:
+      id: 86
+      author: camsaul
+      comment: 'Added 0.30.0'
+      changes:
+        - sql:
+            sql: DELETE FROM permissions WHERE object LIKE '%/native/read/'

@@ -13,14 +13,15 @@ import QuestionPicker from "metabase/containers/QuestionPicker";
 import QuestionParameterTargetWidget from "metabase/parameters/containers/QuestionParameterTargetWidget";
 import Button from "metabase/components/Button";
 import ActionButton from "metabase/components/ActionButton";
-import ModalContent from "metabase/components/ModalContent";
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
 import Select, { Option } from "metabase/components/Select";
 import Radio from "metabase/components/Radio";
 import Icon from "metabase/components/Icon";
+import Tooltip from "metabase/components/Tooltip";
+import RetinaImage from "react-retina-image";
 
 import EntityObjectLoader from "metabase/entities/containers/EntityObjectLoader";
-import SavedQuestionLoader from "metabase/containers/SavedQuestionLoader";
+import QuestionLoader from "metabase/containers/QuestionLoader";
 
 import Dimension from "metabase-lib/lib/Dimension";
 import { mbqlEq } from "metabase/lib/query/util";
@@ -37,7 +38,7 @@ type GTAP = {
   table_id: ?number,
   group_id: ?number,
   card_id: ?number,
-  attribute_remappings: { [attribute: string]: string },
+  attribute_remappings: { [attribute: string]: any },
 };
 
 type Props = {
@@ -46,7 +47,8 @@ type Props = {
 };
 type State = {
   gtap: ?GTAP,
-  attributesOptions: string[],
+  attributesOptions: ?(string[]),
+  simple: boolean,
 };
 
 @withRouter
@@ -55,7 +57,7 @@ export default class GTAPModal extends React.Component {
   props: Props;
   state: State = {
     gtap: null,
-    attributesOptions: [],
+    attributesOptions: null,
     simple: true,
   };
   // $FlowFixMe: componentWillMount expected to return void
@@ -134,35 +136,43 @@ export default class GTAPModal extends React.Component {
   }
 
   render() {
-    const { params } = this.props;
-    const { gtap, simple } = this.state;
+    const { gtap, simple, attributesOptions } = this.state;
 
     const valid = this.isValid();
+    const canonicalGTAP = this._getCanonicalGTAP();
 
-    const attributesOptions = this.state.attributesOptions.filter(
-      attribute => !(attribute in gtap.attribute_remappings),
-    );
+    const remainingAttributesOptions =
+      gtap && attributesOptions
+        ? attributesOptions.filter(
+            attribute => !(attribute in gtap.attribute_remappings),
+          )
+        : [];
+
+    const hasAttributesOptions =
+      attributesOptions && attributesOptions.length > 0;
+    const hasValidMappings =
+      Object.keys((canonicalGTAP || {}).attribute_remappings || {}).length > 0;
 
     return (
       <div>
-        <h2 className="p3">{t`Grant segmented access to this table`}</h2>
+        <h2 className="p3">{t`Grant sandboxed access to this table`}</h2>
         <LoadingAndErrorWrapper loading={!gtap}>
           {() =>
             gtap && (
-              <div className="flex-full pb2">
-                <div className="px3 pb3 border-bottom">
-                  <div className="mb3">
-                    {t`When users in this group view this table they'll see a version of it that's filtered by a column or variable that's equal to one of their user attributes`}
+              <div>
+                <div className="px3 pb3">
+                  <div className="pb3">
+                    {t`When users in this group view this table they'll see a version of it that's filtered by their user attributes, or a custom view of it based on a saved question.`}
                   </div>
-                  <h4 className="mb1">
+                  <h4 className="pb1">
                     {t`How do you want to filter this table for users in this group?`}
                   </h4>
                   <Radio
-                    value={this.state.simple}
+                    value={simple}
                     options={[
                       { name: "Filter by a column in the table", value: true },
                       {
-                        name: "Use a saved question to create a custom filter",
+                        name: "Use a saved question to create a custom view for this table",
                         value: false,
                       },
                     ]}
@@ -170,85 +180,64 @@ export default class GTAPModal extends React.Component {
                     isVertical
                   />
                 </div>
-                <div className="px3 py2">
-                  {!this.state.simple && (
+                {!simple && (
+                  <div className="px3 pb3">
                     <div className="pb2">
-                      <QuestionPicker
-                        value={gtap.card_id}
-                        onChange={card_id =>
-                          this.setState({ gtap: { ...gtap, card_id } })
+                      {t`Pick a saved question that returns the custom view of this table that these users should see.`}
+                    </div>
+                    <QuestionPicker
+                      value={gtap.card_id}
+                      onChange={card_id =>
+                        this.setState({ gtap: { ...gtap, card_id } })
+                      }
+                    />
+                  </div>
+                )}
+                {gtap &&
+                  attributesOptions &&
+                  // show if in simple mode, or the admin has selected a card
+                  (simple || gtap.card_id != null) &&
+                  (hasAttributesOptions || hasValidMappings ? (
+                    <div className="p3 border-top border-bottom">
+                      {!simple &&
+                        <div className="pb2">
+                          {t`You can optionally add additional filters here based on user attributes. These filters will be applied on top of any filters that are already in this saved question.`}
+                        </div>
+                      }
+                      <AttributeMappingEditor
+                        value={gtap.attribute_remappings}
+                        onChange={attribute_remappings =>
+                          this.setState({
+                            gtap: { ...gtap, attribute_remappings },
+                          })
+                        }
+                        simple={simple}
+                        gtap={gtap}
+                        attributesOptions={remainingAttributesOptions}
+                      />
+                    </div>
+                  ) : (
+                    <div className="px3">
+                      <AttributeOptionsEmptyState
+                        title={
+                          simple
+                            ? t`For this option to work, your users need to have some attributes`
+                            : t`To add additional filters, your users need to have some attributes`
                         }
                       />
                     </div>
-                  )}
-                  {gtap && (
-                    <MappingEditor
-                      style={{ width: "100%" }}
-                      value={gtap.attribute_remappings}
-                      onChange={attribute_remappings =>
-                        this.setState({
-                          gtap: { ...gtap, attribute_remappings },
-                        })
-                      }
-                      keyPlaceholder={t`Pick a user attribute`}
-                      // keyHeader={
-                      //   <span className="text-uppercase text-small text-grey-4 pb2">
-                      //     {t`User attribute`}
-                      //   </span>
-                      // }
-                      renderKeyInput={({ value, onChange }) => (
-                        <AttributePicker
-                          value={value}
-                          onChange={onChange}
-                          attributesOptions={(value ? [value] : []).concat(
-                            attributesOptions,
-                          )}
-                        />
-                      )}
-                      render
-                      valuePlaceholder={
-                        simple ? t`Pick a column` : t`Pick a parameter`
-                      }
-                      // valueHeader={
-                      //   <span className="text-uppercase text-small text-grey-4 pb2">
-                      //     {t`Parameter`}
-                      //   </span>
-                      // }
-                      renderValueInput={({ value, onChange }) =>
-                        simple ? (
-                          <TableTargetPicker
-                            value={value}
-                            onChange={onChange}
-                            tableId={gtap.table_id}
-                          />
-                        ) : (
-                          <QuestionTargetPicker
-                            value={value}
-                            onChange={onChange}
-                            questionId={gtap.card_id}
-                          />
-                        )
-                      }
-                      divider={
-                        <span className="px2 text-bold">{t`equals`}</span>
-                      }
-                      addText={t`Add a mapping`}
-                      canAdd={attributesOptions.length > 0}
-                      canDelete={true}
-                      swapKeyAndValue
-                    />
-                  )}
-                </div>
+                  ))}
               </div>
             )
           }
         </LoadingAndErrorWrapper>
-        <div className="p3 border-top">
-          {valid && (
-            <div className="pb1">
-              <GTAPSummary gtap={this._getCanonicalGTAP()} />
-            </div>
-          )}
+        <div className="p3">
+          {valid &&
+            canonicalGTAP && (
+              <div className="pb1">
+                <GTAPSummary gtap={canonicalGTAP} />
+              </div>
+            )}
           <div className="flex align-center justify-end">
             <Button onClick={this.close}>{t`Cancel`}</Button>
             <ActionButton
@@ -298,18 +287,17 @@ const QuestionTargetPicker = ({ value, onChange, questionId }) => (
   </div>
 );
 
-import { serializeCardForUrl } from "metabase/lib/card";
+const rawDataQuestionForTable = tableId => ({
+  dataset_query: {
+    type: "query",
+    query: { source_table: tableId },
+  },
+});
 
 const TableTargetPicker = ({ value, onChange, tableId }) => (
   <div style={{ minWidth: 200 }}>
     <QuestionParameterTargetWidget
-      // HACK: uses QuestionLoader which only takes questionId or questionHash
-      questionHash={serializeCardForUrl({
-        dataset_query: {
-          type: "query",
-          query: { source_table: tableId },
-        },
-      })}
+      questionObject={rawDataQuestionForTable(tableId)}
       target={value}
       onChange={onChange}
       placeholder={t`Pick a column`}
@@ -331,11 +319,11 @@ const GTAPSummary = ({ gtap }: { gtap: GTAP }) => {
         Summary
       </div>
       <SummaryRow
-        icon="mine"
-        content={jt`${<GroupName groupId={gtap.group_id} />} can view`}
+        icon="group"
+        content={jt`Users in ${<GroupName groupId={gtap.group_id} />} can view`}
       />
       <SummaryRow
-        icon="table2"
+        icon="table"
         content={
           gtap.card_id
             ? jt`rows in the ${(
@@ -344,15 +332,23 @@ const GTAPSummary = ({ gtap }: { gtap: GTAP }) => {
             : jt`rows in the ${<TableName tableId={gtap.table_id} />} table`
         }
       />
-      {Object.entries(gtap.attribute_remappings).map(([attribute, target]) => (
-        <SummaryRow
-          key={attribute}
-          icon="funneloutline"
-          content={jt`where ${(
-            <TargetName gtap={gtap} target={target} />
-          )} equals ${<span className="text-code">{attribute}</span>}`}
-        />
-      ))}
+      {Object.entries(gtap.attribute_remappings).map(
+        ([attribute, target], index) => (
+          <SummaryRow
+            key={attribute}
+            icon="funneloutline"
+            content={
+              index === 0
+                ? jt`where ${(
+                    <TargetName gtap={gtap} target={target} />
+                  )} equals ${<span className="text-code">{attribute}</span>}`
+                : jt`and ${(
+                    <TargetName gtap={gtap} target={target} />
+                  )} equals ${<span className="text-code">{attribute}</span>}`
+            }
+          />
+        ),
+      )}
     </div>
   );
 };
@@ -390,7 +386,7 @@ const TableName = ({ tableId }) => (
   </EntityObjectLoader>
 );
 
-const TargetName = ({ gtap, target }) => {
+const TargetName = ({ gtap, target }: { gtap: GTAP, target: any }) => {
   if (Array.isArray(target)) {
     if (
       (mbqlEq(target[0], "variable") || mbqlEq(target[0], "dimension")) &&
@@ -403,7 +399,12 @@ const TargetName = ({ gtap, target }) => {
       );
     } else if (mbqlEq(target[0], "dimension")) {
       return (
-        <SavedQuestionLoader questionId={gtap.card_id}>
+        <QuestionLoader
+          questionId={gtap.card_id}
+          questionObject={
+            gtap.card_id == null ? rawDataQuestionForTable(gtap.table_id) : null
+          }
+        >
           {({ question }) =>
             question && (
               <span>
@@ -414,9 +415,82 @@ const TargetName = ({ gtap, target }) => {
               </span>
             )
           }
-        </SavedQuestionLoader>
+        </QuestionLoader>
       );
     }
   }
   return <emphasis>[Unknown target]</emphasis>;
 };
+
+const AttributeOptionsEmptyState = ({ title }) => (
+  <div className="flex align-center rounded bg-slate-extra-light p2">
+    <RetinaImage
+      src="app/assets/img/attributes_illustration.png"
+      className="mr2"
+    />
+    <div>
+      <h3 className="pb1">{title}</h3>
+      <div
+      >{t`You can add attributes automatically by setting up an SSO that uses SAML, or you can enter them manually by going to the People section and clicking on the … menu on the far right.`}</div>
+    </div>
+  </div>
+);
+
+const AttributeMappingEditor = ({
+  value,
+  onChange,
+  simple,
+  attributesOptions,
+  gtap,
+}) => (
+  <MappingEditor
+    style={{ width: "100%" }}
+    value={value}
+    onChange={onChange}
+    keyPlaceholder={t`Pick a user attribute`}
+    keyHeader={
+      <div className="text-uppercase text-small text-grey-4 flex align-center">
+        {t`User attribute`}
+        <Tooltip
+          tooltip={t`We can automatically get your users’ attributes if you’ve set up SSO, or you can add them manually from the "…" menu in the People section of the Admin Panel.`}
+        >
+          <Icon className="ml1" name="infooutlined" />
+        </Tooltip>
+      </div>
+    }
+    renderKeyInput={({ value, onChange }) => (
+      <AttributePicker
+        value={value}
+        onChange={onChange}
+        attributesOptions={(value ? [value] : []).concat(attributesOptions)}
+      />
+    )}
+    render
+    valuePlaceholder={simple ? t`Pick a column` : t`Pick a parameter`}
+    valueHeader={
+      <div className="text-uppercase text-small text-grey-4">
+        {simple ? t`Column` : t`Parameter or variable`}
+      </div>
+    }
+    renderValueInput={({ value, onChange }) =>
+      simple && gtap.table_id != null ? (
+        <TableTargetPicker
+          value={value}
+          onChange={onChange}
+          tableId={gtap.table_id}
+        />
+      ) : !simple && gtap.card_id != null ? (
+        <QuestionTargetPicker
+          value={value}
+          onChange={onChange}
+          questionId={gtap.card_id}
+        />
+      ) : null
+    }
+    divider={<span className="px2 text-bold">{t`equals`}</span>}
+    addText={t`Add a filter`}
+    canAdd={attributesOptions.length > 0}
+    canDelete={true}
+    swapKeyAndValue
+  />
+);

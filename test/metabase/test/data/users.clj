@@ -164,8 +164,10 @@
   (db/delete! User :id [:not-in (map user->id [:crowberto :lucky :rasta :trashbird])]))
 
 (defn call-with-api-vars
-  "Call F with rasta as the current user."
+  "Call `f` with various `metabase.api.common` dynamic vars bound to the test User named by `user-kwd`."
   [user-kwd f]
-  (binding [api/*current-user-id*              (user->id user-kwd)
-            api/*current-user-permissions-set* (atom (user/permissions-set (user->id user-kwd)))]
+  (binding [api/*current-user*                 (delay (User (user->id user-kwd)))
+            api/*current-user-id*              (user->id user-kwd)
+            api/*is-superuser?*                (db/select-one-field :is_superuser User :id (user->id user-kwd))
+            api/*current-user-permissions-set* (delay (user/permissions-set (user->id user-kwd)))]
     (f)))
