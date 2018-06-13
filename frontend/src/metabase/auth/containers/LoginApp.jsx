@@ -7,6 +7,7 @@ import cx from "classnames";
 import { t } from "c-3po";
 import AuthScene from "../components/AuthScene.jsx";
 import SSOLoginButton from "../components/SSOLoginButton.jsx";
+import Button from "metabase/components/Button.jsx";
 import FormField from "metabase/components/form/FormField.jsx";
 import FormLabel from "metabase/components/form/FormLabel.jsx";
 import FormMessage from "metabase/components/form/FormMessage.jsx";
@@ -107,6 +108,12 @@ export default class LoginApp extends Component {
     login(credentials, location.query.redirect);
   }
 
+  onClickSAMLLoginButton() {
+    console.log("onClickSAMLLoginButton()"); // NOCOMMIT
+    const { location, loginSAML } = this.props;
+    loginSAML(null, location.query.redirect);
+  }
+
   render() {
     const { loginError } = this.props;
     const ldapEnabled = Settings.ldapEnabled();
@@ -126,17 +133,25 @@ export default class LoginApp extends Component {
               <h3 className="Login-header Form-offset">{t`Sign in to Metabase`}</h3>
 
               {Settings.ssoEnabled() && (
-                <div className="mx4 mb4 py3 border-bottom relative">
-                  <SSOLoginButton provider="google" ref="ssoLoginButton" />
-                  {/*<div className="g-signin2 ml1 relative z2" id="g-signin2"></div>*/}
-                  <div
-                    className="mx1 absolute text-centered left right"
-                    style={{ bottom: -8 }}
-                  >
-                    <span className="text-bold px3 py2 text-grey-3 bg-white">{t`OR`}</span>
-                  </div>
-                </div>
+                 <div className="mx4 mb4 py3 border-bottom relative">
+                   <SSOLoginButton provider="google" ref="ssoLoginButton" />
+                   {/*<div className="g-signin2 ml1 relative z2" id="g-signin2"></div>*/}
+                   <div
+                     className="mx1 absolute text-centered left right"
+                     style={{ bottom: -8 }}
+                   >
+                     <span className="text-bold px3 py2 text-grey-3 bg-white">{t`OR`}</span>
+                   </div>
+                 </div>
               )}
+
+              <div className="mx4 mb4 py3 border-bottom relative">
+                <Button type="button" onClick={this.onClickSAMLLoginButton.bind(this)}>
+                  {t`Login with SAML`}
+                </Button>
+                <span className="text-bold px3 py2 text-grey-3 bg-white">{t`OR`}</span>
+              </div>
+
 
               <FormMessage
                 formError={
@@ -152,8 +167,8 @@ export default class LoginApp extends Component {
                 <FormLabel
                   title={
                     Settings.ldapEnabled()
-                      ? t`Username or email address`
-                      : t`Email address`
+                       ? t`Username or email address`
+                       : t`Email address`
                   }
                   fieldName={"username"}
                   formError={loginError}
@@ -207,7 +222,7 @@ export default class LoginApp extends Component {
               <div className="Form-actions p2 Grid Grid--full md-Grid--1of2">
                 <button
                   className={cx("Button Grid-cell", {
-                    "Button--primary": this.state.valid,
+                      "Button--primary": this.state.valid,
                   })}
                   disabled={!this.state.valid}
                 >
@@ -216,13 +231,13 @@ export default class LoginApp extends Component {
                 <Link
                   to={
                     "/auth/forgot_password" +
-                    (Utils.validEmail(this.state.credentials.username)
-                      ? "?email=" + this.state.credentials.username
-                      : "")
+                     (Utils.validEmail(this.state.credentials.username)
+                    ? "?email=" + this.state.credentials.username
+                    : "")
                   }
                   className="Grid-cell py2 sm-py0 text-grey-3 md-text-right text-centered flex-full link"
                   onClick={e => {
-                    window.OSX ? window.OSX.resetPassword() : null;
+                      window.OSX ? window.OSX.resetPassword() : null;
                   }}
                 >{t`I seem to have forgotten my password`}</Link>
               </div>

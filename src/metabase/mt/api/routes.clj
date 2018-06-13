@@ -1,11 +1,12 @@
 (ns metabase.mt.api.routes
   "Multi-tenant API routes."
   (:require [clojure.tools.logging :as log]
-            [compojure.core :refer [defroutes context routes]]
+            [compojure.core :refer [context defroutes routes]]
+            [metabase.middleware :as middleware]
             [metabase.mt.api
              [gtap :as gtap]
-             [user :as user]]
-            [metabase.middleware :as middleware]))
+             [saml :as saml]
+             [user :as user]]))
 
 ;; this is copied from `metabase.api.routes` because if we require that above we will destroy startup times for `lein
 ;; ring server`
@@ -19,7 +20,8 @@
    []
    (routes
     (context "/gtap" [] (+auth gtap/routes))
-    (context "/user" [] (+auth user/routes)))))
+    (context "/user" [] (+auth user/routes))
+    (context "/saml" [] saml/routes))))
 
 (defn install-mt-routes!
   "Swap out `metabase.api.routes/routes` with a new version that includes the multi-tenant routes. Take care to only
