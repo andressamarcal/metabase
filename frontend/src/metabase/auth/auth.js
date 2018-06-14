@@ -84,31 +84,15 @@ export const loginGoogle = createThunkAction(LOGIN_GOOGLE, function(
 });
 
 export const LOGIN_SAML = "metabase/auth/LOGIN_SAML";
-export const loginSAML = createThunkAction(LOGIN_SAML, function(
-    userAttributes,
-    redirectUrl
-) {
-    return async function(dispatch, getState) {
-        try {
-            console.log("here!"); // NOCOMMIT
-            // FIXME!
-            window.location = "http://localhost:3000/api/mt/saml";
-
-            // TODO - how do we get our ATTRIBUTES!
-
-            /* let newSession = await SessionApi.createWithSAML(userAttributes);
-
-             * // if we get here, we succeeded. Set the session cookie
-             * MetabaseCookies.setSessionCookie(newSession.id);
-
-             * MetabaseAnalytics.trackEvent("Auth", "SAML Login");
-
-             * await dispatch(refreshCurrentUser());
-             * dispatch(push(redirectUrl || "/"));*/
-        } catch (error) {
-            return error;
-        }
-    }
+export const loginSAML = createThunkAction(LOGIN_SAML, function(redirectUrl) {
+  return async function(dispatch, getState) {
+    MetabaseAnalytics.trackEvent("Auth", "SAML Login Start");
+    // use `window.location` instead of `push` since it's not a frontend route
+    window.location =
+      MetabaseSettings.get("site_url") +
+      "/api/mt/saml" +
+      (redirectUrl ? "?redirect=" + encodeURIComponent(redirectUrl) : "");
+  };
 });
 
 // logout

@@ -284,6 +284,69 @@ const SECTIONS = [
       },
     ],
   },
+
+  {
+    name: t`SAML`,
+    slug: "saml",
+    settings: [
+      {
+        key: "saml-enabled",
+        display_name: t`SAML Authentication`,
+        description: null,
+        type: "boolean",
+      },
+      {
+        key: "saml-identity-provider-uri",
+        display_name: t`SAML Identity Provider URI`,
+        placeholder: "https://saml.yourdomain.org",
+        type: "string",
+        required: true,
+        autoFocus: true,
+      },
+      {
+        key: "saml-identity-provider-certificate",
+        display_name: t`SAML Identity Provider Certificate`,
+        type: "text",
+        required: true,
+      },
+      {
+        key: "saml-application-name",
+        display_name: t`SAML Application Name`,
+        type: "string",
+      },
+      {
+        key: "saml-keystore-path",
+        display_name: t`SAML Keystore Path`,
+        type: "string",
+      },
+      {
+        key: "saml-keystore-password",
+        display_name: t`SAML Keystore Password`,
+        placeholder: "Shh...",
+        type: "password",
+      },
+      {
+        key: "saml-keystore-alias",
+        display_name: t`SAML Keystore Alias`,
+        type: "string",
+      },
+      {
+        key: "saml-attribute-email",
+        display_name: t`Email attribute`,
+        type: "string",
+      },
+      {
+        key: "saml-attribute-firstname",
+        display_name: t`First name attribute`,
+        type: "string",
+      },
+      {
+        key: "saml-attribute-lastname",
+        display_name: t`Last name attribute`,
+        type: "string",
+      },
+    ],
+  },
   {
     name: t`Maps`,
     slug: "maps",
