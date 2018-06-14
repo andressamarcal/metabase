@@ -59,7 +59,7 @@
                                                 :card_id card-id
                                                 :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]}}]]
 
-    (users/call-with-api-vars
+    (users/do-with-test-user
      :rasta
      (fn []
        (-> (data/query :venues
@@ -89,7 +89,7 @@
                                                    :attribute_remappings {:cat ["variable" ["template-tag" "cat"]]}}]]
 
        (add-segmented-perms db-id)
-       (users/call-with-api-vars
+       (users/do-with-test-user
         :rasta
         (fn []
           (-> (ql/query (ql/source-table (data/id :venues))
@@ -116,7 +116,7 @@
                                                    :card_id card-id
                                                    :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]}}]]
        (add-segmented-perms db-id)
-       (users/call-with-api-vars
+       (users/do-with-test-user
         :rasta
         (fn []
           (-> (ql/query (ql/source-table (data/id :venues))
@@ -145,7 +145,7 @@
                                                    :attribute_remappings {:something.different ["variable" ["template-tag" "cat"]]}}]]
 
        (add-segmented-perms db-id)
-       (users/call-with-api-vars
+       (users/do-with-test-user
         :rasta
         (fn []
           (-> (ql/query (ql/source-table (data/id :venues))
@@ -197,7 +197,7 @@
                                                    :card_id              nil
                                                    :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]}}]]
        (add-segmented-perms db-id)
-       (users/call-with-api-vars
+       (users/do-with-test-user
         :rasta
         (fn []
           (-> (ql/query (ql/source-table (data/id :venues))
