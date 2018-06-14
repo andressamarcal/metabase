@@ -1,6 +1,7 @@
 import React from "react";
-import { Box, Flex, Subhead } from "rebass";
+import { Box } from "grid-styled";
 import { t } from "c-3po";
+import BrowserCrumbs from "metabase/components/BrowserCrumbs";
 
 import EntityItem from "metabase/components/EntityItem";
 import EntityListLoader from "metabase/entities/containers/EntityListLoader";
@@ -13,6 +14,7 @@ import Card from "metabase/components/Card";
 import { Grid, GridItem } from "metabase/components/Grid";
 import Icon from "metabase/components/Icon";
 import Link from "metabase/components/Link";
+import Subhead from "metabase/components/Subhead";
 
 export const DatabaseListLoader = props => (
   <EntityListLoader entityType="databases" {...props} />
@@ -39,12 +41,6 @@ const DatabaseName = ({ dbId }) => (
   >
     {({ object }) => (object ? <span>{object.name}</span> : null)}
   </EntityObjectLoader>
-);
-
-const BrowseHeader = ({ children }) => (
-  <Box my={3}>
-    <Subhead>{children}</Subhead>
-  </Box>
 );
 
 export class SchemaBrowser extends React.Component {
@@ -177,20 +173,3 @@ export class DatabaseBrowser extends React.Component {
     );
   }
 }
-
-const BrowserCrumbs = ({ crumbs }) => (
-  <Flex align="center">
-    {crumbs.filter(c => c).map((crumb, index, crumbs) => [
-      crumb.to ? (
-        <Link key={"title" + index} to={crumb.to}>
-          <BrowseHeader>{crumb.title}</BrowseHeader>
-        </Link>
-      ) : (
-        <BrowseHeader>{crumb.title}</BrowseHeader>
-      ),
-      index < crumbs.length - 1 ? (
-        <Icon key={"divider" + index} name="chevronright" mx={2} />
-      ) : null,
-    ])}
-  </Flex>
-);

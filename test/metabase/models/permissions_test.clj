@@ -1,13 +1,18 @@
 (ns metabase.models.permissions-test
   (:require [expectations :refer :all]
             [metabase.models
+             [collection :as collection :refer [Collection]]
+             [collection-test :as collection-test]
              [database :refer [Database]]
              [permissions :as perms]
-             [permissions-group :refer [PermissionsGroup]]
+             [permissions-group :as group :refer [PermissionsGroup]]
              [table :refer [Table]]]
             [metabase.test.data :as data]
+            [metabase.test.data.users :as test-users]
             [metabase.util :as u]
-            [toucan.util.test :as tt]))
+            [toucan.db :as db]
+            [toucan.util.test :as tt])
+  (:import clojure.lang.ExceptionInfo))
 
 ;;; ----------------------------------------------- valid-object-path? -----------------------------------------------
 
@@ -143,6 +148,23 @@
 (expect Exception (perms/object-path 1 "public" false))
 (expect Exception (perms/object-path 1 "public"{}))
 (expect Exception (perms/object-path 1 "public"[]))
+
+;;; ---------------------------------- Generating permissions paths for Collections ----------------------------------
+
+(expect "/collection/1/read/" (perms/collection-read-path 1))
+(expect "/collection/1/read/" (perms/collection-read-path {:id 1}))
+(expect Exception             (perms/collection-read-path {}))
+(expect Exception             (perms/collection-read-path nil))
+(expect Exception             (perms/collection-read-path "1"))
+
+(expect "/collection/1/" (perms/collection-readwrite-path 1))
+(expect "/collection/1/" (perms/collection-readwrite-path {:id 1}))
+(expect Exception        (perms/collection-readwrite-path {}))
+(expect Exception        (perms/collection-readwrite-path nil))
+(expect Exception        (perms/collection-readwrite-path "1"))
+
+(expect "/collection/root/read/" (perms/collection-read-path      collection/root-collection))
+(expect "/collection/root/"      (perms/collection-readwrite-path collection/root-collection))
 
 
 ;;; ------------------------------------------- is-permissions-for-object? -------------------------------------------
@@ -347,23 +369,23 @@
 
 ;; If either set is invalid, it should throw an exception
 
-(expect AssertionError (perms/set-has-full-permissions-for-set? #{"/" "/toucans/"}
-                                                                #{"/db/1/"}))
+(expect ExceptionInfo (perms/set-has-full-permissions-for-set? #{"/" "/toucans/"}
+                        #{"/db/1/"}))
 
-(expect AssertionError (perms/set-has-full-permissions-for-set? #{"/db/1/" "//"}
-                                                                #{"/db/1/"}))
+(expect ExceptionInfo (perms/set-has-full-permissions-for-set? #{"/db/1/" "//"}
+                        #{"/db/1/"}))
 
-(expect AssertionError (perms/set-has-full-permissions-for-set? #{"/db/1/" "/db/1/table/2/"}
-                                                                #{"/db/1/"}))
+(expect ExceptionInfo (perms/set-has-full-permissions-for-set? #{"/db/1/" "/db/1/table/2/"}
+                        #{"/db/1/"}))
 
-(expect AssertionError (perms/set-has-full-permissions-for-set? #{"/db/1/"}
-                                                                #{"/db/1/native/schema/"}))
+(expect ExceptionInfo (perms/set-has-full-permissions-for-set? #{"/db/1/"}
+                        #{"/db/1/native/schema/"}))
 
-(expect AssertionError (perms/set-has-full-permissions-for-set? #{"/db/1/"}
-                                                                #{"/db/1/schema/public/" "/kanye/"}))
+(expect ExceptionInfo (perms/set-has-full-permissions-for-set? #{"/db/1/"}
+                        #{"/db/1/schema/public/" "/kanye/"}))
 
-(expect AssertionError (perms/set-has-full-permissions-for-set? #{"/db/1/"}
-                                                                #{"/db/1/schema/public/table/1/" "/ocean/"}))
+(expect ExceptionInfo (perms/set-has-full-permissions-for-set? #{"/db/1/"}
+                        #{"/db/1/schema/public/table/1/" "/ocean/"}))
 
 
 ;;; -------------------------------------- set-has-partial-permissions-for-set? --------------------------------------
@@ -586,3 +608,65 @@
                           {(data/id :venues)
                            {:read :all, :query :segmented}}})
     (test-data-graph group)))
+
+;;; +----------------------------------------------------------------------------------------------------------------+
+;;; |                                 Granting/Revoking Permissions Helper Functions                                 |
+;;; +----------------------------------------------------------------------------------------------------------------+
+
+;; Make sure if you try to use the helper function to *revoke* perms for a Personal Collection, you get an Exception
+(expect
+  Exception
+  (do
+    (collection-test/force-create-personal-collections!)
+    (perms/revoke-collection-permissions!
+     (group/all-users)
+     (u/get-id (db/select-one 'Collection :personal_owner_id (test-users/user->id :lucky))))))
+
+;; (should apply to descendants as well)
+(expect
+  Exception
+  (tt/with-temp Collection [collection {:location (collection/children-location
+                                                   (collection/user->personal-collection
+                                                    (test-users/user->id :lucky)))}]
+    (perms/revoke-collection-permissions!
+     (group/all-users)
+     collection)))
+
+;; Make sure if you try to use the helper function to grant read perms for a Personal Collection, you get an Exception
+(expect
+  Exception
+  (do
+    (collection-test/force-create-personal-collections!)
+    (perms/grant-collection-read-permissions!
+     (group/all-users)
+     (u/get-id (db/select-one 'Collection :personal_owner_id (test-users/user->id :lucky))))))
+
+;; (should apply to descendants as well)
+(expect
+  Exception
+  (tt/with-temp Collection [collection {:location (collection/children-location
+                                                   (collection/user->personal-collection
+                                                    (test-users/user->id :lucky)))}]
+    (perms/grant-collection-read-permissions!
+     (group/all-users)
+     collection)))
+
+;; Make sure if you try to use the helper function to grant readwrite perms for a Personal Collection, you get an
+;; Exception
+(expect
+  Exception
+  (do
+    (collection-test/force-create-personal-collections!)
+    (perms/grant-collection-readwrite-permissions!
+     (group/all-users)
+     (u/get-id (db/select-one 'Collection :personal_owner_id (test-users/user->id :lucky))))))
+
+;; (should apply to descendants as well)
+(expect
+  Exception
+  (tt/with-temp Collection [collection {:location (collection/children-location
+                                                   (collection/user->personal-collection
+                                                    (test-users/user->id :lucky)))}]
+    (perms/grant-collection-readwrite-permissions!
+     (group/all-users)
+     collection)))

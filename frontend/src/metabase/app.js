@@ -21,6 +21,7 @@ if (window.MetabaseLocalization) {
 import React from "react";
 import ReactDOM from "react-dom";
 import { Provider } from "react-redux";
+import { ThemeProvider } from "styled-components";
 
 import MetabaseAnalytics, {
   registerAnalyticsClickListener,
@@ -48,6 +49,10 @@ const browserHistory = useRouterHistory(createHistory)({
   basename: BASENAME,
 });
 
+const theme = {
+  space: [4, 8, 16, 32, 64, 128],
+};
+
 function _init(reducers, getRoutes, callback) {
   const store = getStore(reducers, browserHistory);
   const routes = getRoutes(store);
@@ -55,7 +60,9 @@ function _init(reducers, getRoutes, callback) {
 
   ReactDOM.render(
     <Provider store={store}>
-      <Router history={history}>{routes}</Router>
+      <ThemeProvider theme={theme}>
+        <Router history={history}>{routes}</Router>
+      </ThemeProvider>
     </Provider>,
     document.getElementById("root"),
   );
