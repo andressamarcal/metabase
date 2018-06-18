@@ -90,7 +90,7 @@ export const loginSAML = createThunkAction(LOGIN_SAML, function(redirectUrl) {
     // use `window.location` instead of `push` since it's not a frontend route
     window.location =
       MetabaseSettings.get("site_url") +
-      "/api/mt/saml" +
+      "/auth/sso" +
       (redirectUrl ? "?redirect=" + encodeURIComponent(redirectUrl) : "");
   };
 });
