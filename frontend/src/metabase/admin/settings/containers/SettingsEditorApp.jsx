@@ -17,6 +17,8 @@ import SettingsUpdatesForm from "../components/SettingsUpdatesForm.jsx";
 import SettingsSingleSignOnForm from "../components/SettingsSingleSignOnForm.jsx";
 import SettingsAuthenticationOptions from "../components/SettingsAuthenticationOptions.jsx";
 
+import SettingsSAMLForm from "../components/SettingsSAMLForm.jsx";
+
 import { prepareAnalyticsValue } from "metabase/admin/settings/utils";
 
 import _ from "underscore";
@@ -178,6 +180,16 @@ export default class SettingsEditorApp extends Component {
                 }).settings
               }
               updateSetting={this.updateSetting}
+            />
+          );
+        } else if (this.props.params.authType === "saml") {
+          return (
+            <SettingsSAMLForm
+              elements={
+                _.findWhere(this.props.sections, { slug: "saml" }).settings
+              }
+              updateSettings={this.props.updateSettings}
+              settingValues={settingValues}
             />
           );
         }

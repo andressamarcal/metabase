@@ -296,6 +296,7 @@ const SECTIONS = [
   {
     name: t`SAML`,
     slug: "saml",
+    sidebar: false,
     settings: [
       {
         key: "saml-enabled",
