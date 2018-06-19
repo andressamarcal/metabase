@@ -109,7 +109,9 @@
 ;; ▲▲▲ PRE-PROCESSING ▲▲▲ happens from BOTTOM-TO-TOP, e.g. the results of `expand-macros` are passed to
 ;; `substitute-parameters`
 
-(def pipeline-functions (atom qp-pipeline-functions))
+(def pipeline-functions
+  "Mutable list of query pipeline functions, useful for making changes to the query pipeline after startup"
+  (atom qp-pipeline-functions))
 
 (defn- qp-pipeline
   "Construct a new Query Processor pipeline with F as the final 'piviotal' function. e.g.:
