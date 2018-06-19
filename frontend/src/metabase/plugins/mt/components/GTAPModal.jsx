@@ -172,7 +172,8 @@ export default class GTAPModal extends React.Component {
                     options={[
                       { name: "Filter by a column in the table", value: true },
                       {
-                        name: "Use a saved question to create a custom view for this table",
+                        name:
+                          "Use a saved question to create a custom view for this table",
                         value: false,
                       },
                     ]}
@@ -199,11 +200,11 @@ export default class GTAPModal extends React.Component {
                   (simple || gtap.card_id != null) &&
                   (hasAttributesOptions || hasValidMappings ? (
                     <div className="p3 border-top border-bottom">
-                      {!simple &&
+                      {!simple && (
                         <div className="pb2">
                           {t`You can optionally add additional filters here based on user attributes. These filters will be applied on top of any filters that are already in this saved question.`}
                         </div>
-                      }
+                      )}
                       <AttributeMappingEditor
                         value={gtap.attribute_remappings}
                         onChange={attribute_remappings =>
