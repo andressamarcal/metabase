@@ -4,6 +4,8 @@
             [medley.core :as m]
             [metabase.api.common :as api]
             [metabase.mt.integrations.saml :as isaml]
+            [metabase.public-settings :as public-settings]
+            [puppetlabs.i18n.core :refer [tru]]
             [ring.util.response :as resp]
             [saml20-clj
              [routes :as saml-routes]
@@ -12,18 +14,18 @@
 
 (def ^:private saml-state
   (delay
-   (let [keystore-file     (isaml/keystore-path)
-         keystore-password (isaml/keystore-password)
-         key-alias         (isaml/keystore-alias)
+   (let [keystore-file     (isaml/saml-keystore-path)
+         keystore-password (isaml/saml-keystore-password)
+         key-alias         (isaml/saml-keystore-alias)
          decrypter         (saml-sp/make-saml-decrypter keystore-file keystore-password key-alias)
          sp-cert           (saml-shared/get-certificate-b64 keystore-file keystore-password key-alias)
          mutables          (assoc (saml-sp/generate-mutables)
                              :xml-signer (saml-sp/make-saml-signer keystore-file keystore-password key-alias))
-         acs-uri           (str (isaml/base-uri) "/api/mt/saml")
+         acs-uri           (str (public-settings/site-url) "/auth/sso")
          saml-req-factory! (saml-sp/create-request-factory mutables
-                                                           (isaml/identity-provider-uri)
+                                                           (isaml/saml-identity-provider-uri)
                                                            saml-routes/saml-format
-                                                           (isaml/application-name)
+                                                           (isaml/saml-application-name)
                                                            acs-uri)
          prune-fn!         (partial saml-sp/prune-timed-out-ids!
                                     (:saml-id-timeouts mutables))]
@@ -49,7 +51,7 @@
   (let [{:keys [acs-uri certificate-x509]} @saml-state]
     {:status 200
      :headers {"Content-type" "text/xml"}
-     :body (saml-sp/metadata (isaml/application-name) acs-uri certificate-x509)}))
+     :body (saml-sp/metadata (isaml/saml-application-name) acs-uri certificate-x509)}))
 
 (defn get-idp-redirect
   "This is similar to `saml/get-idp-redirect` but allows existing parameters on the `idp-url`. The original version
@@ -67,17 +69,22 @@
           (saml-shared/uri-query-str
            {:SAMLRequest saml-request :RelayState relay-state})))))
 
+(defn- check-saml-enabled []
+  (api/check (isaml/saml-configured?)
+    [400 (tru "SAML has not been enabled and/or configured")]))
+
 (api/defendpoint GET "/"
   "Initial call that will result in a redirect to the IDP along with information about how the IDP can authenticate
   and redirect them back to us"
-  [:as req]
-  (let [idp-uri (isaml/identity-provider-uri)
+  [redirect]
+  (check-saml-enabled)
+  (let [idp-uri                              (isaml/saml-identity-provider-uri)
         {:keys [saml-req-factory! mutables]} @saml-state
-        saml-request (saml-req-factory!)
+        saml-request                         (saml-req-factory!)
         ;; We don't really use RelayState. It's intended to be something like an identifier from the Service Provider
         ;; (that's us) that we pass to the Identity Provider (i.e. Auth0) and it will include that state in it's
         ;; response. The IDP treats it as an opaque string and just returns it without examining/changing it
-        hmac-relay-state (saml-routes/create-hmac-relay-state (:secret-key-spec mutables) "no-op")]
+        hmac-relay-state                     (saml-routes/create-hmac-relay-state (:secret-key-spec mutables) redirect)]
     (get-idp-redirect idp-uri saml-request hmac-relay-state)))
 
 (defn- unwrap-user-attributes
@@ -95,9 +102,10 @@
   "Does the verification of the IDP's response and 'logs the user in'. The attributes are available in the
   response: `(get-in saml-info [:assertions :attrs])"
   {params :params session :session}
+  (check-saml-enabled)
   (let [{:keys [saml-req-factory!
                 mutables, decrypter]}     @saml-state
-        idp-cert                          (isaml/identity-provider-certificate)
+        idp-cert                          (isaml/saml-identity-provider-certificate)
         xml-string                        (saml-shared/base64->inflate->str (:SAMLResponse params))
         relay-state                       (:RelayState params)
         [valid-relay-state? continue-url] (saml-routes/valid-hmac-relay-state? (:secret-key-spec mutables) relay-state)
@@ -108,11 +116,11 @@
         valid?                            (and valid-relay-state? valid-signature?)
         saml-info                         (when valid? (saml-sp/saml-resp->assertions saml-resp decrypter))]
     (if-let [attrs (and valid? (-> saml-info :assertions first :attrs unwrap-user-attributes))]
-      (let [email               (get attrs (isaml/email-attribute))
-            first-name          (get attrs (isaml/first-name-attribute) "Unknown")
-            last-name           (get attrs (isaml/last-name-attribute) "Unknown")
+      (let [email               (get attrs (isaml/saml-attribute-email))
+            first-name          (get attrs (isaml/saml-attribute-firstname) "Unknown")
+            last-name           (get attrs (isaml/saml-attribute-lastname) "Unknown")
             {session-token :id} (isaml/saml-auth-fetch-or-create-user! first-name last-name email attrs)]
-        (resp/set-cookie (resp/redirect "/")
+        (resp/set-cookie (resp/redirect continue-url)
                          "metabase.SESSION_ID" session-token
                          {:path "/"}))
       {:status 500

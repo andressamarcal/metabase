@@ -8,43 +8,50 @@
             [puppetlabs.i18n.core :refer [tru]]
             [toucan.db :as db]))
 
-(defsetting identity-provider-uri
+(defsetting saml-enabled
+  (tru "Enable SAML authentication.")
+  :type    :boolean
+  :default false)
+
+(defsetting saml-identity-provider-uri
   (tru "This is a URI if of the SAML Identity Provider (where the user would login)"))
 
-(defsetting base-uri
-  (str (tru "This is the root URL for Metabase.")
-       (tru "This will be used to redirect the user after a successful login."))
-  :default "http://localhost:3000")
+(defsetting saml-identity-provider-certificate
+  (tru "Encoded certificate for the identity provider"))
 
-(defsetting application-name
+(defsetting saml-application-name
   (tru "This application name will be used for requests to the Identity Provider")
   :default "Metabase")
 
-(defsetting identity-provider-certificate
-  (tru "Encoded certificate for the identity provider"))
-
-(defsetting keystore-path
+(defsetting saml-keystore-path
   (tru "Absolute path to the Keystore file to use for signing SAML requests"))
 
-(defsetting keystore-password
+(defsetting saml-keystore-password
   (tru "Password for opening the keystore")
   :default "changeit")
 
-(defsetting keystore-alias
+(defsetting saml-keystore-alias
   (tru "Alias for the key that Metabase should use for signing SAML requests")
   :default "metabase")
 
-(defsetting email-attribute
+(defsetting saml-attribute-email
   (tru "SAML attribute for the user''s email address")
   :default "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")
 
-(defsetting first-name-attribute
+(defsetting saml-attribute-firstname
   (tru "SAML attribute for the user''s first name")
   :default "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname")
 
-(defsetting last-name-attribute
+(defsetting saml-attribute-lastname
   (tru "SAML attribute for the user''s last name")
   :default "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname")
+
+(defn saml-configured?
+  "Check if SAML is enabled and that the mandatory settings are configured."
+  []
+  (boolean (and (saml-enabled)
+                (saml-identity-provider-uri)
+                (saml-identity-provider-certificate))))
 
 ;; TODO - refactor the `core_user` model and the construction functions to get some reuse here
 (defn- create-new-saml-auth-user!
