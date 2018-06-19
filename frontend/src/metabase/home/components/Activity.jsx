@@ -251,7 +251,7 @@ export default class Activity extends Component {
         break;
       case "install":
         description.userName = t`Hello World!`;
-        description.summary = t`Metabase` + " is up and running.";
+        description.summary = t`Metabase is up and running.`;
         break;
       case "metric-create":
         if (item.model_exists) {
