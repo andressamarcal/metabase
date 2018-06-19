@@ -85,10 +85,10 @@ export default class EditUserForm extends Component {
         email: email,
         groups:
           this.props.groups && this.state.selectedGroups
-          ? Object.entries(this.state.selectedGroups)
-                  .filter(([key, value]) => value)
-                  .map(([key, value]) => parseInt(key, 10))
-          : null,
+            ? Object.entries(this.state.selectedGroups)
+                .filter(([key, value]) => value)
+                .map(([key, value]) => parseInt(key, 10))
+            : null,
       });
     } catch (e) {
       // HACK: sometimes errors don't follow our usual conventions

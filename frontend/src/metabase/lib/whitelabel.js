@@ -218,3 +218,28 @@ export function updateColorScheme() {
     resetHarmoneyColors();
   }
 }
+
+function replaceApplicationName(string) {
+  return string.replace(/Metabase/g, MetabaseSettings.applicationName());
+}
+
+export function enabledApplicationNameReplacement() {
+  const c3po = require("c-3po");
+  const _t = c3po.t;
+  const _jt = c3po.jt;
+  const _ngettext = c3po.ngettext;
+  c3po.t = (...args) => {
+    return replaceApplicationName(_t(...args));
+  };
+  c3po.ngettext = (...args) => {
+    return replaceApplicationName(_ngettext(...args));
+  };
+  c3po.jt = (...args) => {
+    return _jt(...args).map(
+      element =>
+        typeof element === "string" ? replaceApplicationName(element) : element,
+    );
+  };
+}
+
+enabledApplicationNameReplacement();
