@@ -91,6 +91,8 @@ To get started with a development installation of the Metabase, follow the instr
 
 Then take a look at our [Contribution Guide](docs/contributing.md) for information about our process and where you can fit in!
 
+Talk to other contributors [in our Gitter room](https://gitter.im/metabase/metabase).
+
 # Extending and Deep Integrations
 
 Metabase also allows you to hit our Query API directly from Javascript to integrate the simple analytics we provide with your own application or third party services to do things like:
@@ -108,6 +110,6 @@ The button below will deploy the branch where this README.md lives onto Heroku. 
 
 # License
 
-This Edition of Metabase is made available only to those with a fully paid up commerical license from Metabase. Access to this repository does not provide the permission to use the application. 
+This Edition of Metabase is made available only to those with a fully paid up commerical license from Metabase. Access to this repository does not provide the permission to use the application.
 
 Unless otherwise noted, all files © 2017 Metabase, Inc.
