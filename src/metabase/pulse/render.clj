@@ -10,6 +10,7 @@
             [hiccup
              [core :refer [h html]]
              [util :as hutil]]
+            [metabase.public-settings :as public-settings]
             [metabase.util :as u]
             [metabase.util
              [date :as du]
@@ -57,7 +58,16 @@
 
 
 (defn- primary-color []
-  color-brand)
+  (let [color (public-settings/application-color)]
+    (if (= color "#509EE3")
+      color-brand
+      color)))
+
+(defn- secondary-color []
+  (let [primary (primary-color)]
+    (if (= primary color-brand)
+      color-purple
+      primary)))
 
 (defn- font-style []
   {:font-family "Lato, \"Helvetica Neue\", Helvetica, Arial, sans-serif"})

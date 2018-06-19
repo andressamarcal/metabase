@@ -18,12 +18,13 @@ import OnClickOutsideWrapper from "metabase/components/OnClickOutsideWrapper";
 
 import ProfileLink from "metabase/nav/components/ProfileLink.jsx";
 
-import { getPath, getContext, getUser } from "../selectors";
+import { getPath, getContext, getUser, getFeatures } from "../selectors";
 
 const mapStateToProps = (state, props) => ({
   path: getPath(state, props),
   context: getContext(state, props),
   user: getUser(state),
+  features: getFeatures(state) || {},
 });
 
 const mapDispatchToProps = {

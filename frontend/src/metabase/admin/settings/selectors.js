@@ -13,6 +13,7 @@ import SecretKeyWidget from "./components/widgets/SecretKeyWidget.jsx";
 import EmbeddingLegalese from "./components/widgets/EmbeddingLegalese";
 import EmbeddingLevel from "./components/widgets/EmbeddingLevel";
 import LdapGroupMappingsWidget from "./components/widgets/LdapGroupMappingsWidget";
+import LogoUpload from "./components/widgets/LogoUpload";
 
 import { UtilApi } from "metabase/services";
 
@@ -432,7 +433,8 @@ const SECTIONS = [
       },
       {
         widget: EmbeddingLevel,
-        getHidden: settings => !settings["enable-embedding"],
+        // WHITELABEL: always hide this setting
+        getHidden: () => true,
       },
       {
         key: "embedding-secret-key",
@@ -486,6 +488,63 @@ const SECTIONS = [
       },
     ],
   },
+  {
+    name: "Whitelabel",
+    slug: "whitelabel",
+    settings: [
+      {
+        key: "application-name",
+        display_name: "Application Name",
+        type: "string",
+      },
+      {
+        key: "application-color",
+        display_name: "Primary Color",
+        type: "string",
+      },
+      {
+        key: "application-logo-url",
+        display_name: "Logo",
+        type: "string",
+        widget: LogoUpload,
+      },
+      // {
+      //     key: "landing-page",
+      //     display_name: "Landing Page",
+      //     type: "select",
+      //     options: [
+      //         { name: "Home Page", value: "" },
+      //         { name: "Query Builder", value: "question" },
+      //         { name: "Questions", value: "questions" },
+      //         { name: "Dashboards", value: "dashboards" }
+      //     ]
+      // },
+      // {
+      //     key: "enable-home",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-query-builder",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-saved-questions",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-dashboards",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-pulses",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-dataref",
+      //     type: "boolean"
+      // },
+    ],
+  },
   /*
     {
         name: "Premium Embedding",
@@ -499,6 +558,12 @@ const SECTIONS = [
     }
     */
 ];
+
+for (const section of SECTIONS) {
+  if (section.slug == null) {
+    console.warn("Warning: settings section missing slug:", section.name);
+  }
+}
 
 export const getSettings = createSelector(
   state => state.settings.settings,
