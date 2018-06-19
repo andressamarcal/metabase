@@ -44,14 +44,6 @@ export default class ParameterTargetWidget extends React.Component {
 
     const disabled = mappingOptions.length === 0;
     const selected = _.find(mappingOptions, o => _.isEqual(o.target, target));
-    const mappingOptionSections = _.groupBy(mappingOptions, "sectionName");
-
-    const hasFkOption = _.any(mappingOptions, o => !!o.isFk);
-
-    const sections = _.map(mappingOptionSections, options => ({
-      name: options[0].sectionName,
-      items: options,
-    }));
 
     return (
       <PopoverWithTrigger

@@ -20,7 +20,6 @@ import {
 } from "../selectors";
 import { setParameterMapping } from "../dashboard";
 
-import _ from "underscore";
 import cx from "classnames";
 import { getIn } from "icepick";
 
