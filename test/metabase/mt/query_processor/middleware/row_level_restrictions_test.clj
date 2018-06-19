@@ -9,6 +9,7 @@
             [metabase.api.common :refer [*current-user-id* *current-user-permissions-set*]]
             [metabase.models
              [card :refer [Card]]
+             [collection :refer [Collection]]
              [database :refer [Database]]
              [permissions :as perms :refer [Permissions]]
              [permissions-group :as perms-group :refer [PermissionsGroup]]
@@ -63,7 +64,7 @@
      :rasta
      (fn []
        (-> (data/query :venues
-                       (ql/aggregation (ql/count)))
+             (ql/aggregation (ql/count)))
            data/wrap-inner-query
            (with-user-attributes {:cat 50})
            qp/process-query
@@ -206,3 +207,28 @@
               (with-user-attributes {"cat" 50})
               qp/process-query
               qpt/rows)))))))
+
+;; Users with view access to the related collection should bypass segmented permissions
+(expect
+  1
+  (tt/with-temp* [Database                   [db (select-keys (data/db) [:details :engine])]
+                  Collection                 [collection]
+                  Card                       [card {:collection_id (u/get-id collection)}]
+                  PermissionsGroup           [group]
+                  PermissionsGroupMembership [_ {:user_id (users/user->id :rasta), :group_id (u/get-id group)}]]
+    (sync/sync-database! db)
+    (data/with-db db
+      (perms/revoke-permissions! (perms-group/all-users) (u/get-id db))
+      (perms/grant-collection-read-permissions! group collection)
+      (binding [*current-user-id*              (users/user->id :rasta)
+                *current-user-permissions-set* (let [perms (db/select-field :object Permissions :group_id (u/get-id group))]
+                                                 (atom perms))]
+        (-> (qp/process-query {:database (u/get-id db)
+                               :type     :query
+                               :query    {:source-table (data/id :venues)
+                                          :limit        1}
+                               :user     (users/fetch-user :rasta)
+                               :info     {:card-id    (u/get-id card)
+                                          :query-hash (byte-array 0)}})
+            qpt/rows
+            count)))))

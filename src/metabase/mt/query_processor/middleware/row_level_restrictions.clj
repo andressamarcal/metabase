@@ -127,20 +127,14 @@
     (query-should-have-segmented-permissions? outer-query) ; -> true"
   [query]
   (boolean
-   (when *current-user-id*
-     ;; Check whether the query uses a source Table (e.g., whether it is an MBQL query)
-     (when-let [source-table-id (query->source-table-id query)]
-       (let [table (db/select-one ['Table :id :db_id :schema] :id source-table-id)]
-         (cond
-           (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-query-path table))
-           false
-
-           (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-segmented-query-path table))
-           true
-
-           :else
-           (throw (Exception.
-                   (str (tru "Invalid state: user does not have either full or segmented query permissions!"))))))))))
+   ;; Check whether the query uses a source Table (e.g., whether it is an MBQL query)
+   (when-let [source-table-id (and *current-user-id* (query->source-table-id query))]
+     (let [table (db/select-one ['Table :id :db_id :schema] :id source-table-id)]
+       (and
+        ;; User does not have full data access
+        (not (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-query-path table)))
+        ;; User does have segmented access
+        (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-segmented-query-path table)))))))
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
