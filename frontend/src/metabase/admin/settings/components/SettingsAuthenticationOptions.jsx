@@ -29,6 +29,17 @@ class SettingsAuthenticationOptions extends Component {
             >{t`Configure`}</Link>
           </div>
         </li>
+
+        <li className="mt2">
+          <div className="bordered rounded shadowed bg-white p4">
+            <h2>{t`SAML`}</h2>
+            <p>{t`Allows users to login via a SAML Identity Provider.`}</p>
+            <Link
+              className="Button"
+              to="/admin/settings/authentication/saml"
+            >{t`Configure`}</Link>
+          </div>
+        </li>
       </ul>
     );
   }

@@ -10,6 +10,7 @@ import SettingPassword from "./widgets/SettingPassword.jsx";
 import SettingRadio from "./widgets/SettingRadio.jsx";
 import SettingToggle from "./widgets/SettingToggle.jsx";
 import SettingSelect from "./widgets/SettingSelect.jsx";
+import SettingText from "./widgets/SettingText.jsx";
 import SettingColor from "./widgets/SettingColor.jsx";
 
 const SETTING_WIDGET_MAP = {
@@ -19,6 +20,7 @@ const SETTING_WIDGET_MAP = {
   select: SettingSelect,
   radio: SettingRadio,
   boolean: SettingToggle,
+  text: SettingText,
   color: SettingColor,
 };
 

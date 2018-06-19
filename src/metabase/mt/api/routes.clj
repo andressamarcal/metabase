@@ -20,13 +20,21 @@
    []
    (routes
     (context "/gtap" [] (+auth gtap/routes))
-    (context "/user" [] (+auth user/routes))
-    (context "/saml" [] saml/routes))))
+    (context "/user" [] (+auth user/routes)))))
+
+(defroutes ^{:doc "Ring routes for auth (SAML) API endpoints."} auth-routes
+  (context
+   "/auth"
+   []
+   (routes
+    (context "/sso" [] saml/routes))))
 
 (defn install-mt-routes!
   "Swap out `metabase.api.routes/routes` with a new version that includes the multi-tenant routes. Take care to only
   call this once, or your life may be filled with nastiness!"
   []
-  (log/info "Installing multi-tenant API routes...")
+  (log/info "Installing multi-tenant API and auth routes...")
   (require 'metabase.api.routes)
-  (intern 'metabase.api.routes 'routes (routes mt-routes @(resolve 'metabase.api.routes/routes))))
+  (intern 'metabase.api.routes 'routes (routes mt-routes @(resolve 'metabase.api.routes/routes)))
+  (require 'metabase.routes)
+  (intern 'metabase.routes 'routes (routes auth-routes @(resolve 'metabase.routes/routes))))

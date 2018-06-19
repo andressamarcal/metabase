@@ -233,6 +233,7 @@
    :hide_embed_branding   (metastore/hide-embed-branding?)
    :landing_page          (setting/get :landing-page)
    :ldap_configured       ((resolve 'metabase.integrations.ldap/ldap-configured?))
+   :saml_configured       ((resolve 'metabase.mt.integrations.saml/saml-configured?))
    :available_locales     (available-locales-with-names)
    :map_tile_server_url   (map-tile-server-url)
    :metastore_url         metastore/store-url
