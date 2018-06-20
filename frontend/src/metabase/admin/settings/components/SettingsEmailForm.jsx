@@ -1,7 +1,6 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { t } from "c-3po";
-import cx from "classnames";
 
 import Button from "metabase/components/Button";
 
@@ -67,9 +66,8 @@ export default class SettingsLdapForm extends Component {
           return [
             valid && !dirty && submitting === "default" ? (
               <Button
-                className={cx("mr1", {
-                  "Button--success-new": sendingEmail === "success",
-                })}
+                mr={1}
+                success={sendingEmail === "success"}
                 disabled={disabled}
                 onClick={this.sendTestEmail}
               >
@@ -77,9 +75,9 @@ export default class SettingsLdapForm extends Component {
               </Button>
             ) : null,
             <Button
-              className="mr1"
-              onClick={() => this.clearEmailSettings()}
+              mr={1}
               disabled={disabled}
+              onClick={() => this.clearEmailSettings()}
             >
               {t`Clear`}
             </Button>,

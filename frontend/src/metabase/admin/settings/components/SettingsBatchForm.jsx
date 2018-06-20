@@ -2,11 +2,11 @@ import React, { Component } from "react";
 import PropTypes from "prop-types";
 
 import _ from "underscore";
-import cx from "classnames";
 
 import Collapse from "react-collapse";
 import { t } from "c-3po";
 import Breadcrumbs from "metabase/components/Breadcrumbs";
+import Button from "metabase/components/Button";
 import DisclosureTriangle from "metabase/components/DisclosureTriangle";
 import MetabaseUtils from "metabase/lib/utils";
 import SettingsSetting from "./SettingsSetting";
@@ -257,17 +257,15 @@ export default class SettingsBatchForm extends Component {
         )}
 
         <div className="m2 mb4">
-          <button
-            className={cx(
-              "Button mr1",
-              { "Button--primary": !disabled },
-              { "Button--success-new": submitting === "success" },
-            )}
+          <Button
+            mr={1}
+            primary={!disabled}
+            success={submitting === "success"}
             disabled={disabled}
             onClick={this.updateSettings}
           >
             {SAVE_SETTINGS_BUTTONS_STATES[submitting]}
-          </button>
+          </Button>
 
           {this.props.renderExtraButtons &&
             this.props.renderExtraButtons({
