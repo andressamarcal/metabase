@@ -3,6 +3,7 @@
   only thing that is subject to these sorts of checks are *ad-hoc* queries, i.e. queries that have not yet been saved
   as a Card. Saved Cards are subject to the permissions of the Collection to which they belong."
   (:require [clojure.tools.logging :as log]
+            [metabase.api.common :as api]
             [metabase.models
              [interface :as i]
              [permissions :as perms]]
@@ -132,3 +133,11 @@
   [query & [throw-exceptions? :- (s/maybe (s/eq :throw-exceptions))]]
   (perms-set* query {:throw-exceptions? (boolean throw-exceptions?)
                      :segmented-perms?  false}))
+
+(s/defn can-run-query?
+  "Return `true` if the current-user has sufficient permissions to run `query`. Handles checking for full table
+  permissions and segmented table permissions"
+  [query]
+  (let [user-perms @api/*current-user-permissions-set*]
+    (or (perms/set-has-full-permissions-for-set? user-perms (perms-set query))
+        (perms/set-has-full-permissions-for-set? user-perms (segmented-perms-set query)))))
