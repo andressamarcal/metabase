@@ -219,8 +219,10 @@
    result_metadata        (s/maybe results-metadata/ResultsMetadata)
    metadata_checksum      (s/maybe su/NonBlankString)}
   ;; check that we have permissions to run the query that we're trying to save
-  (api/check-403 (perms/set-has-full-permissions-for-set? @api/*current-user-permissions-set*
-                   (query-perms/perms-set dataset_query)))
+  (api/check-403 (or (perms/set-has-full-permissions-for-set? @api/*current-user-permissions-set*
+                       (query-perms/perms-set dataset_query))
+                     (perms/set-has-full-permissions-for-set? @api/*current-user-permissions-set*
+                       (query-perms/segmented-perms-set dataset_query))))
   ;; check that we have permissions for the collection we're trying to save this card to, if applicable
   (collection/check-write-perms-for-collection collection_id)
   ;; everything is g2g, now save the card
