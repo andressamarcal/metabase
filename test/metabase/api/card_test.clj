@@ -15,7 +15,8 @@
              [collection :refer [Collection]]
              [database :refer [Database]]
              [permissions :as perms]
-             [permissions-group :as perms-group]
+             [permissions-group :as perms-group :refer [PermissionsGroup]]
+             [permissions-group-membership :refer [PermissionsGroupMembership]]
              [pulse :as pulse :refer [Pulse]]
              [pulse-card :refer [PulseCard]]
              [pulse-channel :refer [PulseChannel]]
@@ -359,6 +360,23 @@
                                                   :collection_id (u/get-id collection), :collection_position 1))
         (some-> (db/select-one [Card :collection_id :collection_position] :name card-name)
                 (update :collection_id (partial = (u/get-id collection))))))))
+
+(let [card-name (random-name)]
+  (expect
+    true
+    (tu/with-model-cleanup [Card]
+      (tt/with-temp* [Database                   [db]
+                      Collection                 [collection]
+                      Table                      [table {:db_id (u/get-id db)}]
+                      PermissionsGroup           [group]
+                      PermissionsGroupMembership [_ {:user_id (user->id :rasta), :group_id (u/get-id group)}]]
+        (data/with-db db
+          (perms/revoke-permissions! (perms-group/all-users) db)
+          (perms/grant-permissions! group (perms/table-segmented-query-path table))
+          (perms/grant-collection-readwrite-permissions! group collection)
+          (boolean ((user->client :rasta) :post 200 "card"
+                    (assoc (card-with-name-and-query card-name (mbql-count-query db table))
+                      :collection_id (u/get-id collection)))))))))
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+

@@ -29,6 +29,12 @@
 ;;                no source card <------+----> has source card
 ;;                        ↓                          ↓
 ;;          tables->permissions-path-set   source-card-read-perms
+;;                        ↓
+;;                 table-query-path
+;;
+;; segmented-perms-set follows the same graph as above, but instead of table-query-path, it returns
+;; table-segmented-query-path. perms-set will require full access to the tables, segmented-perms-set will only require
+;; segmented access
 
 (defn- query->source-and-join-tables
   "Return a sequence of all Tables (as TableInstance maps) referenced by QUERY."
@@ -42,17 +48,26 @@
     ;; for root MBQL queries just return source-table + join-tables
     :else        (cons source-table join-tables)))
 
+(def ^:private PermsOptions
+  "Map of options to be passed to the permissions checking functions."
+  {:throw-exceptions? s/Bool
+   :segmented-perms?  s/Bool})
+
 (s/defn ^:private tables->permissions-path-set :- #{perms/ObjectPath}
-  "Given a sequence of `tables` referenced by a query, return a set of required permissions."
-  [database-or-id tables]
-  (set (for [table tables]
-         (if (= ::native table)
-           ;; Any `::native` placeholders from above mean we need native ad-hoc query permissions for this DATABASE
-           (perms/adhoc-native-query-path database-or-id)
-           ;; anything else (i.e., a normal table) just gets normal table permissions
-           (perms/table-query-path (u/get-id database-or-id)
-                                   (:schema table)
-                                   (or (:id table) (:table-id table)))))))
+  "Given a sequence of `tables` referenced by a query, return a set of required permissions. A truthy value for
+  `segmented-perms?` will return segmented permissions for the table rather that full table permissions."
+  [database-or-id tables {:keys [segmented-perms?]}]
+  (let [table-perms-fn (if segmented-perms?
+                         perms/table-segmented-query-path
+                         perms/table-query-path)]
+    (set (for [table tables]
+           (if (= ::native table)
+             ;; Any `::native` placeholders from above mean we need native ad-hoc query permissions for this DATABASE
+             (perms/adhoc-native-query-path database-or-id)
+             ;; anything else (i.e., a normal table) just gets normal table permissions
+             (table-perms-fn (u/get-id database-or-id)
+                             (:schema table)
+                             (or (:id table) (:table-id table))))))))
 
 (s/defn ^:private source-card-read-perms :- #{perms/ObjectPath}
   "Calculate the permissions needed to run an ad-hoc query that uses a Card with `source-card-id` as its source
@@ -75,14 +90,14 @@
   things when a single Card is busted (e.g. API endpoints that filter out unreadable Cards) and instead returns 'only
   admins can see this' permissions -- `#{\"db/0\"}` (DB 0 will never exist, thus normal users will never be able to
   get permissions for it, but admins have root perms and will still get to see (and hopefully fix) it)."
-  [query :- {:query su/Map, s/Keyword s/Any} & [throw-exceptions? :- (s/maybe (s/eq :throw-exceptions))]]
+  [query :- {:query su/Map, s/Keyword s/Any}, {:keys [throw-exceptions?] :as perms-opts} :- PermsOptions]
   (try
     ;; if we are using a Card as our perms are that Card's (i.e. that Card's Collection's) read perms
     (if-let [source-card-id (qputil/query->source-card-id query)]
       (source-card-read-perms source-card-id)
       ;; otherwise if there's no source card then calculate perms based on the Tables referenced in the query
       (let [{:keys [query database]} (expand-query-if-needed query)]
-        (tables->permissions-path-set database (query->source-and-join-tables query))))
+        (tables->permissions-path-set database (query->source-and-join-tables query) perms-opts)))
     ;; if for some reason we can't expand the Card (i.e. it's an invalid legacy card) just return a set of permissions
     ;; that means no one will ever get to see it (except for superusers who get to see everything)
     (catch Throwable e
@@ -93,13 +108,27 @@
                 (u/pprint-to-str (u/filtered-stacktrace e)))
       #{"/db/0/"})))                    ; DB 0 will never exist
 
-(s/defn perms-set :- #{perms/ObjectPath}
-  "Calculate the set of permissions required to run an ad-hoc `query`."
+(s/defn ^:private perms-set* :- #{perms/ObjectPath}
+  "Does the heavy lifting of creating the perms set. `opts` will indicate whether exceptions should be thrown and
+  whether full or segmented table permissions should be returned."
   {:arglists '([outer-query & [throw-exceptions?]])}
-  ;; TODO - I think we can remove the two optional params because nothing uses them anymore
-  [{query-type :type, database :database, :as query} & [throw-exceptions? :- (s/maybe (s/eq :throw-exceptions))]]
+  [{query-type :type, database :database, :as query}, perms-opts :- PermsOptions]
   (cond
     (empty? query)                   #{}
     (= (keyword query-type) :native) #{(perms/adhoc-native-query-path database)}
-    (= (keyword query-type) :query)  (mbql-permissions-path-set query throw-exceptions?)
+    (= (keyword query-type) :query)  (mbql-permissions-path-set query perms-opts)
     :else                            (throw (Exception. (str (tru "Invalid query type: {0}" query-type))))))
+
+(s/defn segmented-perms-set :- #{perms/ObjectPath}
+  "Calculate the set of permissions including segmented (not full) table permissions."
+  [query & [throw-exceptions? :- (s/maybe (s/eq :throw-exceptions))]]
+  (perms-set* query {:throw-exceptions? (boolean throw-exceptions?)
+                     :segmented-perms?  true}))
+
+(s/defn perms-set :- #{perms/ObjectPath}
+  "Calculate the set of permissions required to run an ad-hoc `query`. Returns permissions for full table access (not
+  segmented)"
+  {:arglists '([outer-query & [throw-exceptions?]])}
+  [query & [throw-exceptions? :- (s/maybe (s/eq :throw-exceptions))]]
+  (perms-set* query {:throw-exceptions? (boolean throw-exceptions?)
+                     :segmented-perms?  false}))

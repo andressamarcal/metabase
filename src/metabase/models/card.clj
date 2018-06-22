@@ -98,8 +98,10 @@
     ;; Make sure the User saving the Card has the appropriate permissions to run its query. We don't want Users saving
     ;; Cards with queries they wouldn't be allowed to run!
     (when *current-user-id*
-      (when-not (perms/set-has-full-permissions-for-set? @*current-user-permissions-set*
-                  (query-perms/perms-set query :throw-exceptions))
+      (when-not (or (perms/set-has-full-permissions-for-set? @*current-user-permissions-set*
+                      (query-perms/perms-set query :throw-exceptions))
+                    (perms/set-has-full-permissions-for-set? @*current-user-permissions-set*
+                      (query-perms/segmented-perms-set query)))
         (throw (Exception. (str (tru "You do not have permissions to run ad-hoc native queries against Database {0}."
                                      (:database query)))))))
     ;; make sure this Card doesn't have circular source query references
