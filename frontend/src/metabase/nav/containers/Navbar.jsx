@@ -229,12 +229,8 @@ export default class Navbar extends Component {
             <LogoIcon dark />
           </Link>
         </Box>
-        <Flex
-          className="absolute top left right bottom z1"
-          px={4}
-          align="center"
-        >
-          <Box w={2 / 3}>
+        <Flex className="z1" flex="1 1 auto" px={1} align="center">
+          <Box flex="1 1 auto">
             <SearchBar
               location={this.props.location}
               onChangeLocation={this.props.onChangeLocation}
