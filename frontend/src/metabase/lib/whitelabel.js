@@ -2,96 +2,27 @@ import MetabaseSettings from "metabase/lib/settings";
 
 import Color from "color";
 
-import { brand, harmony } from "metabase/lib/colors";
+import colors, {
+  brand,
+  normal,
+  harmony,
+  saturated,
+  desaturated,
+} from "metabase/lib/colors";
 import { addCSSRule } from "metabase/lib/dom";
 
+const originalColors = { ...colors };
+
 const BRAND_NORMAL_COLOR = Color(brand.normal).hsl();
-const COLOR_REGEX = /rgba?\([^)]+\)/g;
+const COLOR_REGEX = /(?:#[a-fA-F0-9]{3}(?:[a-fA-F0-9]{3})?\b|(?:rgb|hsl)a?\(\s*\d+\s*(?:,\s*\d+(?:\.\d+)?%?\s*){2,3}\))/g;
 
-const BRAND_THRESHOLD = 15;
-const DESATURATE_THRESHOLD = 10;
-const MAX_LIGHTNESS = 98;
+// TODO: replace saturated, desaturated, brand.saturated, brand.desaturated with computed colors
+const COLOR_FAMILIES = [colors, brand, normal, saturated, desaturated];
 
-const hasSimilarHue = (colorA, colorB, threshold) =>
-  Math.abs(colorA.hue() - colorB.hue()) < threshold;
+const COLOR_UPDATORS_BY_COLOR_NAME = {};
 
-const hasSimilarSaturation = (colorA, colorB, threshold) =>
-  Math.abs(colorA.saturationl() - colorB.saturationl()) < threshold;
-
-export const colorForScheme = (scheme, original) => {
-  let color = original
-    .hue(scheme.hue())
-    .saturationl(
-      scheme.saturationl() *
-        (1 +
-          (original.saturationl() - BRAND_NORMAL_COLOR.saturationl()) /
-            BRAND_NORMAL_COLOR.saturationl()),
-    )
-    .lightness(
-      scheme.lightness() *
-        (1 +
-          (original.lightness() - BRAND_NORMAL_COLOR.lightness()) /
-            BRAND_NORMAL_COLOR.lightness()),
-    );
-  if (color.lightness() > MAX_LIGHTNESS) {
-    color = color.lightness(MAX_LIGHTNESS);
-  }
-  return color.string();
-};
-
-class PrimaryBasedScheme {
-  constructor(primaryColor) {
-    this._primary = Color(primaryColor).hsl();
-    this._colors = new Map();
-  }
-  map = colorOriginal => {
-    let color = this._colors.get(colorOriginal);
-    if (!color) {
-      const original = Color(colorOriginal).hsl();
-      if (
-        hasSimilarHue(BRAND_NORMAL_COLOR, original, BRAND_THRESHOLD) &&
-        hasSimilarSaturation(BRAND_NORMAL_COLOR, original, DESATURATE_THRESHOLD)
-      ) {
-        // match the scheme's hue and offset the scheme's saturation and lightness by the same
-        // percentage as the original color is offset from the default brand color
-        color = colorForScheme(this._primary, original);
-      } else {
-        color = colorOriginal;
-      }
-      this._colors.set(colorOriginal, color);
-    }
-    return color;
-  };
-}
-
-const schemes = new Map();
-
-const replaceBrandColors = (value, primaryColor) => {
-  let scheme = schemes.get(primaryColor);
-  if (!scheme) {
-    schemes.set(primaryColor, (scheme = new PrimaryBasedScheme(primaryColor)));
-  }
-  return value.replace(COLOR_REGEX, scheme.map);
-};
-
-const STYLE_UPDATORS = [];
-const STYLE_RESETERS = [];
-
-function initBrandHueUpdator() {
-  // initialize the ".brand-hue" CSS rule, which is used to change the hue of images which should
-  // only contain the brand color or completely desaturated colors
-  const rotateHueRule = addCSSRule(".brand-hue", "filter: hue-rotate(0);");
-  STYLE_UPDATORS.push(colorScheme => {
-    const degrees =
-      Color(colorScheme)
-        .hsl()
-        .hue() - BRAND_NORMAL_COLOR.hue();
-    rotateHueRule.style["filter"] = `hue-rotate(${degrees}deg)`;
-  });
-  STYLE_RESETERS.push(() => {
-    rotateHueRule.style["filter"] = `hue-rotate(0)`;
-  });
-}
+// a color not found anywhere in the app
+const RANDOM_COLOR = Color({ r: 0xab, g: 0xcd, b: 0xed });
 
 function walkStyleSheets(sheets, fn) {
   for (const sheet of sheets) {
@@ -107,118 +38,103 @@ function walkStyleSheets(sheets, fn) {
   }
 }
 
-function initBrandColorUpdators() {
+const replaceColors = (cssValue, matchColor, replacementColor) => {
+  return cssValue.replace(COLOR_REGEX, colorString => {
+    const color = Color(colorString);
+    if (color.hex() === matchColor.hex()) {
+      if (color.alpha() < 1) {
+        return Color(replacementColor)
+          .alpha(color.alpha())
+          .string();
+      } else {
+        return replacementColor;
+      }
+    }
+    return colorString;
+  });
+};
+
+function initCSSColorUpdators(colorName) {
+  const originalColor = Color(originalColors[colorName]);
   // look for CSS rules which have colors matching the brand colors or very light or desaturated
-  walkStyleSheets(document.styleSheets, (style, prop) => {
-    const value = style[prop];
-    // try replacing with a random color to see if we actually need to
+  walkStyleSheets(document.styleSheets, (style, cssProperty) => {
+    // save the original value here so we have a copy to perform the replacement on
+    const cssValue = style[cssProperty];
     if (
-      COLOR_REGEX.test(value) &&
-      value !== replaceBrandColors(value, "#ABCDEF")
+      // don't bother with checking if there are no colors
+      COLOR_REGEX.test(cssValue) &&
+      // try replacing with a random color to see if we actually need to
+      cssValue !== replaceColors(cssValue, originalColor, RANDOM_COLOR)
     ) {
-      STYLE_UPDATORS.push(colorScheme => {
-        style[prop] = replaceBrandColors(value, colorScheme);
-      });
-      STYLE_RESETERS.push(() => {
-        style[prop] = value;
+      console.log("INIT CSS", colorName, cssProperty, cssValue);
+      COLOR_UPDATORS_BY_COLOR_NAME[colorName].push(colorScheme => {
+        style[cssProperty] = replaceColors(
+          cssValue,
+          originalColor,
+          colorScheme,
+        );
       });
     }
   });
 }
 
-// colors.css, etc: CSS rules
-function updateCSSRules(colorScheme) {
-  if (STYLE_UPDATORS.length === 0) {
-    initBrandHueUpdator();
-    initBrandColorUpdators();
-  }
-  for (const styleUpdator of STYLE_UPDATORS) {
-    styleUpdator(colorScheme);
-  }
-}
-
-function resetCSSRules() {
-  for (const styleReseter of STYLE_RESETERS) {
-    styleReseter();
-  }
-}
-
-// colors.js: brand colors
-const BRAND_ORIGINAL = { ...brand };
-function updateBrandColors(colorScheme) {
-  for (const name in brand) {
-    brand[name] = colorForScheme(
-      Color(colorScheme).hsl(),
-      Color(BRAND_ORIGINAL[name]).hsl(),
-    );
-  }
-}
-
-function resetBrandColors() {
-  for (const name in brand) {
-    brand[name] = BRAND_ORIGINAL[name];
-  }
-}
-
-// colors.js: color harmony
-const HARMONY_ORIGINAL = [...harmony];
-function updateHarmoneyColors(colorScheme) {
-  // find the "closest" color in the color harmony
-  // TODO: account for saturation and lightness?
-  const closest = findClosestIndex(
-    HARMONY_ORIGINAL.map(c =>
-      Color(c)
+function initCSSBrandHueUpdator() {
+  // initialize the ".brand-hue" CSS rule, which is used to change the hue of images which should
+  // only contain the brand color or completely desaturated colors
+  const rotateHueRule = addCSSRule(".brand-hue", "filter: hue-rotate(0);");
+  COLOR_UPDATORS_BY_COLOR_NAME["brand"].push(colorScheme => {
+    const degrees =
+      Color(colorScheme)
         .hsl()
-        .hue(),
-    ),
-    Color(colorScheme)
-      .hsl()
-      .hue(),
-  );
-  // replace that color, and rotate the harmony such that it's first so that it's the default
-  // color for charts, etc
-  const newHarmony = [
-    colorScheme,
-    ...HARMONY_ORIGINAL.slice(closest),
-    ...HARMONY_ORIGINAL.slice(0, closest),
-  ];
-  // mutate the existing array since that export is used directly in many places ¯\_(ツ)_/¯
-  harmony.splice(0, harmony.length, ...newHarmony);
+        .hue() - BRAND_NORMAL_COLOR.hue();
+    rotateHueRule.style["filter"] = `hue-rotate(${degrees}deg)`;
+  });
 }
 
-function resetHarmoneyColors() {
-  harmony.splice(0, harmony.length, ...HARMONY_ORIGINAL);
-}
-
-function findClosestIndex(array, value) {
-  let minDelta = Infinity;
-  let minIndex = -1;
-  for (let i = 0; i < array.length; i++) {
-    const delta = Math.abs(value - array[i]);
-    if (delta < minDelta) {
-      minDelta = delta;
-      minIndex = i;
+function initJSColorUpdators(colorName) {
+  const matchColor = Color(originalColors[colorName]);
+  for (const family of COLOR_FAMILIES) {
+    for (const [name, colorString] of Object.entries(family)) {
+      const color = Color(colorString);
+      if (color.hex() === matchColor.hex()) {
+        console.log("INIT JS", colorName, name);
+        COLOR_UPDATORS_BY_COLOR_NAME[colorName].push(colorScheme => {
+          family[name] = colorScheme;
+        });
+      }
     }
   }
-  return minIndex;
 }
 
-function isDefaultBrandColor(colorScheme) {
-  return colorScheme === BRAND_ORIGINAL.normal;
+function initColorUpdators(colorName) {
+  COLOR_UPDATORS_BY_COLOR_NAME[colorName] = [];
+  if (colorName === "brand") {
+    initCSSBrandHueUpdator();
+  }
+  initCSSColorUpdators(colorName);
+  initJSColorUpdators(colorName);
+  // TODO: color harmony
+}
+
+function updateColor(colorName, colorScheme) {
+  for (const colorUpdator of COLOR_UPDATORS_BY_COLOR_NAME[colorName]) {
+    colorUpdator(colorScheme);
+  }
 }
 
 export function updateColorScheme() {
   const colorScheme = MetabaseSettings.colorScheme();
-  if (!isDefaultBrandColor(colorScheme)) {
-    updateCSSRules(colorScheme);
-    updateBrandColors(colorScheme);
-    updateHarmoneyColors(colorScheme);
-  } else {
-    resetCSSRules();
-    resetBrandColors();
-    resetHarmoneyColors();
+
+  // TODO: other colors
+  const colorName = "brand";
+
+  if (!COLOR_UPDATORS_BY_COLOR_NAME[colorName]) {
+    initColorUpdators(colorName);
   }
+  updateColor(colorName, colorScheme);
 }
+
+// APPLICATION NAME
 
 function replaceApplicationName(string) {
   return string.replace(/Metabase/g, MetabaseSettings.applicationName());
