@@ -43,7 +43,8 @@
         "no-var": 1
     },
     "globals": {
-        "pending": false
+        "pending": false,
+        "colors": true,
     },
     "env": {
         "browser": true,
