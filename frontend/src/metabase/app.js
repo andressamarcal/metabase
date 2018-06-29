@@ -92,7 +92,7 @@ function _init(reducers, getRoutes, callback) {
     ] = MetabaseSettings.isTrackingEnabled() ? null : true;
   });
 
-  MetabaseSettings.on("application-color", updateColorScheme);
+  MetabaseSettings.on("application-colors", updateColorScheme);
   updateColorScheme();
 
   window.Metabase = window.Metabase || {};

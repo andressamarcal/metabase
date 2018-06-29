@@ -61,8 +61,8 @@ const MetabaseSettings = {
 
   colorScheme: function() {
     // FIXME: Ugh? initially load public setting as "application_color" but if the admin updates it
-    // we need to use "application-color"
-    return mb_settings["application-color"] || mb_settings.application_color;
+    // we need to use "application-colors"
+    return mb_settings["application-colors"] || mb_settings.application_colors;
   },
 
   applicationName: function() {

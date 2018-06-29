@@ -130,15 +130,14 @@
 
 (def ^:private HexColor #"#([0-9a-fA-F]{3}){1,2}")
 
-(defsetting application-color
-  "The main theme color. It'll appear in the main nav and other places that are currently blue.
-   We'll adjust our other colors to match it."
-  :type    :string
-  :default "#509EE3"
-  :setter  (fn [new-value]
-             (when new-value
-               (s/validate HexColor new-value))
-             (setting/set-string! :application-color new-value)))
+(defsetting application-colors
+  "The color theme."
+  :type    :json
+  :default {})
+
+(defn application-color
+  []
+  (or (:brand (setting/get-json :application-colors)) "#509EE3"))
 
 (defsetting application-logo-url
   "The application logo should ideally be an SVG image which has no color"
@@ -213,7 +212,7 @@
   {:admin_email           (admin-email)
    :anon_tracking_enabled (anon-tracking-enabled)
    :custom_geojson        (setting/get :custom-geojson)
-   :application_color     (setting/get :application-color)
+   :application_colors    (setting/get-json :application-colors)
    :application_logo_url  (setting/get :application-logo-url)
    :application_name      (setting/get :application-name)
    :email_configured      ((resolve 'metabase.email/email-configured?))
