@@ -62,15 +62,20 @@ class ColorPicker extends Component {
         >
           {fancy ? (
             <div>
-              <SketchPicker
-                color={value}
-                onChangeComplete={color => {
-                  onChange(color.hex);
-                }}
-              />
-              <Button onClick={() => this.refs.colorPopover.close()}>
-                Done
-              </Button>
+              {/* HACK to hide SketchPicker's border/shadow */}
+              <div className="rounded overflow-hidden">
+                <SketchPicker
+                  color={value}
+                  onChangeComplete={color => {
+                    onChange(color.hex);
+                  }}
+                />
+              </div>
+              <div className="p1 border-top">
+                <Button onClick={() => this.refs.colorPopover.close()}>
+                  Done
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="p1">
