@@ -6,6 +6,7 @@
             [metabase.mt.api
              [gtap :as gtap]
              [saml :as saml]
+             [table :as table]
              [user :as user]]))
 
 ;; this is copied from `metabase.api.routes` because if we require that above we will destroy startup times for `lein
@@ -20,7 +21,8 @@
    []
    (routes
     (context "/gtap" [] (+auth gtap/routes))
-    (context "/user" [] (+auth user/routes)))))
+    (context "/user" [] (+auth user/routes))))
+  (context "/table" [] (+auth table/routes)))
 
 (defroutes ^{:doc "Ring routes for auth (SAML) API endpoints."} auth-routes
   (context
