@@ -26,7 +26,12 @@ const RANDOM_COLOR = Color({ r: 0xab, g: 0xcd, b: 0xed });
 
 function walkStyleSheets(sheets, fn) {
   for (const sheet of sheets) {
-    for (const rule of sheet.cssRules || sheet.rules || []) {
+    let rules = [];
+    try {
+      // try/catch due to CORS being enforced in Chrome
+      rules = sheet.cssRules || sheet.rules || [];
+    } catch (e) {}
+    for (const rule of rules) {
       if (rule.cssRules) {
         // child sheets, e.x. media queries
         walkStyleSheets([rule], fn);
@@ -66,7 +71,6 @@ function initCSSColorUpdators(colorName) {
       // try replacing with a random color to see if we actually need to
       cssValue !== replaceColors(cssValue, originalColor, RANDOM_COLOR)
     ) {
-      // console.log("INIT CSS", colorName, cssProperty, cssValue);
       COLOR_UPDATORS_BY_COLOR_NAME[colorName].push(themeColor => {
         style[cssProperty] = replaceColors(cssValue, originalColor, themeColor);
       });
@@ -87,15 +91,41 @@ function initCSSBrandHueUpdator() {
   });
 }
 
+function getColorPaths(family, parentPath = []) {
+  const paths = [];
+  for (const [name, value] of Object.entries(family)) {
+    if (value && typeof value === "object") {
+      paths.push(...getColorPaths(value, parentPath.concat(name)));
+    } else {
+      paths.push(parentPath.concat(name));
+    }
+  }
+  return paths;
+}
+function getColor(family, path) {
+  return path.reduce((o, k) => o[k], family);
+}
+function setColor(family, path, color) {
+  let object = family;
+  for (let i = 0; i < path.length; i++) {
+    if (i < path.length - 1) {
+      object = object[path[i]];
+    } else {
+      object[path[i]] = color;
+    }
+  }
+}
+
 function initJSColorUpdators(colorName) {
   const matchColor = Color(originalColors[colorName]);
-  for (const family of COLOR_FAMILIES) {
-    for (const [name, colorString] of Object.entries(family)) {
+  for (const colorFamily of COLOR_FAMILIES) {
+    const colorPaths = getColorPaths(colorFamily);
+    for (const colorPath of colorPaths) {
+      const colorString = getColor(colorFamily, colorPath);
       const color = Color(colorString);
       if (color.hex() === matchColor.hex()) {
-        // console.log("INIT JS", colorName, name);
         COLOR_UPDATORS_BY_COLOR_NAME[colorName].push(themeColor => {
-          family[name] = themeColor;
+          setColor(colorFamily, colorPath, themeColor);
         });
       }
     }
@@ -121,7 +151,6 @@ function updateColor(colorName, themeColor) {
 export function updateColorScheme() {
   const colorScheme = MetabaseSettings.colorScheme();
   for (const [colorName, themeColor] of Object.entries(colorScheme)) {
-    console.log(colorName, themeColor);
     if (!COLOR_UPDATORS_BY_COLOR_NAME[colorName]) {
       initColorUpdators(colorName);
     }
