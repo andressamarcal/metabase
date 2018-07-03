@@ -9,10 +9,12 @@ import "metabase/lib/i18n-debug";
 
 import "metabase/lib/colors";
 
-import { updateColorScheme } from "metabase/lib/whitelabel";
-// execute this before loading the rest of the application to ensure whitelabel
-// colors are swapped in
-updateColorScheme();
+import { updateColors, updateColorsJS } from "metabase/lib/whitelabel";
+// Update the JS colors to ensure components that use a color statically get the
+// whitelabeled color (though this doesn't help if the admin changes a color and
+// doesn't refresh)
+// Don't update CSS colors yet since all the CSS hasn't been loaded yet
+updateColorsJS();
 
 // make the i18n function "t" global so we don't have to import it in basically every file
 import { t, jt } from "c-3po";
@@ -95,7 +97,8 @@ function _init(reducers, getRoutes, callback) {
     ] = MetabaseSettings.isTrackingEnabled() ? null : true;
   });
 
-  MetabaseSettings.on("application-colors", updateColorScheme);
+  MetabaseSettings.on("application-colors", updateColors);
+  updateColors();
 
   window.Metabase = window.Metabase || {};
   window.Metabase.store = store;

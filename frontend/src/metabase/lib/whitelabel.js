@@ -2,24 +2,18 @@ import MetabaseSettings from "metabase/lib/settings";
 
 import Color from "color";
 
-import colors, {
-  brand,
-  normal,
-  harmony,
-  saturated,
-  desaturated,
-} from "metabase/lib/colors";
+import colors, { syncColors } from "metabase/lib/colors";
 import { addCSSRule } from "metabase/lib/dom";
 
 export const originalColors = { ...colors };
 
-const BRAND_NORMAL_COLOR = Color(brand.normal).hsl();
+console.log(colors.brand);
+
+const BRAND_NORMAL_COLOR = Color(colors.brand).hsl();
 const COLOR_REGEX = /(?:#[a-fA-F0-9]{3}(?:[a-fA-F0-9]{3})?\b|(?:rgb|hsl)a?\(\s*\d+\s*(?:,\s*\d+(?:\.\d+)?%?\s*){2,3}\))/g;
 
-// TODO: replace saturated, desaturated, brand.saturated, brand.desaturated with computed colors
-const COLOR_FAMILIES = [colors, brand, normal, saturated, desaturated];
-
-const COLOR_UPDATORS_BY_COLOR_NAME = {};
+const CSS_COLOR_UPDATORS_BY_COLOR_NAME = {};
+const JS_COLOR_UPDATORS_BY_COLOR_NAME = {};
 
 // a color not found anywhere in the app
 const RANDOM_COLOR = Color({ r: 0xab, g: 0xcd, b: 0xed });
@@ -59,7 +53,17 @@ const replaceColors = (cssValue, matchColor, replacementColor) => {
   });
 };
 
-function initCSSColorUpdators(colorName) {
+function initColorCSS(colorName) {
+  if (CSS_COLOR_UPDATORS_BY_COLOR_NAME[colorName]) {
+    return;
+  }
+  CSS_COLOR_UPDATORS_BY_COLOR_NAME[colorName] = [];
+
+  // special updator for brand
+  if (colorName === "brand") {
+    initCSSBrandHueUpdator();
+  }
+
   const originalColor = Color(originalColors[colorName]);
   // look for CSS rules which have colors matching the brand colors or very light or desaturated
   walkStyleSheets(document.styleSheets, (style, cssProperty) => {
@@ -71,7 +75,7 @@ function initCSSColorUpdators(colorName) {
       // try replacing with a random color to see if we actually need to
       cssValue !== replaceColors(cssValue, originalColor, RANDOM_COLOR)
     ) {
-      COLOR_UPDATORS_BY_COLOR_NAME[colorName].push(themeColor => {
+      CSS_COLOR_UPDATORS_BY_COLOR_NAME[colorName].push(themeColor => {
         style[cssProperty] = replaceColors(cssValue, originalColor, themeColor);
       });
     }
@@ -82,7 +86,7 @@ function initCSSBrandHueUpdator() {
   // initialize the ".brand-hue" CSS rule, which is used to change the hue of images which should
   // only contain the brand color or completely desaturated colors
   const rotateHueRule = addCSSRule(".brand-hue", "filter: hue-rotate(0);");
-  COLOR_UPDATORS_BY_COLOR_NAME["brand"].push(themeColor => {
+  CSS_COLOR_UPDATORS_BY_COLOR_NAME["brand"].push(themeColor => {
     const degrees =
       Color(themeColor)
         .hsl()
@@ -91,71 +95,48 @@ function initCSSBrandHueUpdator() {
   });
 }
 
-function getColorPaths(family, parentPath = []) {
-  const paths = [];
-  for (const [name, value] of Object.entries(family)) {
-    if (value && typeof value === "object") {
-      paths.push(...getColorPaths(value, parentPath.concat(name)));
-    } else {
-      paths.push(parentPath.concat(name));
-    }
+function initColorJS(colorName) {
+  if (JS_COLOR_UPDATORS_BY_COLOR_NAME[colorName]) {
+    return;
   }
-  return paths;
-}
-function getColor(family, path) {
-  return path.reduce((o, k) => o[k], family);
-}
-function setColor(family, path, color) {
-  let object = family;
-  for (let i = 0; i < path.length; i++) {
-    if (i < path.length - 1) {
-      object = object[path[i]];
-    } else {
-      object[path[i]] = color;
-    }
-  }
+  JS_COLOR_UPDATORS_BY_COLOR_NAME[colorName] = [];
+  JS_COLOR_UPDATORS_BY_COLOR_NAME[colorName].push(themeColor => {
+    colors[colorName] = themeColor;
+  });
 }
 
-function initJSColorUpdators(colorName) {
-  const matchColor = Color(originalColors[colorName]);
-  for (const colorFamily of COLOR_FAMILIES) {
-    const colorPaths = getColorPaths(colorFamily);
-    for (const colorPath of colorPaths) {
-      const colorString = getColor(colorFamily, colorPath);
-      const color = Color(colorString);
-      if (color.hex() === matchColor.hex()) {
-        COLOR_UPDATORS_BY_COLOR_NAME[colorName].push(themeColor => {
-          setColor(colorFamily, colorPath, themeColor);
-        });
-      }
-    }
+function updateColorJS(colorName, themeColor) {
+  initColorJS(colorName);
+  for (const colorUpdator of JS_COLOR_UPDATORS_BY_COLOR_NAME[colorName]) {
+    colorUpdator(themeColor);
   }
+  syncColors();
 }
 
-function initColorUpdators(colorName) {
-  COLOR_UPDATORS_BY_COLOR_NAME[colorName] = [];
-  if (colorName === "brand") {
-    initCSSBrandHueUpdator();
-  }
-  initCSSColorUpdators(colorName);
-  initJSColorUpdators(colorName);
-  // TODO: color harmony
-}
-
-function updateColor(colorName, themeColor) {
-  for (const colorUpdator of COLOR_UPDATORS_BY_COLOR_NAME[colorName]) {
+function updateColorCSS(colorName, themeColor) {
+  initColorCSS(colorName);
+  for (const colorUpdator of CSS_COLOR_UPDATORS_BY_COLOR_NAME[colorName]) {
     colorUpdator(themeColor);
   }
 }
 
-export function updateColorScheme() {
+export function updateColorsJS() {
   const colorScheme = MetabaseSettings.colorScheme();
   for (const [colorName, themeColor] of Object.entries(colorScheme)) {
-    if (!COLOR_UPDATORS_BY_COLOR_NAME[colorName]) {
-      initColorUpdators(colorName);
-    }
-    updateColor(colorName, themeColor);
+    updateColorJS(colorName, themeColor);
   }
+}
+
+export function updateColorsCSS() {
+  const colorScheme = MetabaseSettings.colorScheme();
+  for (const [colorName, themeColor] of Object.entries(colorScheme)) {
+    updateColorCSS(colorName, themeColor);
+  }
+}
+
+export function updateColors() {
+  updateColorsCSS();
+  updateColorsJS();
 }
 
 // APPLICATION NAME
