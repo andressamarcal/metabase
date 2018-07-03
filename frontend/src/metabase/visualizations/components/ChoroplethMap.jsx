@@ -30,6 +30,7 @@ import _ from "underscore";
 // ];
 // const HEAT_MAP_ZERO_COLOR = '#CCC';
 
+// TODO COLOR
 const HEAT_MAP_COLORS = [
   // "#E2F2FF",
   "#C4E4FF",

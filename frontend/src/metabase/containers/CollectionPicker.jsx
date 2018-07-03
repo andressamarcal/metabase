@@ -8,7 +8,9 @@ import Breadcrumbs from "metabase/components/Breadcrumbs";
 
 import { getExpandedCollectionsById } from "metabase/entities/collections";
 
-const COLLECTION_ICON_COLOR = "#DCE1E4";
+import colors from "metabase/lib/colors";
+
+const COLLECTION_ICON_COLOR = colors["text-light"];
 
 const isRoot = collection => collection.id === "root" || collection.id == null;
 

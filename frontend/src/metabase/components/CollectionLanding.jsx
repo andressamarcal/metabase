@@ -8,7 +8,7 @@ import BulkActionBar from "metabase/components/BulkActionBar";
 import cx from "classnames";
 
 import * as Urls from "metabase/lib/urls";
-import { normal } from "metabase/lib/colors";
+import colors, { normal } from "metabase/lib/colors";
 
 import Button from "metabase/components/Button";
 import Card from "metabase/components/Card";
@@ -43,7 +43,7 @@ const CollectionItem = ({ collection, color, iconName = "all" }) => (
     color={color || normal.grey2}
   >
     <Flex align="center" py={1} key={`collection-${collection.id}`}>
-      <Icon name={iconName} mx={1} color="#93B3C9" />
+      <Icon name={iconName} mx={1} color={colors["text-medium"]} />
       <h4>
         <Ellipsified>{collection.name}</Ellipsified>
       </h4>
