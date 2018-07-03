@@ -16,15 +16,15 @@
   --color-error: #ed6e6e;
   --color-warning: #f9cf48;
   --color-text-dark: #2e353b;
-  --color-text-medium: #93a1ab;
-  --color-text-light: #dce1e4;
+  --color-text-medium: #74838F;
+  --color-text-light: #C7CFD4;
   --color-text-white: #ffffff;
   --color-bg-black: #2e353b;
   --color-bg-dark: #93a1ab;
   --color-bg-medium: #edf2f5;
   --color-bg-light: #f9fbfc;
   --color-bg-white: #ffffff;
-  --color-shadow: #f4f5f6;
+  --color-shadow: rgba(0, 0, 0, 0.08);
   --color-border: #d7dbde;
 }
 

@@ -2,6 +2,7 @@
 
 import d3 from "d3";
 import Color from "color";
+import { Harmonizer } from "color-harmony";
 
 type ColorName = string;
 type ColorString = string;
@@ -24,88 +25,86 @@ const colors = {
   error: "#ED6E6E",
   warning: "#F9CF48",
   "text-dark": "#2E353B",
-  "text-medium": "#93A1AB",
-  "text-light": "#DCE1E4",
+  "text-medium": "#74838F",
+  "text-light": "#C7CFD4",
   "text-white": "#FFFFFF",
   "bg-black": "#2E353B",
   "bg-dark": "#93A1AB",
   "bg-medium": "#EDF2F5",
   "bg-light": "#F9FBFC",
   "bg-white": "#FFFFFF",
-  shadow: "#F4F5F6",
+  shadow: "rgba(0,0,0,0.08)",
   border: "#D7DBDE",
 };
 export default colors;
 
-export const brand = {
-  normal: colors["brand"],
-  saturated: colors["brand"],
-  desaturated: colors["brand"],
-};
+export const harmony = [];
 
-export const normal = {
-  blue: brand.normal,
-  green: colors["accent1"],
-  purple: colors["accent2"],
-  red: colors["accent3"],
-  yellow: colors["accent4"],
-  orange: colors["warning"],
-  teal: colors["text-light"],
-  indigo: colors["accent2"],
-  gray: colors["text-medium"],
-  grey1: colors["text-light"],
-  grey2: colors["text-medium"],
-  grey3: colors["text-dark"],
-  text: colors["text-dark"],
-};
+// DEPRECATED: we should remove these and use `colors` directly
+// compute satured/desaturated variants using "color" lib if absolutely required
+export const normal = {};
+export const brand = {};
+export const saturated = {};
+export const desaturated = {};
 
-export const saturated = {
-  blue: brand.saturated,
-  green: colors["success"],
-  purple: colors["accent2"],
-  red: colors["error"],
-  yellow: colors["warning"],
-};
+// make sure to do the initial "sync"
+syncColors();
 
-export const desaturated = {
-  blue: brand.desaturated,
-  green: colors["accent1"],
-  purple: colors["accent2"],
-  red: colors["accent3"],
-  yellow: colors["accent4"],
-};
+export function syncColors() {
+  syncHarmony();
+  syncDeprecatedColorFamilies();
+}
 
-export const harmony = [
-  colors["brand"],
-  colors["accent1"],
-  colors["accent2"],
-  colors["accent3"],
-  colors["accent4"],
-  colors["warning"],
-  colors["text-light"],
-  colors["accent2"],
-  colors["text-medium"],
-  colors["accent2"],
-  colors["success"],
-  colors["error"],
-  colors["accent1"],
-  colors["accent2"],
-  colors["accent2"],
-  colors["accent1"],
-  colors["text-medium"],
-  colors["error"],
-  colors["text-medium"],
-  colors["accent4"],
-  colors["accent1"],
-  colors["accent2"],
-  colors["accent1"],
-  colors["accent2"],
-  colors["success"],
-  colors["brand"],
-  colors["accent2"],
-  colors["accent4"],
-  colors["error"],
-];
+function syncHarmony() {
+  const harmonizer = new Harmonizer();
+  const initialColors = [
+    colors["brand"],
+    colors["accent1"],
+    colors["accent2"],
+    colors["accent3"],
+    colors["accent4"],
+    colors["accent5"],
+    colors["accent6"],
+    colors["accent7"],
+  ];
+  harmony.splice(0, harmony.length);
+  // round 0 includes brand and all accents
+  harmony.push(...initialColors);
+  // rounds 1-4 generated harmony
+  // only harmonize brand and accents 1 through 4
+  const initialColorHarmonies = initialColors
+    .slice(0, 5)
+    .map(color => harmonizer.harmonize(color, "fiveToneD"));
+  for (let roundIndex = 1; roundIndex < 5; roundIndex++) {
+    for (
+      let colorIndex = 0;
+      colorIndex < initialColorHarmonies.length;
+      colorIndex++
+    ) {
+      harmony.push(initialColorHarmonies[colorIndex][roundIndex]);
+    }
+  }
+}
+
+// syncs deprecated color families for legacy code
+function syncDeprecatedColorFamilies() {
+  // brand
+  brand.normal = brand.saturated = brand.desaturated = colors["brand"];
+  // normal + saturated + desaturated
+  normal.blue = saturated.blue = desaturated.blue = colors["brand"];
+  normal.green = saturated.green = desaturated.green = colors["accent1"];
+  normal.purple = saturated.purple = desaturated.purple = colors["accent2"];
+  normal.red = saturated.red = desaturated.red = colors["accent3"];
+  normal.yellow = saturated.yellow = desaturated.yellow = colors["accent4"];
+  normal.orange = colors["accent5"];
+  normal.teal = colors["accent6"];
+  normal.indigo = colors["accent7"];
+  normal.gray = colors["text-medium"];
+  normal.grey1 = colors["text-light"];
+  normal.grey2 = colors["text-medium"];
+  normal.grey3 = colors["text-dark"];
+  normal.text = colors["text-dark"];
+}
 
 export const getRandomColor = (family: ColorFamily): ColorString => {
   // $FlowFixMe: Object.values doesn't preserve the type :-/
@@ -133,4 +132,9 @@ export const getColorScale = (
 export const alpha = (color: ColorString, alpha: number): ColorString =>
   Color(color)
     .alpha(alpha)
+    .string();
+
+export const darken = (color: ColorString, factor: number): ColorString =>
+  Color(color)
+    .darken(factor)
     .string();
