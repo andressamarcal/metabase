@@ -124,14 +124,14 @@
   :default 10)
 
 (defsetting application-name
-  "The name of the application"
+  "This will replace the word \"Metabase\" wherever it appears."
   :type    :string
   :default "Metabase")
 
 (def ^:private HexColor #"#([0-9a-fA-F]{3}){1,2}")
 
 (defsetting application-colors
-  "The color theme."
+  "These are the primary colors used in charts and throughout Metabase."
   :type    :json
   :default {})
 
@@ -140,7 +140,7 @@
   (or (:brand (setting/get-json :application-colors)) "#509EE3"))
 
 (defsetting application-logo-url
-  "The application logo should ideally be an SVG image which has no color"
+  "For best results, use an SVG file with a transparent background."
   :type :string
   :default "app/assets/img/logo.svg")
 

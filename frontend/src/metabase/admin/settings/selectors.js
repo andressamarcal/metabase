@@ -500,7 +500,7 @@ const SECTIONS = [
       },
       {
         key: "application-colors",
-        display_name: "Color Scheme",
+        display_name: "Color Palette",
         widget: ColorSchemeWidget,
       },
       {

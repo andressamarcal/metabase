@@ -14,8 +14,31 @@ const THEMEABLE_COLORS = ["brand"].concat(
 
 const COLOR_DISPLAY_PROPERTIES = {
   brand: {
-    name: "Brand",
-    description: "Brand is blah blah blah",
+    name: "Primary color",
+    description: "The main color used throughout the app for the top nav bar, buttons, links, and the default chart color.",
+  },
+  accent1: {
+    name: "Accent 1",
+    description: "The color of aggregations and breakouts in the graphical query builder."
+  },
+  accent2: {
+    name: "Accent 2",
+    description: "The color of filters in the query builder and buttons and links in filter widgets."
+  },
+  accent3: {
+    name: "Additional chart color"
+  },
+  accent4: {
+    name: "Additional chart color"
+  },
+  accent5: {
+    name: "Additional chart color"
+  },
+  accent6: {
+    name: "Additional chart color"
+  },
+  accent7: {
+    name: "Additional chart color"
   },
 };
 
@@ -52,7 +75,7 @@ const ColorSchemeWidget = ({ setting, onChange }) => {
                   )}
                 </td>
                 <td>
-                  <span className="mx2">{properties.description}</span>
+                  <span className="mx2 text-grey-4">{properties.description}</span>
                 </td>
               </tr>
             );
