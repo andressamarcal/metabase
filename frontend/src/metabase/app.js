@@ -9,6 +9,11 @@ import "metabase/lib/i18n-debug";
 
 import "metabase/lib/colors";
 
+import { updateColorScheme } from "metabase/lib/whitelabel";
+// execute this before loading the rest of the application to ensure whitelabel
+// colors are swapped in
+updateColorScheme();
+
 // make the i18n function "t" global so we don't have to import it in basically every file
 import { t, jt } from "c-3po";
 global.t = t;
@@ -40,8 +45,6 @@ import { refreshSiteSettings } from "metabase/redux/settings";
 import { Router, useRouterHistory } from "react-router";
 import { createHistory } from "history";
 import { syncHistoryWithStore } from "react-router-redux";
-
-import { updateColorScheme } from "metabase/lib/whitelabel";
 
 // drag and drop
 import HTML5Backend from "react-dnd-html5-backend";
@@ -93,7 +96,6 @@ function _init(reducers, getRoutes, callback) {
   });
 
   MetabaseSettings.on("application-colors", updateColorScheme);
-  updateColorScheme();
 
   window.Metabase = window.Metabase || {};
   window.Metabase.store = store;
