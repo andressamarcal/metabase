@@ -28,7 +28,9 @@
   (assoc query-context :user (assoc (#'mid/find-user (users/user->id :rasta))
                                :login_attributes user-attributes)))
 
-(defn- call-with-segmented-perms
+(defn call-with-segmented-perms
+  "This function creates a new database with the test data so that our test users permissions can be safely changed
+  without affect other tests that use those same accounts and the test database."
   [f]
   (data/with-db (data/get-or-create-database! defs/test-data)
     ;; copy the test database
@@ -38,7 +40,7 @@
       (data/with-db db
         (f db-id)))))
 
-(defn- add-segmented-perms
+(defn add-segmented-perms
   "Removes the default full permissions for all users and adds segmented and read permissions"
   [db-id]
   (perms/revoke-permissions! (perms-group/all-users) db-id)
