@@ -10,6 +10,7 @@ type ColorFamily = { [name: ColorName]: ColorString };
 
 // NOTE: DO NOT ADD COLORS WITHOUT EXTREMELY GOOD REASON AND DESIGN REVIEW
 // NOTE: KEEP SYNCRONIZED WITH COLORS.CSS
+/* eslint-disable no-color-literals */
 const colors = {
   brand: "#509EE3",
   accent1: "#9CC177",
@@ -36,6 +37,7 @@ const colors = {
   shadow: "rgba(0,0,0,0.08)",
   border: "#D7DBDE",
 };
+/* eslint-enable no-color-literals */
 export default colors;
 
 export const harmony = [];
@@ -43,7 +45,6 @@ export const harmony = [];
 // DEPRECATED: we should remove these and use `colors` directly
 // compute satured/desaturated variants using "color" lib if absolutely required
 export const normal = {};
-export const brand = {};
 export const saturated = {};
 export const desaturated = {};
 
@@ -88,8 +89,6 @@ function syncHarmony() {
 
 // syncs deprecated color families for legacy code
 function syncDeprecatedColorFamilies() {
-  // brand
-  brand.normal = brand.saturated = brand.desaturated = colors["brand"];
   // normal + saturated + desaturated
   normal.blue = saturated.blue = desaturated.blue = colors["brand"];
   normal.green = saturated.green = desaturated.green = colors["accent1"];
