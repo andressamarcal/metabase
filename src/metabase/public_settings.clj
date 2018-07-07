@@ -136,6 +136,7 @@
   :default {})
 
 (defn application-color
+  "The primary color, a.k.a. brand color"
   []
   (or (:brand (setting/get-json :application-colors)) "#509EE3"))
 
