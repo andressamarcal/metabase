@@ -7,12 +7,13 @@
 
 ;; Can I fetch a Field that I don't have read access for if I have segmented table access for it?
 (expect
-  {:name         "NAME"
-   :display_name "Name"}
+  {:name             "NAME"
+   :display_name     "Name"
+   :has_field_values "list"}
   (mt-table-test/with-segmented-test-setup mt-table-test/restricted-column-query
     (mt-table-test/with-user-attributes :rasta {:cat 50}
       (-> ((users/user->client :rasta) :get 200 (str "field/" (data/id :venues :name)))
-          (select-keys [:name :display_name])))))
+          (select-keys [:name :display_name :has_field_values])))))
 
 ;; When I call the FieldValues API endpoint for a Field that I have segmented table access only for, will I get ad-hoc
 ;; values?
