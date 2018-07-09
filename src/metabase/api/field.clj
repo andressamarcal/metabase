@@ -1,5 +1,9 @@
 (ns metabase.api.field
   (:require [compojure.core :refer [DELETE GET POST PUT]]
+            [metabase
+             [query-processor :as qp]
+             [related :as related]
+             [util :as u]]
             [metabase.api.common :as api]
             [metabase.db.metadata-queries :as metadata]
             [metabase.models
@@ -9,9 +13,6 @@
              [interface :as mi]
              [permissions :as perms]
              [table :refer [Table]]]
-            [metabase.query-processor :as qp]
-            [metabase.related :as related]
-            [metabase.util :as u]
             [metabase.util.schema :as su]
             [schema.core :as s]
             [toucan
@@ -41,21 +42,19 @@
   [id]
   (let [field (-> (api/check-404 (Field id))
                   (hydrate [:table :db] :has_field_values :dimensions :name_field))]
-    (cond
-      ;; Normal read perms = normal access
-      (mi/can-read? field)
-      field
-
-      ;; There's a special case where we allow you to fetch a Field even if you don't have full read permissions for
-      ;; it: if you have segmented query access to the Table it belongs to. In this case, we'll still let you fetch
-      ;; the Field, since this is required to power features like Dashboard filters, but if it's `has_field_values` =
-      ;; `list`, we'll change that to `search`, since you still won't be able to access the FieldValues endpoint, and
-      ;; we want the GTAP to be applied when filtering the values, which will be fetched via a 'search' query.
-      (has-segmented-query-permissions? (:table field))
-      (update field :has_field_values #(or ({:list :search} %) %))
-
-      :else
-      (api/throw-403))))
+    ;; Normal read perms = normal access.
+    ;;
+    ;; There's also aspecial case where we allow you to fetch a Field even if you don't have full read permissions for
+    ;; it: if you have segmented query access to the Table it belongs to. In this case, we'll still let you fetch the
+    ;; Field, since this is required to power features like Dashboard filters, but we'll treat this Field a little
+    ;; differently in other endpoints such as the FieldValues fetching endpoint.
+    ;;
+    ;; Check for permissions and throw 403 if we don't have them...
+    (when-not (or (mi/can-read? field)
+                  (has-segmented-query-permissions? (:table field)))
+      (api/throw-403))
+    ;; ...but if we do, return the Field <3
+    field))
 
 (defn- clear-dimension-on-fk-change! [{{dimension-id :id dimension-type :type} :dimensions :as field}]
   (when (and dimension-id (= :external dimension-type))
@@ -189,7 +188,22 @@
   "If a Field's value of `has_field_values` is `list`, return a list of all the distinct values of the Field, and (if
   defined by a User) a map of human-readable remapped values."
   [id]
-  (field->values (api/read-check Field id)))
+  (let [field (api/check-404 (Field id))]
+    (cond
+      ;; if you have normal read permissions, return normal results
+      (mi/can-read? field)
+      (field->values (api/read-check field))
+
+      ;; otherwise if you have Segmented query perms (but not normal read perms) we'll do an ad-hoc query to fetch the
+      ;; results, filtered by your GTAP
+      (has-segmented-query-permissions? (field/table field))
+      {:values   (for [value (field-values/distinct-values field)]
+                   ;; for whatever reason values are supposed back as a vector of vectors, e.g. [[1] [2] [3] [4]]
+                   [value])
+       :field_id id}
+
+      :else
+      (api/throw-403))))
 
 ;; match things like GET /field-literal%2Ccreated_at%2Ctype%2FDatetime/values
 ;; (this is how things like [field-literal,created_at,type/Datetime] look when URL-encoded)
