@@ -14,6 +14,7 @@ import EmbeddingLegalese from "./components/widgets/EmbeddingLegalese";
 import EmbeddingLevel from "./components/widgets/EmbeddingLevel";
 import LdapGroupMappingsWidget from "./components/widgets/LdapGroupMappingsWidget";
 import LogoUpload from "./components/widgets/LogoUpload";
+import ColorSchemeWidget from "./components/widgets/ColorSchemeWidget";
 
 import { UtilApi } from "metabase/services";
 
@@ -498,9 +499,9 @@ const SECTIONS = [
         type: "string",
       },
       {
-        key: "application-color",
-        display_name: "Primary Color",
-        type: "string",
+        key: "application-colors",
+        display_name: "Color Palette",
+        widget: ColorSchemeWidget,
       },
       {
         key: "application-logo-url",

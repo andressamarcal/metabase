@@ -268,7 +268,7 @@ export const getRoutes = store => (
 
       {/* REFERENCE */}
       <Route path="/reference" title={`Data Reference`}>
-        <IndexRedirect to="/reference/guide" />
+        <IndexRedirect to="/reference/databases" />
         <Route
           path="guide"
           title={`Getting Started`}

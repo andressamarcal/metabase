@@ -7,6 +7,15 @@ import "number-to-locale-string";
 // strings/elements to assist in finding untranslated strings.
 import "metabase/lib/i18n-debug";
 
+import "metabase/lib/colors";
+
+import { updateColors, updateColorsJS } from "metabase/lib/whitelabel";
+// Update the JS colors to ensure components that use a color statically get the
+// whitelabeled color (though this doesn't help if the admin changes a color and
+// doesn't refresh)
+// Don't update CSS colors yet since all the CSS hasn't been loaded yet
+updateColorsJS();
+
 // make the i18n function "t" global so we don't have to import it in basically every file
 import { t, jt } from "c-3po";
 global.t = t;
@@ -38,8 +47,6 @@ import { refreshSiteSettings } from "metabase/redux/settings";
 import { Router, useRouterHistory } from "react-router";
 import { createHistory } from "history";
 import { syncHistoryWithStore } from "react-router-redux";
-
-import { updateColorScheme } from "metabase/lib/whitelabel";
 
 // drag and drop
 import HTML5Backend from "react-dnd-html5-backend";
@@ -90,8 +97,8 @@ function _init(reducers, getRoutes, callback) {
     ] = MetabaseSettings.isTrackingEnabled() ? null : true;
   });
 
-  MetabaseSettings.on("application-color", updateColorScheme);
-  updateColorScheme();
+  MetabaseSettings.on("application-colors", updateColors);
+  updateColors();
 
   window.Metabase = window.Metabase || {};
   window.Metabase.store = store;
