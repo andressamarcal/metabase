@@ -197,9 +197,10 @@
       ;; otherwise if you have Segmented query perms (but not normal read perms) we'll do an ad-hoc query to fetch the
       ;; results, filtered by your GTAP
       (has-segmented-query-permissions? (field/table field))
-      {:values (for [value (field-values/distinct-values field)]
-                 ;; for whatever reason values are supposed back as a vector of vectors, e.g. [[1] [2] [3] [4]]
-                 [value])}
+      {:values   (for [value (field-values/distinct-values field)]
+                   ;; for whatever reason values are supposed back as a vector of vectors, e.g. [[1] [2] [3] [4]]
+                   [value])
+       :field_id id}
 
       :else
       (api/throw-403))))

@@ -20,25 +20,31 @@
 (expect
   ;; Rasta Toucan is only allowed to see Venues that are in the "Mexican" category [category_id = 50]. So fetching
   ;; FieldValues for `venue.name` should do an ad-hoc fetch and only return the names of venues in that category.
-  {:values [["Garaje"]
-            ["Gordo Taqueria"]
-            ["La Tortilla"]
-            ["Manuel's Original El Tepeyac Cafe"]
-            ["Señor Fish"]
-            ["Tacos Villa Corona"]
-            ["Taqueria Los Coyotes"]
-            ["Taqueria San Francisco"]
-            ["Tito's Tacos"]
-            ["Yuca's Taqueria"]]}
+  {:field_id true
+   :values   [["Garaje"]
+              ["Gordo Taqueria"]
+              ["La Tortilla"]
+              ["Manuel's Original El Tepeyac Cafe"]
+              ["Señor Fish"]
+              ["Tacos Villa Corona"]
+              ["Taqueria Los Coyotes"]
+              ["Taqueria San Francisco"]
+              ["Tito's Tacos"]
+              ["Yuca's Taqueria"]]}
   (mt-table-test/with-segmented-test-setup mt-table-test/restricted-column-query
     (mt-table-test/with-user-attributes :rasta {:cat 50}
-      ((users/user->client :rasta) :get 200 (str "field/" (data/id :venues :name) "/values")))))
+      (-> ((users/user->client :rasta) :get 200 (str "field/" (data/id :venues :name) "/values"))
+          ;; `with-segmented-test-setup` binds `data/db` and `data/id` to a new temp copy of the test data DB so the
+          ;; value of the `data/id` call here will be different from if we were to call it in `expected`.
+          (update :field_id (partial = (data/id :venues :name)))))))
 
 ;; Now in this case recall that the `restricted-column-query` GTAP we're using does *not* include `venues.price` in
 ;; the results. (Toucan isn't allowed to know the number of dollar signs!) So make sure if we try to fetch the field
 ;; values instead of seeing `[[1] [2] [3] [4]]` we get no results
 (expect
-  {:values []}
+  {:field_id true
+   :values   []}
   (mt-table-test/with-segmented-test-setup mt-table-test/restricted-column-query
     (mt-table-test/with-user-attributes :rasta {:cat 50}
-      ((users/user->client :rasta) :get 200 (str "field/" (data/id :venues :price) "/values")))))
+      (-> ((users/user->client :rasta) :get 200 (str "field/" (data/id :venues :price) "/values"))
+          (update :field_id (partial = (data/id :venues :price)))))))
