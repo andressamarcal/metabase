@@ -13,7 +13,7 @@
             [toucan.db :as db]
             [toucan.util.test :as tt]))
 
-(defn- call-with-user-attributes [user-kwd attributes f]
+(defn call-with-user-attributes [user-kwd attributes f]
   (let [attributes-before-change (db/select-one-field :login_attributes User :id (users/user->id user-kwd))]
     (try
       (db/update! User (users/user->id user-kwd) {:login_attributes attributes})
@@ -21,10 +21,10 @@
       (finally
         (db/update! User (users/user->id user-kwd)  {:login_attributes attributes-before-change})))))
 
-(defmacro ^:private with-user-attributes [user-kwd attributes-map & body]
+(defmacro with-user-attributes [user-kwd attributes-map & body]
   `(call-with-user-attributes ~user-kwd ~attributes-map (fn [] ~@body)))
 
-(defn- restricted-column-query [db-id]
+(defn restricted-column-query [db-id]
   {:database db-id
    :type     :query
    :query    {:source_table (data/id :venues)
@@ -32,7 +32,7 @@
                        [:field-id (data/id :venues :name)]
                        [:field-id (data/id :venues :category_id)]]}})
 
-(defn- call-with-segmented-test-setup [make-query-fn f]
+(defn call-with-segmented-test-setup [make-query-fn f]
   (rlrt/call-with-segmented-perms
    (fn [db-id]
      (let [attr-remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]}]
@@ -41,14 +41,14 @@
                        PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
                        PermissionsGroupMembership [_ {:group_id group-id
                                                       :user_id  (users/user->id :rasta)}]
-                       GroupTableAccessPolicy [gtap {:group_id group-id
-                                                     :table_id (data/id :venues)
-                                                     :card_id card-id
+                       GroupTableAccessPolicy [gtap {:group_id             group-id
+                                                     :table_id             (data/id :venues)
+                                                     :card_id              card-id
                                                      :attribute_remappings attr-remappings}]]
          (rlrt/add-segmented-perms db-id)
          (f))))))
 
-(defmacro ^:private with-segmented-test-setup [make-query-fn & body]
+(defmacro with-segmented-test-setup [make-query-fn & body]
   `(call-with-segmented-test-setup ~make-query-fn (fn [] ~@body)))
 
 ;; Users with restricted access to the columns of a table should only see columns included in the GTAP question

@@ -1,9 +1,12 @@
 (ns metabase.db.metadata-queries
+  ;; TODO - should this go under `metabase.db`? `metabase.db` is stuff related to the application database, and this
+  ;; stuff is QP & sync related
   "Predefined MBQL queries for getting metadata about an external database."
   (:require [clojure.tools.logging :as log]
             [metabase
              [query-processor :as qp]
              [util :as u]]
+            [metabase.api.common :as api]
             [metabase.models.table :refer [Table]]
             [metabase.query-processor.interface :as qpi]
             [metabase.query-processor.middleware.expand :as ql]
@@ -12,12 +15,14 @@
             [toucan.db :as db]))
 
 (defn- qp-query [db-id query]
-  {:pre [(integer? db-id)]}
   (-> (binding [qpi/*disable-qp-logging* true]
         (qp/process-query
           {:type     :query
-           :database db-id
-           :query    query}))
+           :database (u/get-id db-id)
+           :query    query
+           ;; for things like ad-hoc FieldValues fetching. If current user has an applicable GTAP we need to
+           ;; know about them in order to apply it.
+           :user     @api/*current-user*}))
       :data
       :rows))
 
