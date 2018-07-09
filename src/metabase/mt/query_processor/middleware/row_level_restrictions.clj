@@ -6,6 +6,8 @@
             [metabase.models
              [card :refer [Card]]
              [database :as database]
+             [field :refer [Field]]
+             [params :as params]
              [permissions :as perms]
              [permissions-group-membership :refer [PermissionsGroupMembership]]
              [table :refer [Table]]]
@@ -60,11 +62,37 @@
       (throw (RuntimeException. (str (tru "User with email ''{0}'' is not a member of any group"
                                           (get-in outer-query [:user :email]))))))))
 
+(defn- target->type
+  "Attempt to expand `maybe-field` to find its `id`. This might not be a field and instead a template tag or something
+  else. Return the field id if we can, otherwise nil"
+  [[_ maybe-field]]
+  (when-let [field-id (params/field-form->id maybe-field)]
+    (db/select-one-field :base_type Field :id field-id)))
+
+(defn- attr-value->param-value
+  "Take an `attr-value` with a desired `target-type` and coerce to that type if need be. If not type is given or it's
+  already correct, return the original `attr-value`"
+  [target-type attr-value]
+  (let [attr-string? (string? attr-value)]
+    (cond
+      ;; If the attr-value is a string and the target type is integer, parse it as a long
+      (and attr-string? (isa? target-type :type/Integer))
+      (Long/parseLong attr-value)
+      ;; If the attr-value is a string and the target type is float, parse it as a double
+      (and attr-string? (isa? target-type :type/Float))
+      (Double/parseDouble attr-value)
+      ;; No need to parse it if the type isn't numeric or if it's already a number
+      :else
+      attr-value)))
+
 (defn- attr-remapping->parameter [login-attributes [attr-name target]]
   ;; defaults attr-value to "" because if it's nil the parameter is ignored
   ;; TODO: maybe we should just throw an exception
-  (let [attr-value (get login-attributes attr-name "")]
-    {:type "category", :value attr-value, :target target}))
+  (let [attr-value       (get login-attributes attr-name "")
+        maybe-field-type (target->type target)]
+    {:type   "category"
+     :target target
+     :value  (attr-value->param-value maybe-field-type attr-value)}))
 
 (defn- gtap->database-id [{:keys [card_id table_id] :as gtap}]
   (if card_id
