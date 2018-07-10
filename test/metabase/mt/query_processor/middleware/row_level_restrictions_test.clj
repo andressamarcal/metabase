@@ -17,9 +17,11 @@
              [table :refer [Table]]]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
             [metabase.query-processor.middleware.expand :as ql]
+            [metabase.query-processor-test :as qpt]
             [metabase.test.data :as data]
             [metabase.test.data
              [dataset-definitions :as defs]
+             [datasets :as datasets]
              [users :as users]]
             [toucan.db :as db]
             [toucan.util.test :as tt]))
@@ -34,7 +36,7 @@
   [f]
   (data/with-db (data/get-or-create-database! defs/test-data)
     ;; copy the test database
-    (tt/with-temp Database [{db-id :id :as db} {:details (:details (data/db)), :engine "h2"}]
+    (tt/with-temp Database [{db-id :id :as db} (select-keys (data/db) [:details :engine])]
       (users/create-users-if-needed!)
       (metabase.sync/sync-database! db)
       (data/with-db db
@@ -48,7 +50,7 @@
   (perms/grant-permissions! (perms-group/all-users) (perms/table-segmented-query-path (Table (data/id :venues)))))
 
 ;; When querying with full permissions, no changes should be made
-(expect
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
   [[100]]
   (tt/with-temp* [Card [{card-id :id :as card} {:name          "magic"
                                                 :dataset_query {:database (data/id)
@@ -74,7 +76,7 @@
 
 ;; Basic test around querying a table by a user with segmented only permissions and a GTAP question that is a native
 ;; query
-(expect
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
   [[10]]
   (call-with-segmented-perms
    (fn [db-id]
@@ -103,7 +105,7 @@
               qpt/rows)))))))
 
 ;; Basic test around querying a table by a user with segmented only permissions and a GTAP question that is MBQL
-(expect
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
   [[10]]
   (call-with-segmented-perms
    (fn [db-id]
@@ -129,8 +131,62 @@
               qp/process-query
               qpt/rows)))))))
 
+;; Another basic test, same as above, but with a numeric string that needs to be coerced
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+  [[10]]
+  (call-with-segmented-perms
+   (fn [db-id]
+     (tt/with-temp* [Card [{card-id :id :as card} {:name          "magic"
+                                                   :dataset_query {:database db-id
+                                                                   :type     :query
+                                                                   :query    {:source_table (data/id :venues)}}}]
+                     PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
+                     PermissionsGroupMembership [_ {:group_id group-id
+                                                    :user_id  (users/user->id :rasta)}]
+                     GroupTableAccessPolicy [gtap {:group_id group-id
+                                                   :table_id (data/id :venues)
+                                                   :card_id card-id
+                                                   :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]}}]]
+       (add-segmented-perms db-id)
+       (users/do-with-test-user
+        :rasta
+        (fn []
+          (-> (ql/query (ql/source-table (data/id :venues))
+                        (ql/aggregation (ql/count)))
+              data/wrap-inner-query
+              (with-user-attributes {"cat" "50"})
+              qp/process-query
+              qpt/rows)))))))
+
+;; Another basic test, this one uses a stringified float for the login attribute
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+  [[3]]
+  (call-with-segmented-perms
+   (fn [db-id]
+     (tt/with-temp* [Card [{card-id :id :as card} {:name          "magic"
+                                                   :dataset_query {:database db-id
+                                                                   :type     :query
+                                                                   :query    {:source_table (data/id :venues)}}}]
+                     PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
+                     PermissionsGroupMembership [_ {:group_id group-id
+                                                    :user_id  (users/user->id :rasta)}]
+                     GroupTableAccessPolicy [gtap {:group_id group-id
+                                                   :table_id (data/id :venues)
+                                                   :card_id card-id
+                                                   :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :latitude)]]}}]]
+       (add-segmented-perms db-id)
+       (users/do-with-test-user
+        :rasta
+        (fn []
+          (-> (ql/query (ql/source-table (data/id :venues))
+                        (ql/aggregation (ql/count)))
+              data/wrap-inner-query
+              (with-user-attributes {"cat" "34.1018"})
+              qp/process-query
+              qpt/rows)))))))
+
 ;; Tests that users can user a different parameter name in their query than they have in their user attributes
-(expect
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
   [[10]]
   (call-with-segmented-perms
    (fn [db-id]
@@ -159,7 +215,7 @@
               qpt/rows)))))))
 
 ;; Make sure that you can still use a SQL-based GTAP without needing to have SQL read perms for the Database
-(expect
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
  [["20th Century Cafe" 1000]]
  (tt/with-temp* [Database                   [db (select-keys (data/db) [:details :engine])]
                  PermissionsGroup           [group {:name "Segmented Access Group :/"}]
@@ -188,7 +244,7 @@
              qpt/rows))))))
 
 ;; When no card_id is included in the GTAP, should default to a query against the table, with the GTAP criteria applied
-(expect
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
   [[10]]
   (call-with-segmented-perms
    (fn [db-id]
@@ -210,8 +266,31 @@
               qp/process-query
               qpt/rows)))))))
 
+;; Same test as above but make sure we coerce a numeric string correctly
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+  [[10]]
+  (call-with-segmented-perms
+   (fn [db-id]
+     (tt/with-temp* [PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
+                     PermissionsGroupMembership [_ {:group_id group-id
+                                                    :user_id  (users/user->id :rasta)}]
+                     GroupTableAccessPolicy [gtap {:group_id             group-id
+                                                   :table_id             (data/id :venues)
+                                                   :card_id              nil
+                                                   :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]}}]]
+       (add-segmented-perms db-id)
+       (users/do-with-test-user
+        :rasta
+        (fn []
+          (-> (ql/query (ql/source-table (data/id :venues))
+                        (ql/aggregation (ql/count)))
+              data/wrap-inner-query
+              (with-user-attributes {"cat" "50"})
+              qp/process-query
+              qpt/rows)))))))
+
 ;; Users with view access to the related collection should bypass segmented permissions
-(expect
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
   1
   (tt/with-temp* [Database                   [db (select-keys (data/db) [:details :engine])]
                   Collection                 [collection]
