@@ -60,7 +60,9 @@
   reuse it"
   [first-name last-name email]
   {:pre [(string? first-name) (string? last-name) (u/email? email)]}
-  (session/check-autocreate-user-allowed-for-email email)
+  ;; Double checking the SAML support here, should not reach this point if SAML hasn't been configured properly
+  (when-not (saml-configured?)
+    (throw (IllegalArgumentException. "Can't create new SAML user when SAML is not configured")))
   (u/prog1 (db/insert! User
              :email      email
              :first_name first-name

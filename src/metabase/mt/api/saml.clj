@@ -73,18 +73,20 @@
   (api/check (isaml/saml-configured?)
     [400 (tru "SAML has not been enabled and/or configured")]))
 
+(defn- encrypt-redirect-str [redirect]
+  (-> @saml-state
+      (get-in [:mutables :secret-key-spec])
+      (saml-routes/create-hmac-relay-state redirect)))
+
 (api/defendpoint GET "/"
   "Initial call that will result in a redirect to the IDP along with information about how the IDP can authenticate
   and redirect them back to us"
   [redirect]
   (check-saml-enabled)
-  (let [idp-uri                              (isaml/saml-identity-provider-uri)
-        {:keys [saml-req-factory! mutables]} @saml-state
-        saml-request                         (saml-req-factory!)
-        ;; We don't really use RelayState. It's intended to be something like an identifier from the Service Provider
-        ;; (that's us) that we pass to the Identity Provider (i.e. Auth0) and it will include that state in it's
-        ;; response. The IDP treats it as an opaque string and just returns it without examining/changing it
-        hmac-relay-state                     (saml-routes/create-hmac-relay-state (:secret-key-spec mutables) redirect)]
+  (let [idp-uri                     (isaml/saml-identity-provider-uri)
+        {:keys [saml-req-factory!]} @saml-state
+        saml-request                (saml-req-factory!)
+        hmac-relay-state            (encrypt-redirect-str redirect)]
     (get-idp-redirect idp-uri saml-request hmac-relay-state)))
 
 (defn- unwrap-user-attributes
@@ -98,17 +100,20 @@
                   maybe-coll))
               m))
 
+(defn- decrypt-relay-state [relay-state]
+  (-> @saml-state
+      (get-in [:mutables :secret-key-spec])
+      (saml-routes/valid-hmac-relay-state? relay-state)))
+
 (api/defendpoint POST "/"
   "Does the verification of the IDP's response and 'logs the user in'. The attributes are available in the
   response: `(get-in saml-info [:assertions :attrs])"
   {params :params session :session}
   (check-saml-enabled)
-  (let [{:keys [saml-req-factory!
-                mutables, decrypter]}     @saml-state
+  (let [{:keys [decrypter]}               @saml-state
         idp-cert                          (isaml/saml-identity-provider-certificate)
         xml-string                        (saml-shared/base64->inflate->str (:SAMLResponse params))
-        relay-state                       (:RelayState params)
-        [valid-relay-state? continue-url] (saml-routes/valid-hmac-relay-state? (:secret-key-spec mutables) relay-state)
+        [valid-relay-state? continue-url] (decrypt-relay-state (:RelayState params))
         saml-resp                         (saml-sp/xml-string->saml-resp xml-string)
         valid-signature?                  (if idp-cert
                                             (saml-sp/validate-saml-response-signature saml-resp idp-cert)
