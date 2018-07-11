@@ -72,15 +72,32 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
 ;; 7. Metabase inits the user session, responds with a redirect to back to the original <URL>
 ;;
 
-(defmacro with-default-saml-config [& body]
-  `(tu/with-temporary-setting-values [~'saml-enabled "true"
-                                      ~'saml-identity-provider-uri default-idp-uri
-                                      ~'saml-identity-provider-certificate default-idp-cert]
-     ~@body))
+(defn- call-with-default-saml-config [f]
+  (tu/with-temporary-setting-values [saml-enabled "true"
+                                     saml-identity-provider-uri default-idp-uri
+                                     saml-identity-provider-certificate default-idp-cert]
+    (f)))
 
-;; With SAML configured, a GET request should result in a redirect to the IDP
+(defn- call-with-login-attributes-cleared!
+  "If login_attributes remain after these tests run, depending on the order that the tests run, lots of tests will
+  fail as the login_attributes data from this tests is unexpected in those other tests"
+  [f]
+  (try
+    (f)
+    (finally
+      (u/ignore-exceptions (db/update-where! User {} :login_attributes nil)))))
+
+(defmacro ^:private with-saml-default-setup [& body]
+  `(call-with-login-attributes-cleared!
+    (fn []
+      (users/create-users-if-needed!)
+      (call-with-default-saml-config
+       (fn []
+         ~@body)))))
+
+; With SAML configured, a GET request should result in a redirect to the IDP
 (expect
-  (with-default-saml-config
+  (with-saml-default-setup
     (let [result       (client-full-response :get 302 "/auth/sso" {:request-options {:follow-redirects false}} :redirect default-redirect-uri)
           redirect-url (get-in result [:headers "Location"])]
       (str/starts-with? redirect-url default-idp-uri))))
@@ -96,7 +113,7 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
 ;; parameters onto the query string (rather than always include a `?newparam=here`).
 (expect
   #{:someparam :SAMLRequest :RelayState}
-  (with-default-saml-config
+  (with-saml-default-setup
     (tu/with-temporary-setting-values [saml-identity-provider-uri default-idp-uri-with-param]
       (let [result       (client-full-response :get 302 "/auth/sso"
                                                {:request-options {:follow-redirects false}}
@@ -112,7 +129,7 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
 ;; to validate we are including the right thing
 (expect
   [true default-redirect-uri]
-  (with-default-saml-config
+  (with-saml-default-setup
     (let [result       (client-full-response :get 302 "/auth/sso"
                                              {:request-options {:follow-redirects false}}
                                              :redirect default-redirect-uri)
@@ -136,8 +153,9 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
 (expect
   {:successful-login? true
    :redirect-uri      default-redirect-uri}
-  (with-default-saml-config
+  (with-saml-default-setup
     (users/create-users-if-needed!)
+
     (let [req-options (saml-post-request-options @saml-test-response
                                                  (#'saml/encrypt-redirect-str default-redirect-uri))
           response (client-full-response :post 302 "/auth/sso" req-options)]
@@ -147,7 +165,7 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
 ;; Test that if the RelayState is tampered with, validation fails and we return a failure error message
 (expect
   "The SAML response from IdP does not validate!"
-  (with-default-saml-config
+  (with-saml-default-setup
     (users/create-users-if-needed!)
     (client :post 500 "/auth/sso"
             (saml-post-request-options @saml-test-response
@@ -161,7 +179,7 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
    :new-user                [{:email "newuser@metabase.com", :first_name "New", :last_login false,
                               :is_qbnewb true, :is_superuser false, :id true, :last_name "User",
                               :date_joined true, :common_name "New User"}]}
-  (with-default-saml-config
+  (with-saml-default-setup
     (users/create-users-if-needed!)
     (try
       (let [new-user-exists? (boolean (seq (db/select metabase.models.user/User :email "newuser@metabase.com")))
