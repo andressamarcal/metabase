@@ -7,7 +7,11 @@
              [gtap :as gtap]
              [saml :as saml]
              [table :as table]
-             [user :as user]]))
+             [user :as user]]
+            ;; Required so that the multimethod implementations for SSO are loaded
+            [metabase.mt.integrations
+             [jwt]
+             [saml]]))
 
 ;; this is copied from `metabase.api.routes` because if we require that above we will destroy startup times for `lein
 ;; ring server`
