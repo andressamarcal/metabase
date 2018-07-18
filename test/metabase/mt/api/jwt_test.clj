@@ -61,7 +61,7 @@
       {:successful-login? (saml-test/successful-login? response)
        :redirect-uri      (get-in response [:headers "Location"])})))
 
-(def ^:private five-minutes-in-seconds (* 60 5))
+(def ^:private ^:const five-minutes-in-seconds (* 60 5))
 
 ;; Check an expired JWT
 (expect

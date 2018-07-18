@@ -9,41 +9,21 @@
             [metabase.models.user :refer [User]]
             [metabase.email.messages :as email]
             [metabase.api.session :as session]
-            [puppetlabs.i18n.core :refer [tru]]))
-
-
-;; TODO - refactor the `core_user` model and the construction functions to get some reuse here
-(defn- create-new-jwt-auth-user!
-  "This function is basically the same thing as the `create-new-google-auth-user` from `metabase.models.user`. We need
-  to refactor the `core_user` table structure and the function used to populate it so that the enterprise product can
-  reuse it"
-  [first-name last-name email]
-  {:pre [(string? first-name) (string? last-name) (u/email? email)]}
-  ;; Double checking the SAML support here, should not reach this point if SAML hasn't been configured properly
-  (when-not (sso-settings/jwt-configured?)
-    (throw (IllegalArgumentException. "Can't create new SAML user when SAML is not configured")))
-  (u/prog1 (db/insert! User
-             :email      email
-             :first_name first-name
-             :last_name  last-name
-             :password   (str (java.util.UUID/randomUUID))
-             :saml_auth  true)
-    ;; send an email to everyone including the site admin if that's set
-    (email/send-user-joined-admin-notification-email! <>, :google-auth? true)))
-
-(defn- fetch-and-update-login-attributes! [email new-user-attributes]
-  (when-let [{:keys [id login_attributes] :as user} (db/select-one User :email email)]
-    (if (= login_attributes new-user-attributes)
-      user
-      (do
-        (db/update! User id :login_attributes new-user-attributes)
-        (User id)))))
+            [puppetlabs.i18n.core :refer [tru]]
+            [metabase.mt.integrations.sso-utils :as sso-utils]))
 
 (defn jwt-auth-fetch-or-create-user!
   "Returns a session map for the given `email`. Will create the user if needed."
   [first-name last-name email user-attributes]
-  (when-let [user (or (fetch-and-update-login-attributes! email user-attributes)
-                      (create-new-jwt-auth-user! first-name last-name email))]
+
+  (when-not (sso-settings/jwt-configured?)
+    (throw (IllegalArgumentException. "Can't create new SAML user when SAML is not configured")))
+
+  (when-let [user (or (sso-utils/fetch-and-update-login-attributes! email user-attributes)
+                      (sso-utils/create-new-sso-user! {:first_name first-name
+                                                       :last_name  last-name
+                                                       :email      email
+                                                       :sso_source "jwt"}))]
     {:id (session/create-session! user)}))
 
 (def ^:private jwt-attribute-email     (comp keyword sso-settings/jwt-attribute-email))
@@ -86,4 +66,5 @@
                           (str "?return_to=" redirect))))))
 
 (defmethod api-saml/sso-post :jwt
-  [req])
+  [req]
+  (throw (ex-info "POST not valid for JWT SSO requests" {:status-code 400})))

@@ -5044,3 +5044,19 @@ databaseChangeLog:
                   name: SCHED_NAME
               - column:
                   name: TRIGGER_GROUP
+  - changeSet:
+      id: 90
+      author: senior
+      comment: 'Added 0.30.0'
+      changes:
+        - addColumn:
+            tableName: core_user
+            columns:
+              name: sso_source
+              type: varchar(254)
+              remarks: 'String to indicate the SSO backend the user is from'
+        - sql:
+            sql: update core_user set sso_source='saml' where saml_auth=true
+        - dropColumn:
+            tableName: core_user
+            columnName: saml_auth

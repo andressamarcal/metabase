@@ -17,40 +17,21 @@
              [shared :as saml-shared]
              [sp :as saml-sp]]
             [ring.util.response :as resp]
-            [toucan.db :as db]))
-
-;; TODO - refactor the `core_user` model and the construction functions to get some reuse here
-(defn- create-new-saml-auth-user!
-  "This function is basically the same thing as the `create-new-google-auth-user` from `metabase.models.user`. We need
-  to refactor the `core_user` table structure and the function used to populate it so that the enterprise product can
-  reuse it"
-  [first-name last-name email]
-  {:pre [(string? first-name) (string? last-name) (u/email? email)]}
-  ;; Double checking the SAML support here, should not reach this point if SAML hasn't been configured properly
-  (when-not (sso-settings/saml-configured?)
-    (throw (IllegalArgumentException. "Can't create new SAML user when SAML is not configured")))
-  (u/prog1 (db/insert! User
-             :email      email
-             :first_name first-name
-             :last_name  last-name
-             :password   (str (java.util.UUID/randomUUID))
-             :saml_auth  true)
-    ;; send an email to everyone including the site admin if that's set
-    (email/send-user-joined-admin-notification-email! <>, :google-auth? true)))
-
-(defn- fetch-and-update-login-attributes! [email new-user-attributes]
-  (when-let [{:keys [id login_attributes] :as user} (db/select-one User :email email)]
-    (if (= login_attributes new-user-attributes)
-      user
-      (do
-        (db/update! User id :login_attributes new-user-attributes)
-        (User id)))))
+            [toucan.db :as db]
+            [metabase.mt.integrations.sso-utils :as sso-utils]))
 
 (defn saml-auth-fetch-or-create-user!
   "Returns a session map for the given `email`. Will create the user if needed."
   [first-name last-name email user-attributes]
-  (when-let [user (or (fetch-and-update-login-attributes! email user-attributes)
-                      (create-new-saml-auth-user! first-name last-name email))]
+
+  (when-not (sso-settings/saml-configured?)
+    (throw (IllegalArgumentException. "Can't create new SAML user when SAML is not configured")))
+
+  (when-let [user (or (sso-utils/fetch-and-update-login-attributes! email user-attributes)
+                      (sso-utils/create-new-sso-user! {:first_name first-name
+                                                       :last_name  last-name
+                                                       :email      email
+                                                       :sso_source "saml"}))]
     {:id (session/create-session! user)}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -128,8 +109,6 @@
         saml-request                (saml-req-factory!)
         hmac-relay-state            (encrypt-redirect-str redirect)]
     (get-idp-redirect idp-uri saml-request hmac-relay-state)))
-
-
 
 (defn- unwrap-user-attributes
   "For some reason all of the user attributes coming back from the saml library are wrapped in a list, instead of 'Ryan',
