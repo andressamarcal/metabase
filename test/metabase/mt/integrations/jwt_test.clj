@@ -1,11 +1,11 @@
-(ns metabase.mt.api.jwt-test
+(ns metabase.mt.integrations.jwt-test
   (:require [buddy.sign
              [jwt :as jwt]
              [util :as buddy-util]]
             [clojure.string :as str]
             [expectations :refer :all]
             [metabase.models.user :refer [User]]
-            [metabase.mt.api.saml-test :as saml-test]
+            [metabase.mt.integrations.saml-test :as saml-test]
             [metabase.test.data.users :as users]
             [metabase.test.util :as tu]
             [toucan.db :as db]))

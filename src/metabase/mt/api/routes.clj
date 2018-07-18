@@ -5,7 +5,7 @@
             [metabase.middleware :as middleware]
             [metabase.mt.api
              [gtap :as gtap]
-             [saml :as saml]
+             [sso :as sso]
              [table :as table]
              [user :as user]]
             ;; Required so that the multimethod implementations for SSO are loaded
@@ -33,7 +33,7 @@
    "/auth"
    []
    (routes
-    (context "/sso" [] saml/routes))))
+    (context "/sso" [] sso/routes))))
 
 (defn install-mt-routes!
   "Swap out `metabase.api.routes/routes` with a new version that includes the multi-tenant routes. Take care to only

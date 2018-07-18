@@ -2,7 +2,7 @@
   (:require [buddy.sign.jwt :as jwt]
             [metabase.api.common :as api]
             [metabase.mt.integrations.sso-settings :as sso-settings]
-            [metabase.mt.api.saml :as api-saml]
+            [metabase.mt.api.sso :as sso]
             [ring.util.response :as resp]
             [metabase.util :as u]
             [toucan.db :as db]
@@ -56,7 +56,7 @@
   (api/check (sso-settings/jwt-configured?)
     [400 (tru "JWT SSO has not been enabled and/or configured")]))
 
-(defmethod api-saml/sso-get :jwt
+(defmethod sso/sso-get :jwt
   [req]
   (check-jwt-enabled)
   (if-let [jwt (get-in req [:params :jwt])]
@@ -65,6 +65,6 @@
                         (when-let [redirect (get-in req [:params :redirect])]
                           (str "?return_to=" redirect))))))
 
-(defmethod api-saml/sso-post :jwt
+(defmethod sso/sso-post :jwt
   [req]
   (throw (ex-info "POST not valid for JWT SSO requests" {:status-code 400})))

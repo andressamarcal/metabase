@@ -1,4 +1,4 @@
-(ns metabase.mt.api.saml
+(ns metabase.mt.api.sso
   (:require [clojure.string :as str]
             [compojure.core :refer [GET POST]]
             [medley.core :as m]

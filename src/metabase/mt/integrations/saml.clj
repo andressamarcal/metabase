@@ -7,7 +7,7 @@
             [metabase.models
              [setting :as setting :refer [defsetting]]
              [user :refer [User]]]
-            [metabase.mt.api.saml :as api-saml]
+            [metabase.mt.api.sso :as sso]
             [metabase.public-settings :as public-settings]
             [metabase.util :as u]
             [puppetlabs.i18n.core :refer [tru]]
@@ -98,7 +98,7 @@
       (get-in [:mutables :secret-key-spec])
       (saml-routes/create-hmac-relay-state redirect)))
 
-(defmethod api-saml/sso-get :saml
+(defmethod sso/sso-get :saml
   ;; Initial call that will result in a redirect to the IDP along with information about how the IDP can authenticate
   ;; and redirect them back to us
   [req]
@@ -126,7 +126,7 @@
       (get-in [:mutables :secret-key-spec])
       (saml-routes/valid-hmac-relay-state? relay-state)))
 
-(defmethod api-saml/sso-post :saml
+(defmethod sso/sso-post :saml
   ;; Does the verification of the IDP's response and 'logs the user in'. The attributes are available in the response:
   ;; `(get-in saml-info [:assertions :attrs])
   [{params :params session :session}]

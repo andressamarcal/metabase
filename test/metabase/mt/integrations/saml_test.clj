@@ -1,4 +1,4 @@
-(ns metabase.mt.api.saml-test
+(ns metabase.mt.integrations.saml-test
   (:require [clojure.string :as str]
             [expectations :refer :all]
             [metabase
