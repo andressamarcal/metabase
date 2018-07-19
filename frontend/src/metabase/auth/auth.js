@@ -83,10 +83,10 @@ export const loginGoogle = createThunkAction(LOGIN_GOOGLE, function(
   };
 });
 
-export const LOGIN_SAML = "metabase/auth/LOGIN_SAML";
-export const loginSAML = createThunkAction(LOGIN_SAML, function(redirectUrl) {
+export const LOGIN_SSO = "metabase/auth/LOGIN_SSO";
+export const loginSSO = createThunkAction(LOGIN_SSO, function(redirectUrl) {
   return async function(dispatch, getState) {
-    MetabaseAnalytics.trackEvent("Auth", "SAML Login Start");
+    MetabaseAnalytics.trackEvent("Auth", "SSO Login Start");
     // use `window.location` instead of `push` since it's not a frontend route
     window.location =
       MetabaseSettings.get("site_url") +

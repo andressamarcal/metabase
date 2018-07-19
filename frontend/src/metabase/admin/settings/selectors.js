@@ -359,6 +359,48 @@ const SECTIONS = [
     ],
   },
   {
+    name: t`JWT`,
+    slug: "jwt",
+    sidebar: false,
+    settings: [
+      {
+        key: "jwt-enabled",
+        display_name: t`JWT Authentication`,
+        description: null,
+        type: "boolean",
+      },
+      {
+        key: "jwt-identity-provider-uri",
+        display_name: t`JWT Identity Provider URI`,
+        placeholder: "https://jwt.yourdomain.org",
+        type: "string",
+        required: true,
+        autoFocus: true,
+      },
+      {
+        key: "jwt-shared-secret",
+        display_name: t`String used by the JWT signing key`,
+        type: "text",
+        required: true,
+      },
+      {
+        key: "jwt-attribute-email",
+        display_name: t`Email attribute`,
+        type: "string",
+      },
+      {
+        key: "jwt-attribute-firstname",
+        display_name: t`First name attribute`,
+        type: "string",
+      },
+      {
+        key: "jwt-attribute-lastname",
+        display_name: t`Last name attribute`,
+        type: "string",
+      },
+    ],
+  },
+  {
     name: t`Maps`,
     slug: "maps",
     settings: [

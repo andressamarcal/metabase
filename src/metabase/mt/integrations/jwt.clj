@@ -9,7 +9,8 @@
              [sso-settings :as sso-settings]
              [sso-utils :as sso-utils]]
             [puppetlabs.i18n.core :refer [tru]]
-            [ring.util.response :as resp]))
+            [ring.util.response :as resp])
+  (:import java.net.URLEncoder))
 
 (defn jwt-auth-fetch-or-create-user!
   "Returns a session map for the given `email`. Will create the user if needed."
@@ -51,7 +52,7 @@
         first-name          (get jwt-data (jwt-attribute-firstname) "Unknown")
         last-name           (get jwt-data (jwt-attribute-lastname) "Unknown")
         {session-token :id} (jwt-auth-fetch-or-create-user! first-name last-name email login-attrs)]
-    (resp/set-cookie (resp/redirect redirect)
+    (resp/set-cookie (resp/redirect (or redirect (URLEncoder/encode "/")))
                      "metabase.SESSION_ID" session-token
                      {:path "/"})))
 
