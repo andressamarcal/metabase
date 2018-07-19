@@ -1,23 +1,22 @@
 (ns metabase.mt.integrations.jwt
+  "Implementation of the JWT backend for sso"
   (:require [buddy.sign.jwt :as jwt]
-            [metabase.api.common :as api]
-            [metabase.mt.integrations.sso-settings :as sso-settings]
+            [metabase.api
+             [common :as api]
+             [session :as session]]
             [metabase.mt.api.sso :as sso]
-            [ring.util.response :as resp]
-            [metabase.util :as u]
-            [toucan.db :as db]
-            [metabase.models.user :refer [User]]
-            [metabase.email.messages :as email]
-            [metabase.api.session :as session]
+            [metabase.mt.integrations
+             [sso-settings :as sso-settings]
+             [sso-utils :as sso-utils]]
             [puppetlabs.i18n.core :refer [tru]]
-            [metabase.mt.integrations.sso-utils :as sso-utils]))
+            [ring.util.response :as resp]))
 
 (defn jwt-auth-fetch-or-create-user!
   "Returns a session map for the given `email`. Will create the user if needed."
   [first-name last-name email user-attributes]
 
   (when-not (sso-settings/jwt-configured?)
-    (throw (IllegalArgumentException. "Can't create new SAML user when SAML is not configured")))
+    (throw (IllegalArgumentException. "Can't create new JWT user when JWT is not configured")))
 
   (when-let [user (or (sso-utils/fetch-and-update-login-attributes! email user-attributes)
                       (sso-utils/create-new-sso-user! {:first_name first-name
@@ -37,6 +36,8 @@
                     :iat
                     :max_age]))
 
+;; JWTs use seconds since Epoch, not milliseconds since Epoch for the `iat` and `max_age` time. 3 minutes is the time
+;; used by Zendesk for their JWT SSO, so it seemed like a good place for us to start
 (def ^:private ^:const three-minutes-in-seconds 180)
 
 (defn- login-jwt-user

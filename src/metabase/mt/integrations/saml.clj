@@ -1,24 +1,21 @@
 (ns metabase.mt.integrations.saml
+  "Implementation of the SAML backend for SSO"
   (:require [clojure.string :as str]
-            [metabase.api.session :as session]
-            [metabase.api.common :as api]
-            [metabase.email.messages :as email]
             [medley.core :as m]
-            [metabase.models
-             [setting :as setting :refer [defsetting]]
-             [user :refer [User]]]
+            [metabase.api
+             [common :as api]
+             [session :as session]]
             [metabase.mt.api.sso :as sso]
+            [metabase.mt.integrations
+             [sso-settings :as sso-settings]
+             [sso-utils :as sso-utils]]
             [metabase.public-settings :as public-settings]
-            [metabase.util :as u]
             [puppetlabs.i18n.core :refer [tru]]
-            [metabase.mt.integrations.sso-settings :as sso-settings]
+            [ring.util.response :as resp]
             [saml20-clj
              [routes :as saml-routes]
              [shared :as saml-shared]
-             [sp :as saml-sp]]
-            [ring.util.response :as resp]
-            [toucan.db :as db]
-            [metabase.mt.integrations.sso-utils :as sso-utils]))
+             [sp :as saml-sp]]))
 
 (defn saml-auth-fetch-or-create-user!
   "Returns a session map for the given `email`. Will create the user if needed."

@@ -1,10 +1,11 @@
 (ns metabase.mt.integrations.sso-utils
-  (:require [metabase.util.schema :as su]
-            [schema.core :as s]
-            [toucan.db :as db]
-            [metabase.util :as u]
+  "Functions shared by the various SSO implementations"
+  (:require [metabase.email.messages :as email]
             [metabase.models.user :refer [User]]
-            [metabase.email.messages :as email])
+            [metabase.util :as u]
+            [metabase.util.schema :as su]
+            [schema.core :as s]
+            [toucan.db :as db])
   (:import java.util.UUID))
 
 (def ^:private UserAttributes

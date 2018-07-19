@@ -1,14 +1,15 @@
 (ns metabase.mt.api.sso
-  (:require [clojure.string :as str]
-            [compojure.core :refer [GET POST]]
-            [medley.core :as m]
-            [metabase.mt.integrations.sso-settings :as sso-settings]
+  "Implements the SSO routes needed for SAML and JWT. This namespace primarily provides hooks for those two backends
+  so we can have a uniform interface both via the API and code"
+  (:require [compojure.core :refer [GET POST]]
             [metabase.api.common :as api]
-            [metabase.public-settings :as public-settings]
-            [puppetlabs.i18n.core :refer [tru]]
-            [ring.util.response :as resp]))
+            [metabase.mt.integrations.sso-settings :as sso-settings]
+            [puppetlabs.i18n.core :refer [tru]]))
 
-(defn- sso-backend [_]
+(defn- sso-backend
+  "Function that powers the defmulti in figuring out which SSO backend to use. It might be that we need to have more
+  complex logic around this, but now it's just a simple priority. If SAML is configured use that otherwise JWT"
+  [_]
   (cond
     (sso-settings/saml-configured?)
     :saml
