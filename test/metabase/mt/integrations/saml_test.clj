@@ -157,11 +157,22 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
                      :form-params      {:SAMLResponse saml-response
                                         :RelayState   relay-state}}})
 
+(defn- some-saml-attributes [user-nickname]
+  {"http://schemas.auth0.com/identities/default/provider"   "auth0"
+   "http://schemas.auth0.com/nickname"                      user-nickname
+   "http://schemas.auth0.com/identities/default/connection" "Username-Password-Authentication"})
+
+(defn- saml-login-attributes [email]
+  (let [attribute-keys (keys (some-saml-attributes nil))]
+    (-> (db/select-one-field :login_attributes User :email email)
+        (select-keys attribute-keys))))
+
 ;; After a successful login with the identity provider, the SAML provider will POST to the `/auth/sso` route.
 ;; Part of accepting the POST is validating the response and the relay state so we can redirect the user to their original destination
 (expect
   {:successful-login? true
-   :redirect-uri      default-redirect-uri}
+   :redirect-uri      default-redirect-uri
+   :login-attributes  (some-saml-attributes "rasta")}
   (with-saml-default-setup
     (users/create-users-if-needed!)
 
@@ -169,7 +180,8 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
                                                  (#'saml/encrypt-redirect-str default-redirect-uri))
           response (client-full-response :post 302 "/auth/sso" req-options)]
       {:successful-login? (successful-login? response)
-       :redirect-uri      (get-in response [:headers "Location"])})))
+       :redirect-uri      (get-in response [:headers "Location"])
+       :login-attributes  (saml-login-attributes "rasta@metabase.com")})))
 
 ;; Test that if the RelayState is tampered with, validation fails and we return a failure error message
 (expect
@@ -185,9 +197,10 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
 (expect
   {:new-user-exists-before? false
    :successful-login?       true
-   :new-user                [{:email "newuser@metabase.com", :first_name "New", :last_login false,
-                              :is_qbnewb true, :is_superuser false, :id true, :last_name "User",
-                              :date_joined true, :common_name "New User"}]}
+   :new-user                [{:email       "newuser@metabase.com", :first_name   "New", :last_login false,
+                              :is_qbnewb   true,                   :is_superuser false, :id         true, :last_name "User",
+                              :date_joined true,                   :common_name  "New User"}]
+   :login-attributes        (some-saml-attributes "newuser")}
   (with-saml-default-setup
     (users/create-users-if-needed!)
     (try
@@ -197,6 +210,7 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
             response         (client-full-response :post 302 "/auth/sso" req-options)]
         {:new-user-exists-before? new-user-exists?
          :successful-login?       (successful-login? response)
-         :new-user                (tu/boolean-ids-and-timestamps (db/select User :email "newuser@metabase.com"))})
+         :new-user                (tu/boolean-ids-and-timestamps (db/select User :email "newuser@metabase.com"))
+         :login-attributes        (saml-login-attributes "newuser@metabase.com")})
       (finally
         (db/delete! User :email "newuser@metabase.com")))))

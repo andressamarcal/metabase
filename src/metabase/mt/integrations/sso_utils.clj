@@ -9,10 +9,11 @@
   (:import java.util.UUID))
 
 (def ^:private UserAttributes
-  {:first_name su/NonBlankString
-   :last_name su/NonBlankString
-   :email su/Email
-   :sso_source (s/enum "saml" "jwt")})
+  {:first_name       su/NonBlankString
+   :last_name        su/NonBlankString
+   :email            su/Email
+   :sso_source       (s/enum "saml" "jwt")
+   :login_attributes (s/maybe {s/Any s/Any})})
 
 (s/defn create-new-sso-user!
   "This function is basically the same thing as the `create-new-google-auth-user` from `metabase.models.user`. We need

@@ -19,10 +19,11 @@
     (throw (IllegalArgumentException. "Can't create new JWT user when JWT is not configured")))
 
   (when-let [user (or (sso-utils/fetch-and-update-login-attributes! email user-attributes)
-                      (sso-utils/create-new-sso-user! {:first_name first-name
-                                                       :last_name  last-name
-                                                       :email      email
-                                                       :sso_source "jwt"}))]
+                      (sso-utils/create-new-sso-user! {:first_name       first-name
+                                                       :last_name        last-name
+                                                       :email            email
+                                                       :sso_source       "jwt"
+                                                       :login_attributes user-attributes}))]
     {:id (session/create-session! user)}))
 
 (def ^:private jwt-attribute-email     (comp keyword sso-settings/jwt-attribute-email))
@@ -30,11 +31,12 @@
 (def ^:private jwt-attribute-lastname  (comp keyword sso-settings/jwt-attribute-lastname))
 
 (defn- jwt-data->login-attributes [jwt-data]
-  (dissoc jwt-data [(jwt-attribute-email)
-                    (jwt-attribute-firstname)
-                    (jwt-attribute-lastname)
-                    :iat
-                    :max_age]))
+  (dissoc jwt-data
+          (jwt-attribute-email)
+          (jwt-attribute-firstname)
+          (jwt-attribute-lastname)
+          :iat
+          :max_age))
 
 ;; JWTs use seconds since Epoch, not milliseconds since Epoch for the `iat` and `max_age` time. 3 minutes is the time
 ;; used by Zendesk for their JWT SSO, so it seemed like a good place for us to start

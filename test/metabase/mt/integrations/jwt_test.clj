@@ -53,13 +53,17 @@
 ;; Happy path login, valid JWT, checks to ensure the user was logged in successfully and the redirect to the right location
 (expect
   {:successful-login? true
-   :redirect-uri      default-redirect-uri}
+   :redirect-uri      default-redirect-uri
+   :login-attributes  {"extra" "keypairs", "are" "also present"}}
   (with-jwt-default-setup
     (let [response (saml-test/client-full-response :get 302 "/auth/sso" {:request-options {:follow-redirects false}}
                                                    :return_to default-redirect-uri
-                                                   :jwt (jwt/sign {:email "test@metabase.com", :first_name "Test" :last_name "User"} default-jwt-secret))]
+                                                   :jwt (jwt/sign {:email "rasta@metabase.com", :first_name "Rasta", :last_name "Toucan"
+                                                                   :extra "keypairs", :are "also present"}
+                                                                  default-jwt-secret))]
       {:successful-login? (saml-test/successful-login? response)
-       :redirect-uri      (get-in response [:headers "Location"])})))
+       :redirect-uri      (get-in response [:headers "Location"])
+       :login-attributes  (db/select-one-field :login_attributes User :email "rasta@metabase.com")})))
 
 (def ^:private ^:const five-minutes-in-seconds (* 60 5))
 
@@ -79,16 +83,19 @@
    :successful-login?       true
    :new-user                [{:email "newuser@metabase.com", :first_name "New", :last_login false,
                               :is_qbnewb true, :is_superuser false, :id true, :last_name "User",
-                              :date_joined true, :common_name "New User"}]}
+                              :date_joined true, :common_name "New User"}]
+   :login-attributes        {"more" "stuff", "for" "the new user"}}
   (with-jwt-default-setup
     (try
       (let [new-user-exists? (boolean (seq (db/select User :email "newuser@metabase.com")))
             response         (saml-test/client-full-response :get 302 "/auth/sso"
                                                    {:request-options {:follow-redirects false}}
                                                    :return_to default-redirect-uri
-                                                   :jwt (jwt/sign {:email "newuser@metabase.com", :first_name "New" :last_name "User"} default-jwt-secret))]
+                                                   :jwt (jwt/sign {:email "newuser@metabase.com", :first_name "New", :last_name "User"
+                                                                   :more "stuff", :for "the new user"} default-jwt-secret))]
         {:new-user-exists-before? new-user-exists?
          :successful-login?       (saml-test/successful-login? response)
-         :new-user                (tu/boolean-ids-and-timestamps (db/select User :email "newuser@metabase.com"))})
+         :new-user                (tu/boolean-ids-and-timestamps (db/select User :email "newuser@metabase.com"))
+         :login-attributes        (db/select-one-field :login_attributes User :email "newuser@metabase.com")})
       (finally
         (db/delete! User :email "newuser@metabase.com")))))

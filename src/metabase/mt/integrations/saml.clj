@@ -25,10 +25,11 @@
     (throw (IllegalArgumentException. "Can't create new SAML user when SAML is not configured")))
 
   (when-let [user (or (sso-utils/fetch-and-update-login-attributes! email user-attributes)
-                      (sso-utils/create-new-sso-user! {:first_name first-name
-                                                       :last_name  last-name
-                                                       :email      email
-                                                       :sso_source "saml"}))]
+                      (sso-utils/create-new-sso-user! {:first_name       first-name
+                                                       :last_name        last-name
+                                                       :email            email
+                                                       :sso_source       "saml"
+                                                       :login_attributes user-attributes}))]
     {:id (session/create-session! user)}))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -122,6 +123,12 @@
   (-> @saml-state
       (get-in [:mutables :secret-key-spec])
       (saml-routes/valid-hmac-relay-state? relay-state)))
+
+(defn- saml-attributes->login-attributes [attributes]
+  (dissoc attributes
+          (sso-settings/saml-attribute-email)
+          (sso-settings/saml-attribute-firstname)
+          (sso-settings/saml-attribute-lastname)))
 
 (defmethod sso/sso-post :saml
   ;; Does the verification of the IDP's response and 'logs the user in'. The attributes are available in the response:
