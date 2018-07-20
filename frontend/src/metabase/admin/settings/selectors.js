@@ -374,15 +374,11 @@ const SECTIONS = [
           onChangeSetting,
         ) => {
           // Generate a secret key if none already exists
-          if (
-            !oldValue &&
-            newValue &&
-            !settingsValues["jwt-shared-secret"]
-          ) {
+          if (!oldValue && newValue && !settingsValues["jwt-shared-secret"]) {
             let result = await UtilApi.random_token();
             await onChangeSetting("jwt-shared-secret", result.token);
           }
-        }
+        },
       },
       {
         key: "jwt-enabled",

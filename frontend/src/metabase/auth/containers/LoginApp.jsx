@@ -249,7 +249,8 @@ export default class LoginApp extends Component {
                 </div>
               )}
             </form>
-            {Settings.get("sso_configured") && !adminLogin && (
+            {Settings.get("sso_configured") &&
+              !adminLogin && (
                 <div
                   className="mt2 px2 cursor-pointer text-grey-1 text-right"
                   onClick={() => this.setState({ adminLogin: true })}
