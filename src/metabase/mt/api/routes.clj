@@ -5,9 +5,13 @@
             [metabase.middleware :as middleware]
             [metabase.mt.api
              [gtap :as gtap]
-             [saml :as saml]
+             [sso :as sso]
              [table :as table]
-             [user :as user]]))
+             [user :as user]]
+            ;; Required so that the multimethod implementations for SSO are loaded
+            [metabase.mt.integrations
+             [jwt]
+             [saml]]))
 
 ;; this is copied from `metabase.api.routes` because if we require that above we will destroy startup times for `lein
 ;; ring server`
@@ -29,7 +33,7 @@
    "/auth"
    []
    (routes
-    (context "/sso" [] saml/routes))))
+    (context "/sso" [] sso/routes))))
 
 (defn install-mt-routes!
   "Swap out `metabase.api.routes/routes` with a new version that includes the multi-tenant routes. Take care to only

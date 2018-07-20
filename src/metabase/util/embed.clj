@@ -8,7 +8,9 @@
             [clojure.string :as str]
             [hiccup.core :refer [html]]
             [metabase.models.setting :as setting]
-            [metabase.public-settings :as public-settings]
+            [metabase
+             [public-settings :as public-settings]
+             [util :as u]]
             [puppetlabs.i18n.core :refer [tru]]
             [ring.util.codec :as codec]))
 
@@ -57,7 +59,7 @@
   (tru "Secret key used to sign JSON Web Tokens for requests to `/api/embed` endpoints.")
   :setter (fn [new-value]
             (when (seq new-value)
-              (assert (re-matches #"[0-9a-f]{64}" new-value)
+              (assert (u/hexidecimal-string? new-value)
                 "Invalid embedding-secret-key! Secret key must be a hexadecimal-encoded 256-bit key (i.e., a 64-character string)."))
             (setting/set-string! :embedding-secret-key new-value)))
 

@@ -359,6 +359,68 @@ const SECTIONS = [
     ],
   },
   {
+    name: t`JWT`,
+    slug: "jwt",
+    sidebar: false,
+    settings: [
+      {
+        key: "jwt-enabled",
+        description: null,
+        getHidden: settings => settings["jwt-enabled"],
+        onChanged: async (
+          oldValue,
+          newValue,
+          settingsValues,
+          onChangeSetting,
+        ) => {
+          // Generate a secret key if none already exists
+          if (!oldValue && newValue && !settingsValues["jwt-shared-secret"]) {
+            let result = await UtilApi.random_token();
+            await onChangeSetting("jwt-shared-secret", result.token);
+          }
+        },
+      },
+      {
+        key: "jwt-enabled",
+        display_name: t`JWT Authentication`,
+        type: "boolean",
+        getHidden: settings => !settings["jwt-enabled"],
+      },
+      {
+        key: "jwt-identity-provider-uri",
+        display_name: t`JWT Identity Provider URI`,
+        placeholder: "https://jwt.yourdomain.org",
+        type: "string",
+        required: true,
+        autoFocus: true,
+        getHidden: settings => !settings["jwt-enabled"],
+      },
+      {
+        key: "jwt-shared-secret",
+        display_name: t`String used by the JWT signing key`,
+        type: "text",
+        required: true,
+        widget: SecretKeyWidget,
+        getHidden: settings => !settings["jwt-enabled"],
+      },
+      {
+        key: "jwt-attribute-email",
+        display_name: t`Email attribute`,
+        type: "string",
+      },
+      {
+        key: "jwt-attribute-firstname",
+        display_name: t`First name attribute`,
+        type: "string",
+      },
+      {
+        key: "jwt-attribute-lastname",
+        display_name: t`Last name attribute`,
+        type: "string",
+      },
+    ],
+  },
+  {
     name: t`Maps`,
     slug: "maps",
     settings: [

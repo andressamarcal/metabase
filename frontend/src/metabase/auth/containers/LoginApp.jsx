@@ -109,9 +109,9 @@ export default class LoginApp extends Component {
     login(credentials, location.query.redirect);
   }
 
-  onClickSAMLLoginButton() {
-    const { location, loginSAML } = this.props;
-    loginSAML(location.query.redirect);
+  onClickSSOLoginButton() {
+    const { location, loginSSO } = this.props;
+    loginSSO(location.query.redirect);
   }
 
   render() {
@@ -146,12 +146,12 @@ export default class LoginApp extends Component {
                 </div>
               )}
 
-              {Settings.get("saml_configured") && !adminLogin ? (
+              {Settings.get("sso_configured") && !adminLogin ? (
                 <div className="mx4 mb1 py3 border-bottom relative">
                   <Button
                     type="button"
                     primary
-                    onClick={this.onClickSAMLLoginButton.bind(this)}
+                    onClick={this.onClickSSOLoginButton.bind(this)}
                   >
                     {t`Sign in`}
                   </Button>
@@ -249,7 +249,7 @@ export default class LoginApp extends Component {
                 </div>
               )}
             </form>
-            {Settings.get("saml_configured") &&
+            {Settings.get("sso_configured") &&
               !adminLogin && (
                 <div
                   className="mt2 px2 cursor-pointer text-grey-1 text-right"

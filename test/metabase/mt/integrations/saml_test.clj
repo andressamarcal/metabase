@@ -1,4 +1,4 @@
-(ns metabase.mt.api.saml-test
+(ns metabase.mt.integrations.saml-test
   (:require [clojure.string :as str]
             [expectations :refer :all]
             [metabase
@@ -6,20 +6,29 @@
              [http-client :as http]
              [util :as u]]
             [metabase.models.user :refer [User]]
-            [metabase.mt.api.saml :as saml :refer :all]
+            [metabase.mt.integrations.saml :as saml :refer :all]
             [metabase.test.data.users :as users :refer :all]
             [metabase.test.util :as tu]
             [toucan.db :as db])
   (:import java.nio.charset.StandardCharsets
            org.apache.http.client.utils.URLEncodedUtils))
 
-(defn- client [& args]
+(defn client
+  "Same as `http/client` but doesn't include the `/api` in the URL prefix"
+  [& args]
   (binding [http/*url-prefix* (str "http://localhost:" (config/config-str :mb-jetty-port))]
     (apply http/client args)))
 
-(defn- client-full-response [& args]
+(defn client-full-response
+  "Same as `http/client-full-response` but doesn't include the `/api` in the URL prefix"
+  [& args]
   (binding [http/*url-prefix* (str "http://localhost:" (config/config-str :mb-jetty-port))]
     (apply http/client-full-response args)))
+
+(defn successful-login?
+  "Return true if the response indicates a successful user login"
+  [resp]
+  (string? (get-in resp [:cookies "metabase.SESSION_ID" :value])))
 
 (def ^:private default-idp-uri            "http://test.idp.metabase.com")
 (def ^:private default-redirect-uri       "http://localhost:3000/test")
@@ -78,7 +87,7 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
                                      saml-identity-provider-certificate default-idp-cert]
     (f)))
 
-(defn- call-with-login-attributes-cleared!
+(defn call-with-login-attributes-cleared!
   "If login_attributes remain after these tests run, depending on the order that the tests run, lots of tests will
   fail as the login_attributes data from this tests is unexpected in those other tests"
   [f]
@@ -148,19 +157,31 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
                      :form-params      {:SAMLResponse saml-response
                                         :RelayState   relay-state}}})
 
+(defn- some-saml-attributes [user-nickname]
+  {"http://schemas.auth0.com/identities/default/provider"   "auth0"
+   "http://schemas.auth0.com/nickname"                      user-nickname
+   "http://schemas.auth0.com/identities/default/connection" "Username-Password-Authentication"})
+
+(defn- saml-login-attributes [email]
+  (let [attribute-keys (keys (some-saml-attributes nil))]
+    (-> (db/select-one-field :login_attributes User :email email)
+        (select-keys attribute-keys))))
+
 ;; After a successful login with the identity provider, the SAML provider will POST to the `/auth/sso` route.
 ;; Part of accepting the POST is validating the response and the relay state so we can redirect the user to their original destination
 (expect
   {:successful-login? true
-   :redirect-uri      default-redirect-uri}
+   :redirect-uri      default-redirect-uri
+   :login-attributes  (some-saml-attributes "rasta")}
   (with-saml-default-setup
     (users/create-users-if-needed!)
 
     (let [req-options (saml-post-request-options @saml-test-response
                                                  (#'saml/encrypt-redirect-str default-redirect-uri))
           response (client-full-response :post 302 "/auth/sso" req-options)]
-      {:successful-login? (string? (get-in response [:cookies "metabase.SESSION_ID" :value]))
-       :redirect-uri      (get-in response [:headers "Location"])})))
+      {:successful-login? (successful-login? response)
+       :redirect-uri      (get-in response [:headers "Location"])
+       :login-attributes  (saml-login-attributes "rasta@metabase.com")})))
 
 ;; Test that if the RelayState is tampered with, validation fails and we return a failure error message
 (expect
@@ -176,18 +197,20 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
 (expect
   {:new-user-exists-before? false
    :successful-login?       true
-   :new-user                [{:email "newuser@metabase.com", :first_name "New", :last_login false,
-                              :is_qbnewb true, :is_superuser false, :id true, :last_name "User",
-                              :date_joined true, :common_name "New User"}]}
+   :new-user                [{:email       "newuser@metabase.com", :first_name   "New", :last_login false,
+                              :is_qbnewb   true,                   :is_superuser false, :id         true, :last_name "User",
+                              :date_joined true,                   :common_name  "New User"}]
+   :login-attributes        (some-saml-attributes "newuser")}
   (with-saml-default-setup
     (users/create-users-if-needed!)
     (try
-      (let [new-user-exists? (boolean (seq (db/select metabase.models.user/User :email "newuser@metabase.com")))
+      (let [new-user-exists? (boolean (seq (db/select User :email "newuser@metabase.com")))
             req-options      (saml-post-request-options @new-user-saml-test-response
                                                         (#'saml/encrypt-redirect-str default-redirect-uri))
             response         (client-full-response :post 302 "/auth/sso" req-options)]
         {:new-user-exists-before? new-user-exists?
-         :successful-login?       (string? (get-in response [:cookies "metabase.SESSION_ID" :value]))
-         :new-user                (tu/boolean-ids-and-timestamps (db/select User :email "newuser@metabase.com"))})
+         :successful-login?       (successful-login? response)
+         :new-user                (tu/boolean-ids-and-timestamps (db/select User :email "newuser@metabase.com"))
+         :login-attributes        (saml-login-attributes "newuser@metabase.com")})
       (finally
         (db/delete! User :email "newuser@metabase.com")))))
