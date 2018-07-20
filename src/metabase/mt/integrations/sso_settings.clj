@@ -2,7 +2,8 @@
   "Namesapce for defining settings used by the SSO backends. This is separate as both the functions needed to support
   the SSO backends and the generic routing code used to determine which SSO backend to use need this
   information. Separating out this information creates a better dependency graph and avoids circular dependencies."
-  (:require [metabase.models.setting :refer [defsetting]]
+  (:require [metabase.models.setting :as setting :refer [defsetting]]
+            [metabase.util :as u]
             [puppetlabs.i18n.core :refer [tru]]))
 
 (defsetting saml-enabled
@@ -59,7 +60,12 @@
   (tru "URL of JWT based login page"))
 
 (defsetting jwt-shared-secret
-  (tru "String used to seed the private key used to validate JWT messages"))
+  (tru "String used to seed the private key used to validate JWT messages")
+  :setter (fn [new-value]
+            (when (seq new-value)
+              (assert (u/hexidecimal-string? new-value)
+                       "Invalid JWT Shared Secret key must be a hexadecimal-encoded 256-bit key (i.e., a 64-character string)."))
+            (setting/set-string! :jwt-shared-secret new-value)))
 
 (defsetting jwt-attribute-email
   (tru "Key to retrieve the JWT user's email address")

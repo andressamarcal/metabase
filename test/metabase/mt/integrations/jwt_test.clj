@@ -3,6 +3,7 @@
              [jwt :as jwt]
              [util :as buddy-util]]
             [clojure.string :as str]
+            [crypto.random :as crypto-random]
             [expectations :refer :all]
             [metabase.models.user :refer [User]]
             [metabase.mt.integrations.saml-test :as saml-test]
@@ -12,7 +13,7 @@
 
 (def ^:private default-idp-uri      "http://test.idp.metabase.com")
 (def ^:private default-redirect-uri "http://localhost:3000/test")
-(def ^:private default-jwt-secret   "some long secret text for a key")
+(def ^:private default-jwt-secret   (crypto-random/hex 32))
 
 ;; SSO requests fail if SAML hasn't been enabled
 (expect

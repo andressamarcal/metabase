@@ -579,3 +579,9 @@
                                         first
                                         Integer/parseInt)]
     (>= java-major-version 9)))
+
+(defn hexidecimal-string?
+  "Returns truthy if `new-value` is a hexedecimal-string"
+  [new-value]
+  (and (string? new-value)
+       (re-matches #"[0-9a-f]{64}" new-value)))
