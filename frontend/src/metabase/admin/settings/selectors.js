@@ -365,9 +365,30 @@ const SECTIONS = [
     settings: [
       {
         key: "jwt-enabled",
-        display_name: t`JWT Authentication`,
         description: null,
+        getHidden: settings => settings["jwt-enabled"],
+        onChanged: async (
+          oldValue,
+          newValue,
+          settingsValues,
+          onChangeSetting,
+        ) => {
+          // Generate a secret key if none already exists
+          if (
+            !oldValue &&
+            newValue &&
+            !settingsValues["jwt-shared-secret"]
+          ) {
+            let result = await UtilApi.random_token();
+            await onChangeSetting("jwt-shared-secret", result.token);
+          }
+        }
+      },
+      {
+        key: "jwt-enabled",
+        display_name: t`JWT Authentication`,
         type: "boolean",
+        getHidden: settings => !settings["jwt-enabled"],
       },
       {
         key: "jwt-identity-provider-uri",
@@ -376,12 +397,15 @@ const SECTIONS = [
         type: "string",
         required: true,
         autoFocus: true,
+        getHidden: settings => !settings["jwt-enabled"],
       },
       {
         key: "jwt-shared-secret",
         display_name: t`String used by the JWT signing key`,
         type: "text",
         required: true,
+        widget: SecretKeyWidget,
+        getHidden: settings => !settings["jwt-enabled"],
       },
       {
         key: "jwt-attribute-email",
