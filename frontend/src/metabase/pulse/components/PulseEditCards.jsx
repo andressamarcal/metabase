@@ -7,7 +7,7 @@ import cx from "classnames";
 import PulseCardPreview from "./PulseCardPreview.jsx";
 import QuestionSelect from "metabase/containers/QuestionSelect";
 
-import Query from "metabase/lib/query";
+// import Query from "metabase/lib/query";
 import MetabaseAnalytics from "metabase/lib/analytics";
 
 import colors from "metabase/lib/colors";
