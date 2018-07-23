@@ -1,14 +1,22 @@
 import React from "react";
+import PropTypes from "prop-types";
 
-import CardPicker from "metabase/pulse/components/CardPicker";
-import QuestionListLoader from "metabase/containers/QuestionListLoader";
+import ItemPicker from "./ItemPicker";
 
-export default class QuestionPicker extends React.Component {
-  render() {
-    return (
-      <QuestionListLoader>
-        {({ questions }) => <CardPicker {...this.props} cardList={questions} />}
-      </QuestionListLoader>
-    );
-  }
-}
+const QuestionPicker = ({ value, onChange, ...props }) => (
+  <ItemPicker
+    {...props}
+    value={value === undefined ? undefined : { model: "card", id: value }}
+    onChange={question => onChange(question ? question.id : undefined)}
+    models={["card"]}
+  />
+);
+
+QuestionPicker.propTypes = {
+  // a question ID or null
+  value: PropTypes.number,
+  // callback that takes a question ID
+  onChange: PropTypes.func.isRequired,
+};
+
+export default QuestionPicker;

@@ -4,10 +4,10 @@ import PropTypes from "prop-types";
 import { t } from "c-3po";
 import cx from "classnames";
 
-import CardPicker from "./CardPicker.jsx";
 import PulseCardPreview from "./PulseCardPreview.jsx";
+import QuestionSelect from "metabase/containers/QuestionSelect";
 
-import Query from "metabase/lib/query";
+// import Query from "metabase/lib/query";
 import MetabaseAnalytics from "metabase/lib/analytics";
 
 import colors from "metabase/lib/colors";
@@ -37,7 +37,6 @@ export default class PulseEditCards extends Component {
     pulseId: PropTypes.number,
     cardPreviews: PropTypes.object.isRequired,
     cards: PropTypes.object.isRequired,
-    cardList: PropTypes.array.isRequired,
     fetchPulseCardPreview: PropTypes.func.isRequired,
     setPulse: PropTypes.func.isRequired,
     attachmentsEnabled: PropTypes.bool,
@@ -150,7 +149,7 @@ export default class PulseEditCards extends Component {
   }
 
   render() {
-    let { pulse, cards, cardList, cardPreviews } = this.props;
+    let { pulse, cards, cardPreviews } = this.props;
 
     let pulseCards = pulse ? pulse.cards.slice() : [];
     if (pulseCards.length < HARD_LIMIT) {
@@ -160,7 +159,7 @@ export default class PulseEditCards extends Component {
     return (
       <div className="py1">
         <h2>{t`Pick your data`}</h2>
-        <p className="mt1 h4 text-bold text-grey-3">
+        <p className="mt1 h4 text-bold text-medium">
           {t`Choose questions you'd like to send in this pulse`}.
         </p>
         <ol className="my3">
@@ -193,28 +192,30 @@ export default class PulseEditCards extends Component {
                         trackPulseEvent={this.trackPulseEvent}
                       />
                     ) : (
-                      <CardPicker
-                        cardList={cardList}
-                        onChange={this.addCard.bind(this, index)}
-                        checkCard={card => {
-                          const { attachmentsEnabled } = this.props;
-                          try {
-                            if (
-                              !attachmentsEnabled &&
-                              Query.isBareRows(card.dataset_query.query)
-                            ) {
-                              return t`Raw data cannot be included in pulses`;
-                            }
-                          } catch (e) {}
-                          if (
-                            !attachmentsEnabled &&
-                            (card.display === "pin_map" ||
-                              card.display === "state" ||
-                              card.display === "country")
-                          ) {
-                            return t`Maps cannot be included in pulses`;
-                          }
-                        }}
+                      <QuestionSelect
+                        onChange={questionId => this.addCard(index, questionId)}
+                        className="flex-full"
+                        // TODO: reimplement CardPicker's warnings for unsuitable cards
+                        // attachmentsEnabled={this.props.attachmentsEnabled}
+                        // checkCard={card => {
+                        //   const { attachmentsEnabled } = this.props;
+                        //   try {
+                        //     if (
+                        //       !attachmentsEnabled &&
+                        //       Query.isBareRows(card.dataset_query.query)
+                        //     ) {
+                        //       return t`Raw data cannot be included in pulses`;
+                        //     }
+                        //   } catch (e) {}
+                        //   if (
+                        //     !attachmentsEnabled &&
+                        //     (card.display === "pin_map" ||
+                        //       card.display === "state" ||
+                        //       card.display === "country")
+                        //   ) {
+                        //     return t`Maps cannot be included in pulses`;
+                        //   }
+                        // }}
                       />
                     )}
                   </div>

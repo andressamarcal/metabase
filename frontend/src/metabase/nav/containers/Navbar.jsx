@@ -126,7 +126,7 @@ class SearchBar extends React.Component {
             pr={2}
             pl={1}
             value={this.state.searchText}
-            placeholder="Search for anything..."
+            placeholder="Search…"
             onClick={() => this.setState({ active: true })}
             onChange={e => this.setState({ searchText: e.target.value })}
             onKeyPress={e => {
@@ -249,17 +249,22 @@ export default class Navbar extends Component {
         py={1}
         pr={2}
       >
-        <Box>
-          <Link
-            to="/"
-            data-metabase-event={"Navbar;Logo"}
-            className="LogoNavItem NavItem cursor-pointer relative z2 flex align-center transition-background justify-center"
-          >
-            <LogoIcon dark />
-          </Link>
-        </Box>
-        <Flex className="z1" flex="1 1 auto" px={1} align="center">
-          <Box flex="1 1 auto">
+        <Link
+          to="/"
+          data-metabase-event={"Navbar;Logo"}
+          className="relative cursor-pointer z2 rounded flex justify-center transition-background"
+          p={1}
+          mx={1}
+          hover={{ backgroundColor: DefaultSearchColor }}
+        >
+          <LogoIcon dark />
+        </Link>
+        <Flex
+          className="absolute top left right bottom z1"
+          px={4}
+          align="center"
+        >
+          <Box w={2 / 3}>
             <SearchBar
               location={this.props.location}
               onChangeLocation={this.props.onChangeLocation}

@@ -120,7 +120,7 @@ export default class LoginApp extends Component {
     const ldapEnabled = Settings.ldapEnabled();
 
     return (
-      <div className="viewport-height full bg-white flex flex-column flex-full md-layout-centered">
+      <div className="full bg-white flex flex-column flex-full md-layout-centered">
         <div className="Login-wrapper wrapper Grid Grid--full md-Grid--1of2 relative z2">
           <div className="Grid-cell flex layout-centered text-brand">
             <LogoIcon className="Logo my4 sm-my0" width={66} height={85} />
@@ -141,7 +141,7 @@ export default class LoginApp extends Component {
                     className="mx1 absolute text-centered left right"
                     style={{ bottom: -8 }}
                   >
-                    <span className="text-bold px3 py2 text-grey-3 bg-white">{t`OR`}</span>
+                    <span className="text-bold px3 py2 text-medium bg-white">{t`OR`}</span>
                   </div>
                 </div>
               )}
@@ -184,11 +184,11 @@ export default class LoginApp extends Component {
                       placeholder="youlooknicetoday@email.com"
                       type={
                         /*
-                     * if a user has ldap enabled, use a text input to allow for
-                     * ldap username && schemes. if not and they're using built
-                     * in auth, set the input type to email so we get built in
-                     * validation in modern browsers
-                     * */
+                         * if a user has ldap enabled, use a text input to allow for
+                         * ldap username && schemes. if not and they're using built
+                         * in auth, set the input type to email so we get built in
+                         * validation in modern browsers
+                         **/
                         ldapEnabled ? "text" : "email"
                       }
                       onChange={e => this.onChange("username", e.target.value)}
@@ -240,7 +240,7 @@ export default class LoginApp extends Component {
                           ? "?email=" + this.state.credentials.username
                           : "")
                       }
-                      className="Grid-cell py2 sm-py0 text-grey-3 md-text-right text-centered flex-full link"
+                      className="Grid-cell py2 sm-py0 text-medium md-text-right text-centered flex-full link"
                       onClick={e => {
                         window.OSX ? window.OSX.resetPassword() : null;
                       }}
