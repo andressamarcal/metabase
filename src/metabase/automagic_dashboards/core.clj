@@ -782,6 +782,7 @@
        :dimensions
        vals
        (mapcat :matches)
+       (filter mi/can-read?)
        filters/interesting-fields
        (map ->related-entity)
        (hash-map :drilldown-fields)))
