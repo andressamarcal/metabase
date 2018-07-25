@@ -301,7 +301,7 @@ const getEditSegementedAccessUrl = (
 ) =>
   `/admin/permissions` +
   `/databases/${databaseId}` +
-  `/schemas/${encodeURIComponent(schemaName)}` +
+  (schemaName ? `/schemas/${encodeURIComponent(schemaName)}` : "") +
   `/tables/${tableId}/segmented/group/${groupId}`;
 
 const getEditSegementedAccessAction = (groupId, entityId) => ({

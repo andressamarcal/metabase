@@ -87,11 +87,11 @@ export default class GTAPModal extends React.Component {
   }
 
   close = () => {
-    const { push, params } = this.props;
+    const { push, params: { databaseId, schemaName } } = this.props;
     push(
-      `/admin/permissions/databases/${params.databaseId}/schemas/${
-        params.schemaName
-      }/tables`,
+      `/admin/permissions/databases/${databaseId}` +
+        (schemaName ? `/schemas/${encodeURIComponent(schemaName)}` : ``) +
+        `/tables`,
     );
   };
 
