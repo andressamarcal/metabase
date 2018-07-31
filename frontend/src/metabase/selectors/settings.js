@@ -11,15 +11,32 @@ export const getSiteUrl = state => state.settings.values["site-url"];
 export const getEmbeddingSecretKey = state =>
   state.settings.values["embedding-secret-key"];
 
+const DEFAULT_LOGO_URL = "app/assets/img/logo.svg";
+
 export const getLogoUrl = state =>
   state.settings.values["application-logo-url"] ||
   state.settings.values.application_logo_url ||
-  "app/assets/img/logo.svg";
+  DEFAULT_LOGO_URL;
 
 export const getApplicationColors = state =>
-  state.settings.values["application_colors"];
+  state.settings.values["application-colors"] ||
+  state.settings.values.application_colors;
 
-export const getIsWhitelabeled = createSelector(
+export const getApplicationName = state =>
+  state.settings.values["application-name"] ||
+  state.settings.values.application_name;
+
+export const getHasCustomColors = createSelector(
   [getApplicationColors],
   applicationColors => Object.keys(applicationColors || {}).length > 0,
+);
+
+export const getHasCustomLogo = createSelector(
+  [getLogoUrl],
+  logoUrl => logoUrl !== DEFAULT_LOGO_URL,
+);
+
+export const getIsWhitelabeled = createSelector(
+  [getHasCustomLogo, getHasCustomColors],
+  (hasCustomLogo, hasCustomColors) => hasCustomLogo || hasCustomColors,
 );
