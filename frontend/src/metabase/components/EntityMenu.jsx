@@ -113,6 +113,7 @@ class EntityMenu extends Component {
                               <EntityMenuItem
                                 icon={item.icon}
                                 title={item.title}
+                                externalLink={item.externalLink}
                                 action={
                                   item.action &&
                                   (() => {
@@ -120,6 +121,7 @@ class EntityMenu extends Component {
                                     this.toggleMenu();
                                   })
                                 }
+                                event={item.event && item.event}
                                 link={item.link}
                                 onClose={() => this.toggleMenu()}
                               />
