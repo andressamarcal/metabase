@@ -1,3 +1,5 @@
+import { createSelector } from "reselect";
+
 // NOTE: these are "public" settings
 export const getIsPublicSharingEnabled = state =>
   state.settings.values["public_sharing"];
@@ -13,3 +15,11 @@ export const getLogoUrl = state =>
   state.settings.values["application-logo-url"] ||
   state.settings.values.application_logo_url ||
   "app/assets/img/logo.svg";
+
+export const getApplicationColors = state =>
+  state.settings.values["application_colors"];
+
+export const getIsWhitelabeled = createSelector(
+  [getApplicationColors],
+  applicationColors => Object.keys(applicationColors || {}).length > 0,
+);
