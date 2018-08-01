@@ -120,7 +120,7 @@ export default class LoginApp extends Component {
     const ldapEnabled = Settings.ldapEnabled();
 
     return (
-      <div className="full bg-white flex flex-column flex-full md-layout-centered">
+      <div className="full flex flex-column flex-full md-layout-centered">
         <div className="Login-wrapper wrapper Grid Grid--full md-Grid--1of2 relative z2">
           <div className="Grid-cell flex layout-centered text-brand">
             <LogoIcon className="Logo my4 sm-my0" width={66} height={85} />
