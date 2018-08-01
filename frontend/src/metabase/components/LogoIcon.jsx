@@ -26,6 +26,8 @@ export default class LogoIcon extends Component {
     width: PropTypes.number,
     height: PropTypes.number,
     dark: PropTypes.bool,
+    className: PropTypes.string,
+    style: PropTypes.object,
   };
 
   componentDidMount() {
@@ -114,11 +116,17 @@ export default class LogoIcon extends Component {
   }
 
   render() {
-    const { dark } = this.props;
+    const { dark, style, className } = this.props;
     return (
       <span
         ref={c => (this._container = c)}
-        className={cx("Icon", { "text-brand": !dark }, { "text-white": dark })}
+        className={cx(
+          "Icon",
+          { "text-brand": !dark },
+          { "text-white": dark },
+          className,
+        )}
+        style={style}
       />
     );
   }
