@@ -29,9 +29,9 @@ import CollectionEmptyState from "metabase/components/CollectionEmptyState";
 import CollectionMoveModal from "metabase/containers/CollectionMoveModal";
 import { entityObjectLoader } from "metabase/entities/containers/EntityObjectLoader";
 
-import { ROOT_COLLECTION } from "metabase/entities/collections";
-
 import CollectionList from "metabase/components/CollectionList";
+
+import { getUserIsAdmin } from "metabase/selectors/user";
 
 // drag-and-drop components
 import ItemDragSource from "metabase/containers/dnd/ItemDragSource";
@@ -42,6 +42,8 @@ import ItemsDragLayer from "metabase/containers/dnd/ItemsDragLayer";
 
 const ROW_HEIGHT = 72;
 const PAGE_PADDING = [2, 3, 4];
+
+const ANALYTICS_CONTEXT = "Collection Landing";
 
 const EmptyStateWrapper = ({ children }) => (
   <Flex
@@ -110,7 +112,12 @@ import { entityListLoader } from "metabase/entities/containers/EntityListLoader"
   );
   // sort the pinned items by collection_position
   pinned.sort((a, b) => a.collection_position - b.collection_position);
-  return { collections, pinned, unpinned };
+  return {
+    collections,
+    pinned,
+    unpinned,
+    isAdmin: getUserIsAdmin(state),
+  };
 })
 // only apply bulk actions to unpinned items
 @listSelect({
@@ -165,6 +172,7 @@ class DefaultLanding extends React.Component {
       pinned,
       unpinned,
 
+      isAdmin,
       isRoot,
       selected,
       selection,
@@ -200,14 +208,15 @@ class DefaultLanding extends React.Component {
             <Box>
               <Box mb={1}>
                 <BrowserCrumbs
+                  analyticsContext={ANALYTICS_CONTEXT}
                   crumbs={[
-                    ...ancestors.map(({ id, name }) => ({
+                    ...ancestors.map(ancestor => ({
                       title: (
-                        <CollectionDropTarget collection={{ id }} margin={8}>
-                          {name}
+                        <CollectionDropTarget collection={ancestor} margin={8}>
+                          {ancestor.name}
                         </CollectionDropTarget>
                       ),
-                      to: Urls.collection(id),
+                      to: Urls.collection(ancestor.id),
                     })),
                   ]}
                 />
@@ -222,6 +231,7 @@ class DefaultLanding extends React.Component {
                   <Box ml={1}>
                     <CollectionEditMenu
                       collectionId={collectionId}
+                      isAdmin={isAdmin}
                       isRoot={isRoot}
                     />
                   </Box>
@@ -249,7 +259,7 @@ class DefaultLanding extends React.Component {
                           className="relative"
                           key={index}
                         >
-                          <ItemDragSource item={item}>
+                          <ItemDragSource item={item} collection={collection}>
                             <PinnedItem
                               key={`${item.type}:${item.id}`}
                               index={index}
@@ -305,6 +315,7 @@ class DefaultLanding extends React.Component {
                           </CollectionSectionHeading>
                         </Box>
                         <CollectionList
+                          analyticsContext={ANALYTICS_CONTEXT}
                           currentCollection={collection}
                           collections={collections}
                           isRoot={collectionId === "root"}
@@ -316,7 +327,9 @@ class DefaultLanding extends React.Component {
                   {collectionHasItems && (
                     <GridItem w={itemWidth}>
                       <Box>
-                        <ItemTypeFilterBar />
+                        <ItemTypeFilterBar
+                          analyticsContext={ANALYTICS_CONTEXT}
+                        />
                         <Card mt={1} className="relative">
                           {unpinnedItems.length > 0 ? (
                             <PinDropTarget pinIndex={null} margin={8}>
@@ -334,6 +347,7 @@ class DefaultLanding extends React.Component {
                                       <ItemDragSource
                                         item={item}
                                         selection={selection}
+                                        collection={collection}
                                       >
                                         <NormalItem
                                           key={`${item.type}:${item.id}`}
@@ -464,8 +478,12 @@ export const NormalItem = ({
   onToggleSelected,
   onMove,
 }) => (
-  <Link to={item.getUrl()}>
+  <Link
+    to={item.getUrl()}
+    data-metabase-event={`${ANALYTICS_CONTEXT};Item Click;${item.model}`}
+  >
     <EntityItem
+      analyticsContext={ANALYTICS_CONTEXT}
       variant="list"
       showSelect={selection.size > 0}
       selectable
@@ -504,6 +522,7 @@ const PinnedItem = ({ item, index, collection }) => (
     to={item.getUrl()}
     className="hover-parent hover--visibility"
     hover={{ color: normal.blue }}
+    data-metabase-event={`${ANALYTICS_CONTEXT};Pinned Item;Click;${item.model}`}
   >
     <Card hoverable p={3}>
       <Icon name={item.getIcon()} color={item.getColor()} size={28} mb={2} />
@@ -514,6 +533,9 @@ const PinnedItem = ({ item, index, collection }) => (
             <Box
               ml="auto"
               className="hover-child"
+              data-metabase-event={`${ANALYTICS_CONTEXT};Pinned Item;Unpin;${
+                item.model
+              }`}
               onClick={ev => {
                 ev.preventDefault();
                 item.setPinned(false);
@@ -534,8 +556,15 @@ const BulkActionControls = ({ onArchive, onMove }) => (
       medium
       disabled={!onArchive}
       onClick={onArchive}
+      data-metabase-event={`${ANALYTICS_CONTEXT};Bulk Actions;Archive Items`}
     >{t`Archive`}</Button>
-    <Button ml={1} medium disabled={!onMove} onClick={onMove}>{t`Move`}</Button>
+    <Button
+      ml={1}
+      medium
+      disabled={!onMove}
+      onClick={onMove}
+      data-metabase-event={`${ANALYTICS_CONTEXT};Bulk Actions;Move Items`}
+    >{t`Move`}</Button>
   </Box>
 );
 
@@ -564,11 +593,8 @@ class CollectionLanding extends React.Component {
     const { object: currentCollection, params: { collectionId } } = this.props;
     const isRoot = collectionId === "root";
 
-    // effective_ancestors doesn't include root collection so add it (unless this is the root collection, of course)
     const ancestors =
-      !isRoot && currentCollection && currentCollection.effective_ancestors
-        ? [ROOT_COLLECTION, ...currentCollection.effective_ancestors]
-        : [];
+      (currentCollection && currentCollection.effective_ancestors) || [];
 
     return (
       <Box>
@@ -596,36 +622,36 @@ const CollectionSectionHeading = ({ children }) => (
   </h5>
 );
 
-const CollectionEditMenu = ({ isRoot, collectionId }) => (
-  <EntityMenu
-    items={[
-      ...(!isRoot
-        ? [
-            {
-              title: t`Edit this collection`,
-              icon: "editdocument",
-              link: `/collection/${collectionId}/edit`,
-            },
-          ]
-        : []),
-      {
-        title: t`Edit permissions`,
-        icon: "lock",
-        link: `/collection/${collectionId}/permissions`,
-      },
-      ...(!isRoot
-        ? [
-            {
-              title: t`Archive this collection`,
-              icon: "viewArchive",
-              link: `/collection/${collectionId}/archive`,
-            },
-          ]
-        : []),
-    ]}
-    triggerIcon="pencil"
-  />
-);
+const CollectionEditMenu = ({ isRoot, isAdmin, collectionId }) => {
+  const items = [];
+  if (!isRoot) {
+    items.push({
+      title: t`Edit this collection`,
+      icon: "editdocument",
+      link: `/collection/${collectionId}/edit`,
+      event: `${ANALYTICS_CONTEXT};Edit Menu;Edit Collection Click`,
+    });
+  }
+  if (isAdmin) {
+    items.push({
+      title: t`Edit permissions`,
+      icon: "lock",
+      link: `/collection/${collectionId}/permissions`,
+      event: `${ANALYTICS_CONTEXT};Edit Menu;Edit Permissions Click`,
+    });
+  }
+  if (!isRoot) {
+    items.push({
+      title: t`Archive this collection`,
+      icon: "viewArchive",
+      link: `/collection/${collectionId}/archive`,
+      event: `${ANALYTICS_CONTEXT};Edit Menu;Archive Collection`,
+    });
+  }
+  return items.length > 0 ? (
+    <EntityMenu items={items} triggerIcon="pencil" />
+  ) : null;
+};
 
 const CollectionBurgerMenu = () => (
   <EntityMenu
@@ -634,6 +660,7 @@ const CollectionBurgerMenu = () => (
         title: t`View the archive`,
         icon: "viewArchive",
         link: `/archive`,
+        event: `${ANALYTICS_CONTEXT};Burger Menu;View Archive Click`,
       },
     ]}
     triggerIcon="burger"
