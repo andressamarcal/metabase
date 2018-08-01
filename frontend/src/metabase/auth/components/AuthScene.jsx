@@ -1,7 +1,6 @@
 /* eslint-disable no-color-literals */
 
 import React, { Component } from "react";
-import ReactDOM from "react-dom";
 
 import { connect } from "react-redux";
 import { getIsWhitelabeled } from "metabase/selectors/settings";
