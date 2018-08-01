@@ -9,7 +9,7 @@ const GoogleNoAccount = () => (
     <div className="wrapper">
       <div className="Login-wrapper Grid  Grid--full md-Grid--1of2">
         <div className="Grid-cell flex layout-centered text-brand">
-          <LogoIcon className="Logo my4 sm-my0" width={66} height={85} />
+          <LogoIcon className="Logo my4 sm-my0" height={65} />
         </div>
         <div className="Grid-cell text-centered bg-white bordered rounded shadowed p4">
           <h3 className="mt4 mb2">{t`No Metabase account exists for this Google account.`}</h3>

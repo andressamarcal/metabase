@@ -7,7 +7,10 @@ import SettingInput from "./SettingInput";
 const LogoUpload = ({ setting, onChange, ...props }) => (
   <div>
     <div className="mb1">
-      <LogoIcon />
+      {/* Preview of icon as it will appear in the nav bar */}
+      <span className="mb1 bg-brand p1 rounded flex layout-centered">
+        <LogoIcon dark height={32} />
+      </span>
     </div>
     {window.File && window.FileReader ? (
       <input
