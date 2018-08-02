@@ -26,6 +26,10 @@ import PeopleListingApp from "metabase/admin/people/containers/PeopleListingApp.
 import GroupsListingApp from "metabase/admin/people/containers/GroupsListingApp.jsx";
 import GroupDetailApp from "metabase/admin/people/containers/GroupDetailApp.jsx";
 
+// Audit
+import AuditApp from "metabase/admin/audit/containers/AuditApp";
+import AuditOverview from "metabase/admin/audit/containers/AuditOverview";
+
 import getAdminPermissionsRoutes from "metabase/admin/permissions/routes.jsx";
 
 const getRoutes = (store, IsAdmin) => (
@@ -81,6 +85,12 @@ const getRoutes = (store, IsAdmin) => (
       {/* <IndexRoute component={SettingsEditorApp} /> */}
       <Route path=":section/:authType" component={SettingsEditorApp} />
       <Route path=":section" component={SettingsEditorApp} />
+    </Route>
+
+    {/* AUDIT APP */}
+    <Route path="audit" title={t`Audit`} component={AuditApp}>
+      <IndexRedirect to="overview" />
+      <Route path="overview" component={AuditOverview} />
     </Route>
 
     {getAdminPermissionsRoutes(store)}
