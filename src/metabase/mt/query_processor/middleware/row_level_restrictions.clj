@@ -24,18 +24,29 @@
 ;;; |                                      Determining Source Table of a Query                                       |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-(s/defn ^:private table->id :- su/IntGreaterThanZero
+(s/defn ^:private table->id :- (s/maybe su/IntGreaterThanZero)
   "Return the ID of a Table, regardless of the possible format it's currently in.
   Depending on which stage of query expansion we're at, keys like `:source-table` might either still be a raw Table ID
   or may have already been 'resolved' and replaced with the full Table object. Additional, there are some differences
   between `:join-tables` and `:source-table` using `:id` vs `:table-id`. These inconsistencies are annoying, but
-  luckily this function exists to handle any possible case and always return the ID."
-  [table]
-  (when-not table
+  luckily this function exists to handle any possible case and always return the ID. Can return nil if `maybe-table`
+  is a card. The user might not have access to the underlying table if they have access to a narrowed view via the card."
+  [maybe-table]
+
+  (when-not maybe-table
     (throw (Exception. (str (tru "Error: table is nil")))))
-  (or (when (integer? table) table)
-      (:id table)
-      (:table-id table)))
+
+  (cond
+    ;; This is a card form like card__17
+    (string? maybe-table)
+    nil
+
+    (integer? maybe-table)
+    maybe-table
+
+    :else
+    (or (:id maybe-table)
+        (:table-id maybe-table))))
 
 (s/defn ^:private query->source-table-id :- (s/maybe su/IntGreaterThanZero)
   "Return the ID of the source Table for this `query`, if this is an MBQL query."

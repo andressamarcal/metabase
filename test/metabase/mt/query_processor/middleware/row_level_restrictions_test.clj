@@ -313,3 +313,22 @@
                                           :query-hash (byte-array 0)}})
             qpt/rows
             count)))))
+
+;; This test isn't covering a row level restrictions feature, but rather checking it it doesn't break querying of a
+;; card as a nested query. Part of the row level perms check is looking at the table (or card) to see if row level
+;; permissions apply. This was broken when it wasn't expecting a card and only expecting resolved source-tables
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+  [[100]]
+  (tt/with-temp* [Card [{card-id :id :as card} {:name          "test card"
+                                                :dataset_query {:database (data/id)
+                                                                :type     :query
+                                                                :query    {:source_table (data/id :venues)}}}]]
+    (users/do-with-test-user
+     :rasta
+     (fn []
+       (qpt/rows
+        (qp/process-query
+          {:database (data/id)
+           :type :query
+           :query {:source-table (format "card__%s" card-id)
+                   :aggregation [["count"]]}}))))))
