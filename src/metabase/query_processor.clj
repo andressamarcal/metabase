@@ -32,6 +32,7 @@
              [parameters :as parameters]
              [permissions :as perms]
              [resolve :as resolve]
+             [internal-queries :as internal-queries]
              [resolve-driver :as resolve-driver]
              [results-metadata :as results-metadata]
              [source-table :as source-table]]
@@ -105,6 +106,7 @@
    #'log-query/log-initial-query
    #'cache/maybe-return-cached-results
    #'log-query/log-results-metadata
+   #'internal-queries/handle-internal-queries
    #'catch-exceptions/catch-exceptions])
 ;; ▲▲▲ PRE-PROCESSING ▲▲▲ happens from BOTTOM-TO-TOP, e.g. the results of `expand-macros` are passed to
 ;; `substitute-parameters`
@@ -163,12 +165,19 @@
     (s/optional-key :native) {:query                          s/Str
                               (s/optional-key :template_tags) {s/Keyword {s/Any s/Any}}}))
 
+(def ^:private InternalQuery
+  {:type                  (s/enum "internal" :internal)
+   :fn                    #"^([\w\d-]+\.)*[\w\d-]+/[\w\d-]+$"
+   (s/optional-key :args) [s/Any]})
+
+(defn- query-type-is [query-type query]
+  (= query-type (keyword (:type query))))
+
 (def ^:private QueryContext
   (s/conditional
-   #(contains? % :query)
-   MBQLQuery
-   #(contains? % :native)
-   NativeQuery))
+   (partial query-type-is :query)    MBQLQuery
+   (partial query-type-is :native)   NativeQuery
+   (partial query-type-is :internal) InternalQuery))
 
 (s/defn ^:private make-canonical-query :- QueryContext
   [query]
