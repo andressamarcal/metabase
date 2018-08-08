@@ -185,7 +185,7 @@
               qp/process-query
               qpt/rows)))))))
 
-;; Tests that users can user a different parameter name in their query than they have in their user attributes
+;; Tests that users can have a different parameter name in their query than they have in their user attributes
 (datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
   [[10]]
   (call-with-segmented-perms
@@ -332,3 +332,43 @@
            :type :query
            :query {:source-table (format "card__%s" card-id)
                    :aggregation [["count"]]}}))))))
+
+;; Test that we can follow FKs to related tables and breakout by columns on those related tables. This test has
+;; several things wrapped up which are detailed below
+;;
+;; 1 - Creates a GTAP filtering question, looking for any checkins happening on or after 2014
+;; 2 - Apply the `user` attribute, looking for only our user (i.e. `user_id` =  5)
+;; 3 - Checkins are related to Venues, query for checkins, grouping by the Venue's price
+;; 4 - Order by the Venue's price to ensure a predictably ordered response
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries :foreign-keys)
+  [[1 10] [2 36] [3 4] [4 5]]
+  (call-with-segmented-perms
+   (fn [db-id]
+     (tt/with-temp* [Card [{card-id :id} {:name          "magic"
+                                          :dataset_query {:database db-id
+                                                          :type     :query
+                                                          :query    {:source_table (data/id :checkins)
+                                                                     :filter [">" (data/id :checkins :date) "2014-01-01"]}}}]
+                     PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
+                     PermissionsGroupMembership [_ {:group_id group-id
+                                                    :user_id  (users/user->id :rasta)}]
+                     GroupTableAccessPolicy [gtap {:group_id group-id
+                                                   :table_id (data/id :checkins)
+                                                   :card_id card-id
+                                                   :attribute_remappings {:user ["variable"
+                                                                                 [:field-id (data/id :checkins :user_id)]]}}]]
+       (perms/revoke-permissions! (perms-group/all-users) db-id)
+       (perms/grant-permissions! (perms-group/all-users) (perms/table-segmented-query-path (Table (data/id :checkins))))
+       (perms/grant-permissions! (perms-group/all-users) (perms/table-query-path (Table (data/id :venues))))
+       (perms/grant-permissions! (perms-group/all-users) (perms/table-query-path (Table (data/id :users))))
+       (users/do-with-test-user
+        :rasta
+        (fn []
+          (-> (ql/query (ql/source-table (data/id :checkins))
+                        (ql/aggregation (ql/count))
+                        (ql/order-by (ql/asc (ql/fk-> (data/id :checkins :venue_id) (data/id :venues :price))))
+                        (ql/breakout (ql/fk-> (data/id :checkins :venue_id) (data/id :venues :price))))
+              data/wrap-inner-query
+              (with-user-attributes {"user" 5})
+              qp/process-query
+              qpt/rows)))))))

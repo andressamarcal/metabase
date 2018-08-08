@@ -13,6 +13,7 @@
              [table :refer [Table]]]
             [metabase.models.query.permissions :as query-perms]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
+            [metabase.mt.query-processor.middleware.util :as mt-util]
             [metabase.query-processor.middleware.log :as log-query]
             [metabase.query-processor.util :as qputil]
             [metabase.util.schema :as su]
@@ -189,25 +190,7 @@
       (apply-row-level-permissions qp query)
       (qp query))))
 
-(defn- vec-index-of [pred coll]
-  (reduce (fn [new-pipeline idx]
-            (if (pred (get coll idx))
-              (reduced idx)
-              nil)) nil (range 0 (count coll))))
-
-(defn- inject-row-level-permissions-middleware
-  "Looks for `maybe-apply-row-level-permissions` middleware in the main query processor middleware datastructure. If
-  not found, will add itself, immediately after `log-query/log-initial-query`. Is a noop if it's already present."
-  [query-pipeline-vars]
-  (if-let [resolve-index (and (not-any? #(= #'maybe-apply-row-level-permissions %) query-pipeline-vars)
-                              (vec-index-of #(= % #'log-query/log-initial-query) query-pipeline-vars))]
-    (vec (concat
-          (subvec query-pipeline-vars 0 (inc resolve-index))
-          [#'maybe-apply-row-level-permissions]
-          (subvec query-pipeline-vars (inc resolve-index))))
-    query-pipeline-vars))
-
-(defn update-qp-pipeline-for-mt
+(defn update-qp-pipeline
   "Update the query pipeline atom to include the row level restrictions middleware. Intended to be called on startup."
   []
-  (swap! qp/pipeline-functions inject-row-level-permissions-middleware))
+  (mt-util/update-qp-pipeline #'log-query/log-initial-query #'maybe-apply-row-level-permissions))
