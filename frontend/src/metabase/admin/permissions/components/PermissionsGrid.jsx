@@ -14,7 +14,7 @@ import Modal from "metabase/components/Modal.jsx";
 import FixedHeaderGrid from "./FixedHeaderGrid.jsx";
 import { AutoSizer } from "react-virtualized";
 
-import { isAdminGroup } from "metabase/lib/groups";
+import { isAdminGroup, getGroupNameLocalized } from "metabase/lib/groups";
 import cx from "classnames";
 import _ from "underscore";
 
@@ -90,7 +90,7 @@ const GroupHeader = ({
 }) => (
   <div>
     <h4 className="text-centered full my1 flex layout-centered">
-      {group.name}
+      {getGroupNameLocalized(group)}
       {group.tooltip && (
         <Tooltip tooltip={group.tooltip} maxWidth="24em">
           <Icon className="ml1" name="question" />
@@ -188,10 +188,14 @@ const PermissionsCell = ({
 );
 
 const ActionsList = connect()(({ actions, dispatch }) => (
-  <ul className="py1 border-bottom">
+  <ul className="border-top">
     {actions.map(action => (
       <li>
-        <AccessOption option={action} onChange={dispatch} />
+        {typeof action === "function" ? (
+          action()
+        ) : (
+          <AccessOption option={action} onChange={dispatch} />
+        )}
       </li>
     ))}
   </ul>
@@ -310,9 +314,6 @@ class GroupPermissionCell extends Component {
           </Tooltip>
         }
       >
-        {actions && actions.length > 0 ? (
-          <ActionsList actions={actions} />
-        ) : null}
         <AccessOptionList
           value={value}
           options={options}
@@ -340,6 +341,9 @@ class GroupPermissionCell extends Component {
             this.refs.popover.close();
           }}
         />
+        {actions && actions.length > 0 ? (
+          <ActionsList actions={actions} />
+        ) : null}
       </PopoverWithTrigger>
     );
   }
@@ -348,7 +352,7 @@ class GroupPermissionCell extends Component {
 const AccessOption = ({ value, option, onChange }) => (
   <div
     className={cx(
-      "flex py2 px2 align-center bg-brand-hover text-white-hover cursor-pointer",
+      "flex py2 pl2 pr3 align-center bg-brand-hover text-white-hover cursor-pointer text-bold",
       {
         "bg-brand text-white": value === option,
       },
@@ -357,9 +361,9 @@ const AccessOption = ({ value, option, onChange }) => (
   >
     <Icon
       name={option.icon}
-      className="mr1"
+      className="mr2"
       style={{ color: option.iconColor }}
-      size={18}
+      size={22}
     />
     {option.title}
   </div>
