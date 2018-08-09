@@ -12,6 +12,10 @@ import "number-to-locale-string";
 // strings/elements to assist in finding untranslated strings.
 import "metabase/lib/i18n-debug";
 
+// set the locale before loading anything else
+import "metabase/lib/i18n";
+
+// NOTE: why do we need to load this here?
 import "metabase/lib/colors";
 
 import { updateColors, updateColorsJS } from "metabase/lib/whitelabel";
@@ -20,17 +24,6 @@ import { updateColors, updateColorsJS } from "metabase/lib/whitelabel";
 // doesn't refresh)
 // Don't update CSS colors yet since all the CSS hasn't been loaded yet
 updateColorsJS();
-
-// make the i18n function "t" global so we don't have to import it in basically every file
-import { t, jt } from "c-3po";
-global.t = t;
-global.jt = jt;
-
-// set the locale before loading anything else
-import { setLocalization } from "metabase/lib/i18n";
-if (window.MetabaseLocalization) {
-  setLocalization(window.MetabaseLocalization);
-}
 
 import React from "react";
 import ReactDOM from "react-dom";
