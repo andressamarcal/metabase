@@ -1,12 +1,17 @@
 import { addLocale, useLocale } from "c-3po";
-import { I18NApi } from "metabase/services";
 import MetabaseSettings from "metabase/lib/settings";
 
-export async function loadLocalization(locale) {
-  // load and parse the locale
-  const translationsObject = await I18NApi.locale({ locale });
-  setLocalization(translationsObject);
-}
+// NOTE: loadLocalization not currently used, and we need to be sure to set the
+// initial localization before loading any files, so don't load metabase/services
+// just in case
+
+// import { I18NApi } from "metabase/services";
+//
+// export async function loadLocalization(locale) {
+//   // load and parse the locale
+//   const translationsObject = await I18NApi.locale({ locale });
+//   setLocalization(translationsObject);
+// }
 
 export function setLocalization(translationsObject) {
   const locale = translationsObject.headers.language;
@@ -35,4 +40,9 @@ function addMsgIds(translationsObject) {
       msgs[msgid].msgid = msgid;
     }
   }
+}
+
+// set the initial localization
+if (window.MetabaseLocalization) {
+  setLocalization(window.MetabaseLocalization);
 }

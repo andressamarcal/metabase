@@ -14,7 +14,7 @@ import { push } from "react-router-redux";
 import * as Urls from "metabase/lib/urls";
 
 import Button from "metabase/components/Button.jsx";
-import Icon from "metabase/components/Icon.jsx";
+import Icon, { IconWrapper } from "metabase/components/Icon";
 import Link from "metabase/components/Link";
 import LogoIcon from "metabase/components/LogoIcon.jsx";
 import Tooltip from "metabase/components/Tooltip";
@@ -28,6 +28,7 @@ import CreateDashboardModal from "metabase/components/CreateDashboardModal";
 import ProfileLink from "metabase/nav/components/ProfileLink.jsx";
 
 import { getPath, getContext, getUser, getFeatures } from "../selectors";
+import { entityListLoader } from "metabase/entities/containers/EntityListLoader";
 
 const mapStateToProps = (state, props) => ({
   path: getPath(state, props),
@@ -127,7 +128,7 @@ class SearchBar extends React.Component {
             pr={2}
             pl={1}
             value={searchText}
-            placeholder="Search…"
+            placeholder={t`Search` + "…"}
             onClick={() => this.setState({ active: true })}
             onChange={e => this.setState({ searchText: e.target.value })}
             onKeyPress={e => {
@@ -147,6 +148,11 @@ class SearchBar extends React.Component {
 
 const MODAL_NEW_DASHBOARD = "MODAL_NEW_DASHBOARD";
 
+@entityListLoader({
+  entityType: "databases",
+  // set this to false to prevent a potential spinner on the main nav
+  loadingAndErrorWrapper: false,
+})
 @connect(mapStateToProps, mapDispatchToProps)
 export default class Navbar extends Component {
   state = {
@@ -252,6 +258,8 @@ export default class Navbar extends Component {
   }
 
   renderMainNav() {
+    const hasDataAccess =
+      this.props.databases && this.props.databases.length > 0;
     return (
       <Flex
         // NOTE: DO NOT REMOVE `Nav` CLASS FOR NOW, USED BY MODALS, FULLSCREEN DASHBOARD, ETC
@@ -288,15 +296,18 @@ export default class Navbar extends Component {
           </Box>
         </Flex>
         <Flex ml="auto" align="center" className="relative z2">
-          <Link
-            to={Urls.newQuestion()}
-            mx={2}
-            className="hide sm-show"
-            data-metabase-event={`NavBar;New Question`}
-          >
-            <Button medium>{t`Ask a question`}</Button>
-          </Link>
+          {hasDataAccess && (
+            <Link
+              to={Urls.newQuestion()}
+              mx={2}
+              className="hide sm-show"
+              data-metabase-event={`NavBar;New Question`}
+            >
+              <Button medium>{t`Ask a question`}</Button>
+            </Link>
+          )}
           <EntityMenu
+            tooltip={t`Create`}
             className="hide sm-show"
             triggerIcon="add"
             items={[
@@ -314,18 +325,20 @@ export default class Navbar extends Component {
               },
             ]}
           />
-          <Tooltip tooltip={t`Reference`}>
-            <Link
-              to="reference"
-              mx={2}
-              data-metabase-event={`NavBar;Reference`}
-            >
-              <Icon name="reference" />
-            </Link>
-          </Tooltip>
+          {hasDataAccess && (
+            <Tooltip tooltip={t`Reference`}>
+              <Link to="reference" data-metabase-event={`NavBar;Reference`}>
+                <IconWrapper>
+                  <Icon name="reference" />
+                </IconWrapper>
+              </Link>
+            </Tooltip>
+          )}
           <Tooltip tooltip={t`Activity`}>
-            <Link to="activity" mx={2} data-metabase-event={`NavBar;Activity`}>
-              <Icon name="bell" />
+            <Link to="activity" data-metabase-event={`NavBar;Activity`}>
+              <IconWrapper>
+                <Icon name="bell" />
+              </IconWrapper>
             </Link>
           </Tooltip>
           <ProfileLink {...this.props} />
