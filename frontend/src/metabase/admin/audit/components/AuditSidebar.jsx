@@ -51,13 +51,20 @@ export default () => (
       <AuditSidebarItem title="Overview" path="/admin/audit/overview" />
     </AuditSidebarSection>
     <AuditSidebarSection title="Data">
-      <AuditSidebarItem title="Databases" />
-      <AuditSidebarItem title="Schemas" />
-      <AuditSidebarItem title="Tables" />
+      <AuditSidebarItem title="Databases" path="/admin/audit/databases" />
+      <AuditSidebarItem title="Schemas" path="/admin/audit/schemas" />
+      <AuditSidebarItem title="Tables" path="/admin/audit/tables" />
     </AuditSidebarSection>
     <AuditSidebarSection title="Items">
-      <AuditSidebarItem title="Queries" />
-      <AuditSidebarItem title="Dashboards" />
+      <AuditSidebarItem title="Queries" path="/admin/audit/queries" />
+      <AuditSidebarItem title="Dashboards" path="/admin/audit/dashboards" />
+    </AuditSidebarSection>
+    <AuditSidebarSection title="People">
+      <AuditSidebarItem title="Users" path="/admin/audit/users" />
+      <AuditSidebarItem
+        title="User 1 [demo link]"
+        path="/admin/audit/users/1"
+      />
     </AuditSidebarSection>
   </AuditSidebar>
 );
