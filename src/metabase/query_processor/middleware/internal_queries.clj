@@ -45,11 +45,15 @@
                           (for [[k] metadata]
                             (get row (keyword k))))}})
 
+(def InternalQuery
+  "Schema for a valid `internal` type query."
+  {:type                  (s/enum :internal "internal")
+   :fn                    #"^([\w\d-]+\.)*[\w\d-]+/[\w\d-]+$" ; namespace-qualified symbol
+   (s/optional-key :args) [s/Any]
+   s/Any                  s/Any})
 
 (s/defn ^:private do-internal-query
-  [{qualified-fn-str :fn, args :args} :- {:type                  (s/enum :internal "internal")
-                                          :fn                    #"^([\w\d-]+\.)*[\w\d-]+/[\w\d-]+$" ; namespace-qualified symbol
-                                          (s/optional-key :args) [s/Any]}]
+  [{qualified-fn-str :fn, args :args} :- InternalQuery]
   ;; Make sure current user is a superuser
   (api/check-superuser)
   ;; now resolve the query
@@ -73,5 +77,5 @@
   [qp]
   (fn [{query-type :type, :as query}]
     (if (= :internal (keyword query-type))
-      (do-internal-query query))
-    (qp query)))
+      (do-internal-query query)
+      (qp query))))
