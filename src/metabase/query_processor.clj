@@ -165,11 +165,6 @@
     (s/optional-key :native) {:query                          s/Str
                               (s/optional-key :template_tags) {s/Keyword {s/Any s/Any}}}))
 
-(def ^:private InternalQuery
-  {:type                  (s/enum "internal" :internal)
-   :fn                    #"^([\w\d-]+\.)*[\w\d-]+/[\w\d-]+$"
-   (s/optional-key :args) [s/Any]})
-
 (defn- query-type-is [query-type query]
   (= query-type (keyword (:type query))))
 
@@ -177,7 +172,7 @@
   (s/conditional
    (partial query-type-is :query)    MBQLQuery
    (partial query-type-is :native)   NativeQuery
-   (partial query-type-is :internal) InternalQuery))
+   (partial query-type-is :internal) internal-queries/InternalQuery))
 
 (s/defn ^:private make-canonical-query :- QueryContext
   [query]
