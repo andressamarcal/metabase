@@ -46,10 +46,14 @@
 ;;   LIMIT 10
 ;; )
 ;;
-;; SELECT (u.first_name || ' ' || u.last_name) AS "name", qe_count."count" AS "count"
-;; FROM qe_count
-;; LEFT JOIN core_user u
+;; SELECT
+;;   (u.first_name || ' ' || u.last_name) AS "name",
+;;   CASE(WHEN qe_count."count" IS NOT NULL THEN qe_count."count" ELSE 0) AS "count"
+;; FROM core_user u
+;; LEFT JOIN qe_count
 ;;   ON qe_count.executor_id = u.id
+;; ORDER BY count DESC, lower(u.last_name) ASC, lower(u.first_name ASC)
+;; LIMIT 10
 (defn ^:internal-query-fn most-active
   "Query that returns the 10 most active Users (by number of query executions) in descending order."
   []
@@ -64,9 +68,13 @@
                                        :order-by [[:%count.* :desc]]
                                        :limit    10}]]
                :select    [[(audit-common/user-full-name :u) :name]
-                           [:qe_count.count :count]]
-               :from      [:qe_count]
-               :left-join [[:core_user :u] [:= :qe_count.executor_id :u.id]]})})
+                           [(hsql/call :case [:not= :qe_count.count nil] :qe_count.count :else 0) :count]]
+               :from      [[:core_user :u]]
+               :left-join [:qe_count [:= :qe_count.executor_id :u.id]]
+               :order-by  [[:count :desc]
+                           [:%lower.u.last_name :asc]
+                           [:%lower.u.first_name :asc]]
+               :limit     10})})
 
 ;; WITH exec_time AS (
 ;;   SELECT sum(running_time) AS execution_time_ms, qe.executor_id
@@ -79,10 +87,12 @@
 ;;
 ;; SELECT
 ;;   (u.first_name || ' ' || u.last_name) AS "name",
-;;   exec_time.execution_time_ms AS execution_time_ms
-;; FROM exec_time
-;; LEFT JOIN core_user u
+;;   CASE (WHEN exec_time.execution_time_ms IS NOT NULL THEN exec_time.execution_time_ms ELSE 0) AS execution_time_ms
+;; FROM core_user u
+;; LEFT JOIN exec_time
 ;;   ON exec_time.executor_id = u.id
+;; ORDER BY execution_time_ms DESC, lower(u.last_name) ASC, lower(u.first_name) ASC
+;; LIMIT 10
 (defn ^:internal-query-fn query-execution-time-per-user
   "Query that returns the total time spent executing queries, broken out by User, for the top 10 Users."
   []
@@ -97,9 +107,15 @@
                                         :order-by [[:%sum.running_time :desc]]
                                         :limit    10}]]
                :select    [[(audit-common/user-full-name :u) :name]
-                           :exec_time.execution_time_ms]
-               :from      [:exec_time]
-               :left-join [[:core_user :u] [:= :exec_time.executor_id :u.id]]})})
+                           [(hsql/call :case [:not= :exec_time.execution_time_ms nil] :exec_time.execution_time_ms
+                                       :else 0)
+                            :execution_time_ms]]
+               :from      [[:core_user :u]]
+               :left-join [:exec_time [:= :exec_time.executor_id :u.id]]
+               :order-by  [[:execution_time_ms :desc]
+                           [:%lower.u.last_name :asc]
+                           [:%lower.u.first_name :asc]]
+               :limit     10})})
 
 ;; WITH last_query AS (
 ;;     SELECT executor_id AS "id", max(started_at) AS started_at
@@ -147,11 +163,13 @@
 ;;       id,
 ;;       date_joined,
 ;;       (CASE WHEN u.sso_source IS NULL THEN 'Email' ELSE u.sso_source END) AS signup_method,
-;;       last_name
+;;       last_name,
+;;       first_name
 ;;     FROM core_user u
 ;; )
 ;;
 ;; SELECT
+;;   u.id AS user_id,
 ;;   u."name",
 ;;   u."role",
 ;;   groups.groups AS groups,
@@ -167,9 +185,10 @@
 ;; LEFT JOIN questions_saved  ON u.id = questions_saved.id
 ;; LEFT JOIN dashboards_saved ON u.id = dashboards_saved.id
 ;; LEFT JOIN pulses_saved     ON u.id = pulses_saved.id
-;; ORDER BY lower(u.last_name)
+;; ORDER BY lower(u.last_name) ASC, lower(u.first_name) ASC
 (defn ^:internal-query-fn table []
-  {:metadata [[:name             {:display_name "Name",             :base_type :type/Name}]
+  {:metadata [[:user_id          {:display_name "User ID",          :base_type :type/Integer, :remapped_to   :name}]
+              [:name             {:display_name "Name",             :base_type :type/Name,    :remapped_from :user_id}]
               [:role             {:display_name "Role",             :base_type :type/Text}]
               [:groups           {:display_name "Groups",           :base_type :type/Text}]
               [:date_joined      {:display_name "Date Joined",      :base_type :type/DateTime}]
@@ -219,9 +238,11 @@
                                                :else
                                                :u.sso_source)
                                              :signup_method]
-                                            :last_name]
+                                            :last_name
+                                            :first_name]
                                    :from   [[:core_user :u]]}]]
-              :select    [:u.name
+              :select    [[:u.id :user_id]
+                          :u.name
                           :u.role
                           :groups.groups
                           :u.date_joined
@@ -236,4 +257,5 @@
                           :questions_saved  [:= :u.id :questions_saved.id]
                           :dashboards_saved [:= :u.id :dashboards_saved.id]
                           :pulses_saved     [:= :u.id :pulses_saved.id]]
-              :order-by  [:%lower.u.last_name]})})
+              :order-by  [[:%lower.u.last_name :asc]
+                          [:%lower.u.first_name :asc]]})})

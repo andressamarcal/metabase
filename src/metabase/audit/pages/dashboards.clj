@@ -137,6 +137,7 @@
 ;; )
 ;;
 ;; SELECT
+;;   d.id AS dashboard_id
 ;;   d.name AS title,
 ;;   (u.first_name || ' ' || u.last_name) AS saved_by,
 ;;   d.created_at AS saved_on,
@@ -155,11 +156,12 @@
 ;;   ON d.id = axt.dashboard_id
 ;; LEFT JOIN views AS v
 ;;   ON d.id = v.dashboard_id
-;; ORDER BY lower(d.name) ASC
+;; ORDER BY lower(d.name) ASC, dashboard_id ASC
 (defn ^:internal-query-fn table
   "Internal audit app query powering a table of different Dashboards with lots of extra info about them."
   []
-  {:metadata [[:title                     {:display_name "Title",                :base_type :type/Title}]
+  {:metadata [[:dashboard_id              {:display_name "Dashboard ID",         :base_type :type/Integer, :remapped_to   :title}]
+              [:title                     {:display_name "Title",                :base_type :type/Title,   :remapped_from :dashboard_id}]
               [:saved_by                  {:display_name "Saved by",             :base_type :type/Text}]
               [:saved_on                  {:display_name "Saved on",             :base_type :type/DateTime}]
               [:last_edited_on            {:display_name "Last edited on",       :base_type :type/DateTime}]
@@ -187,7 +189,8 @@
                                    :from     [:view_log]
                                    :where    [:= :model (hx/literal "dashboard")]
                                    :group-by [:model_id]}]]
-              :select    [[:d.name :title]
+              :select    [[:d.id :dashboard_id]
+                          [:d.name :title]
                           [(audit-common/user-full-name :u) :saved_by]
                           [:d.created_at :saved_on]
                           [:d.updated_at :last_edited_on]
@@ -203,4 +206,5 @@
                           [:card_count :cc]          [:= :d.id :cc.dashboard_id]
                           [:avg_execution_time :axt] [:= :d.id :axt.dashboard_id]
                           [:views :v]                [:= :d.id :v.dashboard_id]]
-              :order-by  [[:%lower.d.name :asc]]})})
+              :order-by  [[:%lower.d.name :asc]
+                          [:dashboard_id :asc]]})})
