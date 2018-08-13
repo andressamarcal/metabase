@@ -98,7 +98,7 @@
               [:added_on      {:display_name "Added On",      :base_type :type/DateTime}]
               [:sync_schedule {:display_name "Sync Schedule", :base_type :type/Text}]
               [:schemas       {:display_name "Schemas",       :base_type :type/Integer}]
-              [:tables        {:display_name "Tables",        :base_Type :type/Integer}]]
+              [:tables        {:display_name "Tables",        :base_type :type/Integer}]]
    :results  (db/query
               {:with      [[:counts {:select   [[:db_id :id]
                                                 [(hsql/call :distinct-count :schema) :schemas]
