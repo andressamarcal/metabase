@@ -66,7 +66,8 @@
                :select    [[(audit-common/user-full-name :u) :name]
                            [:qe_count.count :count]]
                :from      [:qe_count]
-               :left-join [[:core_user :u] [:= :qe_count.executor_id :u.id]]})})
+               :left-join [[:core_user :u] [:= :qe_count.executor_id :u.id]]
+               :order-by  [[:qe_count.count :desc]]})})
 
 ;; WITH exec_time AS (
 ;;   SELECT sum(running_time) AS execution_time_ms, qe.executor_id
@@ -99,7 +100,8 @@
                :select    [[(audit-common/user-full-name :u) :name]
                            :exec_time.execution_time_ms]
                :from      [:exec_time]
-               :left-join [[:core_user :u] [:= :exec_time.executor_id :u.id]]})})
+               :left-join [[:core_user :u] [:= :exec_time.executor_id :u.id]]
+               :order-by  [[:exec_time.execution_time_ms :desc]]})})
 
 ;; WITH last_query AS (
 ;;     SELECT executor_id AS "id", max(started_at) AS started_at
