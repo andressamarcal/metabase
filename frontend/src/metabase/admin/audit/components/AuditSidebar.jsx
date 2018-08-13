@@ -45,7 +45,7 @@ const AuditSidebar = ({ children }) => (
   </div>
 );
 
-export default () => (
+const AuditAppSidebar = () => (
   <AuditSidebar>
     <AuditSidebarSection>
       <AuditSidebarItem title="Overview" path="/admin/audit/overview" />
@@ -68,3 +68,5 @@ export default () => (
     </AuditSidebarSection>
   </AuditSidebar>
 );
+
+export default AuditAppSidebar;

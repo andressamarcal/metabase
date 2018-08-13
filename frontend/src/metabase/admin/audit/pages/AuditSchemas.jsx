@@ -40,11 +40,7 @@ const AuditSchemas = () => (
               },
             },
           },
-          auditTable(
-            9,
-            (name: "Schemas"),
-            (fn: "metabase.audit.pages.schemas/table"),
-          ),
+          auditTable(9, "Schemas", "metabase.audit.pages.schemas/table"),
         ],
       }}
     />

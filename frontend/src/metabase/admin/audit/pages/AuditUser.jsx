@@ -3,69 +3,73 @@ import React from "react";
 import AuditContent from "../components/AuditContent";
 import AuditDashboard from "../containers/AuditDashboard";
 
-import { auditTable } from "../lib/util";
+import { UserDetailCards } from "../lib/cards";
 
-const AuditUser = ({ params }) => (
-  <AuditContent title="User">
-    <AuditDashboard
-      dashboard={{
-        ordered_cards: [
+const UserActivityTab = ({ userId }) => (
+  <AuditDashboard
+    dashboard={{
+      ordered_cards: [
+        UserDetailCards.questions({ col: 0, row: 0, sizeX: 4, sizeY: 4 }, [
+          userId,
+        ]),
+        UserDetailCards.dashboards({ col: 4, row: 0, sizeX: 4, sizeY: 4 }, [
+          userId,
+        ]),
+        UserDetailCards.pulses({ col: 8, row: 0, sizeX: 4, sizeY: 4 }, [
+          userId,
+        ]),
+        UserDetailCards.collections({ col: 12, row: 0, sizeX: 4, sizeY: 4 }, [
+          userId,
+        ]),
+        UserDetailCards.mostViewedDashboards(
           {
             col: 0,
-            row: 0,
-            sizeX: 9,
-            sizeY: 9,
-            card: {
-              name: "Most-viewed Dashboards",
-              display: "table",
-              dataset_query: {
-                type: "internal",
-                fn: "metabase.audit.pages.user-detail/table",
-                args: [parseInt(params.userId)],
-              },
-            },
+            row: 4,
+            sizeX: 8,
+            sizeY: 8,
           },
-
+          [userId],
+        ),
+        UserDetailCards.mostViewedQuestions(
           {
-            col: 0,
-            row: 9,
-            sizeX: 9,
-            sizeY: 9,
-            card: {
-              name: "Most-viewed Dashboards",
-              display: "row",
-              dataset_query: {
-                type: "internal",
-                fn: "metabase.audit.pages.user-detail/most-viewed-dashboards",
-                args: [parseInt(params.userId)],
-              },
-            },
+            col: 8,
+            row: 4,
+            sizeX: 8,
+            sizeY: 8,
           },
+          [userId],
+        ),
+        UserDetailCards.queryViews(
           {
-            col: 9,
-            row: 9,
-            sizeX: 9,
-            sizeY: 9,
-            card: {
-              name: "Most-viewed Queries",
-              display: "row",
-              dataset_query: {
-                type: "internal",
-                fn: "metabase.audit.pages.user-detail/most-viewed-questions",
-                args: [parseInt(params.userId)],
-              },
-            },
+            row: 12,
+            sizeX: 16,
           },
-          auditTable(
-            18,
-            "Query views",
-            "metabase.audit.pages.user-detail/query-views",
-            [parseInt(params.userId)],
-          ),
-        ],
-      }}
-    />
-  </AuditContent>
+          [userId],
+        ),
+      ],
+    }}
+  />
 );
+
+const AuditUser = ({ params }) => {
+  const userId = parseInt(params.userId);
+  return (
+    <AuditContent
+      title="User"
+      tabs={[
+        "Activity",
+        "Account details",
+        "Data permissions",
+        "Collection permissions",
+        "Made by them",
+        "Audit log",
+      ]}
+    >
+      {({ currentTab }) =>
+        currentTab === "Activity" ? <UserActivityTab userId={userId} /> : null
+      }
+    </AuditContent>
+  );
+};
 
 export default AuditUser;
