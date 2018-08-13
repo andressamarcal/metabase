@@ -42,6 +42,7 @@
                :group-by [:db_name :db_schema :table_name]
                :order-by [[:%count.* asc-or-desc]]
                :limit    10})})
+
 (defn ^:internal-query-fn most-queried
   "Query that returns the top-10 most-queried Tables, in descending order."
   []

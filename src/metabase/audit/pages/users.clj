@@ -163,11 +163,13 @@
 ;;       id,
 ;;       date_joined,
 ;;       (CASE WHEN u.sso_source IS NULL THEN 'Email' ELSE u.sso_source END) AS signup_method,
-;;       last_name
+;;       last_name,
+;;       first_name
 ;;     FROM core_user u
 ;; )
 ;;
 ;; SELECT
+;;   u.id AS user_id,
 ;;   u."name",
 ;;   u."role",
 ;;   groups.groups AS groups,
@@ -183,9 +185,10 @@
 ;; LEFT JOIN questions_saved  ON u.id = questions_saved.id
 ;; LEFT JOIN dashboards_saved ON u.id = dashboards_saved.id
 ;; LEFT JOIN pulses_saved     ON u.id = pulses_saved.id
-;; ORDER BY lower(u.last_name)
+;; ORDER BY lower(u.last_name) ASC, lower(u.first_name) ASC
 (defn ^:internal-query-fn table []
-  {:metadata [[:name             {:display_name "Name",             :base_type :type/Name}]
+  {:metadata [[:user_id          {:display_name "User ID",          :base_type :type/Integer, :remapped_to   :name}]
+              [:name             {:display_name "Name",             :base_type :type/Name,    :remapped_from :user_id}]
               [:role             {:display_name "Role",             :base_type :type/Text}]
               [:groups           {:display_name "Groups",           :base_type :type/Text}]
               [:date_joined      {:display_name "Date Joined",      :base_type :type/DateTime}]
@@ -235,9 +238,11 @@
                                                :else
                                                :u.sso_source)
                                              :signup_method]
-                                            :last_name]
+                                            :last_name
+                                            :first_name]
                                    :from   [[:core_user :u]]}]]
-              :select    [:u.name
+              :select    [[:u.id :user_id]
+                          :u.name
                           :u.role
                           :groups.groups
                           :u.date_joined
@@ -252,4 +257,5 @@
                           :questions_saved  [:= :u.id :questions_saved.id]
                           :dashboards_saved [:= :u.id :dashboards_saved.id]
                           :pulses_saved     [:= :u.id :pulses_saved.id]]
-              :order-by  [:%lower.u.last_name]})})
+              :order-by  [[:%lower.u.last_name :asc]
+                          [:%lower.u.first_name :asc]]})})
