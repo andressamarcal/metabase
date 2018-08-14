@@ -1,4 +1,4 @@
-(ns ^:internal-query-fn metabase.query-processor.middleware.internal-queries
+(ns ^:internal-query-fn ^:internal-query-fn metabase.query-processor.middleware.internal-queries
   "Middleware that handles special `internal` type queries. `internal` queries are implementeed directly by Clojure
   functions, and do not neccesarily need to query a database to provide results; by default, they completely skip
   the rest of the normal QP pipeline. `internal` queries should look like the following:
@@ -21,7 +21,9 @@
      native query.
   *  `:results` should be a sequence of maps similar to the results of `jdbc/query`. They will be automatically
      converted to the format expected by the frontend (a `rows` key that is an array of arrays)  by this middleware."
-  (:require [clojure.string :as str]
+  (:require [clojure
+             [data :as data]
+             [string :as str]]
             [metabase.api.common :as api]
             [metabase.util.schema :as su]
             [puppetlabs.i18n.core :refer [tru]]
@@ -34,8 +36,23 @@
      (s/one {:base_type su/FieldType, :display_name su/NonBlankString, s/Keyword s/Any}
             "field metadata")]]))
 
+(defn- check-results-and-metadata-keys-match
+  "Primarily for dev and debugging purposes. We can probably take this out when shipping the finished product."
+  [results metadata]
+  (let [results-keys  (set (keys (first results)))
+        metadata-keys (set (map (comp keyword first) metadata))]
+    (when (and (seq results-keys)
+               (not= results-keys metadata-keys))
+      (let [[only-in-results only-in-metadata] (data/diff results-keys metadata-keys)]
+        (println "Warning: results-keys and metadata-keys differ.\n"
+                 "results-keys:" results-keys "\n"
+                 "metadata-keys:" metadata-keys "\n"
+                 "in results, but not metadata:" only-in-results "\n"
+                 "in metadata, but not results:" only-in-metadata)))))
+
 (s/defn ^:private format-results [{:keys [results metadata]} :- {:results  [su/Map]
                                                                  :metadata ResultsMetadata}]
+  (check-results-and-metadata-keys-match results metadata)
   {:status    :completed
    :row_count (count results)
    :data      {:columns (map first metadata)
