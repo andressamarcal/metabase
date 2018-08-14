@@ -24,7 +24,7 @@
                :group-by [(hx/cast :date :timestamp)]
                :order-by [(hx/cast :date :timestamp)]})})
 
-;; SELECT d.name AS dashboard, count(*) AS views
+;; SELECT d.id AS dashboard_id, d.name AS dashboard_name, count(*) AS views
 ;; FROM view_log vl
 ;; LEFT JOIN report_dashboard d
 ;;   ON vl.model_id = d.id
@@ -35,10 +35,12 @@
 (defn ^:internal-query-fn most-popular
   "Query that returns the 10 Dashboards that have the most views, in descending order."
   []
-  {:metadata [[:dashboard {:display_name "Dashboard", :base_type :type/Title}]
-              [:views     {:display_name "Views",     :base_type :type/Integer}]]
+  {:metadata [[:dashboard_id   {:display_name "Dashboard ID",          :base_type :type/Integer, :remapped_to   :dashboard_name}]
+              [:dashboard_name {:display_name "Dashboard",             :base_type :type/Title,   :remapped_from :dashboard_id}]
+              [:views          {:display_name "Views",     :base_type :type/Integer}]]
    :results  (db/query
-              {:select    [[:d.name :dashboard]
+              {:select    [[:d.id :dashboard_id]
+                           [:d.name :dashboard_name]
                            [:%count.* :views]]
                :from      [[:view_log :vl]]
                :left-join [[:report_dashboard :d] [:= :vl.model_id :d.id]]
@@ -54,7 +56,7 @@
 ;;     GROUP BY qe.card_id
 ;; )
 ;;
-;; SELECT d.name AS dashboard, MAX(rt.avg_running_time) AS max_running_time
+;; SELECT d.id AS dashboard_id, d.name AS dashboard_name, max(rt.avg_running_time) AS max_running_time
 ;; FROM report_dashboardcard dc
 ;; LEFT JOIN card_running_time rt
 ;;   ON dc.card_id = rt.card_id
@@ -66,7 +68,8 @@
 (defn- ^:internal-query-fn slowest
   "Query that returns the 10 Dashboards that have the slowest average execution times, in descending order."
   []
-  {:metadata [[:dashboard        {:display_name "Dashboard",             :base_type :type/Title}]
+  {:metadata [[:dashboard_id     {:display_name "Dashboard ID",          :base_type :type/Integer, :remapped_to   :dashboard_name}]
+              [:dashboard_name   {:display_name "Dashboard",             :base_type :type/Title,   :remapped_from :dashboard_id}]
               [:max_running_time {:display_name "Slowest Question (ms)", :base_type :type/Decimal}]]
    :results  (db/query
               {:with      [[:card_running_time {:select   [:qe.card_id
@@ -74,7 +77,8 @@
                                                 :from     [[:query_execution :qe]]
                                                 :where    [:not= :qe.card_id nil]
                                                 :group-by [:qe.card_id]}]]
-               :select    [[:d.name :dashboard]
+               :select    [[:d.id :dashboard_id]
+                           [:d.name :dashboard_name]
                            [:%max.rt.avg_running_time :max_running_time]]
                :from      [[:report_dashboardcard :dc]]
                :left-join [[:card_running_time :rt] [:= :dc.card_id :rt.card_id]
@@ -83,10 +87,7 @@
                :order-by  [[:max_running_time :desc]]
                :limit     10})})
 
-;; -- we are prepending Card ID to Card Name for the time being because there's a weird issue where the horizontal bar
-;; -- charts will otherwise combine Cards with the same name into a single row. Prepending identifier ensures they will
-;; -- remain separte rows.
-;; SELECT (c.id::text || ' ' || c.name) AS card, count(*) AS "count"
+;; SELECT c.id AS card_id, c.name AS card_name, count(*) AS "count"
 ;; FROM report_dashboardcard dc
 ;; LEFT JOIN report_card c
 ;;   ON c.id = dc.card_id
@@ -96,10 +97,12 @@
 (defn- ^:internal-query-fn most-common-questions
   "Query that returns the 10 Cards that appear most often in Dashboards, in descending order."
   []
-  {:metadata [[:card  {:display_name "Card", :base_type :type/Title}]
-              [:count {:display_name "Count", :base_type :type/Integer}]]
+  {:metadata [[:card_id   {:display_name "Card ID", :base_type :type/Integer, :remapped_to   :card_name}]
+              [:card_name {:display_name "Card",    :base_type :type/Title,   :remapped_from :card_id}]
+              [:count     {:display_name "Count",   :base_type :type/Integer}]]
    :results  (db/query
-              {:select    [[(hx/concat (hx/cast :text :c.id) " " :c.name) :card]
+              {:select    [[:c.id :card_id]
+                           [:c.name :card_name]
                            [:%count.* :count]]
                :from      [[:report_dashboardcard :dc]]
                :left-join [[:report_card :c]

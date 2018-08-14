@@ -5,38 +5,33 @@
             [toucan.db :as db]))
 
 ;; SELECT
-;;   db.name AS "database",
+;;   db.id AS database_id,
+;;   db.name AS database_name,
 ;;   count(*) AS queries,
 ;;   avg(qe.running_time) AS avg_running_time
 ;; FROM query_execution qe
-;; LEFT JOIN report_card card
-;;   ON qe.card_id = card.id AND qe.card_id IS NOT NULL
-;; LEFT JOIN metabase_table t
-;;   ON card.table_id = t.id AND card.table_id IS NOT NULL
-;; LEFT JOIN metabase_database db
-;;   ON t.db_id = db.id
-;; WHERE db.id IS NOT NULL
+;; JOIN report_card card     ON qe.card_id = card.id
+;; JOIN metabase_table t     ON card.table_id = t.id
+;; JOIN metabase_database db ON t.db_id = db.id
 ;; GROUP BY db.id
 ;; ORDER BY lower(db.name) ASC
 (defn ^:internal-query-fn total-query-executions-by-db
   []
-  {:metadata [[:database         {:display_name "Database",               :base_type :type/Text}]
+  {:metadata [[:database_id      {:display_name "Database ID",            :base_type :type/Integer, :remapped_to   :database_name}]
+              [:database_name    {:display_name "Database",               :base_type :type/Text,    :remapped_from :database_id}]
               [:queries          {:display_name "Queries",                :base_type :type/Integer}]
               [:avg_running_time {:display_name "Avg. Running Time (ms)", :base_type :type/Decimal}]]
    :results  (db/query
-              {:select    [[:db.name :database]
-                           [:%count.* :queries]
-                           [:%avg.qe.running_time :avg_running_time]]
-               :from      [[:query_execution :qe]]
-               :left-join [[:report_card :card]     [:= :qe.card_id :card.id]
-                           [:metabase_table :t]     [:= :card.table_id :t.id]
-                           [:metabase_database :db] [:= :t.db_id :db.id]]
-               :where     [:and
-                           [:not= :qe.card_id nil]
-                           [:not= :card.table_id nil]
-                           [:not= :db.id nil]]
-               :group-by  [:db.id]
-               :order-by  [[:%lower.db.name :asc]]})})
+              {:select   [[:db.id :database_id]
+                          [:db.name :database_name]
+                          [:%count.* :queries]
+                          [:%avg.qe.running_time :avg_running_time]]
+               :from     [[:query_execution :qe]]
+               :join     [[:report_card :card]     [:= :qe.card_id :card.id]
+                          [:metabase_table :t]     [:= :card.table_id :t.id]
+                          [:metabase_database :db] [:= :t.db_id :db.id]]
+               :group-by [:db.id]
+               :order-by [[:%lower.db.name :asc]]})})
 
 ;; WITH qx AS (
 ;;  SELECT CAST(qe.started_at AS date) AS day, card.database_id, count(*) AS count
@@ -57,7 +52,7 @@
 (defn ^:internal-query-fn query-executions-per-db-per-day
   []
   {:metadata [[:day           {:display_name "Date",          :base_type :type/Date}]
-              [:database_id   {:display_name "Database ID",   :base_type :type/Integer, :remapped_to :database_name}]
+              [:database_id   {:display_name "Database ID",   :base_type :type/Integer, :remapped_to   :database_name}]
               [:database_name {:display_name "Database Name", :base_type :type/Name,    :remapped_from :database_id}]
               [:count         {:display_name "Count",         :base_type :type/Integer}]]
    :results  (db/query
