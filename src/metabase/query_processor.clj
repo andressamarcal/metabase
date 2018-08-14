@@ -161,9 +161,10 @@
 
 (def ^:private NativeQuery
   (assoc DefaultQueryContext
-    (s/optional-key :type) (s/enum :native "native")
+    (s/optional-key :type)   (s/enum :native "native")
     (s/optional-key :native) {:query                          s/Str
-                              (s/optional-key :template_tags) {s/Keyword {s/Any s/Any}}}))
+                              (s/optional-key :template_tags) {s/Keyword {s/Any s/Any}}
+                              (s/optional-key :collection) (s/maybe su/NonBlankString)}))
 
 (defn- query-type-is [query-type query]
   (= query-type (keyword (:type query))))
@@ -275,11 +276,14 @@
   false)
 
 (defn- query-execution-info
-  "Return the info for the `QueryExecution` entry for this QUERY."
-  [{{:keys [executed-by query-hash query-type context card-id dashboard-id pulse-id]} :info, :as query}]
+  "Return the info for the QueryExecution entry for this `query`."
+  [{{:keys [executed-by query-hash query-type context card-id dashboard-id pulse-id]} :info
+    database-id                                                                       :database
+    :as                                                                               query}]
   {:pre [(instance? (Class/forName "[B") query-hash)
          (string? query-type)]}
-  {:executor_id       executed-by
+  {:database_id       database-id
+   :executor_id       executed-by
    :card_id           card-id
    :dashboard_id      dashboard-id
    :pulse_id          pulse-id
