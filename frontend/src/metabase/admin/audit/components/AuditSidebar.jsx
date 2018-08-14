@@ -14,14 +14,14 @@ const AuditSidebarSection = ({ title, children }) => (
 );
 
 const AuditSidebarSectionTitle = ({ title }) => (
-  <div className="py1 text-smaller text-bold text-uppercase text-grey-2">
+  <div className="py1 text-smaller text-bold text-uppercase text-medium">
     {title}
   </div>
 );
 
 const AuditSidebarItem = ({ title, path }) => (
   <div
-    className={cx("my1 cursor-pointer", {
+    className={cx("my2 cursor-pointer text-brand-hover", {
       disabled: !path,
     })}
   >
@@ -42,7 +42,7 @@ const AuditSidebarItem = ({ title, path }) => (
 );
 
 const AuditSidebar = ({ children }) => (
-  <div style={{ width: 250, minHeight: "100vh" }} className="bg-light p4">
+  <div style={{ width: 250, minWidth: 250, minHeight: "100vh" }} className="bg-light p4">
     {children}
   </div>
 );
@@ -70,7 +70,7 @@ const AuditAppSidebar = () => (
       />
     </AuditSidebarSection>
     <AuditSidebarSection title="People">
-      <AuditSidebarItem title="Members" path="/admin/audit/members" />
+      <AuditSidebarItem title="Team members" path="/admin/audit/members" />
       <AuditSidebarItem
         title="Member 1 [demo link]"
         path="/admin/audit/members/1"
