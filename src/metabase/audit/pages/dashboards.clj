@@ -17,10 +17,6 @@
 (defn ^:deprecated ^:internal-query-fn views-per-day
   "DEPRECATED: use `views-and-saves-by-time ` instead."
   []
-  (println (u/format-color 'red
-               (str "WARNING: metabase.audit.pages.dashboards/views-per-day is deprecated. "
-                    "Use views-and-saves-by-time instead. "
-                    "This will be removed in the near future.")))
   {:metadata [[:day   {:display_name "Date",  :base_type :type/Date}]
               [:views {:display_name "Views", :base_type :type/Integer}]]
    :results  (db/query
@@ -49,12 +45,12 @@
                                    :from     [:report_dashboard]
                                    :group-by [(audit-common/grouped-datetime datetime-unit :created_at)]
                                    :order-by [[(audit-common/grouped-datetime datetime-unit :created_at) :asc]]}]]
-              :select    [:views.date
-                          [:views.count :views]
-                          [:saves.count :saves]]
+              :select    [[(hsql/call :case [:not= :views.date nil] :views.date :else :saves.date) :date]
+                          [(hsql/call :case [:not= :views.count nil] :views.count :else 0) :views]
+                          [(hsql/call :case [:not= :saves.count nil] :saves.count :else 0) :saves]]
               :from      [:views]
               :full-join [:saves [:= :views.date :saves.date]]
-              :order-by  [[:views.date :asc]]})})
+              :order-by  [[:date :asc]]})})
 
 ;; SELECT d.id AS dashboard_id, d.name AS dashboard_name, count(*) AS views
 ;; FROM view_log vl
@@ -97,7 +93,7 @@
 ;; GROUP BY d.id
 ;; ORDER BY max_running_time DESC
 ;; LIMIT 10
-(defn- ^:internal-query-fn slowest
+(defn- ^:internal-query-fn ^:deprecated slowest
   "Query that returns the 10 Dashboards that have the slowest average execution times, in descending order."
   []
   {:metadata [[:dashboard_id     {:display_name "Dashboard ID",          :base_type :type/Integer, :remapped_to   :dashboard_name}]
@@ -126,7 +122,7 @@
 ;; GROUP BY c.id
 ;; ORDER BY count(*) DESC
 ;; LIMIT 10
-(defn- ^:internal-query-fn most-common-questions
+(defn- ^:internal-query-fn ^:deprecated most-common-questions
   "Query that returns the 10 Cards that appear most often in Dashboards, in descending order."
   []
   {:metadata [[:card_id   {:display_name "Card ID", :base_type :type/Integer, :remapped_to   :card_name}]

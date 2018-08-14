@@ -1,4 +1,4 @@
-(ns ^:internal-query-fn ^:internal-query-fn metabase.query-processor.middleware.internal-queries
+(ns ^:internal-query-fn ^:internal-query-fn ^:internal-query-fn metabase.query-processor.middleware.internal-queries
   "Middleware that handles special `internal` type queries. `internal` queries are implementeed directly by Clojure
   functions, and do not neccesarily need to query a database to provide results; by default, they completely skip
   the rest of the normal QP pipeline. `internal` queries should look like the following:
@@ -25,6 +25,7 @@
              [data :as data]
              [string :as str]]
             [metabase.api.common :as api]
+            [metabase.util :as u]
             [metabase.util.schema :as su]
             [puppetlabs.i18n.core :refer [tru]]
             [schema.core :as s]))
@@ -85,6 +86,13 @@
     (when-not (:internal-query-fn (meta fn-varr))
       (throw (Exception. (str (tru "Invalid internal query function: {0} is not marked as an ^:internal-query-fn"
                                    qualified-fn-str)))))
+    ;; if this function is marked deprecated log a warning.
+    ;; Primarily for dev/testing purposes. TODO - remove this once v1 [beta] is done or upgrade it to use log/ + i18n
+    (when (:deprecated (meta fn-varr))
+      (println (u/format-color 'red
+                   (str "Warning: %s is marked deprecated. This is probably because it's not in the new designs. "
+                        "This function will be removed in the [very] near future.")
+                 qualified-fn-str)))
     ;; ok, run the query
     (format-results (apply @fn-varr args))))
 

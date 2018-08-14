@@ -2,7 +2,8 @@
   (:require [honeysql.core :as hsql]
             [metabase.audit.pages.common :as audit-common]
             [metabase.util.honeysql-extensions :as hx]
-            [toucan.db :as db]))
+            [toucan.db :as db]
+            [schema.core :as s]))
 
 ;; WITH user_qe AS (
 ;;     SELECT executor_id, count(*) AS executions, CAST(started_at AS DATE) AS day
@@ -17,7 +18,7 @@
 ;; FROM user_qe
 ;; GROUP BY day
 ;; ORDER BY day ASC
-(defn ^:internal-query-fn active-users-and-queries-by-day
+(defn ^:internal-query-fn ^:deprecated active-users-and-queries-by-day
   "Query that returns data for a two-series timeseries: the number of DAU (a User is considered active for purposes of
   this query if they ran at least one query that day), and total number of queries ran. Broken out by day."
   []
@@ -36,6 +37,29 @@
                :from     [:user_qe]
                :group-by [:day]
                :order-by [[:day :asc]]})})
+
+(s/defn ^:internal-query-fn active-and-new-by-time
+  "Two-series timeseries that returns number of active Users (Users who ran at least one query) and number of new Users,
+  broken out by `datetime-unit`."
+  [datetime-unit :- audit-common/DateTimeUnit]
+  {:metadata [[:date         {:display_name "Date",         :base_type (audit-common/datetime-unit-str->base-type datetime-unit)}]
+              [:active_users {:display_name "Active Users", :base_type :type/Integer}]
+              [:new_users    {:display_name "New Users",    :base_type :type/Integer}]]
+   :results  (db/query
+              {:with      [[:active {:select   [[(audit-common/grouped-datetime datetime-unit :started_at) :date]
+                                                [:%distinct-count.executor_id :count]]
+                                     :from     [:query_execution]
+                                     :group-by [(audit-common/grouped-datetime datetime-unit :started_at)]}]
+                           [:new  {:select   [[(audit-common/grouped-datetime datetime-unit :date_joined) :date]
+                                              [:%count.* :count]]
+                                   :from     [:core_user]
+                                   :group-by [(audit-common/grouped-datetime datetime-unit :date_joined)]}]]
+               :select    [[(hsql/call :case [:not= :active.date nil] :active.date :else :new.date) :date]
+                           [(hsql/call :case [:not= :active.count nil] :active.count :else 0) :active_users]
+                           [(hsql/call :case [:not= :new.count nil] :new.count :else 0) :new_users]]
+               :from      [:active]
+               :full-join [:new [:= :active.date :new.date]]
+               :order-by  [[:date :asc]]})})
 
 ;; WITH qe_count AS (
 ;;   SELECT count(*) AS "count", qe.executor_id
