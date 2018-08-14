@@ -42,7 +42,10 @@ const AuditSidebarItem = ({ title, path }) => (
 );
 
 const AuditSidebar = ({ children }) => (
-  <div style={{ width: 250, minWidth: 250, minHeight: "100vh" }} className="bg-light p4">
+  <div
+    style={{ width: 250, minWidth: 250, minHeight: "100vh" }}
+    className="bg-light p4"
+  >
     {children}
   </div>
 );
@@ -59,22 +62,10 @@ const AuditAppSidebar = () => (
     </AuditSidebarSection>
     <AuditSidebarSection title="Items">
       <AuditSidebarItem title="Questions" path="/admin/audit/questions" />
-      <AuditSidebarItem
-        title="Question 1 [demo link]"
-        path="/admin/audit/questions/1"
-      />
       <AuditSidebarItem title="Dashboards" path="/admin/audit/dashboards" />
-      <AuditSidebarItem
-        title="Dashboard 1 [demo link]"
-        path="/admin/audit/dashboards/1"
-      />
     </AuditSidebarSection>
     <AuditSidebarSection title="People">
       <AuditSidebarItem title="Team members" path="/admin/audit/members" />
-      <AuditSidebarItem
-        title="Member 1 [demo link]"
-        path="/admin/audit/members/1"
-      />
     </AuditSidebarSection>
   </AuditSidebar>
 );
