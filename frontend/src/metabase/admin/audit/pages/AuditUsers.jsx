@@ -22,7 +22,7 @@ const AuditUsersAllTab = () => <AuditTable table={UsersCards.table()} />;
 
 const AuditUsersAuditLogTab = () => <AuditTable table={UsersCards.table()} />;
 
-const AuditUsers = () => <AuditContent title="Users" tabs={AuditUsers.tabs} />;
+const AuditUsers = () => <AuditContent title="Team members" tabs={AuditUsers.tabs} />;
 
 AuditUsers.tabs = [
   { path: "overview", title: "Overview", component: AuditUsersOverviewTab },
