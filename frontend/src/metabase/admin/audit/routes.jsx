@@ -15,6 +15,7 @@ import AuditSchemas from "metabase/admin/audit/pages/AuditSchemas";
 import AuditTables from "metabase/admin/audit/pages/AuditTables";
 
 import AuditQuestions from "metabase/admin/audit/pages/AuditQuestions";
+import AuditQuestion from "metabase/admin/audit/pages/AuditQuestion";
 import AuditDashboards from "metabase/admin/audit/pages/AuditDashboards";
 import AuditDashboard from "metabase/admin/audit/pages/AuditDashboard";
 
@@ -37,7 +38,7 @@ const getRoutes = store => (
 
     <Route path="questions">
       <IndexRoute component={AuditQuestions} />
-      {/* <Route path=":questionId" component={AuditQuestion} /> */}
+      <Route path=":questionId" component={AuditQuestion} />
     </Route>
 
     <Route path="dashboards">

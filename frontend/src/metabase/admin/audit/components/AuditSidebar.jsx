@@ -59,7 +59,15 @@ const AuditAppSidebar = () => (
     </AuditSidebarSection>
     <AuditSidebarSection title="Items">
       <AuditSidebarItem title="Questions" path="/admin/audit/questions" />
+      <AuditSidebarItem
+        title="Question 1 [demo link]"
+        path="/admin/audit/questions/1"
+      />
       <AuditSidebarItem title="Dashboards" path="/admin/audit/dashboards" />
+      <AuditSidebarItem
+        title="Dashboard 1 [demo link]"
+        path="/admin/audit/dashboards/1"
+      />
     </AuditSidebarSection>
     <AuditSidebarSection title="People">
       <AuditSidebarItem title="Members" path="/admin/audit/members" />
