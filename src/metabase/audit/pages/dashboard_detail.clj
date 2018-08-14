@@ -1,17 +1,17 @@
 (ns metabase.audit.pages.dashboard-detail
   "Detail page for a single dashboard."
-  (:require [metabase.audit.pages.common :as audit-common]
-            [metabase.audit.pages.common.card-and-dashboard-detail :as card-and-dash-detail]
-            [metabase.models
-             [dashboard :refer [Dashboard]]
-             [revision :as revision]]
+  (:require [honeysql.core :as hsql]
+            [metabase.audit.pages.common :as audit-common]
+            [metabase.audit.pages.common
+             [card-and-dashboard-detail :as card-and-dash-detail]
+             [cards :as cards]]
+            [metabase.models.dashboard :refer [Dashboard]]
             [metabase.util
              [honeysql-extensions :as hx]
-             [schema :as su]]
+             [schema :as su]
+             [urls :as urls]]
             [schema.core :as s]
-            [toucan.db :as db]
-            [metabase.util.urls :as urls]
-            [honeysql.core :as hsql]))
+            [toucan.db :as db]))
 
 ;; SELECT avg(running_time)
 ;; FROM query_execution
@@ -105,20 +105,8 @@
                                    :from   [[:report_dashboardcard :dc]]
                                    :join   [[:report_card :card] [:= :card.id :dc.card_id]]
                                    :where  [:= :dc.dashboard_id dashboard-id]}]
-                           [:avg_exec_time {:select   [:card_id
-                                                       [:%avg.running_time :avg_running_time_ms]]
-                                            :from     [:query_execution]
-                                            :where    [:in :card_id {:select [:id]
-                                                                     :from   [:card]}]
-                                            :group-by [:card_id]}]
-                           [:card_views {:select   [[:model_id :card_id]
-                                                    [:%count.* :count]]
-                                         :from     [:view_log]
-                                         :where    [:and
-                                                    [:= :model (hx/literal "card")]
-                                                    [:in :model_id {:select [:id]
-                                                                    :from   [:card]}]]
-                                         :group-by [:model_id]}]]
+                           cards/avg-exec-time
+                           cards/views]
                :select    [[:card.id :card_id]
                            [:card.name :card_name]
                            [:coll.id :collection_id]
@@ -133,6 +121,7 @@
                               [:not= :card.public_uuid nil]
                               (hx/concat (urls/public-card-prefix) :card.public_uuid))
                             :public_link]
+                           :card.cache_ttl
                            [:card_views.count :total_views]]
                :from      [:card]
                :left-join [:avg_exec_time           [:= :card.id :avg_exec_time.card_id]
