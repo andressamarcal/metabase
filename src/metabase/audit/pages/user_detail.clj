@@ -1,6 +1,6 @@
 (ns metabase.audit.pages.user-detail
   (:require [honeysql.core :as hsql]
-            [metabase.audit.pages.common :as audit-common]
+            [metabase.audit.pages.common :as common]
             [metabase.util
              [honeysql-extensions :as hx]
              [schema :as su]]
@@ -91,7 +91,7 @@
                         [:pulses_saved {:select [[:%count.* :count]]
                                         :from   [:pulse]
                                         :where  [:= :creator_id user-id]}]
-                        [:users {:select [[(audit-common/user-full-name :u) :name]
+                        [:users {:select [[(common/user-full-name :u) :name]
                                           [(hsql/call :case
                                              [:= :u.is_superuser true]
                                              (hx/literal "Admin")
@@ -161,32 +161,6 @@
                         :order-by  [[:%count.* :desc]]
                         :limit     10})})
 
-;; SELECT
-;;   qe.started_at AS viewed_on,
-;;   card.name AS query,
-;;   (CASE
-;;       WHEN card.query_type = 'query' THEN 'GUI'
-;;       WHEN card.query_type = 'native' THEN 'Native'
-;;       ELSE card.query_type
-;;   END) AS type,
-;;   collection.name AS collection,
-;;   (u.first_name || ' ' || u.last_name) AS saved_by,
-;;   db.name AS source_db,
-;;   t.display_name AS table
-;; FROM query_execution qe
-;; LEFT JOIN report_card card
-;;   ON qe.card_id = card.id
-;; LEFT JOIN collection
-;;   ON card.collection_id = collection.id
-;; LEFT JOIN core_user u
-;;   ON card.creator_id = u.id
-;; LEFT JOIN metabase_table t
-;;   ON card.table_id = t.id
-;; LEFT JOIN metabase_database db
-;;   ON t.db_id = db.id
-;; WHERE qe.executor_id = {{user_id}}
-;;   AND qe.card_id IS NOT NULL
-;; ORDER BY qe.started_at DESC
 (s/defn ^:internal-query-fn query-views
   [user-id :- su/IntGreaterThanZero]
   {:metadata [[:viewed_on  {:display_name "Viewed On",  :base_type :type/DateTime}]
@@ -203,7 +177,7 @@
                               :else                                       :card.query_type)
                             :type]
                            [:collection.name :collection]
-                           [(hx/concat :u.first_name (hx/literal " ") :u.last_name) :saved_by]
+                           [(common/user-full-name :u) :saved_by]
                            [:db.name :source_db]
                            [:t.display_name :table]]
                :from      [[:query_execution :qe]]
@@ -216,3 +190,18 @@
                            [:= :qe.executor_id user-id]
                            [:not= :qe.card_id nil]]
                :order-by  [[:qe.started_at :desc]]})})
+
+(s/defn ^:internal-query-fn object-views-by-time
+  "Timeseries chart that shows the number of Question or Dashboard views for a User, broken out by `datetime-unit`."
+  [user-id :- su/IntGreaterThanZero, model :- (s/enum "card" "dashboard"), datetime-unit :- common/DateTimeUnitStr]
+  {:metadata [[:date {:display_name "Date",   :base_type (common/datetime-unit-str->base-type datetime-unit)}]
+              [:views {:display_name "Views", :base_type :type/Integer}]]
+   :results (db/query
+             {:select   [[(common/grouped-datetime datetime-unit :timestamp) :date]
+                         [:%count.* :views]]
+              :from     [:view_log]
+              :where    [:and
+                         [:= :user_id user-id]
+                         [:= :model model]]
+              :group-by [(common/grouped-datetime datetime-unit :timestamp)]
+              :order-by [[(common/grouped-datetime datetime-unit :timestamp) :asc]]})})
