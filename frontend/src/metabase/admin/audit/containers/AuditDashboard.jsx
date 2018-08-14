@@ -39,6 +39,7 @@ const AuditDashboards = ({ cards, ...props }) => (
             {
               name: "detail",
               title: `View this`,
+              default: true,
               url() {
                 return columnNameToUrl[column.name](value);
               },
