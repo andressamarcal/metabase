@@ -38,6 +38,19 @@
           ;; value of the `data/id` call here will be different from if we were to call it in `expected`.
           (update :field_id (partial = (data/id :venues :name)))))))
 
+;; Searching via the query builder needs to use a GTAP when the user has segmented permissions. This tests out a field
+;; search on a table with segmented permissions
+(expect
+  ;; Rasta Toucan is only allowed to see Venues that are in the "Mexican" category [category_id = 50]. So searching
+  ;; whould only include venues in that category
+  [["Tacos Villa Corona" "Tacos Villa Corona"]
+   ["Taqueria Los Coyotes" "Taqueria Los Coyotes"]
+   ["Taqueria San Francisco" "Taqueria San Francisco"]]
+  (mt-table-test/with-segmented-test-setup mt-table-test/restricted-column-query
+    (mt-table-test/with-user-attributes :rasta {:cat 50}
+      (let [vn-id (data/id :venues :name)]
+        ((users/user->client :rasta) :get 200 (format "field/%s/search/%s" vn-id vn-id) :value "Ta")))))
+
 ;; Now in this case recall that the `restricted-column-query` GTAP we're using does *not* include `venues.price` in
 ;; the results. (Toucan isn't allowed to know the number of dollar signs!) So make sure if we try to fetch the field
 ;; values instead of seeing `[[1] [2] [3] [4]]` we get no results
