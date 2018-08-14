@@ -1,7 +1,7 @@
-(ns metabase.audit.pages.dashboard-detail
+(ns metabase.audit.pages.question-detail
   (:require [metabase.audit.pages.common :as audit-common]
             [metabase.models
-             [dashboard :refer [Dashboard]]
+             [card :refer [Card]]
              [revision :as revision]]
             [metabase.util
              [honeysql-extensions :as hx]
@@ -10,13 +10,13 @@
             [toucan.db :as db]))
 
 (s/defn ^:internal-query-fn revision-history
-  [dashboard-id :- su/IntGreaterThanZero]
+  [card-id :- su/IntGreaterThanZero]
   {:metadata [[:timestamp   {:display_name "Edited on",   :base_type :type/DateTime}]
               [:user_id     {:display_name "User ID",     :base_type :type/Integer, :remapped_to   :user_name}]
               [:user_name   {:display_name "Edited by",   :base_type :type/Name,    :remapped_from :user_id}]
               [:change_made {:display_name "Change made", :base_type :type/Text}]
               [:revision_id {:display_name "Revision ID", :base_type :type/Integer}]]
-   :results (for [revision (revision/revisions+details Dashboard dashboard-id)]
+   :results (for [revision (revision/revisions+details Card card-id)]
               {:timestamp   (-> revision :timestamp)
                :user_id     (-> revision :user :id)
                :user_name   (-> revision :user :common_name)
@@ -26,8 +26,8 @@
 ;; WITH views AS (
 ;;  SELECT CAST(timestamp AS DATE) AS day, user_id
 ;;  FROM view_log
-;;  WHERE model = 'dashboard'
-;;    AND model_id = {{dashboard-id}}
+;;  WHERE model = 'card'
+;;    AND model_id = {{card-id}}
 ;;  GROUP BY CAST(timestamp AS DATE), user_id
 ;; )
 ;;
@@ -37,7 +37,7 @@
 ;;   ON v.user_id = u.id
 ;; ORDER BY v.day DESC, lower(u.last_name) ASC, lower(u.first_name) ASC
 (s/defn ^:internal-query-fn audit-log
-  [dashboard-id :- su/IntGreaterThanZero]
+  [card-id :- su/IntGreaterThanZero]
   {:metadata [[:when    {:display_name "When",    :base_type :type/Date}]
               [:user_id {:display_name "User ID", :base_type :type/Integer, :remapped_to   :who}]
               [:who     {:display_name "Who",     :base_type :type/Name,    :remapped_from :user_id}]]
@@ -46,8 +46,8 @@
                                               :user_id]
                                    :from     [:view_log]
                                    :where    [:and
-                                              [:= :model (hx/literal "dashboard")]
-                                              [:= :model_id dashboard-id]]
+                                              [:= :model (hx/literal "card")]
+                                              [:= :model_id card-id]]
                                    :group-by [(hx/cast :date :timestamp) :user_id]}]]
               :select    [[:v.day :when]
                           :v.user_id
