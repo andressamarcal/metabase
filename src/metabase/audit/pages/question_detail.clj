@@ -1,4 +1,5 @@
 (ns metabase.audit.pages.question-detail
+  "Detail page for a single Card (Question)."
   (:require [metabase.audit.pages.common :as audit-common]
             [metabase.audit.pages.common.card-and-dashboard-detail :as card-and-dash-detail]
             [metabase.models

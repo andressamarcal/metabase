@@ -1,4 +1,5 @@
 (ns metabase.audit.pages.dashboard-detail
+  "Detail page for a single dashboard."
   (:require [metabase.audit.pages.common :as audit-common]
             [metabase.audit.pages.common.card-and-dashboard-detail :as card-and-dash-detail]
             [metabase.models
@@ -11,6 +12,16 @@
             [toucan.db :as db]
             [metabase.util.urls :as urls]
             [honeysql.core :as hsql]))
+
+;; SELECT avg(running_time)
+;; FROM query_execution
+;; WHERE card_id IN (SELECT card_id
+;;                  FROM report_dashboardcard
+;;                  WHERE dashboard_id = 18)
+
+#_{:views (db/count 'ViewLog :model (hx/literal "dashboard"), :model_id 18)
+ :edits (db/count 'Revision :model (hx/literal "Dashboard"), :model_id 18)
+ :avg_load_time_ms nil}
 
 (s/defn ^:internal-query-fn views-by-time
   "Get views of a Dashboard broken out by a time `unit`, e.g. `day` or `day-of-week`."

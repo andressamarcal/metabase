@@ -47,6 +47,7 @@
 ;; )
 ;;
 ;; SELECT
+;;   u.id AS user_id,
 ;;   (u.first_name || ' ' || u.last_name) AS "name",
 ;;   CASE(WHEN qe_count."count" IS NOT NULL THEN qe_count."count" ELSE 0) AS "count"
 ;; FROM core_user u
@@ -57,8 +58,9 @@
 (defn ^:internal-query-fn most-active
   "Query that returns the 10 most active Users (by number of query executions) in descending order."
   []
-  {:metadata [[:name  {:display_name "Name",             :base_type :type/Name}]
-              [:count {:display_name "Query Executions", :base_type :type/Integer}]]
+  {:metadata [[:user_id {:display_name "User ID",          :base_type :type/Integer, :remapped_to   :name}]
+              [:name    {:display_name "Name",             :base_type :type/Name,    :remapped_from :user_id}]
+              [:count   {:display_name "Query Executions", :base_type :type/Integer}]]
    :results  (db/query
               {:with      [[:qe_count {:select   [[:%count.* :count]
                                                   :qe.executor_id]
@@ -67,7 +69,8 @@
                                        :group-by [:qe.executor_id]
                                        :order-by [[:%count.* :desc]]
                                        :limit    10}]]
-               :select    [[(audit-common/user-full-name :u) :name]
+               :select    [[:u.id :user_id]
+                           [(audit-common/user-full-name :u) :name]
                            [(hsql/call :case [:not= :qe_count.count nil] :qe_count.count :else 0) :count]]
                :from      [[:core_user :u]]
                :left-join [:qe_count [:= :qe_count.executor_id :u.id]]
@@ -86,6 +89,7 @@
 ;; )
 ;;
 ;; SELECT
+;;   u.id AS user_id,
 ;;   (u.first_name || ' ' || u.last_name) AS "name",
 ;;   CASE (WHEN exec_time.execution_time_ms IS NOT NULL THEN exec_time.execution_time_ms ELSE 0) AS execution_time_ms
 ;; FROM core_user u
@@ -96,7 +100,8 @@
 (defn ^:internal-query-fn query-execution-time-per-user
   "Query that returns the total time spent executing queries, broken out by User, for the top 10 Users."
   []
-  {:metadata [[:name              {:display_name "Name",                      :base_type :type/Name}]
+  {:metadata [[:user_id           {:display_name "User ID",                   :base_type :type/Integer, :remapped_to   :name}]
+              [:name              {:display_name "Name",                      :base_type :type/Name,    :remapped_from :user_id}]
               [:execution_time_ms {:display_name "Total Execution Time (ms)", :base_type :type/Decimal}]]
    :results  (db/query
               {:with      [[:exec_time {:select   [[:%sum.running_time :execution_time_ms]
@@ -106,7 +111,8 @@
                                         :group-by [:qe.executor_id]
                                         :order-by [[:%sum.running_time :desc]]
                                         :limit    10}]]
-               :select    [[(audit-common/user-full-name :u) :name]
+               :select    [[:u.id :user_id]
+                           [(audit-common/user-full-name :u) :name]
                            [(hsql/call :case [:not= :exec_time.execution_time_ms nil] :exec_time.execution_time_ms
                                        :else 0)
                             :execution_time_ms]]
