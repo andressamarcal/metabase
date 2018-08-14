@@ -197,6 +197,7 @@ export default class DashCard extends Component {
                 }
               : null
           }
+          actionsForClick={this.props.actionsForClick}
         />
       </div>
     );

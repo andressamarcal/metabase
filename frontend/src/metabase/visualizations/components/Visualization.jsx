@@ -236,13 +236,18 @@ export default class Visualization extends Component {
     if (!clicked) {
       return [];
     }
+    const { rawSeries, metadata, actionsForClick } = this.props;
     // TODO: push this logic into Question?
-    const { rawSeries, metadata } = this.props;
     const seriesIndex = clicked.seriesIndex || 0;
     const card = rawSeries[seriesIndex].card;
     const question = new Question(metadata, card);
-    const mode = question.mode();
-    return mode ? mode.actionsForClick(clicked, {}) : [];
+
+    if (actionsForClick) {
+      return actionsForClick({ question, clicked });
+    } else {
+      const mode = question.mode();
+      return mode ? mode.actionsForClick(clicked, {}) : [];
+    }
   }
 
   visualizationIsClickable = (clicked: ClickObject) => {

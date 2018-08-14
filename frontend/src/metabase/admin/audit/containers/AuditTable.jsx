@@ -2,20 +2,10 @@
 
 import React from "react";
 
-import { Dashboard } from "metabase/dashboard/containers/Dashboard";
-import DashboardData from "metabase/dashboard/hoc/DashboardData";
-
-const DashboardWithData = DashboardData(Dashboard);
+import AuditDashboard from "./AuditDashboard";
 
 const AuditTable = ({ table, ...props }) => (
-  <DashboardWithData
-    style={{ backgroundColor: "transparent" }}
-    // HACK: to get inline dashboards working quickly
-    dashboardId={{
-      ordered_cards: [{ ...table, row: 0, col: 0, sizeX: 18, sizeY: 18 }],
-    }}
-    {...props}
-  />
+  <AuditDashboard {...props} cards={[[{ x: 0, y: 0, w: 18, h: 18 }, table]]} />
 );
 
 export default AuditTable;

@@ -228,6 +228,7 @@ export default class DashboardGrid extends Component {
         }
         metadata={this.props.metadata}
         dashboard={this.props.dashboard}
+        actionsForClick={this.props.actionsForClick}
       />
     );
   }
