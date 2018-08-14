@@ -1,8 +1,9 @@
 (ns metabase.audit.pages.users
   (:require [honeysql.core :as hsql]
-            [metabase.audit.pages.common :as audit-common]
+            [metabase.audit.pages.common :as common]
             [metabase.util.honeysql-extensions :as hx]
-            [toucan.db :as db]))
+            [toucan.db :as db]
+            [schema.core :as s]))
 
 ;; WITH user_qe AS (
 ;;     SELECT executor_id, count(*) AS executions, CAST(started_at AS DATE) AS day
@@ -17,7 +18,7 @@
 ;; FROM user_qe
 ;; GROUP BY day
 ;; ORDER BY day ASC
-(defn ^:internal-query-fn active-users-and-queries-by-day
+(defn ^:internal-query-fn ^:deprecated active-users-and-queries-by-day
   "Query that returns data for a two-series timeseries: the number of DAU (a User is considered active for purposes of
   this query if they ran at least one query that day), and total number of queries ran. Broken out by day."
   []
@@ -37,6 +38,29 @@
                :group-by [:day]
                :order-by [[:day :asc]]})})
 
+(s/defn ^:internal-query-fn active-and-new-by-time
+  "Two-series timeseries that returns number of active Users (Users who ran at least one query) and number of new Users,
+  broken out by `datetime-unit`."
+  [datetime-unit :- common/DateTimeUnit]
+  {:metadata [[:date         {:display_name "Date",         :base_type (common/datetime-unit-str->base-type datetime-unit)}]
+              [:active_users {:display_name "Active Users", :base_type :type/Integer}]
+              [:new_users    {:display_name "New Users",    :base_type :type/Integer}]]
+   :results  (db/query
+              {:with      [[:active {:select   [[(common/grouped-datetime datetime-unit :started_at) :date]
+                                                [:%distinct-count.executor_id :count]]
+                                     :from     [:query_execution]
+                                     :group-by [(common/grouped-datetime datetime-unit :started_at)]}]
+                           [:new  {:select   [[(common/grouped-datetime datetime-unit :date_joined) :date]
+                                              [:%count.* :count]]
+                                   :from     [:core_user]
+                                   :group-by [(common/grouped-datetime datetime-unit :date_joined)]}]]
+               :select    [[(common/first-non-null :active.date :new.date) :date]
+                           [(common/zero-if-null :active.count) :active_users]
+                           [(common/zero-if-null :new.count) :new_users]]
+               :from      [:active]
+               :full-join [:new [:= :active.date :new.date]]
+               :order-by  [[:date :asc]]})})
+
 ;; WITH qe_count AS (
 ;;   SELECT count(*) AS "count", qe.executor_id
 ;;   FROM query_execution qe
@@ -47,6 +71,7 @@
 ;; )
 ;;
 ;; SELECT
+;;   u.id AS user_id,
 ;;   (u.first_name || ' ' || u.last_name) AS "name",
 ;;   CASE(WHEN qe_count."count" IS NOT NULL THEN qe_count."count" ELSE 0) AS "count"
 ;; FROM core_user u
@@ -57,8 +82,9 @@
 (defn ^:internal-query-fn most-active
   "Query that returns the 10 most active Users (by number of query executions) in descending order."
   []
-  {:metadata [[:name  {:display_name "Name",             :base_type :type/Name}]
-              [:count {:display_name "Query Executions", :base_type :type/Integer}]]
+  {:metadata [[:user_id {:display_name "User ID",          :base_type :type/Integer, :remapped_to   :name}]
+              [:name    {:display_name "Name",             :base_type :type/Name,    :remapped_from :user_id}]
+              [:count   {:display_name "Query Executions", :base_type :type/Integer}]]
    :results  (db/query
               {:with      [[:qe_count {:select   [[:%count.* :count]
                                                   :qe.executor_id]
@@ -67,14 +93,54 @@
                                        :group-by [:qe.executor_id]
                                        :order-by [[:%count.* :desc]]
                                        :limit    10}]]
-               :select    [[(audit-common/user-full-name :u) :name]
-                           [(hsql/call :case [:not= :qe_count.count nil] :qe_count.count :else 0) :count]]
+               :select    [[:u.id :user_id]
+                           [(common/user-full-name :u) :name]
+                           [(common/zero-if-null :qe_count.count) :count]]
                :from      [[:core_user :u]]
                :left-join [:qe_count [:= :qe_count.executor_id :u.id]]
                :order-by  [[:count :desc]
                            [:%lower.u.last_name :asc]
                            [:%lower.u.first_name :asc]]
                :limit     10})})
+
+(defn ^:internal-query-fn most-saves
+  "Query that returns the 10 Users with the most saved objects in descending order."
+  []
+  {:metadata [[:user_id   {:display_name "User ID",       :base_type :type/Integer, :remapped_to   :user_name}]
+              [:user_name {:display_name "Name",          :base_type :type/Name,    :remapped_from :user_id}]
+              [:saves     {:display_name "Saved Objects", :base_type :type/Integer}]]
+   :results  (db/query
+              {:with   [[:card_saves       {:select   [:creator_id
+                                                       [:%count.* :count]]
+                                            :from     [:report_card]
+                                            :group-by [:creator_id]}]
+                        [:dashboard_saves {:select   [:creator_id
+                                                      [:%count.* :count]]
+                                           :from     [:report_dashboard]
+                                           :group-by [:creator_id]}]
+                        [:pulse_saves     {:select   [:creator_id
+                                                      [:%count.* :count]]
+                                           :from     [:pulse]
+                                           :group-by [:creator_id]}]
+                        [:saves {:select    [[(common/first-non-null :card_saves.creator_id
+                                                                     :dashboard_saves.creator_id
+                                                                     :pulse_saves.creator_id)
+                                              :user_id]
+                                             [(hx/+ (common/zero-if-null :card_saves.count)
+                                                    (common/zero-if-null :dashboard_saves.count)
+                                                    (common/zero-if-null :pulse_saves.count))
+                                              :saves]]
+                                 :from      [:card_saves]
+                                 :full-join [:dashboard_saves [:= :card_saves.creator_id :dashboard_saves.creator_id]
+                                             :pulse_saves     [:= :card_saves.creator_id :pulse_saves.creator_id]]
+                                 :order-by  [[:saves :desc]]
+                                 :limit     10}]]
+               :select [:saves.user_id
+                        [(common/user-full-name :u) :user_name]
+                        :saves.saves]
+               :from   [:saves]
+               :join   [[:core_user :u] [:= :saves.user_id :u.id]]
+               :order-by [[:saves.saves :desc]]})})
 
 ;; WITH exec_time AS (
 ;;   SELECT sum(running_time) AS execution_time_ms, qe.executor_id
@@ -86,6 +152,7 @@
 ;; )
 ;;
 ;; SELECT
+;;   u.id AS user_id,
 ;;   (u.first_name || ' ' || u.last_name) AS "name",
 ;;   CASE (WHEN exec_time.execution_time_ms IS NOT NULL THEN exec_time.execution_time_ms ELSE 0) AS execution_time_ms
 ;; FROM core_user u
@@ -96,7 +163,8 @@
 (defn ^:internal-query-fn query-execution-time-per-user
   "Query that returns the total time spent executing queries, broken out by User, for the top 10 Users."
   []
-  {:metadata [[:name              {:display_name "Name",                      :base_type :type/Name}]
+  {:metadata [[:user_id           {:display_name "User ID",                   :base_type :type/Integer, :remapped_to   :name}]
+              [:name              {:display_name "Name",                      :base_type :type/Name,    :remapped_from :user_id}]
               [:execution_time_ms {:display_name "Total Execution Time (ms)", :base_type :type/Decimal}]]
    :results  (db/query
               {:with      [[:exec_time {:select   [[:%sum.running_time :execution_time_ms]
@@ -106,7 +174,8 @@
                                         :group-by [:qe.executor_id]
                                         :order-by [[:%sum.running_time :desc]]
                                         :limit    10}]]
-               :select    [[(audit-common/user-full-name :u) :name]
+               :select    [[:u.id :user_id]
+                           [(common/user-full-name :u) :name]
                            [(hsql/call :case [:not= :exec_time.execution_time_ms nil] :exec_time.execution_time_ms
                                        :else 0)
                             :execution_time_ms]]
@@ -223,7 +292,7 @@
                                           :from      [[:pulse :p]]
                                           :left-join [[:core_user :u] [:= :u.id :p.creator_id]]
                                           :group-by  [:u.id]}]
-                          [:users {:select [[(audit-common/user-full-name :u) :name]
+                          [:users {:select [[(common/user-full-name :u) :name]
                                             [(hsql/call :case
                                                [:= :u.is_superuser true]
                                                (hx/literal "Admin")
