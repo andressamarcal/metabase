@@ -45,9 +45,9 @@
                                    :from     [:report_dashboard]
                                    :group-by [(audit-common/grouped-datetime datetime-unit :created_at)]
                                    :order-by [[(audit-common/grouped-datetime datetime-unit :created_at) :asc]]}]]
-              :select    [[(hsql/call :case [:not= :views.date nil] :views.date :else :saves.date) :date]
-                          [(hsql/call :case [:not= :views.count nil] :views.count :else 0) :views]
-                          [(hsql/call :case [:not= :saves.count nil] :saves.count :else 0) :saves]]
+              :select    [[(audit-common/first-non-null :views.date :saves.date) :date]
+                          [(audit-common/zero-if-null :views.count) :views]
+                          [(audit-common/zero-if-null :saves.count) :saves]]
               :from      [:views]
               :full-join [:saves [:= :views.date :saves.date]]
               :order-by  [[:date :asc]]})})

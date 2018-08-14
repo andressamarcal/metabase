@@ -55,3 +55,16 @@
   (generic-sql/date (driver/engine->driver (mdb/db-type))
                     (keyword unit)
                     expr))
+
+(defn first-non-null
+  "Build a `CASE` statement that returns the first non-`NULL` of `exprs`."
+  [& exprs]
+  (apply hsql/call :case (mapcat (fn [expr]
+                                   [[:not= expr nil] expr])
+                                 exprs)))
+
+(defn zero-if-null
+  "Build a `CASE` statement that will replace results of `expr` with `0` when it's `NULL`, perfect for things like
+  counts."
+  [expr]
+  (hsql/call :case [:not= expr nil] expr :else 0))
