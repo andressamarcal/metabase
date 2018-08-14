@@ -2,8 +2,8 @@
   (:require [honeysql.core :as hsql]
             [metabase.audit.pages.common :as common]
             [metabase.util.honeysql-extensions :as hx]
-            [toucan.db :as db]
-            [schema.core :as s]))
+            [schema.core :as s]
+            [toucan.db :as db]))
 
 ;; WITH user_qe AS (
 ;;     SELECT executor_id, count(*) AS executions, CAST(started_at AS DATE) AS day
@@ -41,7 +41,7 @@
 (s/defn ^:internal-query-fn active-and-new-by-time
   "Two-series timeseries that returns number of active Users (Users who ran at least one query) and number of new Users,
   broken out by `datetime-unit`."
-  [datetime-unit :- common/DateTimeUnit]
+  [datetime-unit :- common/DateTimeUnitStr]
   {:metadata [[:date         {:display_name "Date",         :base_type (common/datetime-unit-str->base-type datetime-unit)}]
               [:active_users {:display_name "Active Users", :base_type :type/Integer}]
               [:new_users    {:display_name "New Users",    :base_type :type/Integer}]]
