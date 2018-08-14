@@ -1,7 +1,7 @@
 (ns metabase.audit.pages.databases
   (:require [honeysql.core :as hsql]
-            [metabase.models.database :refer [Database]]
-            [metabase.util.honeysql-extensions :as hx]
+            [metabase.audit.pages.common :as common]
+            [schema.core :as s]
             [toucan.db :as db]))
 
 ;; SELECT
@@ -33,30 +33,14 @@
                :group-by [:db.id]
                :order-by [[:%lower.db.name :asc]]})})
 
-;; WITH qx AS (
-;;  SELECT CAST(qe.started_at AS date) AS day, card.database_id, count(*) AS count
-;;  FROM query_execution qe
-;;  LEFT JOIN report_card card
-;;    ON qe.card_id = card.id
-;;  WHERE qe.card_id IS NOT NULL
-;;    AND card.database_id IS NOT NULL
-;;  GROUP BY CAST(qe.started_at AS date), card.database_id
-;;  ORDER BY CAST(qe.started_at AS date) ASC, card.database_id ASC
-;; )
-;;
-;; SELECT qx.day, qx.database_id, db.name AS database_name, qx.count
-;; FROM qx
-;; LEFT JOIN metabase_database db
-;;   ON qx.database_id = db.id
-;; ORDER BY qx.day ASC, qx.database_id ASC
-(defn ^:internal-query-fn query-executions-per-db-per-day
-  []
-  {:metadata [[:day           {:display_name "Date",          :base_type :type/Date}]
+(s/defn ^:internal-query-fn query-executions-by-time
+  [datetime-unit :- common/DateTimeUnitStr]
+  {:metadata [[:date          {:display_name "Date",          :base_type (common/datetime-unit-str->base-type datetime-unit)}]
               [:database_id   {:display_name "Database ID",   :base_type :type/Integer, :remapped_to   :database_name}]
               [:database_name {:display_name "Database Name", :base_type :type/Name,    :remapped_from :database_id}]
               [:count         {:display_name "Count",         :base_type :type/Integer}]]
    :results  (db/query
-              {:with      [[:qx {:select    [[(hx/cast :date :qe.started_at) :day]
+              {:with      [[:qx {:select    [[(common/grouped-datetime datetime-unit :qe.started_at) :date]
                                              :card.database_id
                                              [:%count.* :count]]
                                  :from      [[:query_execution :qe]]
@@ -64,18 +48,21 @@
                                  :where     [:and
                                              [:not= :qe.card_id nil]
                                              [:not= :card.database_id nil]]
-                                 :group-by  [(hx/cast :date :qe.started_at) :card.database_id]
-                                 :order-by  [[(hx/cast :date :qe.started_at) :asc]
+                                 :group-by  [(common/grouped-datetime datetime-unit :qe.started_at) :card.database_id]
+                                 :order-by  [[(common/grouped-datetime datetime-unit :qe.started_at) :asc]
                                              [:card.database_id :asc]]}]]
-               :select    [:qx.day
+               :select    [:qx.date
                            :qx.database_id
                            [:db.name :database_name]
                            :qx.count]
                :from      [:qx]
                :left-join [[:metabase_database :db] [:= :qx.database_id :db.id]]
-               :order-by  [[:qx.day :asc]
+               :order-by  [[:qx.date :asc]
                            [:%lower.db.name :asc]
                            [:qx.database_id :asc]]})})
+
+(defn ^:deprecated ^:internal-query-fn query-executions-per-db-per-day []
+  (query-executions-by-time "day"))
 
 ;; WITH counts AS (
 ;;     SELECT db_id AS id, count(DISTINCT "schema") AS schemas, count(*) AS tables
