@@ -1,3 +1,5 @@
+/* @flow weak */
+
 import React from "react";
 
 import { Route } from "metabase/hoc/Title";
@@ -12,8 +14,9 @@ import AuditDatabases from "metabase/admin/audit/pages/AuditDatabases";
 import AuditSchemas from "metabase/admin/audit/pages/AuditSchemas";
 import AuditTables from "metabase/admin/audit/pages/AuditTables";
 
-import AuditQueries from "metabase/admin/audit/pages/AuditQueries";
+import AuditQuestions from "metabase/admin/audit/pages/AuditQuestions";
 import AuditDashboards from "metabase/admin/audit/pages/AuditDashboards";
+import AuditDashboard from "metabase/admin/audit/pages/AuditDashboard";
 
 import AuditUsers from "metabase/admin/audit/pages/AuditUsers";
 import AuditUser from "metabase/admin/audit/pages/AuditUser";
@@ -26,12 +29,23 @@ const getRoutes = store => (
 
     <Route path="databases" component={AuditDatabases} />
     <Route path="schemas" component={AuditSchemas} />
-    <Route path="tables" component={AuditTables} />
 
-    <Route path="queries" component={AuditQueries} />
-    <Route path="dashboards" component={AuditDashboards} />
+    <Route path="tables">
+      <IndexRoute component={AuditTables} />
+      {/* <Route path=":tableId" component={AuditTable} /> */}
+    </Route>
 
-    <Route path="users">
+    <Route path="questions">
+      <IndexRoute component={AuditQuestions} />
+      {/* <Route path=":questionId" component={AuditQuestion} /> */}
+    </Route>
+
+    <Route path="dashboards">
+      <IndexRoute component={AuditDashboards} />
+      <Route path=":dashboardId" component={AuditDashboard} />
+    </Route>
+
+    <Route path="members">
       <IndexRoute component={AuditUsers} />
       <Route path=":userId" component={AuditUser} />
     </Route>

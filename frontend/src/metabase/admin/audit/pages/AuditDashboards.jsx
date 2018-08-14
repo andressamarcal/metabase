@@ -1,80 +1,43 @@
+/* @flow */
+
 import React from "react";
 
 import AuditContent from "../components/AuditContent";
 import AuditDashboard from "../containers/AuditDashboard";
+import AuditTable from "../containers/AuditTable";
 
-import { auditTable } from "../lib/util";
+import * as DashboardCards from "../lib/cards/dashboards";
+
+const AuditDashboardsOverviewTab = () => (
+  <AuditDashboard
+    cards={[
+      [{ x: 0, y: 0, w: 18, h: 9 }, DashboardCards.viewsPerDay()],
+      [{ x: 0, y: 9, w: 6, h: 9 }, DashboardCards.viewsPerDay()],
+      [{ x: 6, y: 9, w: 6, h: 9 }, DashboardCards.slowest()],
+      [{ x: 12, y: 9, w: 6, h: 9 }, DashboardCards.mostCommonQuestions()],
+    ]}
+  />
+);
+
+const AuditDashboardsAllTab = () => (
+  <AuditTable table={DashboardCards.table()} />
+);
 
 const AuditDashboards = () => (
-  <AuditContent title="Dashboards">
-    <AuditDashboard
-      dashboard={{
-        ordered_cards: [
-          {
-            col: 0,
-            row: 0,
-            sizeX: 18,
-            sizeY: 9,
-            card: {
-              name: "Dashboard views per day",
-              display: "line",
-              dataset_query: {
-                type: "internal",
-                fn: "metabase.audit.pages.dashboards/views-per-day",
-                args: [],
-              },
-            },
-          },
-          {
-            col: 0,
-            row: 9,
-            sizeX: 6,
-            sizeY: 9,
-            card: {
-              name: "Most popular dashboards",
-              display: "row",
-              dataset_query: {
-                type: "internal",
-                fn: "metabase.audit.pages.dashboards/most-popular",
-                args: [],
-              },
-            },
-          },
-          {
-            col: 6,
-            row: 9,
-            sizeX: 6,
-            sizeY: 9,
-            card: {
-              name: "Slowest dashboards",
-              display: "row",
-              dataset_query: {
-                type: "internal",
-                fn: "metabase.audit.pages.dashboards/slowest",
-                args: [],
-              },
-            },
-          },
-          {
-            col: 12,
-            row: 9,
-            sizeX: 6,
-            sizeY: 9,
-            card: {
-              name: "Questions included the most in dashboards",
-              display: "row",
-              dataset_query: {
-                type: "internal",
-                fn: "metabase.audit.pages.dashboards/most-common-questions",
-                args: [],
-              },
-            },
-          },
-          auditTable(18, "Dashboards", "metabase.audit.pages.dashboards/table"),
-        ],
-      }}
-    />
-  </AuditContent>
+  <AuditContent title="Dashboards" tabs={AuditDashboards.tabs} />
 );
+
+AuditDashboards.tabs = [
+  {
+    path: "overview",
+    title: "Overview",
+    component: AuditDashboardsOverviewTab,
+  },
+  {
+    path: "all",
+    title: "All dashboards",
+    component: AuditDashboardsAllTab,
+  },
+];
 
 export default AuditDashboards;

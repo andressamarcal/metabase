@@ -1,75 +1,57 @@
+/* @flow */
+
 import React from "react";
 
 import AuditContent from "../components/AuditContent";
 import AuditDashboard from "../containers/AuditDashboard";
+import AuditTable from "../containers/AuditTable";
 
-import { UserDetailCards } from "../lib/cards";
+import EntityName from "metabase/entities/containers/EntityName";
 
-const UserActivityTab = ({ userId }) => (
+import * as UserDetailCards from "../lib/cards/user_detail";
+
+const AuditUserActivityTab = ({ userId }) => (
   <AuditDashboard
-    dashboard={{
-      ordered_cards: [
-        UserDetailCards.questions({ col: 0, row: 0, sizeX: 4, sizeY: 4 }, [
-          userId,
-        ]),
-        UserDetailCards.dashboards({ col: 4, row: 0, sizeX: 4, sizeY: 4 }, [
-          userId,
-        ]),
-        UserDetailCards.pulses({ col: 8, row: 0, sizeX: 4, sizeY: 4 }, [
-          userId,
-        ]),
-        UserDetailCards.collections({ col: 12, row: 0, sizeX: 4, sizeY: 4 }, [
-          userId,
-        ]),
-        UserDetailCards.mostViewedDashboards(
-          {
-            col: 0,
-            row: 4,
-            sizeX: 8,
-            sizeY: 8,
-          },
-          [userId],
-        ),
-        UserDetailCards.mostViewedQuestions(
-          {
-            col: 8,
-            row: 4,
-            sizeX: 8,
-            sizeY: 8,
-          },
-          [userId],
-        ),
-        UserDetailCards.queryViews(
-          {
-            row: 12,
-            sizeX: 16,
-          },
-          [userId],
-        ),
+    cards={[
+      // [{ x: 0, y: 0, w: 4, h: 4 }, UserDetailCards.questions(userId)],
+      // [{ x: 4, y: 0, w: 4, h: 4 }, UserDetailCards.dashboards(userId)],
+      // [{ x: 8, y: 0, w: 4, h: 4 }, UserDetailCards.pulses(userId)],
+      // [{ x: 12, y: 0, w: 4, h: 4 }, UserDetailCards.collections(userId)],
+      [
+        { x: 0, y: 4, w: 8, h: 8 },
+        UserDetailCards.mostViewedDashboards(userId),
       ],
-    }}
+      [{ x: 8, y: 4, w: 8, h: 8 }, UserDetailCards.mostViewedQuestions(userId)],
+    ]}
   />
 );
 
-const AuditUser = ({ params }) => {
+const AuditUserAuditLogTab = ({ userId }) => (
+  <AuditTable table={UserDetailCards.table(userId)} />
+);
+
+type Props = {
+  params: { [key: string]: string },
+};
+
+const AuditUser = ({ params }: Props) => {
   const userId = parseInt(params.userId);
   return (
     <AuditContent
-      title="User"
-      tabs={[
-        "Activity",
-        "Account details",
-        "Data permissions",
-        "Collection permissions",
-        "Made by them",
-        "Audit log",
-      ]}
-    >
-      {({ currentTab }) =>
-        currentTab === "Activity" ? <UserActivityTab userId={userId} /> : null
-      }
-    </AuditContent>
+      title={<EntityName entityType="users" entityId={userId} />}
+      tabs={AuditUser.tabs}
+      userId={userId}
+    />
   );
 };
+
+AuditUser.tabs = [
+  { path: "activity", title: "Activity", component: AuditUserActivityTab },
+  { path: "details", title: "Account details" },
+  { path: "data_permissions", title: "Data permissions" },
+  { path: "collection_permissions", title: "Collection permissions" },
+  { path: "made_by", title: "Made by them" },
+  { path: "log", title: "Audit log", component: AuditUserAuditLogTab },
+];
 
 export default AuditUser;

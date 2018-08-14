@@ -130,4 +130,6 @@ declare module "underscore" {
 
   declare function isMatch(object: Object, properties: Object): boolean;
   declare function identity<T>(o: T): T;
+
+  declare function uniqueId(prefix?: string): string;
 }

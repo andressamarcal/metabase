@@ -1,3 +1,5 @@
+/* @flow weak */
+
 import React from "react";
 
 import { IndexLink } from "react-router";
@@ -40,7 +42,7 @@ const AuditSidebarItem = ({ title, path }) => (
 );
 
 const AuditSidebar = ({ children }) => (
-  <div style={{ width: 250, minHeight: "100vh" }} className="bg-grey-0 p4">
+  <div style={{ width: 250, minHeight: "100vh" }} className="bg-light p4">
     {children}
   </div>
 );
@@ -56,14 +58,14 @@ const AuditAppSidebar = () => (
       <AuditSidebarItem title="Tables" path="/admin/audit/tables" />
     </AuditSidebarSection>
     <AuditSidebarSection title="Items">
-      <AuditSidebarItem title="Queries" path="/admin/audit/queries" />
+      <AuditSidebarItem title="Questions" path="/admin/audit/questions" />
       <AuditSidebarItem title="Dashboards" path="/admin/audit/dashboards" />
     </AuditSidebarSection>
     <AuditSidebarSection title="People">
-      <AuditSidebarItem title="Users" path="/admin/audit/users" />
+      <AuditSidebarItem title="Members" path="/admin/audit/members" />
       <AuditSidebarItem
-        title="User 1 [demo link]"
-        path="/admin/audit/users/1"
+        title="Member 1 [demo link]"
+        path="/admin/audit/members/1"
       />
     </AuditSidebarSection>
   </AuditSidebar>

@@ -1,38 +1,48 @@
+/* @flow weak */
+
 import React from "react";
 
 import Radio from "metabase/components/Radio";
 
+import _ from "underscore";
+
 export default class AuditContent extends React.Component {
   state = {
-    currentTab: null,
+    tabPath: null,
   };
   render() {
-    const { title, tabs, children } = this.props;
-    const currentTab = this.state.currentTab || (tabs && tabs[0]);
+    const { title, subtitle, tabs, children } = this.props;
+    const { tabPath } = this.state;
+    const tab = _.findWhere(tabs, { path: tabPath }) || (tabs && tabs[0]);
+    const TabComponent = tab && (tab.component || AuditEmptyTab);
     return (
-      <div className="p4 flex flex-column flex-full">
-        <h1>{title}</h1>
+      <div className="py4 flex flex-column flex-full">
+        <div className="px4">
+          <h1>{title}</h1>
+          {subtitle && <div className="my1">{subtitle}</div>}
+        </div>
         {tabs && (
-          <div className="border-bottom">
+          <div className="border-bottom px4">
             <Radio
               underlined
               options={tabs}
-              value={currentTab}
-              onChange={currentTab => this.setState({ currentTab })}
-              optionValueFn={o => o}
-              optionNameFn={o => o}
-              optionKeyFn={o => o}
+              value={tab && tab.path}
+              onChange={tabPath => this.setState({ tabPath })}
+              optionValueFn={o => o.path}
+              optionNameFn={o => o.title}
+              optionKeyFn={o => o.path}
             />
           </div>
         )}
-        {typeof children === "function"
-          ? children({ currentTab }) || <EmptyTab />
-          : children}
+        <div className="px4">
+          {children}
+          {TabComponent && <TabComponent {...this.props} />}
+        </div>
       </div>
     );
   }
 }
 
-const EmptyTab = () => (
+const AuditEmptyTab = () => (
   <div className="p4 flex layout-centered">Not yet implemented</div>
 );

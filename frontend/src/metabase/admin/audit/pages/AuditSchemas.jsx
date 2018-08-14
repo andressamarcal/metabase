@@ -1,50 +1,31 @@
+/* @flow */
+
 import React from "react";
 
 import AuditContent from "../components/AuditContent";
 import AuditDashboard from "../containers/AuditDashboard";
+import AuditTable from "../containers/AuditTable";
 
-import { auditTable } from "../lib/util";
+import * as SchemasCards from "../lib/cards/schemas";
+
+const AuditSchemasOverviewTab = () => (
+  <AuditDashboard
+    cards={[
+      [{ x: 0, y: 0, w: 9, h: 9 }, SchemasCards.mostQueried()],
+      [{ x: 9, y: 0, w: 9, h: 9 }, SchemasCards.slowestSchemas()],
+    ]}
+  />
+);
+
+const AuditSchemasAllTab = () => <AuditTable table={SchemasCards.table()} />;
 
 const AuditSchemas = () => (
-  <AuditContent title="Schemas">
-    <AuditDashboard
-      dashboard={{
-        ordered_cards: [
-          {
-            col: 0,
-            row: 0,
-            sizeX: 9,
-            sizeY: 9,
-            card: {
-              name: "Most-queried schemas",
-              display: "row",
-              dataset_query: {
-                type: "internal",
-                fn: "metabase.audit.pages.schemas/most-queried",
-                args: [],
-              },
-            },
-          },
-          {
-            col: 9,
-            row: 0,
-            sizeX: 9,
-            sizeY: 9,
-            card: {
-              name: "Slowest schemas",
-              display: "row",
-              dataset_query: {
-                type: "internal",
-                fn: "metabase.audit.pages.schemas/slowest-schemas",
-                args: [],
-              },
-            },
-          },
-          auditTable(9, "Schemas", "metabase.audit.pages.schemas/table"),
-        ],
-      }}
-    />
-  </AuditContent>
+  <AuditContent title="Schemas" tabs={AuditSchemas.tabs} />
 );
+
+AuditSchemas.tabs = [
+  { path: "overview", title: "Overview", component: AuditSchemasOverviewTab },
+  { path: "all", title: "All databases", component: AuditSchemasAllTab },
+];
 
 export default AuditSchemas;
