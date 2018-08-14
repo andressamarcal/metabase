@@ -125,21 +125,14 @@
                         :dashboards_saved
                         :pulses_saved]})})
 
-;; SELECT d.name, count(*) AS "count"
-;; FROM view_log vl
-;; LEFT JOIN report_dashboard d
-;;   ON vl.model_id = d.id
-;; WHERE vl.user_id = {{user_id}}
-;;   AND vl.model = 'dashboard'
-;; GROUP BY d.id
-;; ORDER BY count(*) DESC
-;; LIMIT 10
 (s/defn ^:internal-query-fn most-viewed-dashboards
   "Return the 10 most-viewed Dashboards for a given User, in descending order."
   [user-id :- su/IntGreaterThanZero]
-  {:metadata [[:name  {:display_name "Name",  :base_type :type/Name}]
-              [:count {:display_name "Views", :base_type :type/Integer}]]
-   :results  (db/query {:select    [:d.name
+  {:metadata [[:dashboard_id   {:display_name "Dashboard ID", :base_type :type/Integer, :remapped_to   :dashboard_name}]
+              [:dashboard_name {:display_name "Dashboard",    :base_type :type/Name,    :remapped_from :dashboard_id}]
+              [:count          {:display_name "Views",        :base_type :type/Integer}]]
+   :results  (db/query {:select    [[:d.id :dashboard_id]
+                                    [:d.name :dashboard_name]
                                     [:%count.* :count]]
                         :from      [[:view_log :vl]]
                         :left-join [[:report_dashboard :d] [:= :vl.model_id :d.id]]
@@ -150,28 +143,21 @@
                         :order-by  [[:%count.* :desc]]
                         :limit     10})})
 
-;; SELECT c.name, count(*) AS "count"
-;; FROM view_log vl
-;; LEFT JOIN report_card c
-;;   ON vl.model_id = c.id
-;; WHERE vl.user_id = {{user_id}}
-;;   AND vl.model = 'card'
-;; GROUP BY c.id
-;; ORDER BY "count" DESC
-;; LIMIT 10
 (s/defn ^:internal-query-fn most-viewed-questions
   "Return the 10 most-viewed Questions for a given User, in descending order."
   [user-id :- su/IntGreaterThanZero]
-  {:metadata [[:name  {:display_name "Name",  :base_type :type/Name}]
-              [:count {:display_name "Views", :base_type :type/Integer}]]
-   :results  (db/query {:select    [:c.name
+  {:metadata [[:card_id   {:display_name "Card ID", :base_type :type/Integer, :remapped_to   :card_name}]
+              [:card_name {:display_name "Card",    :base_type :type/Name,    :remapped_from :card_id}]
+              [:count     {:display_name "Views",   :base_type :type/Integer}]]
+   :results  (db/query {:select    [[:d.id :card_id]
+                                    [:d.name :card_name]
                                     [:%count.* :count]]
                         :from      [[:view_log :vl]]
-                        :left-join [[:report_card :c] [:= :vl.model_id :c.id]]
+                        :left-join [[:report_card :d] [:= :vl.model_id :d.id]]
                         :where     [:and
                                     [:= :vl.user_id user-id]
                                     [:= :vl.model (hx/literal "card")]]
-                        :group-by  [:c.id]
+                        :group-by  [:d.id]
                         :order-by  [[:%count.* :desc]]
                         :limit     10})})
 
