@@ -1,9 +1,12 @@
 (ns metabase.audit.pages.dashboards
+  "Dashboards overview page."
   (:require [honeysql.core :as hsql]
             [metabase.audit.pages.common :as audit-common]
+            [metabase.util :as u]
             [metabase.util
              [honeysql-extensions :as hx]
              [urls :as urls]]
+            [schema.core :as s]
             [toucan.db :as db]))
 
 ;; SELECT CAST("timestamp" AS date) AS day, count(*) AS views
@@ -11,9 +14,13 @@
 ;; WHERE model = 'dashboard'
 ;; GROUP BY CAST("timestamp" AS date)
 ;; ORDER BY CAST("timestamp" AS date) ASC
-(defn ^:internal-query-fn views-per-day
-  "Query that returns data for a timeseries of the total number of Dashboard views, broken out by day."
+(defn ^:deprecated ^:internal-query-fn views-per-day
+  "DEPRECATED: use `views-and-saves-by-time ` instead."
   []
+  (println (u/format-color 'red
+               (str "WARNING: metabase.audit.pages.dashboards/views-per-day is deprecated. "
+                    "Use views-and-saves-by-time instead. "
+                    "This will be removed in the near future.")))
   {:metadata [[:day   {:display_name "Date",  :base_type :type/Date}]
               [:views {:display_name "Views", :base_type :type/Integer}]]
    :results  (db/query
@@ -23,6 +30,31 @@
                :where    [:= :model (hx/literal "dashboard")]
                :group-by [(hx/cast :date :timestamp)]
                :order-by [(hx/cast :date :timestamp)]})})
+
+(s/defn ^:internal-query-fn views-and-saves-by-time
+  "Two-series timeseries that includes total number of Dashboard views and saves broken out by a `datetime-unit`."
+  [datetime-unit :- audit-common/DateTimeUnitStr]
+  {:metadata [[:date  {:display_name "Date",  :base_type (audit-common/datetime-unit-str->base-type datetime-unit)}]
+              [:views {:display_name "Views", :base_type :type/Integer}]
+              [:saves {:display_name "Saves", :base_type :type/Integer}]]
+   :results (db/query
+             {:with      [[:views {:select   [[(audit-common/grouped-datetime datetime-unit :timestamp) :date]
+                                              [:%count.* :count]]
+                                   :from     [:view_log]
+                                   :where    [:= :model (hx/literal "dashboard")]
+                                   :group-by [(audit-common/grouped-datetime datetime-unit :timestamp)]
+                                   :order-by [[(audit-common/grouped-datetime datetime-unit :timestamp) :asc]]}]
+                          [:saves {:select   [[(audit-common/grouped-datetime datetime-unit :created_at) :date]
+                                              [:%count.* :count]]
+                                   :from     [:report_dashboard]
+                                   :group-by [(audit-common/grouped-datetime datetime-unit :created_at)]
+                                   :order-by [[(audit-common/grouped-datetime datetime-unit :created_at) :asc]]}]]
+              :select    [:views.date
+                          [:views.count :views]
+                          [:saves.count :saves]]
+              :from      [:views]
+              :full-join [:saves [:= :views.date :saves.date]]
+              :order-by  [[:views.date :asc]]})})
 
 ;; SELECT d.id AS dashboard_id, d.name AS dashboard_name, count(*) AS views
 ;; FROM view_log vl
