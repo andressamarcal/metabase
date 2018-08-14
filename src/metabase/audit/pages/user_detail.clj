@@ -1,6 +1,7 @@
 (ns metabase.audit.pages.user-detail
   (:require [honeysql.core :as hsql]
             [metabase.audit.pages.common :as common]
+            [metabase.audit.pages.common.dashboards :as dashboards]
             [metabase.util
              [honeysql-extensions :as hx]
              [schema :as su]]
@@ -228,3 +229,7 @@
                          [:= :model model]]
               :group-by [(common/grouped-datetime datetime-unit :timestamp)]
               :order-by [[(common/grouped-datetime datetime-unit :timestamp) :asc]]})})
+
+(s/defn ^:internal-query-fn created-dashboards
+  [user-id :- su/IntGreaterThanZero]
+  (dashboards/table [:= :u.id user-id]))
