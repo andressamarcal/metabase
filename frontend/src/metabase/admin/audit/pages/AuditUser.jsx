@@ -22,12 +22,13 @@ const AuditUserActivityTab = ({ userId }) => (
         UserDetailCards.mostViewedDashboards(userId),
       ],
       [{ x: 8, y: 4, w: 8, h: 8 }, UserDetailCards.mostViewedQuestions(userId)],
+      [{ x: 0, y: 12, w: 16, h: 8 }, UserDetailCards.objectViewsByTime(userId)],
     ]}
   />
 );
 
 const AuditUserAuditLogTab = ({ userId }) => (
-  <AuditTable table={UserDetailCards.table(userId)} />
+  <AuditTable table={UserDetailCards.queryViews(userId)} />
 );
 
 type Props = {

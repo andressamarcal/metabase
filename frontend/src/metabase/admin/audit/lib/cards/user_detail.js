@@ -36,6 +36,29 @@ export const mostViewedQuestions = (userId: number) => ({
   },
 });
 
+export const objectViewsByTime = (userId: number) => ({
+  card: {
+    name: "Query views",
+    display: "line",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase.audit.pages.user-detail/object-views-by-time",
+      args: [userId, "card", "day"],
+    },
+  },
+  series: [
+    {
+      name: "Dashboard views",
+      display: "line",
+      dataset_query: {
+        type: "internal",
+        fn: "metabase.audit.pages.user-detail/object-views-by-time",
+        args: [userId, "dashboard", "day"],
+      },
+    },
+  ],
+});
+
 export const queryViews = (userId: number) => ({
   card: {
     name: "Query views",

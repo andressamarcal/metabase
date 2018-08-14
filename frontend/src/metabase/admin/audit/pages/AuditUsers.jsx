@@ -11,9 +11,9 @@ import * as UsersCards from "../lib/cards/users";
 const AuditUsersOverviewTab = () => (
   <AuditDashboard
     cards={[
-      [{ x: 0, y: 0, w: 18, h: 9 }, UsersCards.activeUsersAndQueriesByDay()],
+      [{ x: 0, y: 0, w: 18, h: 9 }, UsersCards.activeAndNewByTime()],
       [{ x: 0, y: 9, w: 9, h: 9 }, UsersCards.mostActive()],
-      [{ x: 9, y: 9, w: 9, h: 9 }, UsersCards.queryExecutionTimePerUser()],
+      [{ x: 9, y: 9, w: 9, h: 9 }, UsersCards.mostSaves()],
     ]}
   />
 );

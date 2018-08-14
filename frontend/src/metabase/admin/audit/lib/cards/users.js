@@ -1,5 +1,26 @@
 /* @flow */
 
+export const activeAndNewByTime = () => ({
+  card: {
+    name: "Active members and new members per day",
+    display: "line",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase.audit.pages.users/active-and-new-by-time",
+      args: ["day"],
+    },
+    visualization_settings: {
+      "graph.metrics": ["active_users", "new_users"],
+      "graph.dimensions": ["date"],
+      "graph.x_axis.title_text": "Time",
+      "graph.x_axis.axis_enabled": true,
+      "graph.y_axis.title_text": "Count",
+      "graph.y_axis.axis_enabled": true,
+      "graph.y_axis.auto_split": false,
+    },
+  },
+});
+
 export const activeUsersAndQueriesByDay = () => ({
   card: {
     name: "Active members and queries per day",
@@ -28,6 +49,18 @@ export const mostActive = () => ({
     dataset_query: {
       type: "internal",
       fn: "metabase.audit.pages.users/most-active",
+      args: [],
+    },
+  },
+});
+
+export const mostSaves = () => ({
+  card: {
+    name: "Members who are created the most things",
+    display: "row",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase.audit.pages.users/most-saves",
       args: [],
     },
   },
