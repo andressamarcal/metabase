@@ -48,7 +48,7 @@
                :limit     10})})
 
 ;; WITH card_running_time AS (
-;;     SELECT qe.card_id, avg(qe.unning_time) AS avg_running_time
+;;     SELECT qe.card_id, avg(qe.running_time) AS avg_running_time
 ;;     FROM query_execution qe
 ;;     WHERE qe.card_id IS NOT NULL
 ;;     GROUP BY qe.card_id
