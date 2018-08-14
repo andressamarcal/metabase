@@ -1,12 +1,9 @@
 (ns metabase.audit.pages.queries
+  ;; TODO - rename to `questions`
   (:require [metabase.util.honeysql-extensions :as hx]
             [toucan.db :as db]))
 
-;; SELECT CAST(started_at AS date) AS day, count(*) AS views, avg(running_time) AS avg_running_time
-;; FROM query_execution
-;; GROUP BY CAST(started_at AS date)
-;; ORDER BY CAST(started_at AS date) ASC
-(defn ^:internal-query-fn views-and-avg-execution-time-by-day
+(defn ^:internal-query-fn ^:deprecated  views-and-avg-execution-time-by-day
   "Query that returns data for a two-series timeseries chart with number of queries ran and average query running time
   broken out by day."
   []
@@ -21,13 +18,6 @@
                :group-by [(hx/cast :date :started_at)]
                :order-by [[(hx/cast :date :started_at) :asc]]})})
 
-;; SELECT c.id AS card_id, c.name AS card_name, count(*) AS executions
-;; FROM query_execution qe
-;; JOIN report_card c
-;;   ON qe.card_id = c.id
-;; GROUP BY c.id
-;; ORDER BY executions DESC
-;; LIMIT 10
 (defn ^:internal-query-fn most-popular
   "Query that returns the 10 most-popular Cards based on number of query executions, in descending order."
   []
@@ -44,14 +34,7 @@
                :order-by [[:executions :desc]]
                :limit    10})})
 
-;; SELECT c.id AS card_id, c.name AS card_name, avg(running_time) AS avg_running_time
-;; FROM query_execution qe
-;; JOIN report_card c
-;;   ON qe.card_id = c.id
-;; GROUP BY c.id
-;; ORDER BY avg_running_time DESC
-;; LIMIT 10
-(defn ^:internal-query-fn slowest
+(defn ^:internal-query-fn ^:deprecated slowest
   "Query that returns the 10 slowest-running Cards based on average query execution time, in descending order."
   []
   {:metadata [[:card_id          {:display_name "Card ID",                :base_type :type/Integer, :remapped_to   :card_name}]
