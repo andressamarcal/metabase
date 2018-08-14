@@ -7,23 +7,19 @@ import DashboardData from "metabase/dashboard/hoc/DashboardData";
 
 const DashboardWithData = DashboardData(Dashboard);
 
-const AuditDashboards = ({ cards, dashboard, ...props }) => (
+const AuditDashboards = ({ cards, ...props }) => (
   <DashboardWithData
     style={{ backgroundColor: "transparent" }}
     // HACK: to get inline dashboards working quickly
-    dashboardId={
-      dashboard
-        ? dashboard
-        : {
-            ordered_cards: cards.map(([{ x, y, w, h }, dc]) => ({
-              col: x,
-              row: y,
-              sizeX: w,
-              sizeY: h,
-              ...dc,
-            })),
-          }
-    }
+    dashboardId={{
+      ordered_cards: cards.map(([{ x, y, w, h }, dc]) => ({
+        col: x,
+        row: y,
+        sizeX: w,
+        sizeY: h,
+        ...dc,
+      })),
+    }}
     {...props}
   />
 );
