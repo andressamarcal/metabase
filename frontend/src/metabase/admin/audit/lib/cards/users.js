@@ -108,6 +108,16 @@ export const auditLog = () => ({
       fn: "metabase.audit.pages.users/query-views",
       args: [],
     },
+    visualization_settings: {
+      "table.columns": [
+        { name: "viewed_by_id", enabled: true },
+        { name: "type", enabled: true },
+        { name: "database_id", enabled: true},
+        { name: "table_id", enabled: true},
+        { name: "collection_id", enabled: true},
+        { name: "viewed_on", enabled: true},
+      ],
+    },
   },
   series: [
     {
