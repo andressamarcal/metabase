@@ -131,6 +131,34 @@
               qp/process-query
               qpt/rows)))))))
 
+;; When processing a query that requires a user attribute and that user attribute isn't there, throw an exception
+;; letting the user know it's missing
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+  "Query requires user attribute `cat`"
+  (call-with-segmented-perms
+   (fn [db-id]
+     (tt/with-temp* [Card [{card-id :id :as card} {:name          "magic"
+                                                   :dataset_query {:database db-id
+                                                                   :type     :query
+                                                                   :query    {:source_table (data/id :venues)}}}]
+                     PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
+                     PermissionsGroupMembership [_ {:group_id group-id
+                                                    :user_id  (users/user->id :rasta)}]
+                     GroupTableAccessPolicy [gtap {:group_id group-id
+                                                   :table_id (data/id :venues)
+                                                   :card_id card-id
+                                                   :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]}}]]
+       (add-segmented-perms db-id)
+       (users/do-with-test-user
+        :rasta
+        (fn []
+          (-> (ql/query (ql/source-table (data/id :venues))
+                        (ql/aggregation (ql/count)))
+              data/wrap-inner-query
+              (with-user-attributes {"something_random" 50})
+              qp/process-query
+              :error)))))))
+
 ;; Another basic test, same as above, but with a numeric string that needs to be coerced
 (datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
   [[10]]
