@@ -10,7 +10,7 @@ const columnNameToUrl = {
 export const auditActionsForClick = ({ question, clicked }) => {
   const metricAndDimensions = [clicked].concat(clicked.dimensions || []);
   for (const { column, value } of metricAndDimensions) {
-    if (column && columnNameToUrl[column.name] != null) {
+    if (column && columnNameToUrl[column.name] != null && value != null) {
       return [
         {
           name: "detail",

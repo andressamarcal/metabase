@@ -87,6 +87,9 @@ export const table = () => ({
       fn: "metabase.audit.pages.users/table",
       args: [],
     },
+    visualization_settings: {
+      "table.columns": [{ name: "user_id", enabled: true }],
+    },
   },
 });
 
