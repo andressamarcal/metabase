@@ -13,7 +13,9 @@ export default class AuditContent extends React.Component {
   render() {
     const { title, subtitle, tabs, children } = this.props;
     const { tabPath } = this.state;
-    const tab = _.findWhere(tabs, { path: tabPath }) || (tabs && tabs[0]);
+    const tab =
+      _.findWhere(tabs, { path: tabPath }) ||
+      (tabs && (_.findWhere(tabs, { default: true }) || tabs[0]));
     const TabComponent = tab && (tab.component || AuditEmptyTab);
     return (
       <div className="py4 flex flex-column flex-full">
@@ -25,7 +27,7 @@ export default class AuditContent extends React.Component {
           <div className="border-bottom px4">
             <Radio
               underlined
-              options={tabs}
+              options={tabs.filter(tab => tab.component)} // hide tabs that aren't implemented
               value={tab && tab.path}
               onChange={tabPath => this.setState({ tabPath })}
               optionValueFn={o => o.path}

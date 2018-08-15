@@ -52,8 +52,11 @@ const AuditSidebar = ({ children }) => (
 
 const AuditAppSidebar = () => (
   <AuditSidebar>
-    <AuditSidebarSection>
+    {/* <AuditSidebarSection>
       <AuditSidebarItem title="Overview" path="/admin/audit/overview" />
+    </AuditSidebarSection> */}
+    <AuditSidebarSection title="People">
+      <AuditSidebarItem title="Team members" path="/admin/audit/members" />
     </AuditSidebarSection>
     <AuditSidebarSection title="Data">
       <AuditSidebarItem title="Databases" path="/admin/audit/databases" />
@@ -63,9 +66,6 @@ const AuditAppSidebar = () => (
     <AuditSidebarSection title="Items">
       <AuditSidebarItem title="Questions" path="/admin/audit/questions" />
       <AuditSidebarItem title="Dashboards" path="/admin/audit/dashboards" />
-    </AuditSidebarSection>
-    <AuditSidebarSection title="People">
-      <AuditSidebarItem title="Team members" path="/admin/audit/members" />
     </AuditSidebarSection>
   </AuditSidebar>
 );

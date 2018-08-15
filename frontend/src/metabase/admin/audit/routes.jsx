@@ -24,7 +24,8 @@ import AuditUser from "metabase/admin/audit/pages/AuditUser";
 
 const getRoutes = store => (
   <Route path="audit" title={t`Audit`} component={AuditApp}>
-    <IndexRedirect to="overview" />
+    {/* <IndexRedirect to="overview" /> */}
+    <IndexRedirect to="members" />
 
     <Route path="overview" component={AuditOverview} />
 

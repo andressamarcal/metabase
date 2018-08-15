@@ -29,7 +29,12 @@ const AuditUsers = props => (
 
 AuditUsers.tabs = [
   { path: "overview", title: "Overview", component: AuditUsersOverviewTab },
-  { path: "all", title: "All members", component: AuditUsersAllTab },
+  {
+    path: "all",
+    title: "All members",
+    component: AuditUsersAllTab,
+    default: true,
+  },
   { path: "log", title: "Audit log", component: AuditUsersAuditLogTab },
 ];
 
