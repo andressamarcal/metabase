@@ -1,9 +1,13 @@
 (ns metabase.audit.pages.user-detail
   (:require [honeysql.core :as hsql]
             [metabase.audit.pages.common :as common]
+            [metabase.audit.pages.common
+             [cards :as cards]
+             [dashboards :as dashboards]]
             [metabase.util
              [honeysql-extensions :as hx]
-             [schema :as su]]
+             [schema :as su]
+             [urls :as urls]]
             [schema.core :as s]
             [toucan.db :as db]))
 
@@ -65,15 +69,15 @@
   to a single result.
   (TODO - in the designs, this is pivoted; should we do that here in Clojure-land?)"
   [user-id :- su/IntGreaterThanZero]
-  {:metadata [[:name             {:display_name "Name", :base_type :type/Name}]
-              [:role             {:display_name "Role", :base_type :type/Text}]
-              [:groups           {:display_name "Groups", :base_type :type/Text}]
-              [:date_joined      {:display_name "Date Joined", :base_type :type/DateTime}]
-              [:last_active      {:display_name "Last Active", :base_type :type/DateTime}]
-              [:signup_method    {:display_name "Signup Method", :base_type :type/Text}]
-              [:questions_saved  {:display_name "Questions Saved", :base_type :type/Integer}]
+  {:metadata [[:name             {:display_name "Name",             :base_type :type/Name}]
+              [:role             {:display_name "Role",             :base_type :type/Text}]
+              [:groups           {:display_name "Groups",           :base_type :type/Text}]
+              [:date_joined      {:display_name "Date Joined",      :base_type :type/DateTime}]
+              [:last_active      {:display_name "Last Active",      :base_type :type/DateTime}]
+              [:signup_method    {:display_name "Signup Method",    :base_type :type/Text}]
+              [:questions_saved  {:display_name "Questions Saved",  :base_type :type/Integer}]
               [:dashboards_saved {:display_name "Dashboards Saved", :base_type :type/Integer}]
-              [:pulses_saved     {:display_name "Pulses Saved", :base_type :type/Integer}]]
+              [:pulses_saved     {:display_name "Pulses Saved",     :base_type :type/Integer}]]
    :results  (db/query
               {:with   [[:last_query {:select [[:%max.started_at :started_at]]
                                       :from   [:query_execution]
@@ -163,33 +167,56 @@
 
 (s/defn ^:internal-query-fn query-views
   [user-id :- su/IntGreaterThanZero]
-  {:metadata [[:viewed_on  {:display_name "Viewed On",  :base_type :type/DateTime}]
-              [:type       {:display_name "Type",       :base_type :type/Text}]
-              [:collection {:display_name "Collection", :base_type :type/Text}]
-              [:saved_by   {:display_name "Saved By",   :base_type :type/Text}]
-              [:source_db  {:display_name "Source DB",  :base_type :type/Text}]
-              [:table      {:display_name "Table",      :base_type :type/Text}]]
-   :results  (db/query
-              {:select    [[:qe.started_at :viewed_on]
-                           [(hsql/call :case
-                              [:= :card.query_type (hx/literal "query")]  (hx/literal "GUI")
-                              [:= :card.query_type (hx/literal "native")] (hx/literal "Native")
-                              :else                                       :card.query_type)
-                            :type]
-                           [:collection.name :collection]
-                           [(common/user-full-name :u) :saved_by]
-                           [:db.name :source_db]
-                           [:t.display_name :table]]
-               :from      [[:query_execution :qe]]
-               :left-join [[:report_card :card]     [:= :qe.card_id :card.id]
-                           :collection              [:= :card.collection_id :collection.id]
-                           [:core_user :u]          [:= :card.creator_id :u.id]
-                           [:metabase_table :t]     [:= :card.table_id :t.id]
-                           [:metabase_database :db] [:= :t.db_id :db.id]]
-               :where     [:and
-                           [:= :qe.executor_id user-id]
-                           [:not= :qe.card_id nil]]
-               :order-by  [[:qe.started_at :desc]]})})
+  {:metadata [[:viewed_on     {:display_name "Viewed On",      :base_type :type/DateTime}]
+              [:type          {:display_name "Type",           :base_type :type/Text}]
+              [:collection_id {:display_name "Collection ID",  :base_type :type/Integer, :remapped_to   :collection}]
+              [:collection    {:display_name "Collection",     :base_type :type/Text,    :remapped_from :collection_id}]
+              [:saved_by_id   {:display_name "Saving User ID", :base_type :type/Integer, :remapped_to   :saved_by}]
+              [:saved_by      {:display_name "Saved By",       :base_type :type/Text,    :remapped_from :saved_by_id}]
+              [:database_id   {:display_name "Database ID",    :base_type :type/Integer, :remapped_to   :source_db}]
+              [:source_db     {:display_name "Source DB",      :base_type :type/Text,    :remapped_from :database_id}]
+              [:table_id      {:display_name "Table ID"        :base_type :type/Integer, :remapped_to   :table}]
+              [:table         {:display_name "Table",          :base_type :type/Text,    :remapped_from :table_id}]]
+   :results (db/query
+             {:select    [[:qe.started_at :viewed_on]
+                          [(hsql/call :case [:= :qe.native true] (hx/literal "Native") :else (hx/literal "GUI")) :type]
+                          [:collection.id :collection_id]
+                          [:collection.name :collection]
+                          [:u.id :saved_by_id]
+                          [(common/user-full-name :u) :saved_by]
+                          [:db.id :database_id]
+                          [:db.name :source_db]
+                          [:t.id :table_id]
+                          [:t.display_name :table]]
+              :from      [[:query_execution :qe]]
+              :join      [[:metabase_database :db] [:= :qe.database_id :db.id]]
+              :left-join [[:report_card :card]     [:= :qe.card_id :card.id]
+                          :collection              [:= :card.collection_id :collection.id]
+                          [:core_user :u]          [:= :card.creator_id :u.id]
+                          [:metabase_table :t]     [:= :card.table_id :t.id]]
+              :where     [:= :qe.executor_id user-id]
+              :order-by  [[:qe.started_at :desc]]})})
+
+(s/defn ^:internal-query-fn dashboard-views
+  [user-id :- su/IntGreaterThanZero]
+  {:metadata [[:timestamp       {:display_name "Viewed on",     :base_type :type/DateTime}]
+              [:dashboard_id    {:display_name "Dashboard ID",  :base_type :type/Integer, :remapped_to   :dashboard_name}]
+              [:dashboard_name  {:display_name "Dashboard",     :base_type :type/Text,    :remapped_from :dashboard_id}]
+              [:collection_id   {:display_name "Collection ID", :base_type :type/Integer, :remapped_to   :collection_name}]
+              [:collection_name {:display_name "Collection",    :base_type :type/Text,    :remapped_from :collection_id}]]
+   :results (db/query
+             {:select    [:vl.timestamp
+                          [:dash.id :dashboard_id]
+                          [:dash.name :dashboard_name]
+                          [:coll.id :collection_id]
+                          [:coll.name :collection_name]]
+              :from      [[:view_log :vl]]
+              :where     [:and
+                          [:= :vl.model (hx/literal "dashboard")]
+                          [:= :vl.user_id user-id]]
+              :join      [[:report_dashboard :dash] [:= :vl.model_id :dash.id]]
+              :left-join [[:collection :coll] [:= :dash.collection_id :coll.id]]
+              :order-by  [[:vl.timestamp :desc]]})})
 
 (s/defn ^:internal-query-fn object-views-by-time
   "Timeseries chart that shows the number of Question or Dashboard views for a User, broken out by `datetime-unit`."
@@ -205,3 +232,50 @@
                          [:= :model model]]
               :group-by [(common/grouped-datetime datetime-unit :timestamp)]
               :order-by [[(common/grouped-datetime datetime-unit :timestamp) :asc]]})})
+
+(s/defn ^:internal-query-fn created-dashboards
+  [user-id :- su/IntGreaterThanZero]
+  (dashboards/table [:= :u.id user-id]))
+
+(s/defn ^:internal-query-fn created-questions
+  [user-id :- su/IntGreaterThanZero]
+  {:metadata [[:card_id             {:display_name "Card ID",              :base_type :type/Integer, :remapped_to   :card_name}]
+              [:card_name           {:display_name "Title",                :base_type :type/Name,    :remapped_from :card_id}]
+              [:collection_id       {:display_name "Collection ID",        :base_type :type/Integer, :remapped_to   :collection_name}]
+              [:collection_name     {:display_name "Collection",           :base_type :type/Text,    :remapped_from :collection_id}]
+              [:created_at          {:display_name "Created At",           :base_type :type/DateTime}]
+              [:database_id         {:display_name "Database ID",          :base_type :type/Integer, :remapped_to   :database_name}]
+              [:database_name       {:display_name "Database",             :base_type :type/Text,    :remapped_from :database_id}]
+              [:table_id            {:display_name "Table ID",             :base_type :type/Integer, :remapped_to   :table_name}]
+              [:table_name          {:display_name "Table",                :base_type :type/Text,    :remapped_from :table_id}]
+              [:avg_running_time_ms {:display_name "Avg. exec. time (ms)", :base_type :type/Number}]
+              [:cache_ttl           {:display_name "Cache TTL",            :base_type :type/Number}]
+              [:public_link         {:display_name "Public Link",          :base_type :type/URL}]
+              [:total_views         {:display_name "Total Views",          :base_type :type/Integer}]]
+   :results  (db/query
+              {:with      [cards/avg-exec-time
+                           cards/views]
+               :select    [[:card.id :card_id]
+                           [:card.name :card_name]
+                           [:coll.id :collection_id]
+                           [:coll.name :collection_name]
+                           :card.created_at
+                           :card.database_id
+                           [:db.name :database_name]
+                           :card.table_id
+                           [:t.name :table_name]
+                           :avg_exec_time.avg_running_time_ms
+                           :card.cache_ttl
+                           [(hsql/call :case
+                              [:not= :card.public_uuid nil]
+                              (hx/concat (urls/public-card-prefix) :card.public_uuid))
+                            :public_link]
+                           [:card_views.count :total_views]]
+               :from      [[:report_card :card]]
+               :left-join [:avg_exec_time           [:= :card.id :avg_exec_time.card_id]
+                           [:metabase_database :db] [:= :card.database_id :db.id]
+                           [:metabase_table :t]     [:= :card.table_id :t.id]
+                           [:collection :coll]      [:= :card.collection_id :coll.id]
+                           :card_views              [:= :card.id :card_views.card_id]]
+               :where     [:= :card.creator_id user-id]
+               :order-by  [[:%lower.card.name :asc]]})})
