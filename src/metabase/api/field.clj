@@ -37,6 +37,14 @@
   (perms/set-has-full-permissions? @api/*current-user-permissions-set*
     (perms/table-segmented-query-path table)))
 
+(defn- throw-if-no-read-or-segmented-perms
+  "Validates that the user either has full read permissions for `field` or segmented permissions on the table
+  associated with `field`. Throws an exception that will return a 403 if not."
+  [field]
+  (when-not (or (mi/can-read? field)
+                (has-segmented-query-permissions? (field/table field)))
+    (api/throw-403)))
+
 (api/defendpoint GET "/:id"
   "Get `Field` with ID."
   [id]
@@ -50,9 +58,7 @@
     ;; differently in other endpoints such as the FieldValues fetching endpoint.
     ;;
     ;; Check for permissions and throw 403 if we don't have them...
-    (when-not (or (mi/can-read? field)
-                  (has-segmented-query-permissions? (:table field)))
-      (api/throw-403))
+    (throw-if-no-read-or-segmented-perms field)
     ;; ...but if we do, return the Field <3
     field))
 
@@ -344,8 +350,10 @@
   [id search-id value limit]
   {value su/NonBlankString
    limit (s/maybe su/IntStringGreaterThanZero)}
-  (let [field        (api/read-check Field id)
-        search-field (api/read-check Field search-id)]
+  (let [field        (api/check-404 (Field id))
+        search-field (api/check-404 (Field search-id))]
+    (throw-if-no-read-or-segmented-perms field)
+    (throw-if-no-read-or-segmented-perms search-field)
     (search-values field search-field value (when limit (Integer/parseInt limit)))))
 
 
