@@ -88,7 +88,13 @@ export const table = () => ({
       args: [],
     },
     visualization_settings: {
-      "table.columns": [{ name: "user_id", enabled: true }],
+      "table.columns": [
+        { name: "user_id", enabled: true },
+        { name: "groups", enabled: true},
+        { name: "date_joined", enabled: true },
+        { name: "last_active", enabled: true},
+        { name: "signup_method", enabled: true},
+      ],
     },
   },
 });

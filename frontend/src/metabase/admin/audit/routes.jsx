@@ -26,8 +26,6 @@ import AuditDashboardDetail from "metabase/admin/audit/pages/AuditDashboardDetai
 import AuditUsers from "metabase/admin/audit/pages/AuditUsers";
 import AuditUserDetail from "metabase/admin/audit/pages/AuditUserDetail";
 
-import Demo from "metabase/admin/audit/pages/Demo";
-
 function getPageRoutes(path, page) {
   const subRoutes = [];
   // add a redirect for the default tab
