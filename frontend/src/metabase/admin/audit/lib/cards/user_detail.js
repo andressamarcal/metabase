@@ -68,5 +68,14 @@ export const queryViews = (userId: number) => ({
       fn: "metabase.audit.pages.user-detail/query-views",
       args: [userId],
     },
+    visualization_settings: {
+      "table.columns": [
+        { name: "type", enabled: true },
+        { name: "database_id", enabled: true},
+        { name: "table_id", enabled: true},
+        { name: "collection_id", enabled: true},
+        { name: "viewed_on", enabled: true},
+      ],
+    },
   },
 });
