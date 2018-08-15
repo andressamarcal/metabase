@@ -56,7 +56,7 @@ export const mostActive = () => ({
 
 export const mostSaves = () => ({
   card: {
-    name: "Members who are created the most things",
+    name: "Members who are creating the most things",
     display: "row",
     dataset_query: {
       type: "internal",

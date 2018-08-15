@@ -34,7 +34,7 @@ export default class AuditContent extends React.Component {
             />
           </div>
         )}
-        <div className="px4">
+        <div className="px4 full-height">
           {children}
           {TabComponent && <TabComponent {...this.props} />}
         </div>
