@@ -9,5 +9,14 @@ export const auditLog = (databaseId: number) => ({
       fn: "metabase.audit.pages.database-detail/audit-log",
       args: [databaseId],
     },
+    visualization_settings: {
+      "table.columns": [
+        { name: "user_id", enabled: true},
+        { name: "card_id", enabled: true},
+        { name: "schema", enabled: true},
+        { name: "table_id", enabled: true},
+        { name: "started_at", enabled: true},
+      ],
+    },
   },
 });

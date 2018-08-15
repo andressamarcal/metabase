@@ -33,5 +33,11 @@ export const auditLog = (dashboardId: number) => ({
       fn: "metabase.audit.pages.dashboard-detail/audit-log",
       args: [dashboardId],
     },
+    visualization_settings: {
+      "table.columns": [
+        { name: "user_id", enabled: true },
+        { name: "when", enabled: true},
+      ],
+    },
   },
 });

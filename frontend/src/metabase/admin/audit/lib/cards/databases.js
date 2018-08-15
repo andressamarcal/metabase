@@ -41,5 +41,14 @@ export const table = () => ({
       fn: "metabase.audit.pages.databases/table",
       args: [],
     },
+    visualization_settings: {
+      "table.columns": [
+        { name: "database_id", enabled: true},
+        { name: "schemas", enabled: true},
+        { name: "tables", enabled: true},
+        { name: "sync_schedule", enabled: true},
+        { name: "added_on", enabled: true},
+      ],
+    },
   },
 });
