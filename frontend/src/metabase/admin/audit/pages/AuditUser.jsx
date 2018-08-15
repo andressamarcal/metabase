@@ -39,7 +39,13 @@ const AuditUser = ({ params }: Props) => {
   const userId = parseInt(params.userId);
   return (
     <AuditContent
-      title={<EntityName entityType="users" entityId={userId} />}
+      title={
+        <EntityName
+          entityType="users"
+          entityId={userId}
+          property={"common_name"}
+        />
+      }
       tabs={AuditUser.tabs}
       userId={userId}
     />

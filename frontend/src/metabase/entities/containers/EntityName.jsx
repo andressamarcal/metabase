@@ -1,14 +1,14 @@
 import React from "react";
 import EntityObjectLoader from "./EntityObjectLoader";
 
-const EntityName = ({ entityId, entityType }) => (
+const EntityName = ({ entityId, entityType, property = "name" }) => (
   <EntityObjectLoader
     entityType={entityType}
     entityId={entityId}
-    properties={["name"]}
+    properties={[property]}
     loadingAndErrorWrapper={false}
   >
-    {({ object }) => (object ? <span>{object.name}</span> : null)}
+    {({ object }) => (object ? <span>{object[property]}</span> : null)}
   </EntityObjectLoader>
 );
 

@@ -354,6 +354,7 @@ const GTAPSummary = ({ gtap }: { gtap: GTAP }) => {
   );
 };
 
+// TODO: use EntityName component
 const GroupName = ({ groupId }) => (
   <EntityObjectLoader
     entityType="groups"
@@ -365,6 +366,7 @@ const GroupName = ({ groupId }) => (
   </EntityObjectLoader>
 );
 
+// TODO: use EntityName component
 const QuestionName = ({ questionId }) => (
   <EntityObjectLoader
     entityType="questions"
@@ -376,6 +378,7 @@ const QuestionName = ({ questionId }) => (
   </EntityObjectLoader>
 );
 
+// TODO: use EntityName component
 const TableName = ({ tableId }) => (
   <EntityObjectLoader
     entityType="tables"
