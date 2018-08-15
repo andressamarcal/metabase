@@ -19,15 +19,18 @@ const AuditUsersOverviewTab = () => (
 );
 
 const AuditUsersAllTab = () => <AuditTable table={UsersCards.table()} />;
+const AuditUsersAuditLogTab = () => (
+  <AuditTable table={UsersCards.auditLog()} />
+);
 
-const AuditUsers = () => (
-  <AuditContent title="Team members" tabs={AuditUsers.tabs} />
+const AuditUsers = props => (
+  <AuditContent {...props} title="Team members" tabs={AuditUsers.tabs} />
 );
 
 AuditUsers.tabs = [
   { path: "overview", title: "Overview", component: AuditUsersOverviewTab },
   { path: "all", title: "All members", component: AuditUsersAllTab },
-  { path: "log", title: "Audit log" },
+  { path: "log", title: "Audit log", component: AuditUsersAuditLogTab },
 ];
 
 export default AuditUsers;

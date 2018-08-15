@@ -14,18 +14,22 @@ import { getMetadata } from "metabase/selectors/metadata";
 import { auditActionsForClick } from "../lib/util";
 
 const mapStateToProps = (state, props) => ({
-  question: new Question(getMetadata(state), {
-    ...props.table.card,
-    display: "audit-table",
-  }),
+  metadata: getMetadata(state),
 });
 
 const mapDispatchToProps = {
   onChangeLocation: push,
 };
 
-const AuditTable = connect(mapStateToProps, mapDispatchToProps)(
-  ({ question, onChangeLocation, ...props }) => {
+@connect(mapStateToProps, mapDispatchToProps)
+export default class AuditTable extends React.Component {
+  render() {
+    const { metadata, table, onChangeLocation, ...props } = this.props;
+    const question = new Question(metadata, {
+      ...table.card,
+      display: "audit-table",
+    });
+
     return (
       <QuestionLoadAndDisplay
         className="mt2"
@@ -35,7 +39,5 @@ const AuditTable = connect(mapStateToProps, mapDispatchToProps)(
         onChangeCardAndRun={() => {}}
       />
     );
-  },
-);
-
-export default AuditTable;
+  }
+}

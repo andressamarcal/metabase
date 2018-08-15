@@ -89,3 +89,26 @@ export const table = () => ({
     },
   },
 });
+
+export const auditLog = () => ({
+  card: {
+    name: "Query views",
+    display: "table",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase.audit.pages.users/query-views",
+      args: [],
+    },
+  },
+  series: [
+    {
+      name: "Dashboard views",
+      display: "table",
+      dataset_query: {
+        type: "internal",
+        fn: "metabase.audit.pages.users/dashboard-views",
+        args: [],
+      },
+    },
+  ],
+});
