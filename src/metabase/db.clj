@@ -33,17 +33,18 @@
            ;; In-memory (i.e. test) DB
            "mem:metabase;DB_CLOSE_DELAY=-1"
            ;; File-based DB
-           (let [db-file-name (config/config-str :mb-db-file)
-                 db-file      (io/file db-file-name)
+           (let [db-file-name  (config/config-str :mb-db-file)
+                 db-file       (io/file db-file-name)
                  ;; we need to enable MVCC for Quartz JDBC backend to work! Quartz depends on row-level locking, which
                  ;; means without MVCC we "will experience dead-locks". MVCC is the default for everyone using the
                  ;; MVStore engine anyway so this only affects people still with legacy PageStore databases
-                 options      ";DB_CLOSE_DELAY=-1;MVCC=TRUE;LOCK_TIMEOUT=10000"]
-             (apply str "file:" (if (.isAbsolute db-file)
-                                  ;; when an absolute path is given for the db file then don't mess with it
-                                  [db-file-name options]
-                                  ;; if we don't have an absolute path then make sure we start from "user.dir"
-                                  [(System/getProperty "user.dir") "/" db-file-name options]))))))
+                 options       ";DB_CLOSE_DELAY=-1;MVCC=TRUE;LOCK_TIMEOUT=10000"
+                 absolute-file (if (.isAbsolute db-file)
+                                 ;; when an absolute path is given for the db file then don't mess with it
+                                 db-file-name
+                                 ;; if we don't have an absolute path then make sure we start from "user.dir"
+                                 (str (System/getProperty "user.dir") "/" db-file-name))]
+             (str "file:" absolute-file options)))))
 
 (defn- parse-connection-string
   "Parse a DB connection URI like
@@ -275,7 +276,7 @@
            :force         (force-migrate-up-if-needed! conn liquibase)
            :down-one      (.rollback liquibase 1 "")
            :print         (println (migrations-sql liquibase))
-           :release-locks (.forceReleaseLocks liquibase)))
+           :release-locks (db/execute! {:delete-from :databasechangeloglock})))
        ;; Migrations were successful; disable rollback-only so `.commit` will be called instead of `.rollback`
        (jdbc/db-unset-rollback-only! conn)
        :done
