@@ -1,7 +1,6 @@
 (ns metabase.audit.pages.queries
-  ;; TODO - rename to `questions`
-  (:require [metabase.util.honeysql-extensions :as hx]
-            [toucan.db :as db]))
+  (:require [metabase.audit.pages.common :as common]
+            [metabase.util.honeysql-extensions :as hx]))
 
 (defn ^:internal-query-fn ^:deprecated  views-and-avg-execution-time-by-day
   "Query that returns data for a two-series timeseries chart with number of queries ran and average query running time
@@ -10,7 +9,7 @@
   {:metadata [[:day              {:display_name "Date",                   :base_type :type/Date}]
               [:views            {:display_name "Views",                  :base_type :type/Integer}]
               [:avg_running_time {:display_name "Avg. Running Time (ms)", :base_type :type/Decimal}]]
-   :results  (db/query
+   :results  (common/query
               {:select   [[(hx/cast :date :started_at) :day]
                           [:%count.* :views]
                           [:%avg.running_time :avg_running_time]]
@@ -24,7 +23,7 @@
   {:metadata [[:card_id    {:display_name "Card ID",    :base_type :type/Integer, :remapped_to   :card_name}]
               [:card_name  {:display_name "Card",       :base_type :type/Title,   :remapped_from :card_id}]
               [:executions {:display_name "Executions", :base_type :type/Integer}]]
-   :results  (db/query
+   :results  (common/query
               {:select   [[:c.id :card_id]
                           [:c.name :card_name]
                           [:%count.* :executions]]
@@ -40,7 +39,7 @@
   {:metadata [[:card_id          {:display_name "Card ID",                :base_type :type/Integer, :remapped_to   :card_name}]
               [:card_name        {:display_name "Card",                   :base_type :type/Title,   :remapped_from :card_id}]
               [:avg_running_time {:display_name "Avg. Running Time (ms)", :base_type :type/Decimal}]]
-   :results  (db/query
+   :results  (common/query
               {:select   [[:c.id :card_id]
                           [:c.name :card_name]
                           [:%avg.running_time :avg_running_time]]

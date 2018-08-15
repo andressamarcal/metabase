@@ -1,6 +1,6 @@
 (ns metabase.audit.pages.common.card-and-dashboard-detail
   "Common queries used by both Card (Question) and Dashboard detail pages."
-  (:require [metabase.audit.pages.common :as audit-common]
+  (:require [metabase.audit.pages.common :as common]
             [metabase.models
              [card :refer [Card]]
              [dashboard :refer [Dashboard]]
@@ -8,8 +8,7 @@
             [metabase.util
              [honeysql-extensions :as hx]
              [schema :as su]]
-            [schema.core :as s]
-            [toucan.db :as db]))
+            [schema.core :as s]))
 
 (def ^:private ModelName
   (s/enum "card" "dashboard"))
@@ -22,11 +21,11 @@
 ;; ORDER BY {{group-fn(timestamp}} ASC
 (s/defn views-by-time
   "Get views of a Card or Dashboard broken out by a time `unit`, e.g. `day` or `day-of-week`."
-  [model :- ModelName, model-id :- su/IntGreaterThanZero, unit :- audit-common/DateTimeUnitStr]
-  {:metadata [[:date  {:display_name "Date",  :base_type (audit-common/datetime-unit-str->base-type unit)}]
+  [model :- ModelName, model-id :- su/IntGreaterThanZero, unit :- common/DateTimeUnitStr]
+  {:metadata [[:date  {:display_name "Date",  :base_type (common/datetime-unit-str->base-type unit)}]
               [:views {:display_name "Views", :base_type :type/Integer}]]
-   :results (let [grouped-timestamp (audit-common/grouped-datetime unit :timestamp)]
-              (db/query
+   :results (let [grouped-timestamp (common/grouped-datetime unit :timestamp)]
+              (common/query
                {:select   [[grouped-timestamp :date]
                            [:%count.* :views]]
                 :from     [:view_log]
@@ -69,7 +68,7 @@
   {:metadata [[:when    {:display_name "When",    :base_type :type/Date}]
               [:user_id {:display_name "User ID", :base_type :type/Integer, :remapped_to   :who}]
               [:who     {:display_name "Who",     :base_type :type/Name,    :remapped_from :user_id}]]
-   :results (db/query
+   :results (common/query
              {:with      [[:views {:select   [[(hx/cast :date :timestamp) :day]
                                               :user_id]
                                    :from     [:view_log]
@@ -79,7 +78,7 @@
                                    :group-by [(hx/cast :date :timestamp) :user_id]}]]
               :select    [[:v.day :when]
                           :v.user_id
-                          [(audit-common/user-full-name :u) :who]]
+                          [(common/user-full-name :u) :who]]
               :from      [[:views :v]]
               :left-join [[:core_user :u] [:= :v.user_id :u.id]]
               :order-by  [[:v.day :desc]

@@ -2,8 +2,8 @@
   (:require [honeysql.core :as hsql]
             [metabase.audit.pages.common :as common]
             [metabase.util.honeysql-extensions :as hx]
-            [schema.core :as s]
-            [toucan.db :as db]))
+            [ring.util.codec :as codec]
+            [schema.core :as s]))
 
 ;; WITH user_qe AS (
 ;;     SELECT executor_id, count(*) AS executions, CAST(started_at AS DATE) AS day
@@ -25,7 +25,7 @@
   {:metadata [[:users   {:display_name "Users",   :base_type :type/Integer}]
               [:queries {:display_name "Queries", :base_type :type/Integer}]
               [:day     {:display_name "Date",    :base_type :type/Date}]]
-   :results  (db/query
+   :results  (common/query
               {:with     [[:user_qe {:select   [:executor_id
                                                 [:%count.* :executions]
                                                 [(hx/cast :date :started_at) :day]]
@@ -45,7 +45,7 @@
   {:metadata [[:date         {:display_name "Date",         :base_type (common/datetime-unit-str->base-type datetime-unit)}]
               [:active_users {:display_name "Active Users", :base_type :type/Integer}]
               [:new_users    {:display_name "New Users",    :base_type :type/Integer}]]
-   :results  (db/query
+   :results  (common/query
               {:with      [[:active {:select   [[(common/grouped-datetime datetime-unit :started_at) :date]
                                                 [:%distinct-count.executor_id :count]]
                                      :from     [:query_execution]
@@ -85,7 +85,7 @@
   {:metadata [[:user_id {:display_name "User ID",          :base_type :type/Integer, :remapped_to   :name}]
               [:name    {:display_name "Name",             :base_type :type/Name,    :remapped_from :user_id}]
               [:count   {:display_name "Query Executions", :base_type :type/Integer}]]
-   :results  (db/query
+   :results  (common/query
               {:with      [[:qe_count {:select   [[:%count.* :count]
                                                   :qe.executor_id]
                                        :from     [[:query_execution :qe]]
@@ -109,7 +109,7 @@
   {:metadata [[:user_id   {:display_name "User ID",       :base_type :type/Integer, :remapped_to   :user_name}]
               [:user_name {:display_name "Name",          :base_type :type/Name,    :remapped_from :user_id}]
               [:saves     {:display_name "Saved Objects", :base_type :type/Integer}]]
-   :results  (db/query
+   :results  (common/query
               {:with   [[:card_saves       {:select   [:creator_id
                                                        [:%count.* :count]]
                                             :from     [:report_card]
@@ -166,7 +166,7 @@
   {:metadata [[:user_id           {:display_name "User ID",                   :base_type :type/Integer, :remapped_to   :name}]
               [:name              {:display_name "Name",                      :base_type :type/Name,    :remapped_from :user_id}]
               [:execution_time_ms {:display_name "Total Execution Time (ms)", :base_type :type/Decimal}]]
-   :results  (db/query
+   :results  (common/query
               {:with      [[:exec_time {:select   [[:%sum.running_time :execution_time_ms]
                                                    :qe.executor_id]
                                         :from     [[:query_execution :qe]]
@@ -266,7 +266,7 @@
               [:questions_saved  {:display_name "Questions Saved",  :base_type :type/Integer}]
               [:dashboards_saved {:display_name "Dashboards Saved", :base_type :type/Integer}]
               [:pulses_saved     {:display_name "Pulses Saved",     :base_type :type/Integer}]]
-   :results (db/query
+   :results (common/query
              {:with      [[:last_query {:select   [[:executor_id :id]
                                                    [:%max.started_at :started_at]]
                                         :from     [:query_execution]
@@ -332,6 +332,9 @@
 (defn ^:internal-query-fn query-views
   []
   {:metadata [[:viewed_on     {:display_name "Viewed On",       :base_type :type/DateTime}]
+              [:card_id       {:display_name "Card ID"          :base_type :type/Integer, :remapped_to   :card_name}]
+              [:card_name     {:display_name "Query",           :base_type :type/Text,    :remapped_from :card_id}]
+              [:query_hash    {:display_name "Query Hash",      :base_type :type/Text}]
               [:type          {:display_name "Type",            :base_type :type/Text}]
               [:collection_id {:display_name "Collection ID",   :base_type :type/Integer, :remapped_to   :collection}]
               [:collection    {:display_name "Collection",      :base_type :type/Text,    :remapped_from :collection_id}]
@@ -343,27 +346,31 @@
               [:source_db     {:display_name "Source DB",       :base_type :type/Text,    :remapped_from :database_id}]
               [:table_id      {:display_name "Table ID"         :base_type :type/Integer, :remapped_to   :table}]
               [:table         {:display_name "Table",           :base_type :type/Text,    :remapped_from :table_id}]]
-   :results (db/query
-             {:select    [[:qe.started_at :viewed_on]
-                          [(hsql/call :case [:= :qe.native true] (hx/literal "Native") :else (hx/literal "GUI")) :type]
-                          [:collection.id :collection_id]
-                          [:collection.name :collection]
-                          [:viewer.id :viewed_by_id]
-                          [(common/user-full-name :viewer) :viewed_by]
-                          [:creator.id :saved_by_id]
-                          [(common/user-full-name :creator) :saved_by]
-                          [:db.id :database_id]
-                          [:db.name :source_db]
-                          [:t.id :table_id]
-                          [:t.display_name :table]]
-              :from      [[:query_execution :qe]]
-              :join      [[:metabase_database :db] [:= :qe.database_id :db.id]
-                          [:core_user :viewer]     [:= :qe.executor_id :viewer.id]]
-              :left-join [[:report_card :card]     [:= :qe.card_id :card.id]
-                          :collection              [:= :card.collection_id :collection.id]
-                          [:core_user :creator]    [:= :card.creator_id :creator.id]
-                          [:metabase_table :t]     [:= :card.table_id :t.id]]
-              :order-by  [[:qe.started_at :desc]]})})
+   :results (->> (common/query
+                  {:select    [[:qe.started_at :viewed_on]
+                               [:card.id :card_id]
+                               [(common/first-non-null :card.name (hx/literal "Ad-hoc")) :card_name]
+                               [:qe.hash :query_hash]
+                               [(hsql/call :case [:= :qe.native true] (hx/literal "Native") :else (hx/literal "GUI")) :type]
+                               [:collection.id :collection_id]
+                               [:collection.name :collection]
+                               [:viewer.id :viewed_by_id]
+                               [(common/user-full-name :viewer) :viewed_by]
+                               [:creator.id :saved_by_id]
+                               [(common/user-full-name :creator) :saved_by]
+                               [:db.id :database_id]
+                               [:db.name :source_db]
+                               [:t.id :table_id]
+                               [:t.display_name :table]]
+                   :from      [[:query_execution :qe]]
+                   :join      [[:metabase_database :db] [:= :qe.database_id :db.id]
+                               [:core_user :viewer]     [:= :qe.executor_id :viewer.id]]
+                   :left-join [[:report_card :card]     [:= :qe.card_id :card.id]
+                               :collection              [:= :card.collection_id :collection.id]
+                               [:core_user :creator]    [:= :card.creator_id :creator.id]
+                               [:metabase_table :t]     [:= :card.table_id :t.id]]
+                   :order-by  [[:qe.started_at :desc]]})
+                 (map #(update % :query_hash codec/base64-encode)))})
 
 (defn ^:internal-query-fn dashboard-views
   []
@@ -374,7 +381,7 @@
               [:collection_name {:display_name "Collection",    :base_type :type/Text,    :remapped_from :collection_id}]
               [:user_id         {:display_name "User ID",      :base_type :type/Integer,  :remapped_to   :user_name}]
               [:user_name       {:display_name "Viewed By",    :base_type :type/Text,     :remapped_from :user_id}]]
-   :results (db/query
+   :results (common/query
              {:select    [:vl.timestamp
                           [:dash.id :dashboard_id]
                           [:dash.name :dashboard_name]

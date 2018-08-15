@@ -1,14 +1,9 @@
 (ns metabase.audit.pages.dashboards
   "Dashboards overview page."
-  (:require [honeysql.core :as hsql]
-            [metabase.audit.pages.common :as audit-common]
+  (:require [metabase.audit.pages.common :as common]
             [metabase.audit.pages.common.dashboards :as dashboards]
-            [metabase.util :as u]
-            [metabase.util
-             [honeysql-extensions :as hx]
-             [urls :as urls]]
-            [schema.core :as s]
-            [toucan.db :as db]))
+            [metabase.util.honeysql-extensions :as hx]
+            [schema.core :as s]))
 
 ;; SELECT CAST("timestamp" AS date) AS day, count(*) AS views
 ;; FROM view_log
@@ -20,7 +15,7 @@
   []
   {:metadata [[:day   {:display_name "Date",  :base_type :type/Date}]
               [:views {:display_name "Views", :base_type :type/Integer}]]
-   :results  (db/query
+   :results  (common/query
               {:select   [[(hx/cast :date :timestamp) :day]
                           [:%count.* :views]]
                :from     [:view_log]
@@ -30,25 +25,25 @@
 
 (s/defn ^:internal-query-fn views-and-saves-by-time
   "Two-series timeseries that includes total number of Dashboard views and saves broken out by a `datetime-unit`."
-  [datetime-unit :- audit-common/DateTimeUnitStr]
-  {:metadata [[:date  {:display_name "Date",  :base_type (audit-common/datetime-unit-str->base-type datetime-unit)}]
+  [datetime-unit :- common/DateTimeUnitStr]
+  {:metadata [[:date  {:display_name "Date",  :base_type (common/datetime-unit-str->base-type datetime-unit)}]
               [:views {:display_name "Views", :base_type :type/Integer}]
               [:saves {:display_name "Saves", :base_type :type/Integer}]]
-   :results (db/query
-             {:with      [[:views {:select   [[(audit-common/grouped-datetime datetime-unit :timestamp) :date]
+   :results (common/query
+             {:with      [[:views {:select   [[(common/grouped-datetime datetime-unit :timestamp) :date]
                                               [:%count.* :count]]
                                    :from     [:view_log]
                                    :where    [:= :model (hx/literal "dashboard")]
-                                   :group-by [(audit-common/grouped-datetime datetime-unit :timestamp)]
-                                   :order-by [[(audit-common/grouped-datetime datetime-unit :timestamp) :asc]]}]
-                          [:saves {:select   [[(audit-common/grouped-datetime datetime-unit :created_at) :date]
+                                   :group-by [(common/grouped-datetime datetime-unit :timestamp)]
+                                   :order-by [[(common/grouped-datetime datetime-unit :timestamp) :asc]]}]
+                          [:saves {:select   [[(common/grouped-datetime datetime-unit :created_at) :date]
                                               [:%count.* :count]]
                                    :from     [:report_dashboard]
-                                   :group-by [(audit-common/grouped-datetime datetime-unit :created_at)]
-                                   :order-by [[(audit-common/grouped-datetime datetime-unit :created_at) :asc]]}]]
-              :select    [[(audit-common/first-non-null :views.date :saves.date) :date]
-                          [(audit-common/zero-if-null :views.count) :views]
-                          [(audit-common/zero-if-null :saves.count) :saves]]
+                                   :group-by [(common/grouped-datetime datetime-unit :created_at)]
+                                   :order-by [[(common/grouped-datetime datetime-unit :created_at) :asc]]}]]
+              :select    [[(common/first-non-null :views.date :saves.date) :date]
+                          [(common/zero-if-null :views.count) :views]
+                          [(common/zero-if-null :saves.count) :saves]]
               :from      [:views]
               :full-join [:saves [:= :views.date :saves.date]]
               :order-by  [[:date :asc]]})})
@@ -67,7 +62,7 @@
   {:metadata [[:dashboard_id   {:display_name "Dashboard ID",          :base_type :type/Integer, :remapped_to   :dashboard_name}]
               [:dashboard_name {:display_name "Dashboard",             :base_type :type/Title,   :remapped_from :dashboard_id}]
               [:views          {:display_name "Views",     :base_type :type/Integer}]]
-   :results  (db/query
+   :results  (common/query
               {:select    [[:d.id :dashboard_id]
                            [:d.name :dashboard_name]
                            [:%count.* :views]]
@@ -100,7 +95,7 @@
   {:metadata [[:dashboard_id     {:display_name "Dashboard ID",          :base_type :type/Integer, :remapped_to   :dashboard_name}]
               [:dashboard_name   {:display_name "Dashboard",             :base_type :type/Title,   :remapped_from :dashboard_id}]
               [:max_running_time {:display_name "Slowest Question (ms)", :base_type :type/Decimal}]]
-   :results  (db/query
+   :results  (common/query
               {:with      [[:card_running_time {:select   [:qe.card_id
                                                            [:%avg.qe.running_time :avg_running_time]]
                                                 :from     [[:query_execution :qe]]
@@ -129,7 +124,7 @@
   {:metadata [[:card_id   {:display_name "Card ID", :base_type :type/Integer, :remapped_to   :card_name}]
               [:card_name {:display_name "Card",    :base_type :type/Title,   :remapped_from :card_id}]
               [:count     {:display_name "Count",   :base_type :type/Integer}]]
-   :results  (db/query
+   :results  (common/query
               {:select    [[:c.id :card_id]
                            [:c.name :card_name]
                            [:%count.* :count]]

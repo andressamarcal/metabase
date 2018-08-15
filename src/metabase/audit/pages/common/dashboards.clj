@@ -1,10 +1,9 @@
 (ns metabase.audit.pages.common.dashboards
   (:require [honeysql.core :as hsql]
-            [metabase.audit.pages.common :as audit-common]
+            [metabase.audit.pages.common :as common]
             [metabase.util
              [honeysql-extensions :as hx]
-             [urls :as urls]]
-            [toucan.db :as db]))
+             [urls :as urls]]))
 
 (defn table
   "Dashboard table!"
@@ -19,7 +18,7 @@
               [:public_link               {:display_name "Public Link", :base_type :type/URL}]
               [:average_execution_time_ms {:display_name "Avg. exec. time (ms)", :base_type :type/Decimal}]
               [:total_views               {:display_name "Total views", :base_type :type/Integer}]]
-   :results  (db/query
+   :results  (common/query
               (merge
                {:with      [[:card_count {:select   [:dashboard_id
                                                      [:%count.* :card_count]]
@@ -43,7 +42,7 @@
                 :select    [[:d.id :dashboard_id]
                             [:d.name :title]
                             [:u.id :saved_by_id]
-                            [(audit-common/user-full-name :u) :saved_by]
+                            [(common/user-full-name :u) :saved_by]
                             [:d.created_at :saved_on]
                             [:d.updated_at :last_edited_on]
                             [:cc.card_count :cards]

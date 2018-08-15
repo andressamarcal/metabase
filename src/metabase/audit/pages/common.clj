@@ -5,8 +5,20 @@
              [db :as mdb]
              [driver :as driver]]
             [metabase.driver.generic-sql :as generic-sql]
+            [metabase.query-processor.middleware.internal-queries :as internal-queries]
             [metabase.util.honeysql-extensions :as hx]
-            [schema.core :as s]))
+            [schema.core :as s]
+            [toucan.db :as db]))
+
+(def ^:private ^:const default-limit 1000)
+
+(defn query [query-map]
+  (let [{:keys [limit offset]} internal-queries/*additional-query-params*]
+    (db/query (merge
+               {:limit  (or limit default-limit)
+                :offset (or offset 0)}
+               query-map))))
+
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                                   Helper Fns                                                   |

@@ -4,8 +4,7 @@
             [metabase.util
              [honeysql-extensions :as hx]
              [schema :as su]]
-            [schema.core :as s]
-            [toucan.db :as db]))
+            [schema.core :as s]))
 
 (s/defn ^:internal-query-fn audit-log
   [database-id :- su/IntGreaterThanZero]
@@ -17,7 +16,7 @@
               [:schema     {:display_name "Schema",     :base_type :type/Text}]
               [:table_id   {:display_name "Table ID",   :base_type :type/Integer, :remapped_to   :table}]
               [:table      {:display_name "Table",      :base_type :type/Text,    :remapped_from :table_id}]]
-   :results (db/query
+   :results (common/query
              {:select    [:qe.started_at
                           [:card.id :card_id]
                           [(hsql/call :case [:not= nil :card.name] :card.name :else (hx/literal "Ad-hoc")) :query]
