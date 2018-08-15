@@ -18,6 +18,19 @@ type Props = {
   params: { [key: string]: string },
 };
 
+const AuditDashboardDetail = ({ params, ...props }: Props) => {
+  const dashboardId = parseInt(params.dashboardId);
+  return (
+    <AuditContent
+      {...props}
+      title={<EntityName entityType="dashboards" entityId={dashboardId} />}
+      subtitle={<OpenInMetabase to={Urls.dashboard(dashboardId)} />}
+      tabs={AuditDashboardDetail.tabs}
+      dashboardId={dashboardId}
+    />
+  );
+};
+
 const AuditDashboardActivityTab = ({ dashboardId }) => (
   <AuditDashboard
     cards={[
@@ -34,19 +47,7 @@ const AuditDashboardAuditLogTab = ({ dashboardId }) => (
   <AuditTable table={DashboardCards.auditLog(dashboardId)} />
 );
 
-const AuditDashboardSingle = ({ params }: Props) => {
-  const dashboardId = parseInt(params.dashboardId);
-  return (
-    <AuditContent
-      title={<EntityName entityType="dashboards" entityId={dashboardId} />}
-      subtitle={<OpenInMetabase to={Urls.dashboard(dashboardId)} />}
-      tabs={AuditDashboardSingle.tabs}
-      dashboardId={dashboardId}
-    />
-  );
-};
-
-AuditDashboardSingle.tabs = [
+AuditDashboardDetail.tabs = [
   { path: "activity", title: "Activity", component: AuditDashboardActivityTab },
   { path: "details", title: "Details" },
   {
@@ -57,4 +58,4 @@ AuditDashboardSingle.tabs = [
   { path: "log", title: "Audit log", component: AuditDashboardAuditLogTab },
 ];
 
-export default AuditDashboardSingle;
+export default AuditDashboardDetail;

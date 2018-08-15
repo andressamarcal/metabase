@@ -7,6 +7,10 @@ import AuditDashboard from "../containers/AuditDashboard";
 
 import * as QueriesCards from "../lib/cards/queries";
 
+const AuditQuestions = props => (
+  <AuditContent {...props} title="Questions" tabs={AuditQuestions.tabs} />
+);
+
 const AuditQuestionsOverviewTab = () => (
   <AuditDashboard
     cards={[
@@ -18,10 +22,6 @@ const AuditQuestionsOverviewTab = () => (
       [{ x: 9, y: 9, w: 9, h: 9 }, QueriesCards.slowest()],
     ]}
   />
-);
-
-const AuditQuestions = () => (
-  <AuditContent title="Questions" tabs={AuditQuestions.tabs} />
 );
 
 AuditQuestions.tabs = [

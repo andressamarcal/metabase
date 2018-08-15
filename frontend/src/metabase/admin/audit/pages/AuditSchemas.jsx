@@ -8,6 +8,10 @@ import AuditTable from "../containers/AuditTable";
 
 import * as SchemasCards from "../lib/cards/schemas";
 
+const AuditSchemas = props => (
+  <AuditContent {...props} title="Schemas" tabs={AuditSchemas.tabs} />
+);
+
 const AuditSchemasOverviewTab = () => (
   <AuditDashboard
     cards={[
@@ -19,13 +23,9 @@ const AuditSchemasOverviewTab = () => (
 
 const AuditSchemasAllTab = () => <AuditTable table={SchemasCards.table()} />;
 
-const AuditSchemas = () => (
-  <AuditContent title="Schemas" tabs={AuditSchemas.tabs} />
-);
-
 AuditSchemas.tabs = [
   { path: "overview", title: "Overview", component: AuditSchemasOverviewTab },
-  { path: "all", title: "All databases", component: AuditSchemasAllTab },
+  { path: "all", title: "All schemas", component: AuditSchemasAllTab },
 ];
 
 export default AuditSchemas;

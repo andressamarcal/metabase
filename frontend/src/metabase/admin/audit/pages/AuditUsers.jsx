@@ -8,6 +8,10 @@ import AuditTable from "../containers/AuditTable";
 
 import * as UsersCards from "../lib/cards/users";
 
+const AuditUsers = props => (
+  <AuditContent {...props} title="Team members" tabs={AuditUsers.tabs} />
+);
+
 const AuditUsersOverviewTab = () => (
   <AuditDashboard
     cards={[
@@ -19,12 +23,9 @@ const AuditUsersOverviewTab = () => (
 );
 
 const AuditUsersAllTab = () => <AuditTable table={UsersCards.table()} />;
+
 const AuditUsersAuditLogTab = () => (
   <AuditTable table={UsersCards.auditLog()} />
-);
-
-const AuditUsers = props => (
-  <AuditContent {...props} title="Team members" tabs={AuditUsers.tabs} />
 );
 
 AuditUsers.tabs = [

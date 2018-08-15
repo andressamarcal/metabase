@@ -18,6 +18,19 @@ type Props = {
   params: { [key: string]: string },
 };
 
+const AuditQuestionDetail = ({ params, ...props }: Props) => {
+  const questionId = parseInt(params.questionId);
+  return (
+    <AuditContent
+      {...props}
+      title={<EntityName entityType="questions" entityId={questionId} />}
+      subtitle={<OpenInMetabase to={Urls.question(questionId)} />}
+      tabs={AuditQuestionDetail.tabs}
+      questionId={questionId}
+    />
+  );
+};
+
 const AuditQuestionActivityTab = ({ questionId }) => (
   <AuditDashboard
     cards={[
@@ -34,19 +47,7 @@ const AuditQuestionAuditLogTab = ({ questionId }) => (
   <AuditTable table={QuestionCards.auditLog(questionId)} />
 );
 
-const AuditQuestionSingle = ({ params }: Props) => {
-  const questionId = parseInt(params.questionId);
-  return (
-    <AuditContent
-      title={<EntityName entityType="questions" entityId={questionId} />}
-      subtitle={<OpenInMetabase to={Urls.question(questionId)} />}
-      tabs={AuditQuestionSingle.tabs}
-      questionId={questionId}
-    />
-  );
-};
-
-AuditQuestionSingle.tabs = [
+AuditQuestionDetail.tabs = [
   { path: "activity", title: "Activity", component: AuditQuestionActivityTab },
   { path: "details", title: "Details" },
   {
@@ -57,4 +58,4 @@ AuditQuestionSingle.tabs = [
   { path: "log", title: "Audit log", component: AuditQuestionAuditLogTab },
 ];
 
-export default AuditQuestionSingle;
+export default AuditQuestionDetail;

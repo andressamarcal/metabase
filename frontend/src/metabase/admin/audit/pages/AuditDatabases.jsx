@@ -8,6 +8,10 @@ import AuditTable from "../containers/AuditTable";
 
 import * as DatabasesCards from "../lib/cards/databases";
 
+const AuditDatabases = props => (
+  <AuditContent {...props} title="Databases" tabs={AuditDatabases.tabs} />
+);
+
 const AuditDatabasesOverviewTab = () => (
   <AuditDashboard
     cards={[
@@ -22,10 +26,6 @@ const AuditDatabasesOverviewTab = () => (
 
 const AuditDatabasesAllTab = () => (
   <AuditTable table={DatabasesCards.table()} />
-);
-
-const AuditDatabases = () => (
-  <AuditContent title="Databases" tabs={AuditDatabases.tabs} />
 );
 
 AuditDatabases.tabs = [

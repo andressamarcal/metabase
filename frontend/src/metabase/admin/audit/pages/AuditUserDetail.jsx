@@ -10,6 +10,28 @@ import EntityName from "metabase/entities/containers/EntityName";
 
 import * as UserDetailCards from "../lib/cards/user_detail";
 
+type Props = {
+  params: { [key: string]: string },
+};
+
+const AuditUserDetail = ({ params, ...props }: Props) => {
+  const userId = parseInt(params.userId);
+  return (
+    <AuditContent
+      {...props}
+      title={
+        <EntityName
+          entityType="users"
+          entityId={userId}
+          property={"common_name"}
+        />
+      }
+      tabs={AuditUserDetail.tabs}
+      userId={userId}
+    />
+  );
+};
+
 const AuditUserActivityTab = ({ userId }) => (
   <AuditDashboard
     cards={[
@@ -31,28 +53,7 @@ const AuditUserAuditLogTab = ({ userId }) => (
   <AuditTable table={UserDetailCards.queryViews(userId)} />
 );
 
-type Props = {
-  params: { [key: string]: string },
-};
-
-const AuditUser = ({ params }: Props) => {
-  const userId = parseInt(params.userId);
-  return (
-    <AuditContent
-      title={
-        <EntityName
-          entityType="users"
-          entityId={userId}
-          property={"common_name"}
-        />
-      }
-      tabs={AuditUser.tabs}
-      userId={userId}
-    />
-  );
-};
-
-AuditUser.tabs = [
+AuditUserDetail.tabs = [
   { path: "activity", title: "Activity", component: AuditUserActivityTab },
   { path: "details", title: "Account details" },
   { path: "data_permissions", title: "Data permissions" },
@@ -61,4 +62,4 @@ AuditUser.tabs = [
   { path: "log", title: "Audit log", component: AuditUserAuditLogTab },
 ];
 
-export default AuditUser;
+export default AuditUserDetail;

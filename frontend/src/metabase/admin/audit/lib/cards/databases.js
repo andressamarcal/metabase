@@ -22,8 +22,8 @@ export const totalQueryExecutionsByDb = () => ({
 
 export const queryExecutionsPerDbPerDay = () => ({
   card: {
-    name: "Active users and queries per day (FIXME: unpivot database)",
-    display: "table",
+    name: "Active users and queries per day",
+    display: "line",
     dataset_query: {
       type: "internal",
       fn: "metabase.audit.pages.databases/query-executions-per-db-per-day",

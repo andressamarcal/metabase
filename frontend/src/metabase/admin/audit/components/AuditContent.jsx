@@ -7,16 +7,10 @@ import Radio from "metabase/components/Radio";
 import _ from "underscore";
 
 export default class AuditContent extends React.Component {
-  state = {
-    tabPath: null,
-  };
   render() {
-    const { title, subtitle, tabs, children } = this.props;
-    const { tabPath } = this.state;
-    const tab =
-      _.findWhere(tabs, { path: tabPath }) ||
-      (tabs && (_.findWhere(tabs, { default: true }) || tabs[0]));
-    const TabComponent = tab && (tab.component || AuditEmptyTab);
+    const { title, subtitle, tabs, children, location, ...props } = this.props;
+    // HACK: remove the last component to get the base page path. won't work with tabs using IndexRoute (IndexRedirect ok)
+    const pagePath = location.pathname.replace(/\/\w+$/, "");
     return (
       <div className="py4 flex flex-column flex-full">
         <div className="px4">
@@ -26,19 +20,22 @@ export default class AuditContent extends React.Component {
         {tabs && (
           <div className="border-bottom px4">
             <Radio
+              links
               underlined
               options={tabs.filter(tab => tab.component)} // hide tabs that aren't implemented
-              value={tab && tab.path}
-              onChange={tabPath => this.setState({ tabPath })}
-              optionValueFn={o => o.path}
-              optionNameFn={o => o.title}
-              optionKeyFn={o => o.path}
+              optionValueFn={tab => `${pagePath}/${tab.path}`}
+              optionNameFn={tab => tab.title}
+              optionKeyFn={tab => tab.path}
             />
           </div>
         )}
         <div className="px4 full-height">
-          {children}
-          {TabComponent && <TabComponent {...this.props} />}
+          {/* This allows the parent component to inject props into child route components, e.x. userId */}
+          {React.Children.count(children) === 1 &&
+          // NOTE: workaround for https://github.com/facebook/react/issues/12136
+          !Array.isArray(children)
+            ? React.cloneElement(React.Children.only(children), props)
+            : children}
         </div>
       </div>
     );
