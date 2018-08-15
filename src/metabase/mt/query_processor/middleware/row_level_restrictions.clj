@@ -14,8 +14,12 @@
             [metabase.models.query.permissions :as query-perms]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
             [metabase.mt.query-processor.middleware.util :as mt-util]
+            [metabase.query-processor :as qp]
+            [metabase.query-processor
+             [interface :as qpi]
+             [util :as qputil]]
             [metabase.query-processor.middleware.log :as log-query]
-            [metabase.query-processor.util :as qputil]
+            [metabase.query-processor.middleware.binning :as binning]
             [metabase.util.schema :as su]
             [puppetlabs.i18n.core :refer [tru]]
             [schema.core :as s]
@@ -61,12 +65,11 @@
 ;;; |                                     Fetching Appropriate GTAPs for a Table                                     |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-
-(defn- gtap-for-table [outer-query]
+(defn- gtap-for-table [outer-query table-or-table-id]
   (let [groups (db/select-field :group_id PermissionsGroupMembership :user_id (u/get-id (:user outer-query)))]
     (if (seq groups)
       (let [[gtap & more-gtaps] (db/select GroupTableAccessPolicy :group_id [:in groups]
-                                           :table_id (query->source-table-id outer-query))]
+                                           :table_id (u/get-id table-or-table-id))]
         (if (seq more-gtaps)
           (throw (RuntimeException. (str (tru "Found more than one group table access policy for user ''{0}''"
                                               (get-in outer-query [:user :email])))))
@@ -133,14 +136,34 @@
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
+;;; |                                          Should a Query Get GTAPped?                                           |
+;;; +----------------------------------------------------------------------------------------------------------------+
+
+(defn- table-should-have-segmented-permissions?
+  "Determine whether we should apply segmented permissions for `table-or-table-id`.
+
+    (table-should-have-segmented-permissions? outer-query) ; -> true"
+  [table-or-table-id]
+  (boolean
+   ;; Check whether the query uses a source Table (e.g., whether it is an MBQL query)
+   (when-let [id (and *current-user-id* table-or-table-id (u/get-id table-or-table-id))]
+     (let [table (db/select-one ['Table :id :db_id :schema] :id id)]
+       (and
+        ;; User does not have full data access
+        (not (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-query-path table)))
+        ;; User does have segmented access
+        (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-segmented-query-path table)))))))
+
+;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                           Applying GTAPs to a Query                                            |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
 (defn- apply-row-level-permissions
   "Does the work of swapping the given table the user was querying against with a nested subquery that restricts the
-  rows returned"
-  [qp outer-query]
-  (if-let [{:keys [attribute_remappings] :as gtap} (gtap-for-table outer-query)]
+  rows returned. Will return the original query if there are no segmented permissions found"
+  [outer-query]
+  (if-let [{:keys [attribute_remappings] :as gtap} (and (table-should-have-segmented-permissions? (query->source-table-id outer-query))
+                                                        (gtap-for-table outer-query (query->source-table-id outer-query)))]
     (let [login-attributes (qputil/get-in-normalized outer-query [:user :login-attributes])]
       (-> outer-query
           (assoc :database    (gtap->database-id gtap)
@@ -152,45 +175,54 @@
           (update :query qputil/dissoc-normalized :source-table)
           (update :query assoc :source-table (gtap->source-table gtap))
           (update :parameters into (map #(attr-remapping->parameter login-attributes %)
-                                         attribute_remappings))
-          qp))
-    (qp outer-query)))
+                                        attribute_remappings))))
+    outer-query))
 
+(defn create-join-query
+  "Create a `JoinQuery` with a new GTAP query used for the join and using the original `JoinTable` data from
+  `join-table`"
+  [join-table gtap {:keys [database user user-attributes] :as orig-query}]
+  (let [new-query-params  (map #(attr-remapping->parameter (:login_attributes user) %) (:attribute_remappings gtap))]
+    (qpi/map->JoinQuery
+     (-> join-table
+         (select-keys [:table-id :join-alias :source-field :pk-field :schema])
+         (assoc :query (qp/expand {:database        (u/get-id database)
+                                   :type            :query
+                                   :user            user
+                                   :user-attributes user-attributes
+                                   :query           {:source-table (gtap->source-table gtap)}
+                                   :parameters      new-query-params}))))))
 
-;;; +----------------------------------------------------------------------------------------------------------------+
-;;; |                                          Should a Query Get GTAPped?                                           |
-;;; +----------------------------------------------------------------------------------------------------------------+
-
-(defn- query-should-have-segmented-permissions?
-  "Determine whether we should apply segmented permissions for `query`.
-
-    (query-should-have-segmented-permissions? outer-query) ; -> true"
+(defn- apply-row-level-permissions-for-joins
+  "Looks in the `:join-tables` of the query for segmented permissions. If any are found, swap them for a gtap
+  otherwise return the original query"
   [query]
-  (boolean
-   ;; Check whether the query uses a source Table (e.g., whether it is an MBQL query)
-   (when-let [source-table-id (and *current-user-id* (query->source-table-id query))]
-     (let [table (db/select-one ['Table :id :db_id :schema] :id source-table-id)]
-       (and
-        ;; User does not have full data access
-        (not (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-query-path table)))
-        ;; User does have segmented access
-        (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-segmented-query-path table)))))))
-
+  (let [join-tables     (qputil/get-in-query query [:join-tables])
+        table-ids->gtap (into {} (for [{:keys [table-id]} join-tables
+                                       :when (table-should-have-segmented-permissions? table-id)]
+                                   [table-id (gtap-for-table query table-id)]))]
+    (if (seq table-ids->gtap)
+      (-> query
+          (update :gtap-perms into (mapcat gtap->perms-set (vals table-ids->gtap)))
+          (qputil/assoc-in-query [:join-tables] (for [{:keys [table-id] :as jt} join-tables]
+                                                  (if-let [gtap (get table-ids->gtap table-id)]
+                                                    (create-join-query jt gtap query)
+                                                    jt))))
+      query)))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                 The Middleware Itself & Logic for Injecting It                                 |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-(defn maybe-apply-row-level-permissions
-  "Applies row level permissions if the user has segmented permissions. If the user has full permissions, the data
-  just passes through with no changes"
-  [qp]
-  (fn [query]
-    (if (query-should-have-segmented-permissions? query)
-      (apply-row-level-permissions qp query)
-      (qp query))))
+(defn- inject-middleware
+  [middleware]
+  (fn [qp]
+    (comp qp middleware)))
 
 (defn update-qp-pipeline
   "Update the query pipeline atom to include the row level restrictions middleware. Intended to be called on startup."
   []
-  (mt-util/update-qp-pipeline #'log-query/log-initial-query #'maybe-apply-row-level-permissions))
+  (mt-util/update-qp-pipeline #'log-query/log-initial-query
+                              (inject-middleware #'apply-row-level-permissions))
+  (mt-util/update-qp-pipeline #'binning/update-binning-strategy
+                              (inject-middleware #'apply-row-level-permissions-for-joins)))
