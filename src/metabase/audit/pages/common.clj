@@ -12,7 +12,7 @@
 
 (def ^:private ^:const default-limit 1000)
 
-(defn query [query-map]
+(defn query {:style/indent 0} [query-map]
   (let [{:keys [limit offset]} internal-queries/*additional-query-params*]
     (db/query (merge
                {:limit  (or limit default-limit)
