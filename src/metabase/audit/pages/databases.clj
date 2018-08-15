@@ -1,8 +1,7 @@
 (ns metabase.audit.pages.databases
   (:require [honeysql.core :as hsql]
             [metabase.audit.pages.common :as common]
-            [schema.core :as s]
-            [toucan.db :as db]))
+            [schema.core :as s]))
 
 ;; SELECT
 ;;   db.id AS database_id,
@@ -21,7 +20,7 @@
               [:database_name    {:display_name "Database",               :base_type :type/Text,    :remapped_from :database_id}]
               [:queries          {:display_name "Queries",                :base_type :type/Integer}]
               [:avg_running_time {:display_name "Avg. Running Time (ms)", :base_type :type/Decimal}]]
-   :results  (db/query
+   :results  (common/query
               {:select   [[:db.id :database_id]
                           [:db.name :database_name]
                           [:%count.* :queries]
@@ -39,7 +38,7 @@
               [:database_id   {:display_name "Database ID",   :base_type :type/Integer, :remapped_to   :database_name}]
               [:database_name {:display_name "Database Name", :base_type :type/Name,    :remapped_from :database_id}]
               [:count         {:display_name "Count",         :base_type :type/Integer}]]
-   :results  (db/query
+   :results  (common/query
               {:with      [[:qx {:select    [[(common/grouped-datetime datetime-unit :qe.started_at) :date]
                                              :card.database_id
                                              [:%count.* :count]]
@@ -89,7 +88,7 @@
               [:sync_schedule {:display_name "Sync Schedule", :base_type :type/Text}]
               [:schemas       {:display_name "Schemas",       :base_type :type/Integer}]
               [:tables        {:display_name "Tables",        :base_type :type/Integer}]]
-   :results  (db/query
+   :results  (common/query
               {:with      [[:counts {:select   [[:db_id :id]
                                                 [(hsql/call :distinct-count :schema) :schemas]
                                                 [:%count.* :tables]]

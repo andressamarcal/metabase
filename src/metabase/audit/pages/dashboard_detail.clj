@@ -1,7 +1,7 @@
 (ns metabase.audit.pages.dashboard-detail
   "Detail page for a single dashboard."
   (:require [honeysql.core :as hsql]
-            [metabase.audit.pages.common :as audit-common]
+            [metabase.audit.pages.common :as common]
             [metabase.audit.pages.common
              [card-and-dashboard-detail :as card-and-dash-detail]
              [cards :as cards]]
@@ -10,8 +10,7 @@
              [honeysql-extensions :as hx]
              [schema :as su]
              [urls :as urls]]
-            [schema.core :as s]
-            [toucan.db :as db]))
+            [schema.core :as s]))
 
 ;; SELECT avg(running_time)
 ;; FROM query_execution
@@ -25,7 +24,7 @@
 
 (s/defn ^:internal-query-fn views-by-time
   "Get views of a Dashboard broken out by a time `unit`, e.g. `day` or `day-of-week`."
-  [dashboard-id :- su/IntGreaterThanZero, unit :- audit-common/DateTimeUnitStr]
+  [dashboard-id :- su/IntGreaterThanZero, unit :- common/DateTimeUnitStr]
   (card-and-dash-detail/views-by-time "dashboard" dashboard-id unit))
 
 (s/defn ^:internal-query-fn revision-history
@@ -99,7 +98,7 @@
               [:cache_ttl           {:display_name "Cache TTL",            :base_type :type/Number}]
               [:public_link         {:display_name "Public Link",          :base_type :type/URL}]
               [:total_views         {:display_name "Total Views",          :base_type :type/Integer}]]
-   :results  (db/query
+   :results  (common/query
               {:with      [[:card {:select [:card.*
                                             [:dc.created_at :dashcard_created_at]]
                                    :from   [[:report_dashboardcard :dc]]

@@ -8,8 +8,7 @@
              [honeysql-extensions :as hx]
              [schema :as su]
              [urls :as urls]]
-            [schema.core :as s]
-            [toucan.db :as db]))
+            [schema.core :as s]))
 
 ;; WITH last_query AS (
 ;;     SELECT max(started_at) AS started_at
@@ -78,7 +77,7 @@
               [:questions_saved  {:display_name "Questions Saved",  :base_type :type/Integer}]
               [:dashboards_saved {:display_name "Dashboards Saved", :base_type :type/Integer}]
               [:pulses_saved     {:display_name "Pulses Saved",     :base_type :type/Integer}]]
-   :results  (db/query
+   :results  (common/query
               {:with   [[:last_query {:select [[:%max.started_at :started_at]]
                                       :from   [:query_execution]
                                       :where  [:= :executor_id user-id]}]
@@ -135,7 +134,7 @@
   {:metadata [[:dashboard_id   {:display_name "Dashboard ID", :base_type :type/Integer, :remapped_to   :dashboard_name}]
               [:dashboard_name {:display_name "Dashboard",    :base_type :type/Name,    :remapped_from :dashboard_id}]
               [:count          {:display_name "Views",        :base_type :type/Integer}]]
-   :results  (db/query {:select    [[:d.id :dashboard_id]
+   :results  (common/query {:select    [[:d.id :dashboard_id]
                                     [:d.name :dashboard_name]
                                     [:%count.* :count]]
                         :from      [[:view_log :vl]]
@@ -153,7 +152,7 @@
   {:metadata [[:card_id   {:display_name "Card ID", :base_type :type/Integer, :remapped_to   :card_name}]
               [:card_name {:display_name "Card",    :base_type :type/Name,    :remapped_from :card_id}]
               [:count     {:display_name "Views",   :base_type :type/Integer}]]
-   :results  (db/query {:select    [[:d.id :card_id]
+   :results  (common/query {:select    [[:d.id :card_id]
                                     [:d.name :card_name]
                                     [:%count.* :count]]
                         :from      [[:view_log :vl]]
@@ -177,7 +176,7 @@
               [:source_db     {:display_name "Source DB",      :base_type :type/Text,    :remapped_from :database_id}]
               [:table_id      {:display_name "Table ID"        :base_type :type/Integer, :remapped_to   :table}]
               [:table         {:display_name "Table",          :base_type :type/Text,    :remapped_from :table_id}]]
-   :results (db/query
+   :results (common/query
              {:select    [[:qe.started_at :viewed_on]
                           [(hsql/call :case [:= :qe.native true] (hx/literal "Native") :else (hx/literal "GUI")) :type]
                           [:collection.id :collection_id]
@@ -204,7 +203,7 @@
               [:dashboard_name  {:display_name "Dashboard",     :base_type :type/Text,    :remapped_from :dashboard_id}]
               [:collection_id   {:display_name "Collection ID", :base_type :type/Integer, :remapped_to   :collection_name}]
               [:collection_name {:display_name "Collection",    :base_type :type/Text,    :remapped_from :collection_id}]]
-   :results (db/query
+   :results (common/query
              {:select    [:vl.timestamp
                           [:dash.id :dashboard_id]
                           [:dash.name :dashboard_name]
@@ -223,7 +222,7 @@
   [user-id :- su/IntGreaterThanZero, model :- (s/enum "card" "dashboard"), datetime-unit :- common/DateTimeUnitStr]
   {:metadata [[:date {:display_name "Date",   :base_type (common/datetime-unit-str->base-type datetime-unit)}]
               [:views {:display_name "Views", :base_type :type/Integer}]]
-   :results (db/query
+   :results (common/query
              {:select   [[(common/grouped-datetime datetime-unit :timestamp) :date]
                          [:%count.* :views]]
               :from     [:view_log]
@@ -252,7 +251,7 @@
               [:cache_ttl           {:display_name "Cache TTL",            :base_type :type/Number}]
               [:public_link         {:display_name "Public Link",          :base_type :type/URL}]
               [:total_views         {:display_name "Total Views",          :base_type :type/Integer}]]
-   :results  (db/query
+   :results  (common/query
               {:with      [cards/avg-exec-time
                            cards/views]
                :select    [[:card.id :card_id]

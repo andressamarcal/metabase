@@ -1,6 +1,6 @@
 (ns metabase.audit.pages.tables
-  (:require [metabase.util.honeysql-extensions :as hx]
-            [toucan.db :as db]))
+  (:require [metabase.audit.pages.common :as common]
+            [metabase.util.honeysql-extensions :as hx]))
 
 ;; WITH table_executions AS (
 ;;     SELECT t.id AS table_id, count(*) AS executions
@@ -21,7 +21,7 @@
   {:metadata [[:table_id   {:display_name "Table ID",   :base_type :type/Integer, :remapped_to   :table_name}]
               [:table_name {:display_name "Table",      :base_type :type/Title,   :remapped_from :table_id}]
               [:executions {:display_name "Executions", :base_type :type/Integer}]]
-   :results  (db/query
+   :results  (common/query
               {:with [[:table_executions {:select [[:t.id :table_id]
                                                    [:%count.* :executions]]
                                           :from   [[:query_execution :qe]]

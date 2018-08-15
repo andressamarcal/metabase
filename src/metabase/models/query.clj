@@ -1,6 +1,8 @@
 (ns metabase.models.query
   "Functions related to the 'Query' model, which records stuff such as average query execution time."
-  (:require [metabase.db :as mdb]
+  (:require [metabase
+             [db :as mdb]
+             [util :as u]]
             [metabase.query-processor.util :as qputil]
             [metabase.util.honeysql-extensions :as hx]
             [toucan
@@ -8,6 +10,11 @@
              [models :as models]]))
 
 (models/defmodel Query :query)
+
+(u/strict-extend (class Query)
+  models/IModel
+  (merge models/IModelDefaults
+         {:types (constantly {:query :json})}))
 
 ;;; Helper Fns
 
@@ -36,24 +43,25 @@
                                                                         (*    0.1 execution-time-ms))
                                                                   0))))
 
-(defn- record-new-execution-time!
-  "Record the execution time for a query with QUERY-HASH that's not already present in the DB.
-   EXECUTION-TIME-MS is used as a starting point."
-  [^bytes query-hash, ^Integer execution-time-ms]
+(defn- record-new-query-entry!
+  "Record a query and its execution time for a `query` with `query-hash` that's not already present in the DB.
+  `execution-time-ms` is used as a starting point."
+  [query, ^bytes query-hash, ^Integer execution-time-ms]
   (db/insert! Query
+    :query                  query
     :query_hash             query-hash
     :average_execution_time execution-time-ms))
 
-(defn update-average-execution-time!
-  "Update the recorded average execution time for query with QUERY-HASH."
-  [^bytes query-hash, ^Integer execution-time-ms]
+(defn save-query-and-update-average-execution-time!
+  "Update the recorded average execution time (or insert a new record if needed) for `query` with `query-hash`."
+  [query, ^bytes query-hash, ^Integer execution-time-ms]
   {:pre [(instance? (Class/forName "[B") query-hash)]}
   (or
    ;; if there's already a matching Query update the rolling average
    (update-rolling-average-execution-time! query-hash execution-time-ms)
    ;; otherwise try adding a new entry. If for some reason there was a race condition and a Query entry was added in
    ;; the meantime we'll try updating that existing record
-   (try (record-new-execution-time! query-hash execution-time-ms)
+   (try (record-new-query-entry! query query-hash execution-time-ms)
         (catch Throwable e
           (or (update-rolling-average-execution-time! query-hash execution-time-ms)
               ;; rethrow e if updating an existing average execution time failed

@@ -1,4 +1,4 @@
-(ns ^:internal-query-fn ^:internal-query-fn ^:internal-query-fn metabase.query-processor.middleware.internal-queries
+(ns metabase.query-processor.middleware.internal-queries
   "Middleware that handles special `internal` type queries. `internal` queries are implementeed directly by Clojure
   functions, and do not neccesarily need to query a database to provide results; by default, they completely skip
   the rest of the normal QP pipeline. `internal` queries should look like the following:
@@ -65,13 +65,15 @@
 
 (def InternalQuery
   "Schema for a valid `internal` type query."
-  {:type                  (s/enum :internal "internal")
-   :fn                    #"^([\w\d-]+\.)*[\w\d-]+/[\w\d-]+$" ; namespace-qualified symbol
-   (s/optional-key :args) [s/Any]
-   s/Any                  s/Any})
+  {:type                    (s/enum :internal "internal")
+   :fn                      #"^([\w\d-]+\.)*[\w\d-]+/[\w\d-]+$" ; namespace-qualified symbol
+   (s/optional-key :args)   [s/Any]
+   s/Any                    s/Any})
+
+(def ^:dynamic *additional-query-params* nil)
 
 (s/defn ^:private do-internal-query
-  [{qualified-fn-str :fn, args :args} :- InternalQuery]
+  [{qualified-fn-str :fn, args :args, :as query} :- InternalQuery]
   ;; Make sure current user is a superuser
   (api/check-superuser)
   ;; now resolve the query
@@ -94,7 +96,8 @@
                         "This function will be removed in the [very] near future.")
                  qualified-fn-str)))
     ;; ok, run the query
-    (format-results (apply @fn-varr args))))
+    (format-results (binding [*additional-query-params* (dissoc query :fn :args)]
+                      (apply @fn-varr args)))))
 
 
 (defn handle-internal-queries

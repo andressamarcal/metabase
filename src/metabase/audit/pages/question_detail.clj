@@ -1,19 +1,14 @@
 (ns metabase.audit.pages.question-detail
   "Detail page for a single Card (Question)."
-  (:require [metabase.audit.pages.common :as audit-common]
+  (:require [metabase.audit.pages.common :as common]
             [metabase.audit.pages.common.card-and-dashboard-detail :as card-and-dash-detail]
-            [metabase.models
-             [card :refer [Card]]
-             [revision :as revision]]
-            [metabase.util
-             [honeysql-extensions :as hx]
-             [schema :as su]]
-            [schema.core :as s]
-            [toucan.db :as db]))
+            [metabase.models.card :refer [Card]]
+            [metabase.util.schema :as su]
+            [schema.core :as s]))
 
 (s/defn ^:internal-query-fn views-by-time
   "Get views of a Card broken out by a time `unit`, e.g. `day` or `day-of-week`."
-  [card-id :- su/IntGreaterThanZero, unit :- audit-common/DateTimeUnitStr]
+  [card-id :- su/IntGreaterThanZero, unit :- common/DateTimeUnitStr]
   (card-and-dash-detail/views-by-time "card" card-id unit))
 
 
