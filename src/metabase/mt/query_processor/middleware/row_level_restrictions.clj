@@ -101,13 +101,13 @@
       attr-value)))
 
 (defn- attr-remapping->parameter [login-attributes [attr-name target]]
-  ;; defaults attr-value to "" because if it's nil the parameter is ignored
-  ;; TODO: maybe we should just throw an exception
-  (let [attr-value       (get login-attributes attr-name "")
+  (let [attr-value       (get login-attributes attr-name ::not-found)
         maybe-field-type (target->type target)]
-    {:type   "category"
-     :target target
-     :value  (attr-value->param-value maybe-field-type attr-value)}))
+    (if (= attr-value ::not-found)
+      (throw (IllegalArgumentException. (tru "Query requires user attribute `{0}`" (name attr-name))))
+      {:type   "category"
+       :target target
+       :value  (attr-value->param-value maybe-field-type attr-value)})))
 
 (defn- gtap->database-id [{:keys [card_id table_id] :as gtap}]
   (if card_id
