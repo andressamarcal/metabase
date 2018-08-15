@@ -21,7 +21,7 @@
 ;; GROUP BY db_name, db_schema
 ;; ORDER BY count(*) DESC
 ;; LIMIT 10
-(defn ^:internal-query-fn most-queried
+(defn ^:internal-query-fn ^:deprecated most-queried
   "Query that returns the top 10 most-queried schemas, in descending order."
   []
   {:metadata [[:schema     {:display_name "Schema",     :base_type :type/Title}]
@@ -63,7 +63,7 @@
 ;; GROUP BY db_name, db_schema
 ;; ORDER BY avg_running_time DESC
 ;; LIMIT 10
-(defn ^:internal-query-fn slowest-schemas
+(defn ^:internal-query-fn ^:deprecated slowest-schemas
   "Query that returns the top 10 schemas with the slowest average query execution time in descending order."
   []
   {:metadata [[:schema           {:display_name "Schema",                    :base_type :type/Title}]
@@ -109,7 +109,7 @@
 ;; FROM schemas
 ;; LEFT JOIN cards c
 ;;   ON s.database_id = c.database_id AND s."schema" = c."schema"
-(defn ^:internal-query-fn table
+(defn ^:internal-query-fn ^:deprecated table
   "Query that returns a data for a table full of fascinating information about the different schemas in use in our
   application."
   []

@@ -276,7 +276,7 @@
            :force         (force-migrate-up-if-needed! conn liquibase)
            :down-one      (.rollback liquibase 1 "")
            :print         (println (migrations-sql liquibase))
-           :release-locks (db/execute! {:delete-from :databasechangeloglock})))
+           :release-locks (jdbc/execute! conn ["DELETE FROM databasechangeloglock"])))
        ;; Migrations were successful; disable rollback-only so `.commit` will be called instead of `.rollback`
        (jdbc/db-unset-rollback-only! conn)
        :done

@@ -15,7 +15,7 @@
 ;; JOIN metabase_database db ON t.db_id = db.id
 ;; GROUP BY db.id
 ;; ORDER BY lower(db.name) ASC
-(defn ^:internal-query-fn total-query-executions-by-db
+(defn ^:internal-query-fn ^:deprecated total-query-executions-by-db
   []
   {:metadata [[:database_id      {:display_name "Database ID",            :base_type :type/Integer, :remapped_to   :database_name}]
               [:database_name    {:display_name "Database",               :base_type :type/Text,    :remapped_from :database_id}]
