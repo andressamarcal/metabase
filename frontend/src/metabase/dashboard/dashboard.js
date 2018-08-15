@@ -515,18 +515,21 @@ function expandInlineDashboard(dashboard) {
     parameters: [],
     ...dashboard,
     ordered_cards: dashboard.ordered_cards.map(dashcard => ({
-      series: [],
       visualization_settings: {},
       parameter_mappings: [],
       ...dashcard,
       id: _.uniqueId("dashcard"),
-      card: {
-        name: "",
-        visualization_settings: {},
-        ...dashcard.card,
-        id: _.uniqueId("card"),
-      },
+      card: expandInlineCard(dashcard.card),
+      series: (dashcard.series || []).map(card => expandInlineCard(card)),
     })),
+  };
+}
+function expandInlineCard(card) {
+  return {
+    name: "",
+    visualization_settings: {},
+    ...card,
+    id: _.uniqueId("card"),
   };
 }
 
