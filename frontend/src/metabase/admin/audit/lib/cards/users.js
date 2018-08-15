@@ -110,6 +110,7 @@ export const auditLog = () => ({
     },
     visualization_settings: {
       "table.columns": [
+        { name: "card_id", enabled: true },
         { name: "viewed_by_id", enabled: true },
         { name: "type", enabled: true },
         { name: "database_id", enabled: true},
