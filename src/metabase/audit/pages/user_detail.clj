@@ -8,6 +8,7 @@
              [honeysql-extensions :as hx]
              [schema :as su]
              [urls :as urls]]
+            [ring.util.codec :as codec]
             [schema.core :as s]))
 
 ;; WITH last_query AS (
@@ -167,6 +168,9 @@
 (s/defn ^:internal-query-fn query-views
   [user-id :- su/IntGreaterThanZero]
   {:metadata [[:viewed_on     {:display_name "Viewed On",      :base_type :type/DateTime}]
+              [:card_id       {:display_name "Card ID"         :base_type :type/Integer, :remapped_to   :card_name}]
+              [:card_name     {:display_name "Query",          :base_type :type/Text,    :remapped_from :card_id}]
+              [:query_hash    {:display_name "Query Hash",     :base_type :type/Text}]
               [:type          {:display_name "Type",           :base_type :type/Text}]
               [:collection_id {:display_name "Collection ID",  :base_type :type/Integer, :remapped_to   :collection}]
               [:collection    {:display_name "Collection",     :base_type :type/Text,    :remapped_from :collection_id}]
@@ -176,25 +180,29 @@
               [:source_db     {:display_name "Source DB",      :base_type :type/Text,    :remapped_from :database_id}]
               [:table_id      {:display_name "Table ID"        :base_type :type/Integer, :remapped_to   :table}]
               [:table         {:display_name "Table",          :base_type :type/Text,    :remapped_from :table_id}]]
-   :results (common/query
-             {:select    [[:qe.started_at :viewed_on]
-                          [(hsql/call :case [:= :qe.native true] (hx/literal "Native") :else (hx/literal "GUI")) :type]
-                          [:collection.id :collection_id]
-                          [:collection.name :collection]
-                          [:u.id :saved_by_id]
-                          [(common/user-full-name :u) :saved_by]
-                          [:db.id :database_id]
-                          [:db.name :source_db]
-                          [:t.id :table_id]
-                          [:t.display_name :table]]
-              :from      [[:query_execution :qe]]
-              :join      [[:metabase_database :db] [:= :qe.database_id :db.id]]
-              :left-join [[:report_card :card]     [:= :qe.card_id :card.id]
-                          :collection              [:= :card.collection_id :collection.id]
-                          [:core_user :u]          [:= :card.creator_id :u.id]
-                          [:metabase_table :t]     [:= :card.table_id :t.id]]
-              :where     [:= :qe.executor_id user-id]
-              :order-by  [[:qe.started_at :desc]]})})
+   :results (->> (common/query
+                  {:select    [[:qe.started_at :viewed_on]
+                               [:card.id :card_id]
+                               [(common/first-non-null :card.name (hx/literal "Ad-hoc")) :card_name]
+                               [:qe.hash :query_hash]
+                               [(hsql/call :case [:= :qe.native true] (hx/literal "Native") :else (hx/literal "GUI")) :type]
+                               [:collection.id :collection_id]
+                               [:collection.name :collection]
+                               [:u.id :saved_by_id]
+                               [(common/user-full-name :u) :saved_by]
+                               [:db.id :database_id]
+                               [:db.name :source_db]
+                               [:t.id :table_id]
+                               [:t.display_name :table]]
+                   :from      [[:query_execution :qe]]
+                   :join      [[:metabase_database :db] [:= :qe.database_id :db.id]]
+                   :left-join [[:report_card :card]     [:= :qe.card_id :card.id]
+                               :collection              [:= :card.collection_id :collection.id]
+                               [:core_user :u]          [:= :card.creator_id :u.id]
+                               [:metabase_table :t]     [:= :card.table_id :t.id]]
+                   :where     [:= :qe.executor_id user-id]
+                   :order-by  [[:qe.started_at :desc]]})
+                 (map #(update % :query_hash codec/base64-encode)))})
 
 (s/defn ^:internal-query-fn dashboard-views
   [user-id :- su/IntGreaterThanZero]
