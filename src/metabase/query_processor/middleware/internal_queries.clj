@@ -70,27 +70,45 @@
    (s/optional-key :args)   [s/Any]
    s/Any                    s/Any})
 
-(def ^:dynamic *additional-query-params* nil)
+(def ^:dynamic *additional-query-params*
+  "Additional `internal` query params beyond `type`, `fn`, and `args`. These are bound to this dynamic var which is a
+  chance to do something clever outside of the normal function args. For example audit app uses `limit` and `offset`
+  to implement paging for all audit app queries automatically."
+  nil)
+
+(def ^:private resolve-internal-query-fn-lock (Object.))
+
+(defn- resolve-internal-query-fn
+  "Returns the varr for the internal query fn."
+  [qualified-fn-str]
+  (let [[ns-str] (str/split qualified-fn-str #"/")]
+    (or
+     ;; resolve if already available...
+     (locking resolve-internal-query-fn-lock
+       (resolve (symbol qualified-fn-str))
+       ;; if not, load the namespace...
+       (require (symbol ns-str))
+       ;; ...then try resolving again
+       (resolve (symbol qualified-fn-str)))
+     ;; failing that, throw an Exception
+     (throw
+      (Exception.
+       (str (tru "Unable to run internal query function: cannot resolve {0}"
+                 qualified-fn-str)))))))
 
 (s/defn ^:private do-internal-query
   [{qualified-fn-str :fn, args :args, :as query} :- InternalQuery]
   ;; Make sure current user is a superuser
   (api/check-superuser)
   ;; now resolve the query
-  (let [[ns-str] (str/split qualified-fn-str #"/")
-        _        (require (symbol ns-str))
-        fn-varr  (or (resolve (symbol qualified-fn-str))
-                     (throw
-                      (Exception.
-                       (str (tru "Unable to run internal query function: cannot resolve {0}"
-                                 qualified-fn-str)))))]
+  (let [fn-varr (resolve-internal-query-fn qualified-fn-str)]
     ;; Make sure this is actually allowed to be a internal query fn & has the results metadata we'll need
     (when-not (:internal-query-fn (meta fn-varr))
       (throw (Exception. (str (tru "Invalid internal query function: {0} is not marked as an ^:internal-query-fn"
                                    qualified-fn-str)))))
     ;; if this function is marked deprecated log a warning.
     ;; Primarily for dev/testing purposes. TODO - remove this once v1 [beta] is done or upgrade it to use log/ + i18n
-    (when (:deprecated (meta fn-varr))
+    #_(when (:deprecated (meta fn-varr))
       (println (u/format-color 'red
                    (str "Warning: %s is marked deprecated. This is probably because it's not in the new designs. "
                         "This function will be removed in the [very] near future.")
