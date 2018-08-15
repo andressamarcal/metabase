@@ -70,6 +70,7 @@ export const queryViews = (userId: number) => ({
     },
     visualization_settings: {
       "table.columns": [
+        { name: "card_id", enabled: true },
         { name: "type", enabled: true },
         { name: "database_id", enabled: true},
         { name: "table_id", enabled: true},
