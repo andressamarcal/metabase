@@ -131,6 +131,34 @@
               qp/process-query
               qpt/rows)))))))
 
+;; When processing a query that requires a user attribute and that user attribute isn't there, throw an exception
+;; letting the user know it's missing
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+  "Query requires user attribute `cat`"
+  (call-with-segmented-perms
+   (fn [db-id]
+     (tt/with-temp* [Card [{card-id :id :as card} {:name          "magic"
+                                                   :dataset_query {:database db-id
+                                                                   :type     :query
+                                                                   :query    {:source_table (data/id :venues)}}}]
+                     PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
+                     PermissionsGroupMembership [_ {:group_id group-id
+                                                    :user_id  (users/user->id :rasta)}]
+                     GroupTableAccessPolicy [gtap {:group_id group-id
+                                                   :table_id (data/id :venues)
+                                                   :card_id card-id
+                                                   :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]}}]]
+       (add-segmented-perms db-id)
+       (users/do-with-test-user
+        :rasta
+        (fn []
+          (-> (ql/query (ql/source-table (data/id :venues))
+                        (ql/aggregation (ql/count)))
+              data/wrap-inner-query
+              (with-user-attributes {"something_random" 50})
+              qp/process-query
+              :error)))))))
+
 ;; Another basic test, same as above, but with a numeric string that needs to be coerced
 (datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
   [[10]]
@@ -333,6 +361,11 @@
            :query {:source-table (format "card__%s" card-id)
                    :aggregation [["count"]]}}))))))
 
+(defn- grant-all-segmented! [db-id & table-kwds]
+  (perms/revoke-permissions! (perms-group/all-users) db-id)
+  (doseq [table-kwd table-kwds]
+    (perms/grant-permissions! (perms-group/all-users) (perms/table-segmented-query-path (Table (data/id table-kwd))))))
+
 ;; Test that we can follow FKs to related tables and breakout by columns on those related tables. This test has
 ;; several things wrapped up which are detailed below
 ;;
@@ -357,8 +390,8 @@
                                                    :card_id card-id
                                                    :attribute_remappings {:user ["variable"
                                                                                  [:field-id (data/id :checkins :user_id)]]}}]]
-       (perms/revoke-permissions! (perms-group/all-users) db-id)
-       (perms/grant-permissions! (perms-group/all-users) (perms/table-segmented-query-path (Table (data/id :checkins))))
+
+       (grant-all-segmented! db-id :checkins)
        (perms/grant-permissions! (perms-group/all-users) (perms/table-query-path (Table (data/id :venues))))
        (perms/grant-permissions! (perms-group/all-users) (perms/table-query-path (Table (data/id :users))))
        (users/do-with-test-user
@@ -370,5 +403,126 @@
                         (ql/breakout (ql/fk-> (data/id :checkins :venue_id) (data/id :venues :price))))
               data/wrap-inner-query
               (with-user-attributes {"user" 5})
+              qp/process-query
+              qpt/rows)))))))
+
+;; Test that we're able to use a GTAP for an FK related table. For this test, the user has segmented permissions on
+;; checkins and venues, so we need to apply a GTAP to the original table (checkins) in addition to the related table
+;; (venues). This test uses a GTAP question for both tables
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries :foreign-keys)
+  [[nil 45] [1 10]]
+  (call-with-segmented-perms
+   (fn [db-id]
+     (tt/with-temp* [Card [{card-id-1 :id} {:name          "magic"
+                                            :dataset_query {:database db-id
+                                                            :type     :query
+                                                            :query    {:source_table (data/id :checkins)
+                                                                       :filter [">" (data/id :checkins :date) "2014-01-01"]}}}]
+                     Card [{card-id-2 :id} {:name          "magic"
+                                            :dataset_query {:database db-id
+                                                            :type     :query
+                                                            :query    {:source_table (data/id :venues)}}}]
+                     PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
+                     PermissionsGroupMembership [_ {:group_id group-id
+                                                    :user_id  (users/user->id :rasta)}]
+                     GroupTableAccessPolicy [gtap {:group_id group-id
+                                                   :table_id (data/id :checkins)
+                                                   :card_id card-id-1
+                                                   :attribute_remappings {:user ["variable"
+                                                                                 [:field-id (data/id :checkins :user_id)]]}}]
+                     GroupTableAccessPolicy [gtap {:group_id group-id
+                                                   :table_id (data/id :venues)
+                                                   :card_id card-id-2
+                                                   :attribute_remappings {:price ["variable"
+                                                                                  [:field-id (data/id :venues :price)]]}}]]
+       (grant-all-segmented! db-id :checkins :venues)
+       (users/do-with-test-user
+        :rasta
+        (fn []
+          (-> (ql/query (ql/source-table (data/id :checkins))
+                        (ql/aggregation (ql/count))
+                        (ql/order-by (ql/asc (ql/fk-> (data/id :checkins :venue_id) (data/id :venues :price))))
+                        (ql/breakout (ql/fk-> (data/id :checkins :venue_id) (data/id :venues :price))))
+              data/wrap-inner-query
+              (with-user-attributes {"user" 5
+                                     "price" 1})
+              qp/process-query
+              qpt/rows)))))))
+
+;; Test that the FK related table can be a "default" GTAP, i.e. a GTAP where the `card_id` is nil
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries :foreign-keys)
+  [[nil 45] [1 10]]
+  (call-with-segmented-perms
+   (fn [db-id]
+     (tt/with-temp* [Card [{card-id-1 :id} {:name          "magic"
+                                            :dataset_query {:database db-id
+                                                            :type     :query
+                                                            :query    {:source_table (data/id :checkins)
+                                                                       :filter [">" (data/id :checkins :date) "2014-01-01"]}}}]
+                     PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
+                     PermissionsGroupMembership [_ {:group_id group-id
+                                                    :user_id  (users/user->id :rasta)}]
+                     GroupTableAccessPolicy [gtap {:group_id group-id
+                                                   :table_id (data/id :checkins)
+                                                   :card_id card-id-1
+                                                   :attribute_remappings {:user ["variable"
+                                                                                 [:field-id (data/id :checkins :user_id)]]}}]
+                     GroupTableAccessPolicy [gtap {:group_id group-id
+                                                   :table_id (data/id :venues)
+                                                   :attribute_remappings {:price ["variable"
+                                                                                  [:field-id (data/id :venues :price)]]}}]]
+       (grant-all-segmented! db-id :checkins :venues)
+       (users/do-with-test-user
+        :rasta
+        (fn []
+          (-> (ql/query (ql/source-table (data/id :checkins))
+                        (ql/aggregation (ql/count))
+                        (ql/order-by (ql/asc (ql/fk-> (data/id :checkins :venue_id) (data/id :venues :price))))
+                        (ql/breakout (ql/fk-> (data/id :checkins :venue_id) (data/id :venues :price))))
+              data/wrap-inner-query
+              (with-user-attributes {"user" 5
+                                     "price" 1})
+              qp/process-query
+              qpt/rows)))))))
+
+;; Test that we have multiple FK related, segmented tables. This test has checkins with a GTAP question with venues
+;; and users having the default GTAP and segmented permissions
+(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries :foreign-keys)
+  [[nil "Quentin Sören" 45] [1 "Quentin Sören" 10]]
+  (call-with-segmented-perms
+   (fn [db-id]
+     (tt/with-temp* [Card [{card-id-1 :id} {:name          "magic"
+                                            :dataset_query {:database db-id
+                                                            :type     :query
+                                                            :query    {:source_table (data/id :checkins)
+                                                                       :filter [">" (data/id :checkins :date) "2014-01-01"]}}}]
+                     PermissionsGroup [{group-id :id} {:name "Restricted Venues"}]
+                     PermissionsGroupMembership [_ {:group_id group-id
+                                                    :user_id  (users/user->id :rasta)}]
+                     GroupTableAccessPolicy [gtap {:group_id group-id
+                                                   :table_id (data/id :checkins)
+                                                   :card_id card-id-1
+                                                   :attribute_remappings {:user ["variable"
+                                                                                 [:field-id (data/id :checkins :user_id)]]}}]
+                     GroupTableAccessPolicy [gtap {:group_id group-id
+                                                   :table_id (data/id :venues)
+                                                   :attribute_remappings {:price ["variable"
+                                                                                  [:field-id (data/id :venues :price)]]}}]
+                     GroupTableAccessPolicy [gtap {:group_id group-id
+                                                   :table_id (data/id :users)
+                                                   :attribute_remappings {:user ["variable"
+                                                                                 [:field-id (data/id :users :id)]]}}]]
+       (grant-all-segmented! db-id :checkins :venues :users)
+       (users/do-with-test-user
+        :rasta
+        (fn []
+          (-> (ql/query (ql/source-table (data/id :checkins))
+                        (ql/aggregation (ql/count))
+                        (ql/order-by (ql/asc (ql/fk-> (data/id :checkins :venue_id) (data/id :venues :price))))
+                        (ql/breakout (ql/fk-> (data/id :checkins :venue_id) (data/id :venues :price))
+                                     (ql/fk-> (data/id :checkins :user_id) (data/id :users :name))))
+              data/wrap-inner-query
+              (with-user-attributes {"user" 5
+                                     "price" 1})
               qp/process-query
               qpt/rows)))))))

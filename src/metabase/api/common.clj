@@ -497,7 +497,6 @@
     (check (not (:archived object))
       [404 {:message (tru "The object has been archived."), :error_code "archived"}])))
 
-
 (defn with-current-user-info
   "Associates the login-attributes of the current users to `m`"
   [m]

@@ -178,7 +178,7 @@ export default class GTAPModal extends React.Component {
                       },
                     ]}
                     onChange={simple => this.setState({ simple })}
-                    isVertical
+                    vertical
                   />
                 </div>
                 {!simple && (
