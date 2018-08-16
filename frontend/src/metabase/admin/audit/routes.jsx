@@ -61,6 +61,8 @@ function getDefaultTab(page) {
   );
 }
 
+import Demo from "./pages/Demo";
+
 const getRoutes = store => (
   <Route path="audit" title={t`Audit`} component={AuditApp}>
     {/* <IndexRedirect to="overview" /> */}
@@ -80,6 +82,8 @@ const getRoutes = store => (
     {getPageRoutes("question/:questionId", AuditQuestionDetail)}
     {getPageRoutes("members", AuditUsers)}
     {getPageRoutes("member/:userId", AuditUserDetail)}
+
+    <Route path="demo" component={Demo} />
   </Route>
 );
 
