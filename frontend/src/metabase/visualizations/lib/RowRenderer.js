@@ -133,9 +133,6 @@ export default function rowRenderer(
   // inital render
   chart.render();
 
-  // add a class our CSS can target
-  chart.svg().classed("rowChart", true);
-
   // bottom label height
   let axisLabelHeight = 0;
   if (settings["graph.y_axis.labels_enabled"]) {
@@ -186,8 +183,14 @@ export default function rowRenderer(
 
   // hide overlapping x-axis labels
   if (checkXAxisLabelOverlap(chart, ".axis text")) {
-    chart.selectAll(".axis").remove();
+    chart
+      .selectAll(".tick text")[0]
+      .slice(1, -1)
+      .forEach(e => e.remove());
   }
+
+  // add a class our CSS can target
+  chart.svg().classed("rowChart", true);
 
   return () => {
     dc.chartRegistry.deregister(chart);
