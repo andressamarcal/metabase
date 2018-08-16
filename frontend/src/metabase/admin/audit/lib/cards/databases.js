@@ -2,7 +2,7 @@
 
 export const totalQueryExecutionsByDb = () => ({
   card: {
-    name: "Active users and queries per day",
+    name: "Total queries and their average speed",
     display: "bar",
     dataset_query: {
       type: "internal",
@@ -23,7 +23,7 @@ export const totalQueryExecutionsByDb = () => ({
 // DEPRECATED
 export const queryExecutionsPerDbPerDay = () => ({
   card: {
-    name: "Active users and queries per day",
+    name: "Queries per database each day",
     display: "line",
     dataset_query: {
       type: "internal",

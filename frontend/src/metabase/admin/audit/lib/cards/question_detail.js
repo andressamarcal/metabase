@@ -2,7 +2,7 @@
 
 export const viewsByTime = (questionId: number) => ({
   card: {
-    name: "Views by time",
+    name: "Views per day",
     display: "line",
     dataset_query: {
       type: "internal",
@@ -32,6 +32,12 @@ export const auditLog = (questionId: number) => ({
       type: "internal",
       fn: "metabase.audit.pages.question-detail/audit-log",
       args: [questionId],
+    },
+    visualization_settings: {
+      "table.columns": [
+        { name: "user_id", enabled: true },
+        { name: "when", enabled: true},
+      ],
     },
   },
 });

@@ -40,11 +40,11 @@ const AuditUserActivityTab = ({ userId }) => (
       // [{ x: 8, y: 0, w: 4, h: 4 }, UserDetailCards.pulses(userId)],
       // [{ x: 12, y: 0, w: 4, h: 4 }, UserDetailCards.collections(userId)],
       [
-        { x: 0, y: 4, w: 8, h: 8 },
+        { x: 0, y: 0, w: 8, h: 8 },
         UserDetailCards.mostViewedDashboards(userId),
       ],
-      [{ x: 8, y: 4, w: 8, h: 8 }, UserDetailCards.mostViewedQuestions(userId)],
-      [{ x: 0, y: 12, w: 16, h: 8 }, UserDetailCards.objectViewsByTime(userId)],
+      [{ x: 8, y: 0, w: 8, h: 8 }, UserDetailCards.mostViewedQuestions(userId)],
+      [{ x: 0, y: 8, w: 16, h: 8 }, UserDetailCards.objectViewsByTime(userId)],
     ]}
   />
 );

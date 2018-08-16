@@ -14,12 +14,12 @@ const AuditQuestions = props => (
 const AuditQuestionsOverviewTab = () => (
   <AuditDashboard
     cards={[
+      [{ x: 0, y: 0, w: 9, h: 9 }, QueriesCards.mostPopular()],
+      [{ x: 9, y: 0, w: 9, h: 9 }, QueriesCards.slowest()],
       [
-        { x: 0, y: 0, w: 18, h: 9 },
+        { x: 0, y: 9, w: 18, h: 6 },
         QueriesCards.viewsAndAvgExecutionTimeByDay(),
       ],
-      [{ x: 0, y: 9, w: 9, h: 9 }, QueriesCards.mostPopular()],
-      [{ x: 9, y: 9, w: 9, h: 9 }, QueriesCards.slowest()],
     ]}
   />
 );

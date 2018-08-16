@@ -34,7 +34,7 @@ const AuditDashboardDetail = ({ params, ...props }: Props) => {
 const AuditDashboardActivityTab = ({ dashboardId }) => (
   <AuditDashboard
     cards={[
-      [{ x: 0, y: 4, w: 18, h: 4 }, DashboardCards.viewsByTime(dashboardId)],
+      [{ x: 0, y: 0, w: 18, h: 10 }, DashboardCards.viewsByTime(dashboardId)],
     ]}
   />
 );

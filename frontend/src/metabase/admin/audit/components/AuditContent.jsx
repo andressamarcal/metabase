@@ -14,11 +14,11 @@ export default class AuditContent extends React.Component {
     return (
       <div className="py4 flex flex-column flex-full">
         <div className="px4">
-          <h1>{title}</h1>
+          <h2 className="PageTitle">{title}</h2>
           {subtitle && <div className="my1">{subtitle}</div>}
         </div>
         {tabs && (
-          <div className="border-bottom px4">
+          <div className="border-bottom px4 mt1">
             <Radio
               links
               underlined

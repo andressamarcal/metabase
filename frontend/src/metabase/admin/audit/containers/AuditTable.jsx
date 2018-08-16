@@ -32,7 +32,7 @@ export default class AuditTable extends React.Component {
 
     return (
       <QuestionLoadAndDisplay
-        className="mt2"
+        className="mt3"
         question={question}
         actionsForClick={auditActionsForClick}
         onChangeLocation={onChangeLocation}
