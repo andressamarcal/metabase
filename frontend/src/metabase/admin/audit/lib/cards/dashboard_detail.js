@@ -24,6 +24,18 @@ export const revisionHistory = (dashboardId: number) => ({
   },
 });
 
+export const cards = (dashboardId: number) => ({
+  card: {
+    name: "Cards",
+    display: "table",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase.audit.pages.dashboard-detail/cards",
+      args: [dashboardId],
+    },
+  },
+});
+
 export const auditLog = (dashboardId: number) => ({
   card: {
     name: "Audit log",
@@ -36,7 +48,7 @@ export const auditLog = (dashboardId: number) => ({
     visualization_settings: {
       "table.columns": [
         { name: "user_id", enabled: true },
-        { name: "when", enabled: true},
+        { name: "when", enabled: true },
       ],
     },
   },

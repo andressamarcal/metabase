@@ -8,7 +8,7 @@ import AuditTable from "../containers/AuditTable";
 
 import EntityName from "metabase/entities/containers/EntityName";
 
-import * as AuditDatabaseDetailCards from "../lib/cards/database_detail";
+import * as DatabaseDetailCards from "../lib/cards/database_detail";
 
 type Props = {
   params: { [key: string]: string },
@@ -33,7 +33,7 @@ const AuditDatabaseDetail = ({ params, ...props }: Props) => {
 };
 
 const AuditDatabaseAuditLogTab = ({ databaseId }) => (
-  <AuditTable table={AuditDatabaseDetailCards.auditLog(databaseId)} />
+  <AuditTable table={DatabaseDetailCards.auditLog(databaseId)} />
 );
 
 AuditDatabaseDetail.tabs = [

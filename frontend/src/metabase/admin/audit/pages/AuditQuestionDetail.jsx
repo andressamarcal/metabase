@@ -12,7 +12,7 @@ import EntityName from "metabase/entities/containers/EntityName";
 
 import * as Urls from "metabase/lib/urls";
 
-import * as QuestionCards from "../lib/cards/question_detail";
+import * as QuestionDetailCards from "../lib/cards/question_detail";
 
 type Props = {
   params: { [key: string]: string },
@@ -34,17 +34,20 @@ const AuditQuestionDetail = ({ params, ...props }: Props) => {
 const AuditQuestionActivityTab = ({ questionId }) => (
   <AuditDashboard
     cards={[
-      [{ x: 0, y: 4, w: 18, h: 4 }, QuestionCards.viewsByTime(questionId)],
+      [
+        { x: 0, y: 4, w: 18, h: 4 },
+        QuestionDetailCards.viewsByTime(questionId),
+      ],
     ]}
   />
 );
 
 const AuditQuestionRevisionsTab = ({ questionId }) => (
-  <AuditTable table={QuestionCards.revisionHistory(questionId)} />
+  <AuditTable table={QuestionDetailCards.revisionHistory(questionId)} />
 );
 
 const AuditQuestionAuditLogTab = ({ questionId }) => (
-  <AuditTable table={QuestionCards.auditLog(questionId)} />
+  <AuditTable table={QuestionDetailCards.auditLog(questionId)} />
 );
 
 AuditQuestionDetail.tabs = [

@@ -51,6 +51,10 @@ export const mostActive = () => ({
       fn: "metabase.audit.pages.users/most-active",
       args: [],
     },
+    visualization_settings: {
+      "graph.x_axis.axis_enabled": true,
+      "graph.x_axis.title_text": "Views",
+    },
   },
 });
 
@@ -90,10 +94,10 @@ export const table = () => ({
     visualization_settings: {
       "table.columns": [
         { name: "user_id", enabled: true },
-        { name: "groups", enabled: true},
+        { name: "groups", enabled: true },
         { name: "date_joined", enabled: true },
-        { name: "last_active", enabled: true},
-        { name: "signup_method", enabled: true},
+        { name: "last_active", enabled: true },
+        { name: "signup_method", enabled: true },
       ],
     },
   },
@@ -113,10 +117,10 @@ export const auditLog = () => ({
         { name: "card_id", enabled: true },
         { name: "viewed_by_id", enabled: true },
         { name: "type", enabled: true },
-        { name: "database_id", enabled: true},
-        { name: "table_id", enabled: true},
-        { name: "collection_id", enabled: true},
-        { name: "viewed_on", enabled: true},
+        { name: "database_id", enabled: true },
+        { name: "table_id", enabled: true },
+        { name: "collection_id", enabled: true },
+        { name: "viewed_on", enabled: true },
       ],
     },
   },
@@ -131,4 +135,16 @@ export const auditLog = () => ({
       },
     },
   ],
+});
+
+export const dashboardViews = () => ({
+  card: {
+    name: "Dashboard views",
+    display: "table",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase.audit.pages.users/dashboard-views",
+      args: [],
+    },
+  },
 });

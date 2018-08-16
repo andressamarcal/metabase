@@ -20,6 +20,7 @@ export const totalQueryExecutionsByDb = () => ({
   },
 });
 
+// DEPRECATED
 export const queryExecutionsPerDbPerDay = () => ({
   card: {
     name: "Active users and queries per day",
@@ -28,6 +29,26 @@ export const queryExecutionsPerDbPerDay = () => ({
       type: "internal",
       fn: "metabase.audit.pages.databases/query-executions-per-db-per-day",
       args: [],
+    },
+    visualization_settings: {
+      "graph.dimensions": ["date", "database_id"],
+      "graph.metrics": ["count"],
+    },
+  },
+});
+
+export const queryExecutionsByTime = () => ({
+  card: {
+    name: "Query executions per day",
+    display: "line",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase.audit.pages.databases/query-executions-by-time",
+      args: ["day"],
+    },
+    visualization_settings: {
+      "graph.dimensions": ["date", "database_id"],
+      "graph.metrics": ["count"],
     },
   },
 });
@@ -43,11 +64,11 @@ export const table = () => ({
     },
     visualization_settings: {
       "table.columns": [
-        { name: "database_id", enabled: true},
-        { name: "schemas", enabled: true},
-        { name: "tables", enabled: true},
-        { name: "sync_schedule", enabled: true},
-        { name: "added_on", enabled: true},
+        { name: "database_id", enabled: true },
+        { name: "schemas", enabled: true },
+        { name: "tables", enabled: true },
+        { name: "sync_schedule", enabled: true },
+        { name: "added_on", enabled: true },
       ],
     },
   },

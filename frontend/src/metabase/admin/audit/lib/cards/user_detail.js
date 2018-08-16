@@ -72,11 +72,47 @@ export const queryViews = (userId: number) => ({
       "table.columns": [
         { name: "card_id", enabled: true },
         { name: "type", enabled: true },
-        { name: "database_id", enabled: true},
-        { name: "table_id", enabled: true},
-        { name: "collection_id", enabled: true},
-        { name: "viewed_on", enabled: true},
+        { name: "database_id", enabled: true },
+        { name: "table_id", enabled: true },
+        { name: "collection_id", enabled: true },
+        { name: "viewed_on", enabled: true },
       ],
+    },
+  },
+});
+
+export const dashboardViews = (userId: number) => ({
+  card: {
+    name: "Dashboard views",
+    display: "table",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase.audit.pages.user-detail/dashboard-views",
+      args: [userId],
+    },
+  },
+});
+
+export const createdDashboards = (userId: number) => ({
+  card: {
+    name: "Created dashboards",
+    display: "table",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase.audit.pages.user-detail/created-dashboards",
+      args: [userId],
+    },
+  },
+});
+
+export const createdQuestions = (userId: number) => ({
+  card: {
+    name: "Created questions",
+    display: "table",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase.audit.pages.user-detail/created-questions",
+      args: [userId],
     },
   },
 });
