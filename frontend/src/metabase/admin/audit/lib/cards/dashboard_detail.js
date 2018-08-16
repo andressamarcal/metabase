@@ -2,7 +2,7 @@
 
 export const viewsByTime = (dashboardId: number) => ({
   card: {
-    name: "Views by time",
+    name: "Views per day",
     display: "line",
     dataset_query: {
       type: "internal",
