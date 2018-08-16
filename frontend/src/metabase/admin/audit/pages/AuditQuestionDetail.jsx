@@ -34,7 +34,7 @@ const AuditQuestionDetail = ({ params, ...props }: Props) => {
 const AuditQuestionActivityTab = ({ questionId }) => (
   <AuditDashboard
     cards={[
-      [{ x: 0, y: 4, w: 18, h: 4 }, QuestionCards.viewsByTime(questionId)],
+      [{ x: 0, y: 0, w: 18, h: 10 }, QuestionCards.viewsByTime(questionId)],
     ]}
   />
 );
