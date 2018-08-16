@@ -2,7 +2,7 @@
 
 export const viewsPerDay = () => ({
   card: {
-    name: "Dashboard views per day",
+    name: "Total dashboard views per day",
     display: "line",
     dataset_query: {
       type: "internal",
