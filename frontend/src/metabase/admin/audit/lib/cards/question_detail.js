@@ -33,5 +33,11 @@ export const auditLog = (questionId: number) => ({
       fn: "metabase.audit.pages.question-detail/audit-log",
       args: [questionId],
     },
+    visualization_settings: {
+      "table.columns": [
+        { name: "user_id", enabled: true },
+        { name: "when", enabled: true},
+      ],
+    },
   },
 });
