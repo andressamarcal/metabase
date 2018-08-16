@@ -157,7 +157,7 @@ export default class Demo extends React.Component {
         {dc && dc.card.display === "table" ? (
           <AuditTable table={dc} />
         ) : dc ? (
-          <AuditDashboard cards={[[[0, 0, 8, 8], dc]]} />
+          <AuditDashboard cards={[[{ x: 0, y: 0, w: 18, h: 9 }, dc]]} />
         ) : (
           <div>click a function above</div>
         )}
