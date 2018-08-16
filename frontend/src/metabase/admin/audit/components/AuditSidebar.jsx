@@ -41,17 +41,14 @@ const AuditSidebarItem = ({ title, path }) => (
   </div>
 );
 
-const AuditSidebar = ({ children }) => (
-  <div
-    style={{ width: 250, minWidth: 250, minHeight: "100vh" }}
-    className="bg-light p4"
-  >
+const AuditSidebar = ({ className, style, children }) => (
+  <div style={style} className={cx("p4", className)}>
     {children}
   </div>
 );
 
-const AuditAppSidebar = () => (
-  <AuditSidebar>
+const AuditAppSidebar = props => (
+  <AuditSidebar {...props}>
     {/* <AuditSidebarSection>
       <AuditSidebarItem title="Overview" path="/admin/audit/overview" />
     </AuditSidebarSection> */}
