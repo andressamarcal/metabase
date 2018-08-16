@@ -23,7 +23,7 @@ const AuditDatabaseDetail = ({ params, ...props }: Props) => {
         <EntityName
           entityType="databases"
           entityId={databaseId}
-          property={"display_name"}
+          property={"name"}
         />
       }
       tabs={AuditDatabaseDetail.tabs}
