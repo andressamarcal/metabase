@@ -23,3 +23,15 @@ export const leastQueried = () => ({
     },
   },
 });
+
+export const table = () => ({
+  card: {
+    name: "Tables",
+    display: "table",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase.audit.pages.tables/table",
+      args: [],
+    },
+  },
+});
