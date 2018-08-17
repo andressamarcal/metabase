@@ -47,5 +47,8 @@ export function getTableCellClickedObject(
  * Includes numbers and lat/lon coordinates, but not zip codes, IDs, etc.
  */
 export function isColumnRightAligned(column: Column) {
+  if (column && column.remapped_to_column) {
+    column = column.remapped_to_column;
+  }
   return isNumber(column) || isCoordinate(column);
 }
