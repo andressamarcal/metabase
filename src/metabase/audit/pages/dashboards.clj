@@ -111,13 +111,6 @@
                :order-by  [[:max_running_time :desc]]
                :limit     10})})
 
-;; SELECT c.id AS card_id, c.name AS card_name, count(*) AS "count"
-;; FROM report_dashboardcard dc
-;; LEFT JOIN report_card c
-;;   ON c.id = dc.card_id
-;; GROUP BY c.id
-;; ORDER BY count(*) DESC
-;; LIMIT 10
 (defn- ^:internal-query-fn ^:deprecated most-common-questions
   "Query that returns the 10 Cards that appear most often in Dashboards, in descending order."
   []
@@ -125,15 +118,14 @@
               [:card_name {:display_name "Card",    :base_type :type/Title,   :remapped_from :card_id}]
               [:count     {:display_name "Count",   :base_type :type/Integer}]]
    :results  (common/query
-              {:select    [[:c.id :card_id]
-                           [:c.name :card_name]
-                           [:%count.* :count]]
-               :from      [[:report_dashboardcard :dc]]
-               :left-join [[:report_card :c]
-                           [:= :c.id :dc.card_id]]
-               :group-by  [:c.id]
-               :order-by  [[:%count.* :desc]]
-               :limit     10})})
+              {:select   [[:c.id :card_id]
+                          [:c.name :card_name]
+                          [:%count.* :count]]
+               :from     [[:report_dashboardcard :dc]]
+               :join     [[:report_card :c] [:= :c.id :dc.card_id]]
+               :group-by [:c.id]
+               :order-by [[:%count.* :desc]]
+               :limit    10})})
 
 ;; WITH card_count AS (
 ;;   SELECT dashboard_id, count(*) AS card_count
