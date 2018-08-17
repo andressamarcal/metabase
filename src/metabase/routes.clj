@@ -57,6 +57,7 @@
   (-> (if (init-status/complete?)
         (load-template (str "frontend_client/" entry ".html")
                        {:bootstrap_json    (escape-script (json/generate-string (public-settings/public-settings)))
+                        :favicon           (escape-script (public-settings/application-favicon-url))
                         :localization_json (escape-script (load-localization))
                         :uri               (escape-script (json/generate-string uri))
                         :base_href         (escape-script (json/generate-string (base-href)))
@@ -94,7 +95,7 @@
 (defroutes ^{:doc "Top-level ring routes for Metabase."} routes
   ;; ^/$ -> index.html
   (GET "/" [] index)
-  (GET "/favicon.ico" [] (resp/resource-response "frontend_client/favicon.ico"))
+  (GET "/favicon.ico" [] (resp/resource-response public-settings/application-favicon-url))
   ;; ^/api/health -> Health Check Endpoint
   (GET "/api/health" [] (if (init-status/complete?)
                           {:status 200, :body {:status "ok"}}

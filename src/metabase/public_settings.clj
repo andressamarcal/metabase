@@ -145,6 +145,11 @@
   :type :string
   :default "app/assets/img/logo.svg")
 
+(defsetting application-favicon-url
+  "The url or image that you want to use as the favicon."
+  :type :string
+  :default "frontend_client/favicon.ico")
+
 (defsetting enable-home
   "Enable the home screen"
   :type    :boolean
@@ -215,6 +220,7 @@
    :custom_geojson        (setting/get :custom-geojson)
    :application_colors    (setting/get-json :application-colors)
    :application_logo_url  (setting/get :application-logo-url)
+   :application_favicon_url  (setting/get :application-favicon-url)
    :application_name      (setting/get :application-name)
    :email_configured      ((resolve 'metabase.email/email-configured?))
    :embedding             (enable-embedding)
