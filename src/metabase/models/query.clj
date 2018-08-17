@@ -1,6 +1,7 @@
 (ns metabase.models.query
   "Functions related to the 'Query' model, which records stuff such as average query execution time."
-  (:require [metabase
+  (:require [cheshire.core :as json]
+            [metabase
              [db :as mdb]
              [util :as u]]
             [metabase.query-processor.util :as qputil]
@@ -37,11 +38,21 @@
 (defn- update-rolling-average-execution-time!
   "Update the rolling average execution time for query with QUERY-HASH. Returns `true` if a record was updated,
    or `false` if no matching records were found."
-  ^Boolean [^bytes query-hash, ^Integer execution-time-ms]
-  (db/update-where! Query {:query_hash query-hash}
-    :average_execution_time (hx/cast (int-casting-type) (hx/round (hx/+ (hx/* 0.9 :average_execution_time)
-                                                                        (*    0.1 execution-time-ms))
-                                                                  0))))
+  ^Boolean [query, ^bytes query-hash, ^Integer execution-time-ms]
+  (let [avg-execution-time (hx/cast (int-casting-type) (hx/round (hx/+ (hx/* 0.9 :average_execution_time)
+                                                                       (*    0.1 execution-time-ms))
+                                                                 0))]
+
+    (or
+     ;; if it DOES NOT have a query (yet) set that. In 0.31.0 we added the query.query column, and it gets set for all
+     ;; new entries, so at some point in the future we can take this out, and save a DB call.
+     (db/update-where! Query {:query_hash query-hash, :query nil}
+       :query                 (json/generate-string query)
+       :average_execution_time avg-execution-time)
+     ;; if query is already set then just update average_execution_time. (We're doing this separate call to avoid
+     ;; updating query on every single UPDATE)
+     (db/update-where! Query {:query_hash query-hash}
+       :average_execution_time avg-execution-time))))
 
 (defn- record-new-query-entry!
   "Record a query and its execution time for a `query` with `query-hash` that's not already present in the DB.
@@ -58,12 +69,12 @@
   {:pre [(instance? (Class/forName "[B") query-hash)]}
   (or
    ;; if there's already a matching Query update the rolling average
-   (update-rolling-average-execution-time! query-hash execution-time-ms)
+   (update-rolling-average-execution-time! query query-hash execution-time-ms)
    ;; otherwise try adding a new entry. If for some reason there was a race condition and a Query entry was added in
    ;; the meantime we'll try updating that existing record
    (try (record-new-query-entry! query query-hash execution-time-ms)
         (catch Throwable e
-          (or (update-rolling-average-execution-time! query-hash execution-time-ms)
+          (or (update-rolling-average-execution-time! query query-hash execution-time-ms)
               ;; rethrow e if updating an existing average execution time failed
               (throw e))))))
 
