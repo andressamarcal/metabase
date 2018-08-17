@@ -4,6 +4,7 @@ import React from "react";
 
 import AuditContent from "../components/AuditContent";
 import AuditDashboard from "../containers/AuditDashboard";
+import AuditTable from "../containers/AuditTable";
 
 import * as TablesCards from "../lib/cards/tables";
 
@@ -20,9 +21,11 @@ const AuditTablesOverviewTab = () => (
   />
 );
 
+const AuditTablesAllTab = () => <AuditTable table={TablesCards.table()} />;
+
 AuditTables.tabs = [
   { path: "overview", title: "Overview", component: AuditTablesOverviewTab },
-  { path: "all", title: "All tables" },
+  { path: "all", title: "All tables", component: AuditTablesAllTab },
 ];
 
 export default AuditTables;
