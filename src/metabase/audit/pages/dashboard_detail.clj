@@ -1,15 +1,11 @@
 (ns metabase.audit.pages.dashboard-detail
   "Detail page for a single dashboard."
-  (:require [honeysql.core :as hsql]
-            [metabase.audit.pages.common :as common]
+  (:require [metabase.audit.pages.common :as common]
             [metabase.audit.pages.common
              [card-and-dashboard-detail :as card-and-dash-detail]
              [cards :as cards]]
             [metabase.models.dashboard :refer [Dashboard]]
-            [metabase.util
-             [honeysql-extensions :as hx]
-             [schema :as su]
-             [urls :as urls]]
+            [metabase.util.schema :as su]
             [schema.core :as s]))
 
 ;; SELECT avg(running_time)
@@ -116,10 +112,7 @@
                            :card.table_id
                            [:t.name :table_name]
                            :avg_exec_time.avg_running_time_ms
-                           [(hsql/call :case
-                              [:not= :card.public_uuid nil]
-                              (hx/concat (urls/public-card-prefix) :card.public_uuid))
-                            :public_link]
+                           [(common/card-public-url :card.public_uuid) :public_link]
                            :card.cache_ttl
                            [:card_views.count :total_views]]
                :from      [:card]

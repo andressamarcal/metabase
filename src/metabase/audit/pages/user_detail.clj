@@ -241,8 +241,10 @@
               :order-by [[(common/grouped-datetime datetime-unit :timestamp) :asc]]})})
 
 (s/defn ^:internal-query-fn created-dashboards
-  [user-id :- su/IntGreaterThanZero]
-  (dashboards/table [:= :u.id user-id]))
+  ([user-id]
+   (created-dashboards user-id nil))
+  ([user-id :- su/IntGreaterThanZero, query-string :- (s/maybe s/Str)]
+   (dashboards/table query-string [:= :u.id user-id])))
 
 (s/defn ^:internal-query-fn created-questions
   [user-id :- su/IntGreaterThanZero]

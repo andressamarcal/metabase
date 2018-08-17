@@ -1,6 +1,7 @@
 (ns metabase.audit.pages.schemas
   (:require [metabase.audit.pages.common :as common]
-            [metabase.util.honeysql-extensions :as hx]))
+            [metabase.util.honeysql-extensions :as hx]
+            [schema.core :as s]))
 
 ;; WITH counts AS (
 ;;     SELECT db."name" AS db_name, t."schema" AS db_schema
@@ -109,35 +110,43 @@
 ;; FROM schemas
 ;; LEFT JOIN cards c
 ;;   ON s.database_id = c.database_id AND s."schema" = c."schema"
-(defn ^:internal-query-fn ^:deprecated table
+(s/defn ^:internal-query-fn ^:deprecated table
   "Query that returns a data for a table full of fascinating information about the different schemas in use in our
   application."
-  []
-  {:metadata [[:database      {:display_name "Database",      :base_type :type/Title}]
-              [:schema        {:display_name "Schema",        :base_type :type/Title}]
-              [:tables        {:display_name "Tables",        :base_type :type/Integer}]
-              [:saved_queries {:display_name "Saved Queries", :base_type :type/Integer}]]
-   :results  (common/query
-              {:with      [[:cards {:select    [[:t.db_id :database_id]
-                                                :t.schema
-                                                [:%count.* :saved_count]]
-                                    :from      [[:report_card :c]]
-                                    :left-join [[:metabase_table :t] [:= :c.table_id :t.id]]
-                                    :where     [:not= :c.table_id nil]
-                                    :group-by  [:t.db_id :t.schema]}]
-                           [:schemas {:select    [[:db.id :database_id]
-                                                  [:db.name :database_name]
-                                                  :t.schema
-                                                  [:%count.* :tables]]
-                                      :from      [[:metabase_table :t]]
-                                      :left-join [[:metabase_database :db] [:= :t.db_id :db.id]]
-                                      :group-by  [:db.id :t.schema]
-                                      :order-by  [[:db.id :asc] [:t.schema :asc]]}]]
-               :select    [[:s.database_name :database]
-                           :s.schema
-                           :s.tables
-                           [:c.saved_count :saved_queries]]
-               :from      [[:schemas :s]]
-               :left-join [[:cards :c] [:and
-                                        [:= :s.database_id :c.database_id]
-                                        [:= :s.schema :c.schema]]]})})
+  ([]
+   (table nil))
+  ([query-string :- (s/maybe s/Str)]
+   {:metadata [[:database_id   {:display_name "Database ID",   :base_type :type/Integer, :remapped_to   :database}]
+               [:database      {:display_name "Database",      :base_type :type/Title,   :remapped_from :database_id}]
+               [:schema_id     {:display_name "Schema ID",     :base_type :type/Text,    :remapped_to   :schema}]
+               [:schema        {:display_name "Schema",        :base_type :type/Title,   :remapped_from :schema_id}]
+               [:tables        {:display_name "Tables",        :base_type :type/Integer}]
+               [:saved_queries {:display_name "Saved Queries", :base_type :type/Integer}]]
+    :results  (common/query
+                (->
+                 {:with      [[:cards {:select    [[:t.db_id :database_id]
+                                                   :t.schema
+                                                   [:%count.* :saved_count]]
+                                       :from      [[:report_card :c]]
+                                       :left-join [[:metabase_table :t] [:= :c.table_id :t.id]]
+                                       :where     [:not= :c.table_id nil]
+                                       :group-by  [:t.db_id :t.schema]}]
+                              [:schemas {:select    [[:db.id :database_id]
+                                                     [:db.name :database_name]
+                                                     :t.schema
+                                                     [:%count.* :tables]]
+                                         :from      [[:metabase_table :t]]
+                                         :left-join [[:metabase_database :db] [:= :t.db_id :db.id]]
+                                         :group-by  [:db.id :t.schema]
+                                         :order-by  [[:db.id :asc] [:t.schema :asc]]}]]
+                  :select    [:s.database_id
+                              [:s.database_name :database]
+                              [(hx/concat :s.database_id (hx/literal ".") :s.schema) :schema_id]
+                              :s.schema
+                              :s.tables
+                              [:c.saved_count :saved_queries]]
+                  :from      [[:schemas :s]]
+                  :left-join [[:cards :c] [:and
+                                           [:= :s.database_id :c.database_id]
+                                           [:= :s.schema :c.schema]]]}
+                 (common/add-search-clause query-string :s.schema)))}))
