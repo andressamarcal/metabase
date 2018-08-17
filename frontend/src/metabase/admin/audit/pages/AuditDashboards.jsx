@@ -15,7 +15,7 @@ const AuditDashboards = props => (
 const AuditDashboardsOverviewTab = () => (
   <AuditDashboard
     cards={[
-      [{ x: 0, y: 0, w: 18, h: 4 }, DashboardCards.viewsPerDay()],
+      [{ x: 0, y: 0, w: 18, h: 4 }, DashboardCards.viewsAndSavesByTime()],
       [{ x: 0, y: 5, w: 9, h: 9 }, DashboardCards.slowest()],
       [{ x: 9, y: 5, w: 9, h: 9 }, DashboardCards.mostCommonQuestions()],
     ]}

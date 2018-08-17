@@ -22,6 +22,9 @@ export const viewsAndSavesByTime = () => ({
       fn: "metabase.audit.pages.dashboards/views-and-saves-by-time",
       args: ["day"],
     },
+    visualization_settings: {
+      "graph.y_axis.axis_enabled": true,
+    },
   },
 });
 
