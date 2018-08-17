@@ -58,7 +58,7 @@
   ([query-string :- (s/maybe s/Str)]
    {:metadata [[:database_id        {:display_name "Database ID",        :base_type :type/Integer, :remapped_to   :database_name}]
                [:database_name      {:display_name "Database",           :base_type :type/Text,    :remapped_from :database_id}]
-               [:schema_id          {:display_name "Schema ID",          :base_type :type/Integer, :remapped_to   :schema_name}]
+               [:schema_id          {:display_name "Schema ID",          :base_type :type/Text,   :remapped_to   :schema_name}]
                [:table_schema       {:display_name "Schema",             :base_type :type/Text,    :remapped_from :schema_id}]
                [:table_id           {:display_name "Table ID",           :base_type :type/Integer, :remapped_to   :table_name}]
                [:table_name         {:display_name "Table Name in DB",   :base_type :type/Name,    :remapped_from :table_id}]

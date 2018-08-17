@@ -116,8 +116,10 @@
   ([]
    (table nil))
   ([query-string :- (s/maybe s/Str)]
-   {:metadata [[:database      {:display_name "Database",      :base_type :type/Title}]
-               [:schema        {:display_name "Schema",        :base_type :type/Title}]
+   {:metadata [[:database_id   {:display_name "Database ID",   :base_type :type/Integer, :remapped_to   :database}]
+               [:database      {:display_name "Database",      :base_type :type/Title,   :remapped_from :database_id}]
+               [:schema_id     {:display_name "Schema ID",     :base_type :type/Text,    :remapped_to   :schema}]
+               [:schema        {:display_name "Schema",        :base_type :type/Title,   :remapped_from :schema_id}]
                [:tables        {:display_name "Tables",        :base_type :type/Integer}]
                [:saved_queries {:display_name "Saved Queries", :base_type :type/Integer}]]
     :results  (common/query
@@ -137,7 +139,9 @@
                                          :left-join [[:metabase_database :db] [:= :t.db_id :db.id]]
                                          :group-by  [:db.id :t.schema]
                                          :order-by  [[:db.id :asc] [:t.schema :asc]]}]]
-                  :select    [[:s.database_name :database]
+                  :select    [:s.database_id
+                              [:s.database_name :database]
+                              [(hx/concat :s.database_id (hx/literal ".") :s.schema) :schema_id]
                               :s.schema
                               :s.tables
                               [:c.saved_count :saved_queries]]
