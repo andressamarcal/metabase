@@ -95,8 +95,8 @@ export const table = queryString => ({
       "table.columns": [
         { name: "user_id", enabled: true },
         { name: "groups", enabled: true },
-        { name: "date_joined", enabled: true },
-        { name: "last_active", enabled: true },
+        { name: "date_joined", enabled: true, date_format: "M/D/YYYY" },
+        { name: "last_active", enabled: true, date_format: "M/D/YYYY h:mm a" },
         { name: "signup_method", enabled: true },
       ],
     },
