@@ -176,7 +176,9 @@
 ;; LEFT JOIN views AS v
 ;;   ON d.id = v.dashboard_id
 ;; ORDER BY lower(d.name) ASC, dashboard_id ASC
-(defn ^:internal-query-fn table
+(s/defn ^:internal-query-fn table
   "Internal audit app query powering a table of different Dashboards with lots of extra info about them."
-  []
-  (dashboards/table))
+  ([]
+   (table nil))
+  ([query-string :- (s/maybe s/Str)]
+   (dashboards/table query-string)))
