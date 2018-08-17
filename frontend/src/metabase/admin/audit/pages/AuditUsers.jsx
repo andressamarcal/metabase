@@ -3,6 +3,7 @@
 import React from "react";
 
 import AuditContent from "../components/AuditContent";
+import AuditParameters from "../components/AuditParameters";
 import AuditDashboard from "../containers/AuditDashboard";
 import AuditTable from "../containers/AuditTable";
 
@@ -22,7 +23,19 @@ const AuditUsersOverviewTab = () => (
   />
 );
 
-const AuditUsersAllTab = () => <AuditTable table={UsersCards.table()} />;
+const AuditUsersAllTab = () => (
+  <AuditParameters
+    parameters={[
+      {
+        title: "Name",
+        key: "name",
+        placeholder: `Member name`,
+      },
+    ]}
+  >
+    {({ name }) => <AuditTable table={UsersCards.table(name)} />}
+  </AuditParameters>
+);
 
 const AuditUsersAuditLogTab = () => (
   <AuditTable table={UsersCards.auditLog()} />
