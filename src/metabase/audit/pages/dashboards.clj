@@ -92,9 +92,9 @@
 (defn- ^:internal-query-fn ^:deprecated slowest
   "Query that returns the 10 Dashboards that have the slowest average execution times, in descending order."
   []
-  {:metadata [[:dashboard_id     {:display_name "Dashboard ID",          :base_type :type/Integer, :remapped_to   :dashboard_name}]
-              [:dashboard_name   {:display_name "Dashboard",             :base_type :type/Title,   :remapped_from :dashboard_id}]
-              [:max_running_time {:display_name "Slowest Question (ms)", :base_type :type/Decimal}]]
+  {:metadata [[:dashboard_id     {:display_name "Dashboard ID",                 :base_type :type/Integer, :remapped_to   :dashboard_name}]
+              [:dashboard_name   {:display_name "Dashboard",                    :base_type :type/Title,   :remapped_from :dashboard_id}]
+              [:avg_running_time {:display_name "Avg. Question Load Time (ms)", :base_type :type/Decimal}]]
    :results  (common/query
               {:with      [[:card_running_time {:select   [:qe.card_id
                                                            [:%avg.qe.running_time :avg_running_time]]
@@ -103,12 +103,12 @@
                                                 :group-by [:qe.card_id]}]]
                :select    [[:d.id :dashboard_id]
                            [:d.name :dashboard_name]
-                           [:%max.rt.avg_running_time :max_running_time]]
+                           [:%avg.rt.avg_running_time :avg_running_time]]
                :from      [[:report_dashboardcard :dc]]
                :left-join [[:card_running_time :rt] [:= :dc.card_id :rt.card_id]
                            [:report_dashboard :d]   [:= :dc.dashboard_id :d.id]]
                :group-by  [:d.id]
-               :order-by  [[:max_running_time :desc]]
+               :order-by  [[:avg_running_time :desc]]
                :limit     10})})
 
 (defn- ^:internal-query-fn ^:deprecated most-common-questions
