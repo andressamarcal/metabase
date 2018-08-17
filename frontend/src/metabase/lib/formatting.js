@@ -279,6 +279,18 @@ export function formatTimeWithUnit(
   }
 }
 
+export function formatTimeWithFormat(
+  value: Value,
+  unit: ?DatetimeUnit,
+  dateFormat: string,
+) {
+  let m = parseTimestamp(value, unit);
+  if (!m.isValid()) {
+    return String(value);
+  }
+  return m.format(dateFormat);
+}
+
 export function formatTimeValue(value: Value) {
   let m = parseTime(value);
   if (!m.isValid()) {
@@ -357,6 +369,12 @@ export function formatValue(value: Value, options: FormattingOptions = {}) {
     return formatUrl(value, options);
   } else if (column && isa(column.special_type, TYPE.Email)) {
     return formatEmail(value, options);
+  } else if (options.date_format) {
+    return formatTimeWithFormat(
+      value,
+      column && column.unit,
+      options.date_format,
+    );
   } else if (column && isa(column.base_type, TYPE.Time)) {
     return formatTimeValue(value);
   } else if (column && column.unit != null) {

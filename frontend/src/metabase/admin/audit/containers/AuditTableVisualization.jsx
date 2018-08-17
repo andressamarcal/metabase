@@ -24,9 +24,9 @@ export default class AuditTableVisualization extends React.Component {
     } = this.props;
 
     const columnSettings = settings["table.columns"];
-    const columnIndexes = columnSettings
-      .filter(({ enabled }) => enabled)
-      .map(({ name, enabled }) => _.findIndex(cols, col => col.name === name));
+    const columnIndexes = columnSettings.map(({ name, enabled }) =>
+      _.findIndex(cols, col => col.name === name),
+    );
 
     console.group(card.dataset_query.fn);
     console.log("all:", cols.map(col => col.name));
@@ -45,11 +45,15 @@ export default class AuditTableVisualization extends React.Component {
         <tbody>
           {rows.map((row, rowIndex) => (
             <tr>
-              {columnIndexes.map(colIndex => {
+              {columnIndexes.map((colIndex, columnSettingsIndex) => {
                 const value = row[colIndex];
                 const column = cols[colIndex];
                 const clickObject = { column, value };
                 const clickable = visualizationIsClickable(clickObject);
+                const settings = columnSettings[columnSettingsIndex];
+                if (settings && !settings.enabled) {
+                  return null;
+                }
                 return (
                   <td
                     className={clickable ? "text-brand cursor-pointer" : null}
@@ -57,7 +61,7 @@ export default class AuditTableVisualization extends React.Component {
                       clickable ? () => onVisualizationClick(clickObject) : null
                     }
                   >
-                    {formatValue(value, { column })}
+                    {formatValue(value, { column, ...(settings || {}) })}
                   </td>
                 );
               })}
