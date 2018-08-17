@@ -79,28 +79,33 @@
 ;; LEFT JOIN counts
 ;;   ON db.id = counts.id
 ;; ORDER BY lower(db.name) ASC, database_id ASC
-(defn- ^:internal-query-fn table []
-  ;; TODO - Should we convert sync_schedule from a cron string into English? Not sure that's going to be feasible for
-  ;; really complicated schedules
-  {:metadata [[:database_id   {:display_name "Database ID",   :base_type :type/Integer, :remapped_to   :title}]
-              [:title         {:display_name "Title",         :base_type :type/Text,    :remapped_from :database_id}]
-              [:added_on      {:display_name "Added On",      :base_type :type/DateTime}]
-              [:sync_schedule {:display_name "Sync Schedule", :base_type :type/Text}]
-              [:schemas       {:display_name "Schemas",       :base_type :type/Integer}]
-              [:tables        {:display_name "Tables",        :base_type :type/Integer}]]
-   :results  (common/query
-              {:with      [[:counts {:select   [[:db_id :id]
-                                                [(hsql/call :distinct-count :schema) :schemas]
-                                                [:%count.* :tables]]
-                                     :from     [:metabase_table]
-                                     :group-by [:db_id]}]]
-               :select    [[:db.id :database_id]
-                           [:db.name :title]
-                           [:db.created_at :added_on]
-                           [:db.metadata_sync_schedule :sync_schedule]
-                           [:counts.schemas :schemas]
-                           [:counts.tables :tables]]
-               :from      [[:metabase_database :db]]
-               :left-join [:counts [:= :db.id :counts.id]]
-               :order-by  [[:%lower.db.name :asc]
-                           [:database_id :asc]]})})
+(s/defn ^:internal-query-fn table
+  ([]
+   (table nil))
+  ([query-string :- (s/maybe s/Str)]
+   ;; TODO - Should we convert sync_schedule from a cron string into English? Not sure that's going to be feasible for
+   ;; really complicated schedules
+   {:metadata [[:database_id   {:display_name "Database ID", :base_type :type/Integer, :remapped_to :title}]
+               [:title         {:display_name "Title", :base_type :type/Text, :remapped_from :database_id}]
+               [:added_on      {:display_name "Added On", :base_type :type/DateTime}]
+               [:sync_schedule {:display_name "Sync Schedule", :base_type :type/Text}]
+               [:schemas       {:display_name "Schemas", :base_type :type/Integer}]
+               [:tables        {:display_name "Tables", :base_type :type/Integer}]]
+    :results  (common/query
+                (->
+                 {:with      [[:counts {:select   [[:db_id :id]
+                                                   [(hsql/call :distinct-count :schema) :schemas]
+                                                   [:%count.* :tables]]
+                                        :from     [:metabase_table]
+                                        :group-by [:db_id]}]]
+                  :select    [[:db.id :database_id]
+                              [:db.name :title]
+                              [:db.created_at :added_on]
+                              [:db.metadata_sync_schedule :sync_schedule]
+                              [:counts.schemas :schemas]
+                              [:counts.tables :tables]]
+                  :from      [[:metabase_database :db]]
+                  :left-join [:counts [:= :db.id :counts.id]]
+                  :order-by  [[:%lower.db.name :asc]
+                              [:database_id :asc]]}
+                 (common/add-search-clause query-string :db.name)))}))
