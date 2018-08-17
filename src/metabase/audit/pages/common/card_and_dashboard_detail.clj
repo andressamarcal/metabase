@@ -50,37 +50,20 @@
                :change_made (-> revision :description)
                :revision_id (-> revision :id)})})
 
-;; WITH views AS (
-;;  SELECT CAST(timestamp AS DATE) AS day, user_id
-;;  FROM view_log
-;;  WHERE model = {{model}}
-;;    AND model_id = {{model-id}}
-;;  GROUP BY CAST(timestamp AS DATE), user_id
-;; )
-;;
-;; SELECT v.day AS when, v.user_id, (u.first_name || ' ' || u.last_name) AS who
-;; FROM views v
-;; LEFT JOIN core_user u
-;;   ON v.user_id = u.id
-;; ORDER BY v.day DESC, lower(u.last_name) ASC, lower(u.first_name) ASC
 (s/defn audit-log
   [model :- ModelName, model-id :- su/IntGreaterThanZero]
-  {:metadata [[:when    {:display_name "When",    :base_type :type/Date}]
+  {:metadata [[:when    {:display_name "When",    :base_type :type/DateTime}]
               [:user_id {:display_name "User ID", :base_type :type/Integer, :remapped_to   :who}]
               [:who     {:display_name "Who",     :base_type :type/Name,    :remapped_from :user_id}]]
    :results (common/query
-             {:with      [[:views {:select   [[(hx/cast :date :timestamp) :day]
-                                              :user_id]
-                                   :from     [:view_log]
-                                   :where    [:and
-                                              [:= :model (hx/literal model)]
-                                              [:= :model_id model-id]]
-                                   :group-by [(hx/cast :date :timestamp) :user_id]}]]
-              :select    [[:v.day :when]
-                          :v.user_id
-                          [(common/user-full-name :u) :who]]
-              :from      [[:views :v]]
-              :left-join [[:core_user :u] [:= :v.user_id :u.id]]
-              :order-by  [[:v.day :desc]
-                          [:%lower.u.last_name :asc]
-                          [:%lower.u.first_name :asc]]})})
+              {:select    [[:vl.timestamp :when]
+                           :vl.user_id
+                           [(common/user-full-name :u) :who]]
+               :from      [[:view_log :vl]]
+               :join     [[:core_user :u] [:= :vl.user_id :u.id]]
+               :where     [:and
+                           [:= :model (hx/literal model)]
+                           [:= :model_id model-id]]
+               :order-by  [[:vl.timestamp :desc]
+                           [:%lower.u.last_name :asc]
+                           [:%lower.u.first_name :asc]]})})
