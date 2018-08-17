@@ -5,11 +5,6 @@
             [metabase.util.honeysql-extensions :as hx]
             [schema.core :as s]))
 
-;; SELECT CAST("timestamp" AS date) AS day, count(*) AS views
-;; FROM view_log
-;; WHERE model = 'dashboard'
-;; GROUP BY CAST("timestamp" AS date)
-;; ORDER BY CAST("timestamp" AS date) ASC
 (defn ^:deprecated ^:internal-query-fn views-per-day
   "DEPRECATED: use `views-and-saves-by-time ` instead."
   []
@@ -22,6 +17,7 @@
                :where    [:= :model (hx/literal "dashboard")]
                :group-by [(hx/cast :date :timestamp)]
                :order-by [(hx/cast :date :timestamp)]})})
+
 
 (s/defn ^:internal-query-fn views-and-saves-by-time
   "Two-series timeseries that includes total number of Dashboard views and saves broken out by a `datetime-unit`."
@@ -48,16 +44,9 @@
               :full-join [:saves [:= :views.date :saves.date]]
               :order-by  [[:date :asc]]})})
 
-;; SELECT d.id AS dashboard_id, d.name AS dashboard_name, count(*) AS views
-;; FROM view_log vl
-;; LEFT JOIN report_dashboard d
-;;   ON vl.model_id = d.id
-;; WHERE vl.model = 'dashboard'
-;; GROUP BY d.id
-;; ORDER BY count(*) DESC
-;; LIMIT 10
-(defn ^:internal-query-fn most-popular
-  "Query that returns the 10 Dashboards that have the most views, in descending order."
+
+(defn ^:internal-query-fn ^:deprecated most-popular
+  "Deprecated: use `most-popular-with-avg-speed` instead."
   []
   {:metadata [[:dashboard_id   {:display_name "Dashboard ID", :base_type :type/Integer, :remapped_to   :dashboard_name}]
               [:dashboard_name {:display_name "Dashboard",    :base_type :type/Title,   :remapped_from :dashboard_id}]
@@ -73,22 +62,46 @@
                :order-by  [[:%count.* :desc]]
                :limit     10})})
 
-;; WITH card_running_time AS (
-;;     SELECT qe.card_id, avg(qe.running_time) AS avg_running_time
-;;     FROM query_execution qe
-;;     WHERE qe.card_id IS NOT NULL
-;;     GROUP BY qe.card_id
-;; )
-;;
-;; SELECT d.id AS dashboard_id, d.name AS dashboard_name, max(rt.avg_running_time) AS max_running_time
-;; FROM report_dashboardcard dc
-;; LEFT JOIN card_running_time rt
-;;   ON dc.card_id = rt.card_id
-;; LEFT JOIN report_dashboard d
-;;   ON dc.dashboard_id = d.id
-;; GROUP BY d.id
-;; ORDER BY max_running_time DESC
-;; LIMIT 10
+(defn ^:internal-query-fn most-popular-with-avg-speed
+  "10 most popular dashboards with their average speed."
+  []
+  {:metadata [[:dashboard_id     {:display_name "Dashboard ID",                 :base_type :type/Integer, :remapped_to   :dashboard_name}]
+              [:dashboard_name   {:display_name "Dashboard",                    :base_type :type/Title,   :remapped_from :dashboard_id}]
+              [:views            {:display_name "Views",                        :base_type :type/Integer}]
+              [:avg_running_time {:display_name "Avg. Question Load Time (ms)", :base_type :type/Decimal}]]
+   :results  (common/query
+               {:with      [[:most_popular {:select    [[:d.id :dashboard_id]
+                                                        [:d.name :dashboard_name]
+                                                        [:%count.* :views]]
+                                            :from      [[:view_log :vl]]
+                                            :left-join [[:report_dashboard :d] [:= :vl.model_id :d.id]]
+                                            :where     [:= :vl.model (hx/literal "dashboard")]
+                                            :group-by  [:d.id]
+                                            :order-by  [[:%count.* :desc]]
+                                            :limit     10}]
+                            [:card_running_time {:select   [:qe.card_id
+                                                            [:%avg.qe.running_time :avg_running_time]]
+                                                 :from     [[:query_execution :qe]]
+                                                 :where    [:not= :qe.card_id nil]
+                                                 :group-by [:qe.card_id]}]
+                            [:dash_avg_running_time {:select    [[:d.id :dashboard_id]
+                                                                 [:%avg.rt.avg_running_time :avg_running_time]]
+                                                     :from      [[:report_dashboardcard :dc]]
+                                                     :left-join [[:card_running_time :rt] [:= :dc.card_id :rt.card_id]
+                                                                 [:report_dashboard :d]   [:= :dc.dashboard_id :d.id]]
+                                                     :group-by  [:d.id]
+                                                     :where     [:in :d.id {:select [:dashboard_id]
+                                                                            :from   [:most_popular]}]}]]
+                :select    [:mp.dashboard_id
+                            :mp.dashboard_name
+                            :mp.views
+                            :rt.avg_running_time]
+                :from      [[:most_popular :mp]]
+                :left-join [[:dash_avg_running_time :rt] [:= :mp.dashboard_id :rt.dashboard_id]]
+                :order-by  [[:mp.views :desc]]
+                :limit     10})})
+
+
 (defn- ^:internal-query-fn ^:deprecated slowest
   "Query that returns the 10 Dashboards that have the slowest average execution times, in descending order."
   []
@@ -111,6 +124,7 @@
                :order-by  [[:avg_running_time :desc]]
                :limit     10})})
 
+
 (defn- ^:internal-query-fn ^:deprecated most-common-questions
   "Query that returns the 10 Cards that appear most often in Dashboards, in descending order."
   []
@@ -127,55 +141,7 @@
                :order-by [[:%count.* :desc]]
                :limit    10})})
 
-;; WITH card_count AS (
-;;   SELECT dashboard_id, count(*) AS card_count
-;;   FROM report_dashboardcard
-;;   GROUP BY dashboard_id
-;; ),
-;;
-;; card_avg_execution_time AS (
-;;   SELECT card_id, avg(running_time) AS avg_running_time
-;;   FROM query_execution
-;;   WHERE card_id IS NOT NULL
-;;   GROUP BY card_id
-;; ),
-;;
-;; avg_execution_time AS (
-;;   SELECT dc.dashboard_id, avg(cxt.avg_running_time) AS avg_running_time
-;;   FROM report_dashboardcard dc
-;;   LEFT JOIN card_avg_execution_time cxt
-;;     ON dc.card_id = cxt.card_id
-;;   GROUP BY dc.dashboard_id
-;; ),
-;;
-;; views AS (
-;;   SELECT model_id AS dashboard_id, count(*) AS view_count
-;;   FROM view_log
-;;   WHERE model = 'dashboard'
-;;   GROUP BY model_id
-;; )
-;;
-;; SELECT
-;;   d.id AS dashboard_id
-;;   d.name AS title,
-;;   (u.first_name || ' ' || u.last_name) AS saved_by,
-;;   d.created_at AS saved_on,
-;;   d.updated_at AS last_edited_on,
-;;   cc.card_count AS cards,
-;;   (CASE WHEN d.public_uuid IS NOT NULL THEN ('http://localhost:3000/public/dashboard/' || d.public_uuid) END)
-;;     AS public_link,
-;;   axt.avg_running_time AS average_execution_time_ms,
-;;   v.view_count AS total_views
-;; FROM report_dashboard d
-;; LEFT JOIN core_user u
-;;   ON d.creator_id = u.id
-;; LEFT JOIN card_count cc
-;;   ON d.id = cc.dashboard_id
-;; LEFT JOIN avg_execution_time axt
-;;   ON d.id = axt.dashboard_id
-;; LEFT JOIN views AS v
-;;   ON d.id = v.dashboard_id
-;; ORDER BY lower(d.name) ASC, dashboard_id ASC
+
 (s/defn ^:internal-query-fn table
   "Internal audit app query powering a table of different Dashboards with lots of extra info about them."
   ([]
