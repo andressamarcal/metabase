@@ -59,9 +59,9 @@
 (defn ^:internal-query-fn most-popular
   "Query that returns the 10 Dashboards that have the most views, in descending order."
   []
-  {:metadata [[:dashboard_id   {:display_name "Dashboard ID",          :base_type :type/Integer, :remapped_to   :dashboard_name}]
-              [:dashboard_name {:display_name "Dashboard",             :base_type :type/Title,   :remapped_from :dashboard_id}]
-              [:views          {:display_name "Views",     :base_type :type/Integer}]]
+  {:metadata [[:dashboard_id   {:display_name "Dashboard ID", :base_type :type/Integer, :remapped_to   :dashboard_name}]
+              [:dashboard_name {:display_name "Dashboard",    :base_type :type/Title,   :remapped_from :dashboard_id}]
+              [:views          {:display_name "Views",        :base_type :type/Integer}]]
    :results  (common/query
               {:select    [[:d.id :dashboard_id]
                            [:d.name :dashboard_name]

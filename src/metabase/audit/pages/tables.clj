@@ -1,6 +1,7 @@
 (ns metabase.audit.pages.tables
   (:require [metabase.audit.pages.common :as common]
-            [metabase.util.honeysql-extensions :as hx]))
+            [metabase.util.honeysql-extensions :as hx]
+            [schema.core :as s]))
 
 ;; WITH table_executions AS (
 ;;     SELECT t.id AS table_id, count(*) AS executions
@@ -47,3 +48,34 @@
   "Query that returns the top-10 least-queried Tables (with at least one query execution), in ascending order."
   []
   (query-counts :asc))
+
+
+
+(s/defn ^:internal-query-fn table
+  "A table of Tables."
+  ([]
+   (table nil))
+  ([query-string :- (s/maybe s/Str)]
+   {:metadata [[:database_id        {:display_name "Database ID",        :base_type :type/Integer, :remapped_to   :database_name}]
+               [:database_name      {:display_name "Database",           :base_type :type/Text,    :remapped_from :database_id}]
+               [:schema_id          {:display_name "Schema ID",          :base_type :type/Integer, :remapped_to   :schema_name}]
+               [:table_schema       {:display_name "Schema",             :base_type :type/Text,    :remapped_from :schema_id}]
+               [:table_id           {:display_name "Table ID",           :base_type :type/Integer, :remapped_to   :table_name}]
+               [:table_name         {:display_name "Table Name in DB",   :base_type :type/Name,    :remapped_from :table_id}]
+               [:table_display_name {:display_name "Table Display Name", :base_type :type/Text}]]
+    :results (common/query
+               (->
+                {:select   [[:db.id :database_id]
+                            [:db.name :database_name]
+                            [(hx/concat :db.id (hx/literal ".") :t.schema) :schema_id]
+                            [:t.schema :table_schema]
+                            [:t.id :table_id]
+                            [:t.name :table_name]
+                            [:t.display_name :table_display_name]]
+                 :from     [[:metabase_table :t]]
+                 :join     [[:metabase_database :db] [:= :t.db_id :db.id]]
+                 :order-by [[:%lower.db.name  :asc]
+                            [:%lower.t.schema :asc]
+                            [:%lower.t.name   :asc]]
+                 :where    [:= :t.active true]}
+                (common/add-search-clause query-string :db.name :t.schema :t.name :t.display_name)))}))

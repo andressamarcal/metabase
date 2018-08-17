@@ -1,6 +1,9 @@
 (ns metabase.audit.pages.common
   "Shared functions used by audit internal queries across different namespaces."
-  (:require [honeysql.core :as hsql]
+  (:require [clojure.string :as str]
+            [honeysql
+             [core :as hsql]
+             [helpers :as h]]
             [metabase
              [db :as mdb]
              [driver :as driver]]
@@ -80,3 +83,16 @@
   counts."
   [expr]
   (hsql/call :case [:not= expr nil] expr :else 0))
+
+
+(defn add-search-clause
+  "Add an appropriate `WHERE` clause to `query` to see if any of the `fields-to-search` match `query-string`.
+
+    (add-search-clause {} \"birds\" :t.name :db.name)"
+  [query query-string & fields-to-search]
+  (h/merge-where query (when (seq query-string)
+                         (let [query-string (str \% (str/lower-case query-string) \%)]
+                           (cons
+                            :or
+                            (for [field fields-to-search]
+                              [:like (keyword (str "%lower." (name field))) query-string]))))))
