@@ -11,6 +11,7 @@
             [metabase.query-processor.middleware.internal-queries :as internal-queries]
             [metabase.util.honeysql-extensions :as hx]
             [schema.core :as s]
+            [metabase.util.urls :as urls]
             [toucan.db :as db]))
 
 (def ^:private ^:const default-limit 1000)
@@ -96,3 +97,10 @@
                             :or
                             (for [field fields-to-search]
                               [:like (keyword (str "%lower." (name field))) query-string]))))))
+
+(defn card-public-url
+  "Return HoneySQL for a `CASE` statement to return a Card's public URL if the `public_uuid` `field` is non-NULL."
+  [field]
+  (hsql/call :case
+    [:not= field nil]
+    (hx/concat (urls/public-card-prefix) field)))
