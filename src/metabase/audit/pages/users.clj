@@ -255,79 +255,84 @@
 ;; LEFT JOIN dashboards_saved ON u.id = dashboards_saved.id
 ;; LEFT JOIN pulses_saved     ON u.id = pulses_saved.id
 ;; ORDER BY lower(u.last_name) ASC, lower(u.first_name) ASC
-(defn ^:internal-query-fn table []
-  {:metadata [[:user_id          {:display_name "User ID",          :base_type :type/Integer, :remapped_to   :name}]
-              [:name             {:display_name "Name",             :base_type :type/Name,    :remapped_from :user_id}]
-              [:role             {:display_name "Role",             :base_type :type/Text}]
-              [:groups           {:display_name "Groups",           :base_type :type/Text}]
-              [:date_joined      {:display_name "Date Joined",      :base_type :type/DateTime}]
-              [:last_active      {:display_name "Last Active",      :base_type :type/DateTime}]
-              [:signup_method    {:display_name "Signup Method",    :base_type :type/Text}]
-              [:questions_saved  {:display_name "Questions Saved",  :base_type :type/Integer}]
-              [:dashboards_saved {:display_name "Dashboards Saved", :base_type :type/Integer}]
-              [:pulses_saved     {:display_name "Pulses Saved",     :base_type :type/Integer}]]
-   :results (common/query
-             {:with      [[:last_query {:select   [[:executor_id :id]
-                                                   [:%max.started_at :started_at]]
-                                        :from     [:query_execution]
-                                        :group-by [:executor_id]}]
-                          [:groups {:select    [[:u.id :id]
-                                                [(hsql/call :string_agg :pg.name (hx/literal ", ")) :groups]]
-                                    :from      [[:core_user :u]]
-                                    :left-join [[:permissions_group_membership :pgm] [:= :u.id :pgm.user_id]
-                                                [:permissions_group :pg]             [:= :pgm.group_id :pg.id]]
-                                    :group-by  [:u.id]}]
-                          [:questions_saved {:select    [[:u.id :id]
-                                                         [:%count.* :count]]
-                                             :from      [[:report_card :c]]
-                                             :left-join [[:core_user :u] [:= :u.id :c.creator_id]]
-                                             :group-by  [:u.id]}]
-                          [:dashboards_saved {:select    [[:u.id :id]
+(s/defn ^:internal-query-fn table
+  ([]
+   (table nil))
+  ([query-string :- (s/maybe s/Str)]
+   {:metadata [[:user_id          {:display_name "User ID",          :base_type :type/Integer, :remapped_to :name}]
+               [:name             {:display_name "Name",             :base_type :type/Name,    :remapped_from :user_id}]
+               [:role             {:display_name "Role",             :base_type :type/Text}]
+               [:groups           {:display_name "Groups",           :base_type :type/Text}]
+               [:date_joined      {:display_name "Date Joined",      :base_type :type/DateTime}]
+               [:last_active      {:display_name "Last Active",      :base_type :type/DateTime}]
+               [:signup_method    {:display_name "Signup Method",    :base_type :type/Text}]
+               [:questions_saved  {:display_name "Questions Saved",  :base_type :type/Integer}]
+               [:dashboards_saved {:display_name "Dashboards Saved", :base_type :type/Integer}]
+               [:pulses_saved     {:display_name "Pulses Saved",     :base_type :type/Integer}]]
+    :results  (common/query
+                (->
+                 {:with      [[:last_query {:select   [[:executor_id :id]
+                                                       [:%max.started_at :started_at]]
+                                            :from     [:query_execution]
+                                            :group-by [:executor_id]}]
+                              [:groups {:select    [[:u.id :id]
+                                                    [(hsql/call :string_agg :pg.name (hx/literal ", ")) :groups]]
+                                        :from      [[:core_user :u]]
+                                        :left-join [[:permissions_group_membership :pgm] [:= :u.id :pgm.user_id]
+                                                    [:permissions_group :pg]             [:= :pgm.group_id :pg.id]]
+                                        :group-by  [:u.id]}]
+                              [:questions_saved {:select    [[:u.id :id]
+                                                             [:%count.* :count]]
+                                                 :from      [[:report_card :c]]
+                                                 :left-join [[:core_user :u] [:= :u.id :c.creator_id]]
+                                                 :group-by  [:u.id]}]
+                              [:dashboards_saved {:select    [[:u.id :id]
+                                                              [:%count.* :count]]
+                                                  :from      [[:report_dashboard :d]]
+                                                  :left-join [[:core_user :u] [:= :u.id :d.creator_id]]
+                                                  :group-by  [:u.id]}]
+                              [:pulses_saved {:select    [[:u.id :id]
                                                           [:%count.* :count]]
-                                              :from      [[:report_dashboard :d]]
-                                              :left-join [[:core_user :u] [:= :u.id :d.creator_id]]
+                                              :from      [[:pulse :p]]
+                                              :left-join [[:core_user :u] [:= :u.id :p.creator_id]]
                                               :group-by  [:u.id]}]
-                          [:pulses_saved {:select    [[:u.id :id]
-                                                      [:%count.* :count]]
-                                          :from      [[:pulse :p]]
-                                          :left-join [[:core_user :u] [:= :u.id :p.creator_id]]
-                                          :group-by  [:u.id]}]
-                          [:users {:select [[(common/user-full-name :u) :name]
-                                            [(hsql/call :case
-                                               [:= :u.is_superuser true]
-                                               (hx/literal "Admin")
-                                               :else
-                                               (hx/literal "User"))
-                                             :role]
-                                            :id
-                                            :date_joined
-                                            [(hsql/call :case
-                                               [:= nil :u.sso_source]
-                                               (hx/literal "Email")
-                                               :else
-                                               :u.sso_source)
-                                             :signup_method]
-                                            :last_name
-                                            :first_name]
-                                   :from   [[:core_user :u]]}]]
-              :select    [[:u.id :user_id]
-                          :u.name
-                          :u.role
-                          :groups.groups
-                          :u.date_joined
-                          [:last_query.started_at :last_active]
-                          :u.signup_method
-                          [:questions_saved.count :questions_saved]
-                          [:dashboards_saved.count :dashboards_saved]
-                          [:pulses_saved.count :pulses_saved]]
-              :from      [[:users :u]]
-              :left-join [:groups           [:= :u.id :groups.id]
-                          :last_query       [:= :u.id :last_query.id]
-                          :questions_saved  [:= :u.id :questions_saved.id]
-                          :dashboards_saved [:= :u.id :dashboards_saved.id]
-                          :pulses_saved     [:= :u.id :pulses_saved.id]]
-              :order-by  [[:%lower.u.last_name :asc]
-                          [:%lower.u.first_name :asc]]})})
+                              [:users {:select [[(common/user-full-name :u) :name]
+                                                [(hsql/call :case
+                                                   [:= :u.is_superuser true]
+                                                   (hx/literal "Admin")
+                                                   :else
+                                                   (hx/literal "User"))
+                                                 :role]
+                                                :id
+                                                :date_joined
+                                                [(hsql/call :case
+                                                   [:= nil :u.sso_source]
+                                                   (hx/literal "Email")
+                                                   :else
+                                                   :u.sso_source)
+                                                 :signup_method]
+                                                :last_name
+                                                :first_name]
+                                       :from   [[:core_user :u]]}]]
+                  :select    [[:u.id :user_id]
+                              :u.name
+                              :u.role
+                              :groups.groups
+                              :u.date_joined
+                              [:last_query.started_at :last_active]
+                              :u.signup_method
+                              [:questions_saved.count :questions_saved]
+                              [:dashboards_saved.count :dashboards_saved]
+                              [:pulses_saved.count :pulses_saved]]
+                  :from      [[:users :u]]
+                  :left-join [:groups           [:= :u.id :groups.id]
+                              :last_query       [:= :u.id :last_query.id]
+                              :questions_saved  [:= :u.id :questions_saved.id]
+                              :dashboards_saved [:= :u.id :dashboards_saved.id]
+                              :pulses_saved     [:= :u.id :pulses_saved.id]]
+                  :order-by  [[:%lower.u.last_name :asc]
+                              [:%lower.u.first_name :asc]]}
+                 (common/add-search-clause query-string :u.first_name :u.last_name)))}))
 
 (defn ^:internal-query-fn query-views
   []
