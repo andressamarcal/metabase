@@ -28,25 +28,13 @@ export const viewsAndSavesByTime = () => ({
   },
 });
 
-export const mostPopular = () => ({
+export const mostPopularAndSpeed = () => ({
   card: {
-    name: "Most popular dashboards",
-    display: "row",
+    name: "Most popular dashboards and their avg loading times",
+    display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.dashboards/most-popular",
-      args: [],
-    },
-  },
-});
-
-export const slowest = () => ({
-  card: {
-    name: "Slowest dashboards",
-    display: "row",
-    dataset_query: {
-      type: "internal",
-      fn: "metabase.audit.pages.dashboards/slowest",
+      fn: "metabase.audit.pages.dashboards/most-popular-with-avg-speed",
       args: [],
     },
   },
@@ -55,7 +43,7 @@ export const slowest = () => ({
 export const mostCommonQuestions = () => ({
   card: {
     name: "Questions included the most in dashboards",
-    display: "row",
+    display: "table",
     dataset_query: {
       type: "internal",
       fn: "metabase.audit.pages.dashboards/most-common-questions",
