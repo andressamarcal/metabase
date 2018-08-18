@@ -76,6 +76,7 @@ export const queryViews = (userId: number) => ({
         { name: "table_id", enabled: true },
         { name: "collection_id", enabled: true },
         { name: "viewed_on", enabled: true, date_format: "M/D/YYYY, h:mm A" },
+        { name: "query_hash", enabled: true },
       ],
     },
   },
@@ -89,6 +90,13 @@ export const dashboardViews = (userId: number) => ({
       type: "internal",
       fn: "metabase.audit.pages.user-detail/dashboard-views",
       args: [userId],
+    },
+    visualization_settings: {
+      "table.columns": [
+        { name: "dashboard_id", enabled: true },
+        { name: "collection_id", enabled: true },
+        { name: "timestamp", enabled: true },
+      ],
     },
   },
 });

@@ -7,6 +7,8 @@ const columnNameToUrl = {
   // NOTE: disable schema links until schema detail is implemented
   // schema: value => `/admin/audit/schema/${value}`,
   table_id: value => `/admin/audit/table/${value}`,
+  // NOTE: query_hash uses standard Base64 encoding which isn't URL safe so make sure to escape it
+  query_hash: value => `/admin/audit/query/${encodeURIComponent(value)}`,
 };
 
 export const auditActionsForClick = ({ question, clicked }) => {
