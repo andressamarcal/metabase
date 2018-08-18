@@ -22,6 +22,7 @@ import AuditQuestions from "metabase/admin/audit/pages/AuditQuestions";
 import AuditQuestionDetail from "metabase/admin/audit/pages/AuditQuestionDetail";
 import AuditDashboards from "metabase/admin/audit/pages/AuditDashboards";
 import AuditDashboardDetail from "metabase/admin/audit/pages/AuditDashboardDetail";
+import AuditQueryDetail from "metabase/admin/audit/pages/AuditQueryDetail";
 
 import AuditUsers from "metabase/admin/audit/pages/AuditUsers";
 import AuditUserDetail from "metabase/admin/audit/pages/AuditUserDetail";
@@ -80,6 +81,7 @@ const getRoutes = store => (
     {getPageRoutes("dashboard/:dashboardId", AuditDashboardDetail)}
     {getPageRoutes("questions", AuditQuestions)}
     {getPageRoutes("question/:questionId", AuditQuestionDetail)}
+    {getPageRoutes("query/:queryHash", AuditQueryDetail)}
     {getPageRoutes("members", AuditUsers)}
     {getPageRoutes("member/:userId", AuditUserDetail)}
 

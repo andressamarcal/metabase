@@ -10,7 +10,7 @@ export default class AuditContent extends React.Component {
   render() {
     const { title, subtitle, tabs, children, location, ...props } = this.props;
     // HACK: remove the last component to get the base page path. won't work with tabs using IndexRoute (IndexRedirect ok)
-    const pagePath = location.pathname.replace(/\/\w+$/, "");
+    const pagePath = location && location.pathname.replace(/\/\w+$/, "");
     return (
       <div className="py4 flex flex-column flex-full">
         <div className="px4">
