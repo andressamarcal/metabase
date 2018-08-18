@@ -21,6 +21,14 @@ export const revisionHistory = (dashboardId: number) => ({
       fn: "metabase.audit.pages.dashboard-detail/revision-history",
       args: [dashboardId],
     },
+    visualization_settings: {
+      "table.columns": [
+        { name: "user_id", enabled: true },
+        { name: "change_made", enabled: true },
+        { name: "revision_id", enabled: true },
+        { name: "timestamp", enabled: true, date_format: "M/D/YYYY, h:mm A"  },
+      ],
+    },
   },
 });
 
@@ -48,7 +56,7 @@ export const auditLog = (dashboardId: number) => ({
     visualization_settings: {
       "table.columns": [
         { name: "user_id", enabled: true },
-        { name: "when", enabled: true },
+        { name: "when", enabled: true, date_format: "M/D/YYYY, h:mm A"  },
       ],
     },
   },

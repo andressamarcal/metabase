@@ -75,7 +75,7 @@ export const queryViews = (userId: number) => ({
         { name: "database_id", enabled: true },
         { name: "table_id", enabled: true },
         { name: "collection_id", enabled: true },
-        { name: "viewed_on", enabled: true },
+        { name: "viewed_on", enabled: true, date_format: "M/D/YYYY, h:mm A" },
       ],
     },
   },
