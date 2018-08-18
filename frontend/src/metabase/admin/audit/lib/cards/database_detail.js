@@ -15,7 +15,7 @@ export const auditLog = (databaseId: number) => ({
         { name: "card_id", enabled: true},
         { name: "schema", enabled: true},
         { name: "table_id", enabled: true},
-        { name: "started_at", enabled: true},
+        { name: "started_at", enabled: true, date_format: "M/D/YYYY, h:mm A" },
       ],
     },
   },

@@ -21,6 +21,14 @@ export const revisionHistory = (questionId: number) => ({
       fn: "metabase.audit.pages.question-detail/revision-history",
       args: [questionId],
     },
+    visualization_settings: {
+      "table.columns": [
+        { name: "user_id", enabled: true },
+        { name: "change_made", enabled: true },
+        { name: "revision_id", enabled: true },
+        { name: "timestamp", enabled: true, date_format: "M/D/YYYY, h:mm A" },
+      ],
+    },
   },
 });
 

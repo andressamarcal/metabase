@@ -43,3 +43,26 @@ export const slowest = () => ({
     },
   },
 });
+
+export const table = () => ({
+  card: {
+    name: "Questions",
+    display: "table",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase.audit.pages.queries/table",
+      args: [],
+    },
+    visualization_settings: {
+      "table.columns": [
+        { name: "dashboard_id", enabled: true },
+        { name: "total_views", enabled: true },
+        { name: "average_execution_time_ms", enabled: true },
+        { name: "cards", enabled: true },
+        { name: "saved_by_id", enabled: true },
+        { name: "saved_on", enabled: true, date_format: "M/D/YYYY, h:mm A" },
+        { name: "last_edited_on", enabled: true, date_format: "M/D/YYYY, h:mm A" },
+      ],
+    },
+  },
+});

@@ -68,7 +68,7 @@ export const table = () => ({
         { name: "schemas", enabled: true },
         { name: "tables", enabled: true },
         { name: "sync_schedule", enabled: true },
-        { name: "added_on", enabled: true },
+        { name: "added_on", enabled: true, date_format: "M/D/YYYY, h:mm A" },
       ],
     },
   },
