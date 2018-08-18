@@ -1,6 +1,7 @@
 (ns metabase.audit.pages.databases
   (:require [honeysql.core :as hsql]
             [metabase.audit.pages.common :as common]
+            [metabase.util.cron :as cron]
             [schema.core :as s]))
 
 ;; SELECT
@@ -63,22 +64,7 @@
 (defn ^:deprecated ^:internal-query-fn query-executions-per-db-per-day []
   (query-executions-by-time "day"))
 
-;; WITH counts AS (
-;;     SELECT db_id AS id, count(DISTINCT "schema") AS schemas, count(*) AS tables
-;;     FROM metabase_table
-;;     GROUP BY db_id
-;; )
-;;
-;; SELECT
-;;   db.name AS title,
-;;   db.created_at AS added_on,
-;;   db.metadata_sync_schedule AS sync_schedule,
-;;   counts.schemas AS schemas,
-;;   counts.tables AS tables,
-;; FROM metabase_database db
-;; LEFT JOIN counts
-;;   ON db.id = counts.id
-;; ORDER BY lower(db.name) ASC, database_id ASC
+
 (s/defn ^:internal-query-fn table
   ([]
    (table nil))
@@ -91,21 +77,23 @@
                [:sync_schedule {:display_name "Sync Schedule", :base_type :type/Text}]
                [:schemas       {:display_name "Schemas", :base_type :type/Integer}]
                [:tables        {:display_name "Tables", :base_type :type/Integer}]]
-    :results  (common/query
-                (->
-                 {:with      [[:counts {:select   [[:db_id :id]
-                                                   [(hsql/call :distinct-count :schema) :schemas]
-                                                   [:%count.* :tables]]
-                                        :from     [:metabase_table]
-                                        :group-by [:db_id]}]]
-                  :select    [[:db.id :database_id]
-                              [:db.name :title]
-                              [:db.created_at :added_on]
-                              [:db.metadata_sync_schedule :sync_schedule]
-                              [:counts.schemas :schemas]
-                              [:counts.tables :tables]]
-                  :from      [[:metabase_database :db]]
-                  :left-join [:counts [:= :db.id :counts.id]]
-                  :order-by  [[:%lower.db.name :asc]
-                              [:database_id :asc]]}
-                 (common/add-search-clause query-string :db.name)))}))
+    :results  (->> (common/query
+                     (->
+                      {:with      [[:counts {:select   [[:db_id :id]
+                                                        [(hsql/call :distinct-count :schema) :schemas]
+                                                        [:%count.* :tables]]
+                                             :from     [:metabase_table]
+                                             :group-by [:db_id]}]]
+                       :select    [[:db.id :database_id]
+                                   [:db.name :title]
+                                   [:db.created_at :added_on]
+                                   [:db.metadata_sync_schedule :sync_schedule]
+                                   [:counts.schemas :schemas]
+                                   [:counts.tables :tables]]
+                       :from      [[:metabase_database :db]]
+                       :left-join [:counts [:= :db.id :counts.id]]
+                       :order-by  [[:%lower.db.name :asc]
+                                   [:database_id :asc]]}
+                      (common/add-search-clause query-string :db.name)))
+                   (map (fn [row]
+                          (update row :sync_schedule cron/describe-cron-string))))}))
