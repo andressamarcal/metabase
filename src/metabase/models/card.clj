@@ -46,17 +46,17 @@
       :Segment (q/extract-segment-ids (:query dataset_query))})))
 
 
-;;; -------------------------------------------------- Revisions --------------------------------------------------
+;;; --------------------------------------------------- Revisions ----------------------------------------------------
 
 (defn serialize-instance
   "Serialize a `Card` for use in a `Revision`."
   ([instance]
    (serialize-instance nil nil instance))
   ([_ _ instance]
-   (dissoc instance :created_at :updated_at)))
+   (dissoc instance :created_at :updated_at :result_metadata)))
 
 
-;;; -------------------------------------------------- Lifecycle --------------------------------------------------
+;;; --------------------------------------------------- Lifecycle ----------------------------------------------------
 
 (defn populate-query-fields
   "Lift `database_id`, `table_id`, and `query_type` from query definition."
