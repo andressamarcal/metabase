@@ -40,7 +40,7 @@
   (when (and (not= query-type "internal")
              (not= database database/virtual-id))
     (when-not database
-      (throw (Exception. (tru (str "`database` is required for all queries whose type is not `internal`.")))))
+      (throw (Exception. (str (tru "`database` is required for all queries whose type is not `internal`.")))))
     (api/read-check Database database))
   ;; add sensible constraints for results limits on our query
   (let [source-card-id (query->source-card-id query)]

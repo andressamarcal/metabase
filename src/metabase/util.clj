@@ -499,7 +499,7 @@
 
 (defn encode-base64
   "Encodes a string to a Base64 string"
-  [input]
+  [^String input]
   (javax.xml.bind.DatatypeConverter/printBase64Binary (.getBytes input "UTF-8")))
 
 (def ^{:arglists '([n])} safe-inc

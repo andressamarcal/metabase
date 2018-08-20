@@ -102,7 +102,7 @@
                 :limit     10})})
 
 
-(defn- ^:internal-query-fn ^:deprecated slowest
+(defn ^:internal-query-fn ^:deprecated slowest
   "Query that returns the 10 Dashboards that have the slowest average execution times, in descending order."
   []
   {:metadata [[:dashboard_id     {:display_name "Dashboard ID",                 :base_type :type/Integer, :remapped_to   :dashboard_name}]
@@ -125,7 +125,7 @@
                :limit     10})})
 
 
-(defn- ^:internal-query-fn ^:deprecated most-common-questions
+(defn ^:internal-query-fn ^:deprecated most-common-questions
   "Query that returns the 10 Cards that appear most often in Dashboards, in descending order."
   []
   {:metadata [[:card_id   {:display_name "Card ID", :base_type :type/Integer, :remapped_to   :card_name}]
