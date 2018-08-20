@@ -26,16 +26,13 @@
              [permissions-group :as perm-group :refer [PermissionsGroup]]
              [permissions-group-membership :as perm-membership :refer [PermissionsGroupMembership]]
              [pulse :refer [Pulse]]
-             [query-execution :as query-execution :refer [QueryExecution]]
              [setting :as setting :refer [Setting]]
              [user :refer [User]]]
-            [metabase.query-processor.util :as qputil]
             [metabase.util.date :as du]
             [puppetlabs.i18n.core :refer [trs]]
             [toucan
              [db :as db]
-             [models :as models]]
-            [metabase.models.permissions-group :as group])
+             [models :as models]])
   (:import java.util.UUID))
 
 ;;; # Migration Helpers

@@ -54,7 +54,7 @@
 (def ^:private ^:const color-gray-1     "rgb(248,248,248)")
 (def ^:private ^:const color-gray-2     "rgb(189,193,191)")
 (def ^:private ^:const color-gray-3     "rgb(124,131,129)")
-(def ^:const color-gray-4 "A ~25% Gray color." "rgb(57,67,64)")
+(def           ^:const color-gray-4 "A ~25% Gray color." "rgb(57,67,64)")
 (def ^:private ^:const color-dark-gray  "#616D75")
 (def ^:private ^:const color-row-border "#EDF0F1")
 
@@ -64,12 +64,6 @@
     (if (= color "#509EE3")
       color-brand
       color)))
-
-(defn- secondary-color []
-  (let [primary (primary-color)]
-    (if (= primary color-brand)
-      color-purple
-      primary)))
 
 (defn- font-style []
   {:font-family "Lato, \"Helvetica Neue\", Helvetica, Arial, sans-serif"})

@@ -6,7 +6,7 @@
             [metabase
              [public-settings :as public-settings]
              [util :as u]]
-            [metabase.api.common :as api :refer [*current-user-id* *current-user-permissions-set*]]
+            [metabase.api.common :as api :refer [*current-user-id*]]
             [metabase.models
              [dependency :as dependency]
              [field-values :as field-values]

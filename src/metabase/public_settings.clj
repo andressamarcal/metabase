@@ -11,7 +11,6 @@
              [i18n :refer [available-locales-with-names set-locale]]
              [password :as password]]
             [puppetlabs.i18n.core :refer [tru]]
-            [schema.core :as s]
             [toucan.db :as db])
   (:import [java.util TimeZone UUID]))
 
@@ -127,8 +126,6 @@
   "This will replace the word \"Metabase\" wherever it appears."
   :type    :string
   :default "Metabase")
-
-(def ^:private HexColor #"#([0-9a-fA-F]{3}){1,2}")
 
 (defsetting application-colors
   "These are the primary colors used in charts and throughout Metabase."

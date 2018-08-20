@@ -104,7 +104,7 @@
   (let [attr-value       (get login-attributes attr-name ::not-found)
         maybe-field-type (target->type target)]
     (if (= attr-value ::not-found)
-      (throw (IllegalArgumentException. (tru "Query requires user attribute `{0}`" (name attr-name))))
+      (throw (IllegalArgumentException. (str (tru "Query requires user attribute `{0}`" (name attr-name)))))
       {:type   "category"
        :target target
        :value  (attr-value->param-value maybe-field-type attr-value)})))

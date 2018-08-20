@@ -124,7 +124,7 @@
       (get-in [:mutables :secret-key-spec])
       (saml-routes/valid-hmac-relay-state? relay-state)))
 
-(defn- saml-attributes->login-attributes [attributes]
+#_(defn- saml-attributes->login-attributes [attributes]
   (dissoc attributes
           (sso-settings/saml-attribute-email)
           (sso-settings/saml-attribute-firstname)

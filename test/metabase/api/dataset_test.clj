@@ -67,7 +67,8 @@
                                 (assoc-in [:query :aggregation] [{:aggregation-type "count", :custom-name nil}]))
     :started_at             true
     :running_time           true
-    :average_execution_time nil}
+    :average_execution_time nil
+    :database_id            (id)}
    ;; QueryExecution record in the DB
    {:hash         true
     :row_count    1
@@ -80,6 +81,7 @@
     :dashboard_id nil
     :error        nil
     :id           true
+    :database_id  (id)
     :started_at   true
     :running_time true}]
   (let [result ((user->client :rasta) :post 200 "dataset" (wrap-inner-query
@@ -104,6 +106,7 @@
                    :native      {:query "foobar"}
                    :user        (query-user :rasta)
                    :constraints qp/default-query-constraints}
+    :database_id  (id)
     :started_at   true
     :running_time true}
    ;; QueryExecution entry in the DB
@@ -113,6 +116,7 @@
     :row_count    0
     :context      :ad-hoc
     :error        true
+    :database_id  (id)
     :started_at   true
     :running_time true
     :executor_id  (user->id :rasta)
