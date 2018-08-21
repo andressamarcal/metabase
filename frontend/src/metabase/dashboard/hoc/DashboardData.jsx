@@ -60,6 +60,9 @@ type Props = {
   }) => Promise<void>,
   setParameterValue: (id: string, value: string) => void,
   setErrorPage: (error: { status: number }) => void,
+
+  // don't link card titles to the query builder
+  noLink: boolean,
 };
 
 export default (ComposedComponent: ReactClass<any>) =>
@@ -102,7 +105,16 @@ export default (ComposedComponent: ReactClass<any>) =>
       }
 
       render() {
-        return <ComposedComponent {...this.props} />;
+        const { navigateToNewCardFromDashboard, ...props } = this.props;
+        return (
+          <ComposedComponent
+            {...props}
+            // if noLink is provided, don't include navigateToNewCardFromDashboard
+            navigateToNewCardFromDashboard={
+              this.props.noLink ? null : navigateToNewCardFromDashboard
+            }
+          />
+        );
       }
     },
   );

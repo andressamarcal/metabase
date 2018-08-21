@@ -34,6 +34,8 @@ const AuditDashboards = ({ cards, ...props }: Props) => (
       })),
     }}
     actionsForClick={auditActionsForClick}
+    // don't link card titles to the query builder
+    noLink
     {...props}
   />
 );
