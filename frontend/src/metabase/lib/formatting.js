@@ -302,7 +302,6 @@ export function formatTimeValue(value: Value) {
 
 import Mustache from "mustache";
 import ReactMarkdown from "react-markdown";
-import ExternalLink from "metabase/components/ExternalLink";
 
 const MARKDOWN_RENDERERS = {
   link: ({ href, children }) => (
