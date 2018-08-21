@@ -48,7 +48,7 @@ export default class AuditTableVisualization extends React.Component {
               {columnIndexes.map((colIndex, columnSettingsIndex) => {
                 const value = row[colIndex];
                 const column = cols[colIndex];
-                const clickObject = { column, value };
+                const clickObject = { column, value, row, cols };
                 const clickable = visualizationIsClickable(clickObject);
                 const settings = columnSettings[columnSettingsIndex];
                 if (settings && !settings.enabled) {
