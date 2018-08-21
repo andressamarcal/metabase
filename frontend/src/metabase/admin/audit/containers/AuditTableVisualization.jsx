@@ -5,10 +5,12 @@ import React from "react";
 import { registerVisualization } from "metabase/visualizations/index";
 
 import { formatColumn, formatValue } from "metabase/lib/formatting";
+import { isColumnRightAligned } from "metabase/visualizations/lib/table";
 
 import Table from "metabase/visualizations/visualizations/Table";
 
 import _ from "underscore";
+import cx from "classnames";
 
 export default class AuditTableVisualization extends React.Component {
   static identifier = "audit-table";
@@ -40,7 +42,13 @@ export default class AuditTableVisualization extends React.Component {
         <thead>
           <tr>
             {columnIndexes.map(colIndex => (
-              <th>{formatColumn(cols[colIndex])}</th>
+              <th
+                className={cx({
+                  "text-right": isColumnRightAligned(cols[colIndex]),
+                })}
+              >
+                {formatColumn(cols[colIndex])}
+              </th>
             ))}
           </tr>
         </thead>
@@ -58,7 +66,10 @@ export default class AuditTableVisualization extends React.Component {
                 }
                 return (
                   <td
-                    className={clickable ? "text-brand cursor-pointer" : null}
+                    className={cx({
+                      "text-brand cursor-pointer": clickable,
+                      "text-right": isColumnRightAligned(column),
+                    })}
                     onClick={
                       clickable ? () => onVisualizationClick(clickObject) : null
                     }
