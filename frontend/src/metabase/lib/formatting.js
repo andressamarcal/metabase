@@ -305,7 +305,7 @@ import ReactMarkdown from "react-markdown";
 
 const MARKDOWN_RENDERERS = {
   link: ({ href, children }) => (
-    <ExternalLink to={href}>{children}</ExternalLink>
+    <ExternalLink href={href}>{children}</ExternalLink>
   ),
 };
 
