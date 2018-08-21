@@ -300,6 +300,26 @@ export function formatTimeValue(value: Value) {
   }
 }
 
+import Mustache from "mustache";
+import ReactMarkdown from "react-markdown";
+
+const MARKDOWN_RENDERERS = {
+  link: ({ href, children }) => (
+    <ExternalLink href={href}>{children}</ExternalLink>
+  ),
+};
+
+export function formatWithMarkdown(value: Value, options) {
+  const markdown = Mustache.render(options.markdown_format, { value });
+  if (options.jsx) {
+    return <ReactMarkdown source={markdown} renderers={MARKDOWN_RENDERERS} />;
+  } else {
+    // FIXME?
+    console.warn("markdown_format not supported with options.jsx = false");
+    return markdown;
+  }
+}
+
 // https://github.com/angular/angular.js/blob/v1.6.3/src/ng/directive/input.js#L27
 const EMAIL_WHITELIST_REGEX = /^(?=.{1,254}$)(?=.{1,64}@)[-!#$%&'*+/0-9=?A-Z^_`a-z{|}~]+(\.[-!#$%&'*+/0-9=?A-Z^_`a-z{|}~]+)*@[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$/;
 
@@ -375,6 +395,8 @@ export function formatValue(value: Value, options: FormattingOptions = {}) {
       column && column.unit,
       options.date_format,
     );
+  } else if (options.markdown_format) {
+    return formatWithMarkdown(value, options);
   } else if (column && isa(column.base_type, TYPE.Time)) {
     return formatTimeValue(value);
   } else if (column && column.unit != null) {

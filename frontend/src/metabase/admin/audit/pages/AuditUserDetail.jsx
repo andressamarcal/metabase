@@ -49,8 +49,12 @@ const AuditUserActivityTab = ({ userId }) => (
   />
 );
 
-const AuditUserAuditLogTab = ({ userId }) => (
+const AuditUserQueryViewsTab = ({ userId }) => (
   <AuditTable table={UserDetailCards.queryViews(userId)} />
+);
+
+const AuditUserDashboardViewsTab = ({ userId }) => (
+  <AuditTable table={UserDetailCards.dashboardViews(userId)} />
 );
 
 AuditUserDetail.tabs = [
@@ -59,7 +63,16 @@ AuditUserDetail.tabs = [
   { path: "data_permissions", title: "Data permissions" },
   { path: "collection_permissions", title: "Collection permissions" },
   { path: "made_by", title: "Made by them" },
-  { path: "log", title: "Audit log", component: AuditUserAuditLogTab },
+  {
+    path: "query_views",
+    title: "Query views",
+    component: AuditUserQueryViewsTab,
+  },
+  {
+    path: "dashboard_views",
+    title: "Dashboard views",
+    component: AuditUserDashboardViewsTab,
+  },
 ];
 
 export default AuditUserDetail;
