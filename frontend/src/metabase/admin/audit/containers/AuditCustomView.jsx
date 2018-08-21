@@ -8,7 +8,6 @@ import QuestionResultLoader from "metabase/containers/QuestionResultLoader";
 
 import Question from "metabase-lib/lib/Question";
 import { connect } from "react-redux";
-import { push } from "react-router-redux";
 import { getMetadata } from "metabase/selectors/metadata";
 
 const mapStateToProps = (state, props) => ({
@@ -18,7 +17,7 @@ const mapStateToProps = (state, props) => ({
 @connect(mapStateToProps, null)
 export default class AuditTable extends React.Component {
   render() {
-    const { metadata, card, ...props } = this.props;
+    const { metadata, card } = this.props;
     const question = new Question(metadata, card.card);
 
     return (

@@ -4,8 +4,6 @@ import React from "react";
 
 import Radio from "metabase/components/Radio";
 
-import _ from "underscore";
-
 export default class AuditContent extends React.Component {
   render() {
     const { title, subtitle, tabs, children, location, ...props } = this.props;
@@ -41,7 +39,3 @@ export default class AuditContent extends React.Component {
     );
   }
 }
-
-const AuditEmptyTab = () => (
-  <div className="p4 flex layout-centered">Not yet implemented</div>
-);

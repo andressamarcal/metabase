@@ -304,6 +304,7 @@ import Mustache from "mustache";
 import ReactMarkdown from "react-markdown";
 
 const MARKDOWN_RENDERERS = {
+  // eslint-disable-next-line react/display-name
   link: ({ href, children }) => (
     <ExternalLink href={href}>{children}</ExternalLink>
   ),

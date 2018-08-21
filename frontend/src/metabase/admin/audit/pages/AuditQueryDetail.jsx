@@ -4,7 +4,6 @@ import AuditContent from "../components/AuditContent";
 import AuditCustomView from "../containers/AuditCustomView";
 
 import OpenInMetabase from "../components/OpenInMetabase";
-import EntityName from "metabase/entities/containers/EntityName";
 
 import NativeQueryEditor from "metabase/query_builder/components/NativeQueryEditor";
 import GuiQueryEditor from "metabase/query_builder/components/GuiQueryEditor";

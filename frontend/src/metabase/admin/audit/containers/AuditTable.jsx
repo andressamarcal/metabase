@@ -40,13 +40,7 @@ export default class AuditTable extends React.Component {
   };
 
   render() {
-    const {
-      metadata,
-      table,
-      onChangeLocation,
-      pageSize,
-      ...props
-    } = this.props;
+    const { metadata, table, onChangeLocation, pageSize } = this.props;
     const { page, hasMorePages } = this.state;
 
     const card = chain(table.card)
