@@ -1,4 +1,4 @@
-/* @flow weak */
+/* @flow */
 
 import React from "react";
 
@@ -27,7 +27,17 @@ import AuditQueryDetail from "metabase/admin/audit/pages/AuditQueryDetail";
 import AuditUsers from "metabase/admin/audit/pages/AuditUsers";
 import AuditUserDetail from "metabase/admin/audit/pages/AuditUserDetail";
 
-function getPageRoutes(path, page) {
+type Page = {
+  tabs?: Tab[],
+};
+
+type Tab = {
+  path: string,
+  title: string,
+  component?: any,
+};
+
+function getPageRoutes(path, page: Page) {
   const subRoutes = [];
   // add a redirect for the default tab
   const defaultTab = getDefaultTab(page);
@@ -52,17 +62,16 @@ function getPageRoutes(path, page) {
   );
 }
 
-function getDefaultTab(page) {
+function getDefaultTab(page: Page): ?Tab {
   // use the tab with "default = true" or the first
   return (
-    (page &&
-      page.tabs &&
-      (_.findWhere(page.tabs, { default: true }) || page.tabs[0])) ||
+    _.findWhere(page.tabs, { default: true }) ||
+    (page.tabs && page.tabs[0]) ||
     null
   );
 }
 
-const getRoutes = store => (
+const getRoutes = (store: any) => (
   <Route path="audit" title={t`Audit`} component={AuditApp}>
     {/* <IndexRedirect to="overview" /> */}
     <IndexRedirect to="members" />

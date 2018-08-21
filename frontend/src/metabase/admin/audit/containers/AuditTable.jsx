@@ -1,4 +1,4 @@
-/* @flow weak */
+/* @flow */
 
 import React from "react";
 
@@ -18,6 +18,17 @@ import { chain } from "icepick";
 import cx from "classnames";
 import { t } from "c-3po";
 
+import type { AuditDashCard } from "../types";
+
+type Props = {
+  table: AuditDashCard,
+  pageSize: number,
+};
+type State = {
+  page: number,
+  hasMorePages: boolean,
+};
+
 const mapStateToProps = (state, props) => ({
   metadata: getMetadata(state),
 });
@@ -30,7 +41,8 @@ const DEFAULT_PAGE_SIZE = 100;
 
 @connect(mapStateToProps, mapDispatchToProps)
 export default class AuditTable extends React.Component {
-  state = {
+  props: Props;
+  state: State = {
     page: 0,
     hasMorePages: false,
   };
@@ -40,6 +52,7 @@ export default class AuditTable extends React.Component {
   };
 
   render() {
+    // $FlowFixMe: metadata, and onChangeLocation provided by @connect
     const { metadata, table, onChangeLocation, pageSize } = this.props;
     const { page, hasMorePages } = this.state;
 

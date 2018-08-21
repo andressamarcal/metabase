@@ -1,10 +1,16 @@
-/* @flow weak */
+/* @flow */
 
 import React from "react";
 
 import { IndexLink } from "react-router";
 import Link from "metabase/components/Link";
 import cx from "classnames";
+
+type Props = {
+  className?: string,
+  style?: { [key: string]: any },
+  children?: React$Element<any>,
+};
 
 const AuditSidebarSection = ({ title, children }) => (
   <div className="pb2">
@@ -41,13 +47,13 @@ const AuditSidebarItem = ({ title, path }) => (
   </div>
 );
 
-const AuditSidebar = ({ className, style, children }) => (
+const AuditSidebar = ({ className, style, children }: Props) => (
   <div style={style} className={cx("p4", className)}>
     {children}
   </div>
 );
 
-const AuditAppSidebar = props => (
+const AuditAppSidebar = (props: Props) => (
   <AuditSidebar {...props}>
     {/* <AuditSidebarSection>
       <AuditSidebarItem title="Overview" path="/admin/audit/overview" />

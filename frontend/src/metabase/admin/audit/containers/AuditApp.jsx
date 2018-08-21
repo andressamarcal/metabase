@@ -1,11 +1,15 @@
-/* @flow weak */
+/* @flow */
 
 import React from "react";
 
 import SidebarLayout from "metabase/components/SidebarLayoutFixedWidth";
 import AuditSidebar from "../components/AuditSidebar";
 
-const AuditApp = ({ children }) => (
+type Props = {
+  children: React$Element<any>,
+};
+
+const AuditApp = ({ children }: Props) => (
   <SidebarLayout sidebar={<AuditSidebar />}>
     <div>{children}</div>
   </SidebarLayout>

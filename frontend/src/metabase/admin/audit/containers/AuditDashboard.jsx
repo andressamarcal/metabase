@@ -1,4 +1,4 @@
-/* @flow weak */
+/* @flow */
 
 import React from "react";
 
@@ -9,7 +9,13 @@ const DashboardWithData = DashboardData(Dashboard);
 
 import { auditActionsForClick } from "../lib/util";
 
-const AuditDashboards = ({ cards, ...props }) => (
+import type { AuditCard } from "../types";
+
+type Props = {
+  cards: AuditCard[],
+};
+
+const AuditDashboards = ({ cards, ...props }: Props) => (
   <DashboardWithData
     style={{ backgroundColor: "transparent", padding: 0 }}
     // HACK: to get inline dashboards working quickly

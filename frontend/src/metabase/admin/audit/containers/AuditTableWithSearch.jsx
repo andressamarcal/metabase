@@ -1,4 +1,4 @@
-/* @flow weak */
+/* @flow */
 
 import React from "react";
 
@@ -8,8 +8,19 @@ import AuditParameters from "../components/AuditParameters";
 import { t } from "c-3po";
 import { updateIn } from "icepick";
 
+import type { AuditDashCard } from "../types";
+
+type Props = {
+  placeholder?: string,
+  table: AuditDashCard,
+};
+
 // AuditTable but with a default search parameter that gets appended to `args`
-const AuditTableWithSearch = ({ placeholder = t`Search`, table, ...props }) => (
+const AuditTableWithSearch = ({
+  placeholder = t`Search`,
+  table,
+  ...props
+}: Props) => (
   <AuditParameters parameters={[{ key: "search", placeholder }]}>
     {({ search }) => (
       <AuditTable

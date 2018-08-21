@@ -1,4 +1,4 @@
-/*N @flow*/
+/* @flow*/
 
 export const details = (queryHash: string) => ({
   card: {
