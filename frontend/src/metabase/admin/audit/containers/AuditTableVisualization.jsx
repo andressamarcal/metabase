@@ -9,6 +9,10 @@ import { isColumnRightAligned } from "metabase/visualizations/lib/table";
 
 import Table from "metabase/visualizations/visualizations/Table";
 
+import EmptyState from "metabase/components/EmptyState";
+
+import { t } from "c-3po";
+
 import _ from "underscore";
 import cx from "classnames";
 
@@ -36,6 +40,15 @@ export default class AuditTableVisualization extends React.Component {
     console.log("all:", cols.map(col => col.name));
     console.log("current:", settings["table.columns"]);
     console.groupEnd();
+
+    if (rows.length === 0) {
+      return (
+        <EmptyState
+          title={t`No results`}
+          illustrationElement={<img src="../app/assets/img/no_results.svg" />}
+        />
+      );
+    }
 
     return (
       <table className="ContentTable">
