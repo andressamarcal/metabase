@@ -4,7 +4,7 @@ import React from "react";
 
 import AuditContent from "../components/AuditContent";
 import AuditDashboard from "../containers/AuditDashboard";
-import AuditTable from "../containers/AuditTable";
+import AuditTableWithSearch from "../containers/AuditTableWithSearch";
 
 import * as QueriesCards from "../lib/cards/queries";
 
@@ -26,7 +26,10 @@ const AuditQuestionsOverviewTab = () => (
 );
 
 const AuditQuestionsAllTab = () => (
-  <AuditTable table={QueriesCards.table()} />
+  <AuditTableWithSearch
+    placeholder={`Question name`}
+    table={QueriesCards.table()}
+  />
 );
 
 AuditQuestions.tabs = [

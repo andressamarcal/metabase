@@ -4,7 +4,7 @@ import React from "react";
 
 import AuditContent from "../components/AuditContent";
 import AuditDashboard from "../containers/AuditDashboard";
-import AuditTable from "../containers/AuditTable";
+import AuditTableWithSearch from "../containers/AuditTableWithSearch";
 
 import * as SchemasCards from "../lib/cards/schemas";
 
@@ -21,7 +21,12 @@ const AuditSchemasOverviewTab = () => (
   />
 );
 
-const AuditSchemasAllTab = () => <AuditTable table={SchemasCards.table()} />;
+const AuditSchemasAllTab = () => (
+  <AuditTableWithSearch
+    placeholder={`Schema name`}
+    table={SchemasCards.table()}
+  />
+);
 
 AuditSchemas.tabs = [
   { path: "overview", title: "Overview", component: AuditSchemasOverviewTab },

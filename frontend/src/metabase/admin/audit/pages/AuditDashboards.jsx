@@ -4,7 +4,7 @@ import React from "react";
 
 import AuditContent from "../components/AuditContent";
 import AuditDashboard from "../containers/AuditDashboard";
-import AuditTable from "../containers/AuditTable";
+import AuditTableWithSearch from "../containers/AuditTableWithSearch";
 
 import * as DashboardCards from "../lib/cards/dashboards";
 
@@ -23,7 +23,10 @@ const AuditDashboardsOverviewTab = () => (
 );
 
 const AuditDashboardsAllTab = () => (
-  <AuditTable table={DashboardCards.table()} />
+  <AuditTableWithSearch
+    placeholder={`Dashboard name`}
+    table={DashboardCards.table()}
+  />
 );
 
 AuditDashboards.tabs = [

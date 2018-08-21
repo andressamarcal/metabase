@@ -4,7 +4,7 @@ import React from "react";
 
 import AuditContent from "../components/AuditContent";
 import AuditDashboard from "../containers/AuditDashboard";
-import AuditTable from "../containers/AuditTable";
+import AuditTableWithSearch from "../containers/AuditTableWithSearch";
 
 import * as DatabasesCards from "../lib/cards/databases";
 
@@ -25,7 +25,10 @@ const AuditDatabasesOverviewTab = () => (
 );
 
 const AuditDatabasesAllTab = () => (
-  <AuditTable table={DatabasesCards.table()} />
+  <AuditTableWithSearch
+    placeholder={`Database name`}
+    table={DatabasesCards.table()}
+  />
 );
 
 AuditDatabases.tabs = [
