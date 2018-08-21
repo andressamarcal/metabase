@@ -3,6 +3,7 @@ import _ from "underscore";
 const columnNameToUrl = {
   user_id: value => `/admin/audit/member/${value}`,
   viewed_by_id: value => `/admin/audit/member/${value}`,
+  saved_by_id: value => `/admin/audit/member/${value}`,
   dashboard_id: value => `/admin/audit/dashboard/${value}`,
   card_id: value => `/admin/audit/question/${value}`,
   database_id: value => `/admin/audit/database/${value}`,
