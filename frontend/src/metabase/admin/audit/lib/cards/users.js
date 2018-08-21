@@ -82,14 +82,14 @@ export const queryExecutionTimePerUser = () => ({
   },
 });
 
-export const table = queryString => ({
+export const table = (searchString?: string) => ({
   card: {
     name: "Users",
     display: "table",
     dataset_query: {
       type: "internal",
       fn: "metabase.audit.pages.users/table",
-      args: queryString ? [queryString] : [],
+      args: searchString ? [searchString] : [],
     },
     visualization_settings: {
       "table.columns": [

@@ -9,7 +9,11 @@ import AuditTableWithSearch from "../containers/AuditTableWithSearch";
 
 import * as UsersCards from "../lib/cards/users";
 
-const AuditUsers = props => (
+type Props = {
+  params: { [key: string]: string },
+};
+
+const AuditUsers = (props: Props) => (
   <AuditContent {...props} title="Team members" tabs={AuditUsers.tabs} />
 );
 
@@ -26,7 +30,7 @@ const AuditUsersOverviewTab = () => (
 const AuditUsersAllTab = () => (
   <AuditTableWithSearch
     placeholder={`Member name`}
-    table={UsersCards.table(name)}
+    table={UsersCards.table()}
   />
 );
 

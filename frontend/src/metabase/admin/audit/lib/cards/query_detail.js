@@ -1,4 +1,6 @@
-export const details = (queryHash: number) => ({
+/*N @flow*/
+
+export const details = (queryHash: string) => ({
   card: {
     name: "Query details",
     display: "table",

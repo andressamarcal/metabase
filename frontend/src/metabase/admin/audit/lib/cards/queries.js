@@ -44,14 +44,14 @@ export const slowest = () => ({
   },
 });
 
-export const table = () => ({
+export const table = (searchString?: string) => ({
   card: {
     name: "Questions",
     display: "table",
     dataset_query: {
       type: "internal",
       fn: "metabase.audit.pages.queries/table",
-      args: [],
+      args: searchString ? [searchString] : [],
     },
     visualization_settings: {
       "table.columns": [

@@ -58,6 +58,9 @@ type AutoCompleteResult = [string, string, string];
 type AceEditor = any; // TODO;
 
 type Props = {
+  className?: string,
+  readOnly?: boolean,
+
   location: LocationDescriptor,
 
   question: Question,

@@ -24,14 +24,14 @@ export const slowestSchemas = () => ({
   },
 });
 
-export const table = () => ({
+export const table = (searchString?: string) => ({
   card: {
     name: "Schemas",
     display: "table",
     dataset_query: {
       type: "internal",
       fn: "metabase.audit.pages.schemas/table",
-      args: [],
+      args: searchString ? [searchString] : [],
     },
   },
 });

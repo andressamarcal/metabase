@@ -40,6 +40,10 @@ export type FormattingOptions = {
   round?: boolean,
   // always format as the start value rather than the range, e.x. for bar histogram
   noRange?: boolean,
+
+  // NOTE: not exposed in the UI
+  date_format?: string,
+  markdown_format?: string,
 };
 
 const DEFAULT_NUMBER_OPTIONS: FormattingOptions = {
@@ -279,11 +283,9 @@ export function formatTimeWithUnit(
   }
 }
 
-export function formatTimeWithFormat(
-  value: Value,
-  unit: ?DatetimeUnit,
-  dateFormat: string,
-) {
+export function formatTimeWithFormat(value: Value, options: FormattingOptions) {
+  const unit = options.column && options.column.unit;
+  const dateFormat = options.date_format;
   let m = parseTimestamp(value, unit);
   if (!m.isValid()) {
     return String(value);
@@ -310,7 +312,7 @@ const MARKDOWN_RENDERERS = {
   ),
 };
 
-export function formatWithMarkdown(value: Value, options) {
+export function formatWithMarkdown(value: Value, options: FormattingOptions) {
   const markdown = Mustache.render(options.markdown_format, { value });
   if (options.jsx) {
     return <ReactMarkdown source={markdown} renderers={MARKDOWN_RENDERERS} />;
@@ -391,11 +393,7 @@ export function formatValue(value: Value, options: FormattingOptions = {}) {
   } else if (column && isa(column.special_type, TYPE.Email)) {
     return formatEmail(value, options);
   } else if (options.date_format) {
-    return formatTimeWithFormat(
-      value,
-      column && column.unit,
-      options.date_format,
-    );
+    return formatTimeWithFormat(value, options);
   } else if (options.markdown_format) {
     return formatWithMarkdown(value, options);
   } else if (column && isa(column.base_type, TYPE.Time)) {

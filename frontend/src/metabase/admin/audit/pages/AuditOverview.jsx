@@ -7,7 +7,11 @@ import AuditDashboard from "../containers/AuditDashboard";
 
 import * as UsersCards from "../lib/cards/users";
 
-const AuditOverview = props => (
+type Props = {
+  params: { [key: string]: string },
+};
+
+const AuditOverview = (props: Props) => (
   <AuditContent {...props} title="Overview">
     <AuditDashboard
       cards={[

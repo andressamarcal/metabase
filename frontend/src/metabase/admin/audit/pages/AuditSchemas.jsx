@@ -8,7 +8,11 @@ import AuditTableWithSearch from "../containers/AuditTableWithSearch";
 
 import * as SchemasCards from "../lib/cards/schemas";
 
-const AuditSchemas = props => (
+type Props = {
+  params: { [key: string]: string },
+};
+
+const AuditSchemas = (props: Props) => (
   <AuditContent {...props} title="Schemas" tabs={AuditSchemas.tabs} />
 );
 

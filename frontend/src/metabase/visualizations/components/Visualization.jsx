@@ -46,6 +46,7 @@ import type {
   Series,
   RawSeries,
   OnChangeCardAndRun,
+  ClickAction,
 } from "metabase/meta/types/Visualization";
 import Metadata from "metabase-lib/lib/metadata/Metadata";
 
@@ -79,6 +80,11 @@ type Props = {
   metadata: Metadata,
   onChangeCardAndRun: OnChangeCardAndRun,
   onChangeLocation: (url: string) => void,
+
+  actionsForClick?: (args: {
+    question: Question,
+    clicked: ClickObject,
+  }) => ClickAction[],
 
   // used for showing content in place of visualization, e.x. dashcard filter mapping
   replacementContent: Element<any>,

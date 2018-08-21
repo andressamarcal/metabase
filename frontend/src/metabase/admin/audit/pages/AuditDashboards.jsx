@@ -8,7 +8,11 @@ import AuditTableWithSearch from "../containers/AuditTableWithSearch";
 
 import * as DashboardCards from "../lib/cards/dashboards";
 
-const AuditDashboards = props => (
+type Props = {
+  params: { [key: string]: string },
+};
+
+const AuditDashboards = (props: Props) => (
   <AuditContent {...props} title="Dashboards" tabs={AuditDashboards.tabs} />
 );
 

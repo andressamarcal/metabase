@@ -1,4 +1,9 @@
+/* @flow */
+
 import _ from "underscore";
+
+import type { ClickObject } from "metabase/meta/types/Visualization";
+import Question from "metabase-lib/lib/Question";
 
 const columnNameToUrl = {
   user_id: value => `/admin/audit/member/${value}`,
@@ -11,10 +16,17 @@ const columnNameToUrl = {
   // schema: value => `/admin/audit/schema/${value}`,
   table_id: value => `/admin/audit/table/${value}`,
   // NOTE: query_hash uses standard Base64 encoding which isn't URL safe so make sure to escape it
-  query_hash: value => `/admin/audit/query/${encodeURIComponent(value)}`,
+  query_hash: value =>
+    `/admin/audit/query/${encodeURIComponent(String(value))}`,
 };
 
-export const auditActionsForClick = ({ question, clicked }) => {
+export const auditActionsForClick = ({
+  question,
+  clicked,
+}: {
+  question: Question,
+  clicked: ClickObject,
+}) => {
   const metricAndDimensions = [clicked].concat(clicked.dimensions || []);
   for (const { column, value } of metricAndDimensions) {
     if (column && columnNameToUrl[column.name] != null && value != null) {
@@ -31,12 +43,12 @@ export const auditActionsForClick = ({ question, clicked }) => {
     }
   }
   // NOTE: special case for showing query detail links for ad-hoc queries in the card id column
-  if (clicked.column.name === "card_id") {
+  if (clicked.column && clicked.column.name === "card_id") {
     const queryHashColIndex = _.findIndex(
       clicked.cols,
       col => col.name === "query_hash",
     );
-    const value = clicked.row[queryHashColIndex];
+    const value = clicked.row && clicked.row[queryHashColIndex];
     if (value) {
       return [
         {
@@ -44,7 +56,7 @@ export const auditActionsForClick = ({ question, clicked }) => {
           title: `View this`,
           default: true,
           url() {
-            return `/admin/audit/query/${encodeURIComponent(value)}`;
+            return `/admin/audit/query/${encodeURIComponent(String(value))}`;
           },
         },
       ];

@@ -116,7 +116,7 @@ declare module "underscore" {
 
   declare function flatten(a: Array<any>): Array<any>;
 
-  declare function debounce<T: any => any>(func: T): T;
+  declare function debounce<T: Function>(func: T): T;
 
   declare function partition<T>(
     array: T[],

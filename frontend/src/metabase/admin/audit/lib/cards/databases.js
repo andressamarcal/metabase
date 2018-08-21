@@ -53,14 +53,14 @@ export const queryExecutionsByTime = () => ({
   },
 });
 
-export const table = () => ({
+export const table = (searchString?: string) => ({
   card: {
     name: "Databases",
     display: "table",
     dataset_query: {
       type: "internal",
       fn: "metabase.audit.pages.databases/table",
-      args: [],
+      args: searchString ? [searchString] : [],
     },
     visualization_settings: {
       "table.columns": [

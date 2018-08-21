@@ -1,3 +1,5 @@
+/* @flow */
+
 import React from "react";
 
 import AuditContent from "../components/AuditContent";
@@ -13,7 +15,11 @@ import * as QueryDetailCards from "../lib/cards/query_detail";
 
 import { serializeCardForUrl } from "metabase/lib/card";
 
-const AuditQueryDetail = ({ params: { queryHash } }) => (
+type Props = {
+  params: { [key: string]: string },
+};
+
+const AuditQueryDetail = ({ params: { queryHash } }: Props) => (
   <AuditCustomView card={QueryDetailCards.details(queryHash)}>
     {({ result }) => {
       if (!result) {

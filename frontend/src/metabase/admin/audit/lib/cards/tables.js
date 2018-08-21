@@ -24,14 +24,14 @@ export const leastQueried = () => ({
   },
 });
 
-export const table = () => ({
+export const table = (searchString?: string) => ({
   card: {
     name: "Tables",
     display: "table",
     dataset_query: {
       type: "internal",
       fn: "metabase.audit.pages.tables/table",
-      args: [],
+      args: searchString ? [searchString] : [],
     },
   },
 });
