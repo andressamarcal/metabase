@@ -11,10 +11,10 @@ export const auditLog = (databaseId: number) => ({
     },
     visualization_settings: {
       "table.columns": [
-        { name: "user_id", enabled: true},
-        { name: "card_id", enabled: true},
-        { name: "schema", enabled: true},
-        { name: "table_id", enabled: true},
+        { name: "user_id", enabled: true },
+        { name: "card_id", enabled: true },
+        { name: "schema", enabled: true },
+        { name: "table_id", enabled: true },
         { name: "started_at", enabled: true, date_format: "M/D/YYYY, h:mm A" },
       ],
     },

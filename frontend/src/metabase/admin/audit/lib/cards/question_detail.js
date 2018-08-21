@@ -44,7 +44,7 @@ export const auditLog = (questionId: number) => ({
     visualization_settings: {
       "table.columns": [
         { name: "user_id", enabled: true },
-        { name: "when", enabled: true},
+        { name: "when", enabled: true },
       ],
     },
   },
