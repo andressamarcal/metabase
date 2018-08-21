@@ -79,6 +79,8 @@ export default class AuditTableVisualization extends React.Component {
                       type: "cell",
                       jsx: true,
                       rich: true,
+                      // always show timestamps in local time for the audit app
+                      local: true,
                       ...(settings || {}),
                     })}
                   </td>

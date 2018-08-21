@@ -44,6 +44,8 @@ export type FormattingOptions = {
   // NOTE: not exposed in the UI
   date_format?: string,
   markdown_format?: string,
+  // display in local timezone or parsed timezone
+  local?: boolean,
 };
 
 const DEFAULT_NUMBER_OPTIONS: FormattingOptions = {
@@ -165,7 +167,7 @@ export function formatTimeRangeWithUnit(
   unit: DatetimeUnit,
   options: FormattingOptions = {},
 ) {
-  let m = parseTimestamp(value, unit);
+  let m = parseTimestamp(value, unit, options.local);
   if (!m.isValid()) {
     return String(value);
   }
@@ -216,7 +218,7 @@ export function formatTimeWithUnit(
   unit: DatetimeUnit,
   options: FormattingOptions = {},
 ) {
-  let m = parseTimestamp(value, unit);
+  let m = parseTimestamp(value, unit, options.local);
   if (!m.isValid()) {
     return String(value);
   }
@@ -286,7 +288,7 @@ export function formatTimeWithUnit(
 export function formatTimeWithFormat(value: Value, options: FormattingOptions) {
   const unit = options.column && options.column.unit;
   const dateFormat = options.date_format;
-  let m = parseTimestamp(value, unit);
+  let m = parseTimestamp(value, unit, options.local);
   if (!m.isValid()) {
     return String(value);
   }
@@ -406,7 +408,9 @@ export function formatValue(value: Value, options: FormattingOptions = {}) {
     moment.isMoment(value) ||
     moment(value, ["YYYY-MM-DD'T'HH:mm:ss.SSSZ"], true).isValid()
   ) {
-    return parseTimestamp(value, column && column.unit).format("LLLL");
+    return parseTimestamp(value, column && column.unit, options.local).format(
+      "LLLL",
+    );
   } else if (typeof value === "string") {
     return formatStringFallback(value, options);
   } else if (typeof value === "number") {
