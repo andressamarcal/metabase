@@ -68,8 +68,17 @@ export const table = () => ({
         { name: "average_execution_time_ms", enabled: true },
         { name: "cards", enabled: true },
         { name: "saved_by_id", enabled: true },
+        {
+          name: "public_link",
+          enabled: true,
+          markdown_format: "[Link]({{value}})",
+        },
         { name: "saved_on", enabled: true, date_format: "M/D/YYYY, h:mm A" },
-        { name: "last_edited_on", enabled: true, date_format: "M/D/YYYY, h:mm A" },
+        {
+          name: "last_edited_on",
+          enabled: true,
+          date_format: "M/D/YYYY, h:mm A",
+        },
       ],
     },
   },
