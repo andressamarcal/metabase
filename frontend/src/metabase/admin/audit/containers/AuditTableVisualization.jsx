@@ -61,7 +61,13 @@ export default class AuditTableVisualization extends React.Component {
                       clickable ? () => onVisualizationClick(clickObject) : null
                     }
                   >
-                    {formatValue(value, { column, ...(settings || {}) })}
+                    {formatValue(value, {
+                      column: column,
+                      type: "cell",
+                      jsx: true,
+                      rich: true,
+                      ...(settings || {}),
+                    })}
                   </td>
                 );
               })}
