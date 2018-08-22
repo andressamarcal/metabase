@@ -8,8 +8,8 @@
 
 (s/defn ^:internal-query-fn views-by-time
   "Get views of a Card broken out by a time `unit`, e.g. `day` or `day-of-week`."
-  [card-id :- su/IntGreaterThanZero, unit :- common/DateTimeUnitStr]
-  (card-and-dash-detail/views-by-time "card" card-id unit))
+  [card-id :- su/IntGreaterThanZero, datetime-unit :- common/DateTimeUnitStr]
+  (card-and-dash-detail/views-by-time "card" card-id datetime-unit))
 
 
 (s/defn ^:internal-query-fn revision-history

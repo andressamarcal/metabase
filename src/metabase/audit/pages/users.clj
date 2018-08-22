@@ -5,19 +5,6 @@
             [ring.util.codec :as codec]
             [schema.core :as s]))
 
-;; WITH user_qe AS (
-;;     SELECT executor_id, count(*) AS executions, CAST(started_at AS DATE) AS day
-;;     FROM query_execution
-;;     GROUP BY executor_id, day
-;; )
-;;
-;; SELECT
-;;   count(*) AS "Users",
-;;   sum(executions) AS "Queries",
-;;   day
-;; FROM user_qe
-;; GROUP BY day
-;; ORDER BY day ASC
 (defn ^:internal-query-fn ^:deprecated active-users-and-queries-by-day
   "Query that returns data for a two-series timeseries: the number of DAU (a User is considered active for purposes of
   this query if they ran at least one query that day), and total number of queries ran. Broken out by day."
@@ -38,6 +25,7 @@
                :group-by [:day]
                :order-by [[:day :asc]]})})
 
+
 (s/defn ^:internal-query-fn active-and-new-by-time
   "Two-series timeseries that returns number of active Users (Users who ran at least one query) and number of new Users,
   broken out by `datetime-unit`."
@@ -45,40 +33,28 @@
   {:metadata [[:date         {:display_name "Date",         :base_type (common/datetime-unit-str->base-type datetime-unit)}]
               [:active_users {:display_name "Active Users", :base_type :type/Integer}]
               [:new_users    {:display_name "New Users",    :base_type :type/Integer}]]
-   :results  (common/query
-              {:with      [[:active {:select   [[(common/grouped-datetime datetime-unit :started_at) :date]
-                                                [:%distinct-count.executor_id :count]]
-                                     :from     [:query_execution]
-                                     :group-by [(common/grouped-datetime datetime-unit :started_at)]}]
-                           [:new  {:select   [[(common/grouped-datetime datetime-unit :date_joined) :date]
+   ;; this is so nice and easy to implement in a single query with FULL OUTER JOINS but unfortunately only pg supports
+   ;; them(!)
+   :results  (let [active       (common/query
+                                  {:select   [[(common/grouped-datetime datetime-unit :started_at) :date]
+                                              [:%distinct-count.executor_id :count]]
+                                   :from     [:query_execution]
+                                   :group-by [(common/grouped-datetime datetime-unit :started_at)]})
+                   date->active (zipmap (map :date active) (map :count active))
+                   new          (common/query
+                                  {:select   [[(common/grouped-datetime datetime-unit :date_joined) :date]
                                               [:%count.* :count]]
                                    :from     [:core_user]
-                                   :group-by [(common/grouped-datetime datetime-unit :date_joined)]}]]
-               :select    [[(common/first-non-null :active.date :new.date) :date]
-                           [(common/zero-if-null :active.count) :active_users]
-                           [(common/zero-if-null :new.count) :new_users]]
-               :from      [:active]
-               :full-join [:new [:= :active.date :new.date]]
-               :order-by  [[:date :asc]]})})
+                                   :group-by [(common/grouped-datetime datetime-unit :date_joined)]})
+                   date->new    (zipmap (map :date new) (map :count new))
+                   all-dates    (sort (keep identity (distinct (concat (keys date->active)
+                                                                       (keys date->new)))))]
+               (for [date all-dates]
+                 {:date         date
+                  :active_users (date->active date 0)
+                  :new_users    (date->new   date 0)}))})
 
-;; WITH qe_count AS (
-;;   SELECT count(*) AS "count", qe.executor_id
-;;   FROM query_execution qe
-;;   WHERE qe.executor_id IS NOT NULL
-;;   GROUP BY qe.executor_id
-;;   ORDER BY count(*) DESC
-;;   LIMIT 10
-;; )
-;;
-;; SELECT
-;;   u.id AS user_id,
-;;   (u.first_name || ' ' || u.last_name) AS "name",
-;;   CASE(WHEN qe_count."count" IS NOT NULL THEN qe_count."count" ELSE 0) AS "count"
-;; FROM core_user u
-;; LEFT JOIN qe_count
-;;   ON qe_count.executor_id = u.id
-;; ORDER BY count DESC, lower(u.last_name) ASC, lower(u.first_name ASC)
-;; LIMIT 10
+
 (defn ^:internal-query-fn most-active
   "Query that returns the 10 most active Users (by number of query executions) in descending order."
   []
@@ -103,63 +79,42 @@
                            [:%lower.u.first_name :asc]]
                :limit     10})})
 
+
 (defn ^:internal-query-fn most-saves
   "Query that returns the 10 Users with the most saved objects in descending order."
   []
-  {:metadata [[:user_id   {:display_name "User ID",       :base_type :type/Integer, :remapped_to   :user_name}]
+  {:metadata [[:user_id   {:display_name "User ID",       :base_type :type/Integer, :remapped_to :user_name}]
               [:user_name {:display_name "Name",          :base_type :type/Name,    :remapped_from :user_id}]
               [:saves     {:display_name "Saved Objects", :base_type :type/Integer}]]
    :results  (common/query
-              {:with   [[:card_saves       {:select   [:creator_id
-                                                       [:%count.* :count]]
-                                            :from     [:report_card]
-                                            :group-by [:creator_id]}]
-                        [:dashboard_saves {:select   [:creator_id
-                                                      [:%count.* :count]]
-                                           :from     [:report_dashboard]
-                                           :group-by [:creator_id]}]
-                        [:pulse_saves     {:select   [:creator_id
-                                                      [:%count.* :count]]
-                                           :from     [:pulse]
-                                           :group-by [:creator_id]}]
-                        [:saves {:select    [[(common/first-non-null :card_saves.creator_id
-                                                                     :dashboard_saves.creator_id
-                                                                     :pulse_saves.creator_id)
-                                              :user_id]
-                                             [(hx/+ (common/zero-if-null :card_saves.count)
-                                                    (common/zero-if-null :dashboard_saves.count)
-                                                    (common/zero-if-null :pulse_saves.count))
-                                              :saves]]
-                                 :from      [:card_saves]
-                                 :full-join [:dashboard_saves [:= :card_saves.creator_id :dashboard_saves.creator_id]
-                                             :pulse_saves     [:= :card_saves.creator_id :pulse_saves.creator_id]]
-                                 :order-by  [[:saves :desc]]
-                                 :limit     10}]]
-               :select [:saves.user_id
-                        [(common/user-full-name :u) :user_name]
-                        :saves.saves]
-               :from   [:saves]
-               :join   [[:core_user :u] [:= :saves.user_id :u.id]]
-               :order-by [[:saves.saves :desc]]})})
+               {:with      [[:card_saves       {:select   [:creator_id
+                                                           [:%count.* :count]]
+                                                :from     [:report_card]
+                                                :group-by [:creator_id]}]
+                            [:dashboard_saves {:select   [:creator_id
+                                                          [:%count.* :count]]
+                                               :from     [:report_dashboard]
+                                               :group-by [:creator_id]}]
+                            [:pulse_saves     {:select   [:creator_id
+                                                          [:%count.* :count]]
+                                               :from     [:pulse]
+                                               :group-by [:creator_id]}]]
+                :select    [[:u.id :user_id]
+                            [(common/user-full-name :u) :user_name]
+                            [(hx/+ (common/zero-if-null :card_saves.count)
+                                   (common/zero-if-null :dashboard_saves.count)
+                                   (common/zero-if-null :pulse_saves.count))
+                             :saves]]
+                :from      [[:core_user :u]]
+                :left-join [:card_saves      [:= :u.id :card_saves.creator_id]
+                            :dashboard_saves [:= :u.id :dashboard_saves.creator_id]
+                            :pulse_saves     [:= :u.id :pulse_saves.creator_id]]
+                :order-by  [[:saves :desc]
+                            [:u.last_name :asc]
+                            [:u.first_name :asc]]
+                :limit     10})})
 
-;; WITH exec_time AS (
-;;   SELECT sum(running_time) AS execution_time_ms, qe.executor_id
-;;   FROM query_execution qe
-;;   WHERE qe.executor_id IS NOT NULL
-;;   GROUP BY qe.executor_id
-;;   ORDER BY sum(running_time) DESC
-;;   LIMIT 10
-;; )
-;;
-;; SELECT
-;;   u.id AS user_id,
-;;   (u.first_name || ' ' || u.last_name) AS "name",
-;;   CASE (WHEN exec_time.execution_time_ms IS NOT NULL THEN exec_time.execution_time_ms ELSE 0) AS execution_time_ms
-;; FROM core_user u
-;; LEFT JOIN exec_time
-;;   ON exec_time.executor_id = u.id
-;; ORDER BY execution_time_ms DESC, lower(u.last_name) ASC, lower(u.first_name) ASC
-;; LIMIT 10
+
 (defn ^:internal-query-fn query-execution-time-per-user
   "Query that returns the total time spent executing queries, broken out by User, for the top 10 Users."
   []
@@ -167,94 +122,26 @@
               [:name              {:display_name "Name",                      :base_type :type/Name,    :remapped_from :user_id}]
               [:execution_time_ms {:display_name "Total Execution Time (ms)", :base_type :type/Decimal}]]
    :results  (common/query
-              {:with      [[:exec_time {:select   [[:%sum.running_time :execution_time_ms]
-                                                   :qe.executor_id]
-                                        :from     [[:query_execution :qe]]
-                                        :where    [:not= nil :qe.executor_id]
-                                        :group-by [:qe.executor_id]
-                                        :order-by [[:%sum.running_time :desc]]
-                                        :limit    10}]]
-               :select    [[:u.id :user_id]
-                           [(common/user-full-name :u) :name]
-                           [(hsql/call :case [:not= :exec_time.execution_time_ms nil] :exec_time.execution_time_ms
-                                       :else 0)
-                            :execution_time_ms]]
-               :from      [[:core_user :u]]
-               :left-join [:exec_time [:= :exec_time.executor_id :u.id]]
-               :order-by  [[:execution_time_ms :desc]
-                           [:%lower.u.last_name :asc]
-                           [:%lower.u.first_name :asc]]
-               :limit     10})})
+               {:with      [[:exec_time {:select   [[:%sum.running_time :execution_time_ms]
+                                                    :qe.executor_id]
+                                         :from     [[:query_execution :qe]]
+                                         :where    [:not= nil :qe.executor_id]
+                                         :group-by [:qe.executor_id]
+                                         :order-by [[:%sum.running_time :desc]]
+                                         :limit    10}]]
+                :select    [[:u.id :user_id]
+                            [(common/user-full-name :u) :name]
+                            [(hsql/call :case [:not= :exec_time.execution_time_ms nil] :exec_time.execution_time_ms
+                                        :else 0)
+                             :execution_time_ms]]
+                :from      [[:core_user :u]]
+                :left-join [:exec_time [:= :exec_time.executor_id :u.id]]
+                :order-by  [[:execution_time_ms :desc]
+                            [:%lower.u.last_name :asc]
+                            [:%lower.u.first_name :asc]]
+                :limit     10})})
 
-;; WITH last_query AS (
-;;     SELECT executor_id AS "id", max(started_at) AS started_at
-;;     FROM query_execution
-;;     GROUP BY executor_id
-;; ),
-;;
-;; groups AS (
-;;     SELECT u.id AS id, string_agg(pg.name, ', ') AS "groups"
-;;     FROM core_user u
-;;     LEFT JOIN permissions_group_membership pgm
-;;       ON u.id = pgm.user_id
-;;     LEFT JOIN permissions_group pg
-;;       ON pgm.group_id = pg.id
-;;     GROUP BY u.id
-;; ),
-;;
-;; questions_saved AS (
-;;     SELECT u.id AS id, count(*) AS "count"
-;;     FROM report_card c
-;;     LEFT JOIN core_user u
-;;       ON u.id = c.creator_id
-;;     GROUP BY u.id
-;; ),
-;;
-;; dashboards_saved AS (
-;;     SELECT u.id AS id, count(*) AS "count"
-;;     FROM report_dashboard d
-;;     LEFT JOIN core_user u
-;;       ON u.id = d.creator_id
-;;     GROUP BY u.id
-;; ),
-;;
-;; pulses_saved AS (
-;;     SELECT u.id AS id, count(*) AS "count"
-;;     FROM pulse p
-;;     LEFT JOIN core_user u
-;;       ON u.id = p.creator_id
-;;     GROUP BY u.id
-;; ),
-;;
-;; users AS (
-;;     SELECT (u.first_name || ' ' || u.last_name) AS "name",
-;;       (CASE WHEN u.is_superuser THEN 'Admin' ELSE 'User' END) AS "role",
-;;       id,
-;;       date_joined,
-;;       (CASE WHEN u.sso_source IS NULL THEN 'Email' ELSE u.sso_source END) AS signup_method,
-;;       last_name,
-;;       first_name
-;;     FROM core_user u
-;; )
-;;
-;; SELECT
-;;   u.id AS user_id,
-;;   u."name",
-;;   u."role",
-;;   groups.groups AS groups,
-;;   u.date_joined,
-;;   last_query.started_at AS last_active,
-;;   u.signup_method
-;;   questions_saved.count AS questions_saved,
-;;   dashboards_saved.count AS dashboards_saved,
-;;   pulses_saved.count AS pulses_saved
-;; FROM users u
-;; LEFT JOIN groups           ON u.id = groups.id
-;; LEFT JOIN last_query       ON u.id = last_query.id
-;; LEFT JOIN questions_saved  ON u.id = questions_saved.id
-;; LEFT JOIN dashboards_saved ON u.id = dashboards_saved.id
-;; LEFT JOIN pulses_saved     ON u.id = pulses_saved.id
-;; ORDER BY lower(u.last_name) ASC, lower(u.first_name) ASC
+
 (s/defn ^:internal-query-fn table
   ([]
    (table nil))
@@ -334,6 +221,7 @@
                               [:%lower.u.first_name :asc]]}
                  (common/add-search-clause query-string :u.first_name :u.last_name)))}))
 
+
 (defn ^:internal-query-fn query-views
   []
   {:metadata [[:viewed_on     {:display_name "Viewed On",       :base_type :type/DateTime}]
@@ -376,6 +264,7 @@
                                [:metabase_table :t]     [:= :card.table_id :t.id]]
                    :order-by  [[:qe.started_at :desc]]})
                  (map #(update % :query_hash codec/base64-encode)))})
+
 
 (defn ^:internal-query-fn dashboard-views
   []

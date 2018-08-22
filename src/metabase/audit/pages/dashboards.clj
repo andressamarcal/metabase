@@ -25,24 +25,27 @@
   {:metadata [[:date  {:display_name "Date",  :base_type (common/datetime-unit-str->base-type datetime-unit)}]
               [:views {:display_name "Views", :base_type :type/Integer}]
               [:saves {:display_name "Saves", :base_type :type/Integer}]]
-   :results (common/query
-             {:with      [[:views {:select   [[(common/grouped-datetime datetime-unit :timestamp) :date]
-                                              [:%count.* :count]]
-                                   :from     [:view_log]
-                                   :where    [:= :model (hx/literal "dashboard")]
-                                   :group-by [(common/grouped-datetime datetime-unit :timestamp)]
-                                   :order-by [[(common/grouped-datetime datetime-unit :timestamp) :asc]]}]
-                          [:saves {:select   [[(common/grouped-datetime datetime-unit :created_at) :date]
-                                              [:%count.* :count]]
-                                   :from     [:report_dashboard]
-                                   :group-by [(common/grouped-datetime datetime-unit :created_at)]
-                                   :order-by [[(common/grouped-datetime datetime-unit :created_at) :asc]]}]]
-              :select    [[(common/first-non-null :views.date :saves.date) :date]
-                          [(common/zero-if-null :views.count) :views]
-                          [(common/zero-if-null :saves.count) :saves]]
-              :from      [:views]
-              :full-join [:saves [:= :views.date :saves.date]]
-              :order-by  [[:date :asc]]})})
+   ;; this is so nice and easy to implement in a single query with FULL OUTER JOINS but unfortunately only pg supports
+   ;; them(!)
+   :results (let [views        (common/query
+                                 {:select   [[(common/grouped-datetime datetime-unit :timestamp) :date]
+                                             [:%count.* :views]]
+                                  :from     [:view_log]
+                                  :where    [:= :model (hx/literal "dashboard")]
+                                  :group-by [(common/grouped-datetime datetime-unit :timestamp)]})
+                  date->views  (zipmap (map :date views) (map :views views))
+                  saves        (common/query
+                                 {:select   [[(common/grouped-datetime datetime-unit :created_at) :date]
+                                             [:%count.* :saves]]
+                                  :from     [:report_dashboard]
+                                  :group-by [(common/grouped-datetime datetime-unit :created_at)]})
+                  date->saves  (zipmap (map :date saves) (map :saves saves))
+                  all-dates    (sort (keep identity (distinct (concat (keys date->views)
+                                                                      (keys date->saves)))))]
+              (for [date all-dates]
+                {:date date
+                 :views (date->views date 0)
+                 :saves (date->saves date 0)}))})
 
 
 (defn ^:internal-query-fn ^:deprecated most-popular
