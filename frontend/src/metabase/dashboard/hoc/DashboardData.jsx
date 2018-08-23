@@ -61,6 +61,8 @@ type Props = {
   setParameterValue: (id: string, value: string) => void,
   setErrorPage: (error: { status: number }) => void,
 
+  navigateToNewCardFromDashboard: (args: any) => void,
+
   // don't link card titles to the query builder
   noLink: boolean,
 };
