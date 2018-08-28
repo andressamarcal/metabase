@@ -9,8 +9,12 @@
             [medley.core :as m]
             [metabase
              [middleware :as mid]
-             [query-processor :as qp]]
-            [metabase.models.query-execution :refer [QueryExecution]]
+             [query-processor :as qp]
+             [util :as u]]
+            [metabase.models
+             [card :refer [Card]]
+             [database :as database]
+             [query-execution :refer [QueryExecution]]]
             [metabase.query-processor.middleware.expand :as ql]
             [metabase.test
              [data :refer :all]
@@ -19,7 +23,8 @@
              [dataset-definitions :as defs]
              [datasets :refer [expect-with-engine]]
              [users :refer :all]]
-            [toucan.db :as db]))
+            [toucan.db :as db]
+            [toucan.util.test :as tt]))
 
 (defn user-details [user]
   (tu/match-$ user
@@ -209,3 +214,16 @@
                 (json/generate-string (wrap-inner-query
                                         (query users))))]
     (take 5 (parse-and-sort-csv result))))
+
+;; Check that we can export the results of a nested query
+(expect
+  16
+  (tt/with-temp Card [card {:dataset_query {:database (id)
+                                            :type :native
+                                            :native {:query "SELECT * FROM USERS;"}}}]
+    (let [result ((user->client :rasta) :post 200 "dataset/csv"
+                  :query (json/generate-string
+                          {:database database/virtual-id
+                           :type :query
+                           :query {:source_table (str "card__" (u/get-id card))}}))]
+      (count (csv/read-csv result)))))
