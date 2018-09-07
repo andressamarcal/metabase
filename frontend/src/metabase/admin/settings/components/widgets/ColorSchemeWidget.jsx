@@ -6,9 +6,11 @@ import { humanize } from "metabase/lib/formatting";
 
 import { originalColors } from "metabase/lib/whitelabel";
 
-const THEMEABLE_COLORS = ["brand"].concat(
-  Object.keys(originalColors).filter(name => name.startsWith("accent")),
-);
+const THEMEABLE_COLORS = [
+  "brand",
+  ...Object.keys(originalColors).filter(name => name.startsWith("accent")),
+  "nav",
+];
 
 const COLOR_DISPLAY_PROPERTIES = {
   brand: {
@@ -40,6 +42,10 @@ const COLOR_DISPLAY_PROPERTIES = {
   },
   accent7: {
     name: "Additional chart color",
+  },
+  nav: {
+    name: "Navigation bar color",
+    description: "Optional separate color for the navigation bar",
   },
 };
 

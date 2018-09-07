@@ -55,10 +55,11 @@ const AdminNavItem = ({ name, path, currentPath }) => (
   </li>
 );
 
-const DefaultSearchColor = color(colors.brand)
+const NavColor = colors["nav"] || colors["brand"];
+const DefaultSearchColor = color(NavColor)
   .lighten(0.07)
   .string();
-const ActiveSearchColor = color(colors.brand)
+const ActiveSearchColor = color(NavColor)
   .lighten(0.1)
   .string();
 
@@ -259,8 +260,9 @@ export default class Navbar extends Component {
       <Flex
         // NOTE: DO NOT REMOVE `Nav` CLASS FOR NOW, USED BY MODALS, FULLSCREEN DASHBOARD, ETC
         // TODO: hide nav using state in redux instead?
-        className="Nav relative bg-brand text-white z3"
+        className="Nav relative text-white z3"
         align="center"
+        style={{ backgroundColor: NavColor }}
         py={1}
         pr={2}
       >
