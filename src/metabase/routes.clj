@@ -8,6 +8,7 @@
             [compojure
              [core :refer [context defroutes GET]]
              [route :as route]]
+            [hiccup.util :refer [escape-html]]
             [metabase
              [public-settings :as public-settings]
              [util :as u]]
@@ -57,7 +58,7 @@
   (-> (if (init-status/complete?)
         (load-template (str "frontend_client/" entry ".html")
                        {:bootstrap_json    (escape-script (json/generate-string (public-settings/public-settings)))
-                        :favicon           (escape-script (public-settings/application-favicon-url))
+                        :favicon           (escape-html (public-settings/application-favicon-url))
                         :localization_json (escape-script (load-localization))
                         :uri               (escape-script (json/generate-string uri))
                         :base_href         (escape-script (json/generate-string (base-href)))
