@@ -16,7 +16,11 @@ const COLOR_DISPLAY_PROPERTIES = {
   brand: {
     name: "Primary color",
     description:
-      "The main color used throughout the app for the top nav bar, buttons, links, and the default chart color.",
+      "The main color used throughout the app for buttons, links, and the default chart color.",
+  },
+  nav: {
+    name: "Navigation bar color",
+    description: "The color of Metabase's top nav bar everywhere but in the Admin section.",
   },
   accent1: {
     name: "Accent 1",
@@ -42,10 +46,6 @@ const COLOR_DISPLAY_PROPERTIES = {
   },
   accent7: {
     name: "Additional chart color",
-  },
-  nav: {
-    name: "Navigation bar color",
-    description: "Optional separate color for the navigation bar",
   },
 };
 
