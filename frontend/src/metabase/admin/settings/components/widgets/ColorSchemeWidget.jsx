@@ -21,7 +21,7 @@ const COLOR_DISPLAY_PROPERTIES = {
   nav: {
     name: "Navigation bar color",
     description:
-      "The color of Metabase's top nav bar everywhere but in the Admin section.",
+      "The top nav bar of Metabase. Defaults to the Primary Color if not set.",
   },
   accent1: {
     name: "Accent 1",
