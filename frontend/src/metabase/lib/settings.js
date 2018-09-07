@@ -102,7 +102,8 @@ const MetabaseSettings = {
     }
 
     return (
-      versionInfo && versionInfo.latest_enterprise &&
+      versionInfo &&
+      versionInfo.latest_enterprise &&
       MetabaseUtils.compareVersions(
         currentVersion,
         versionInfo.latest_enterprise.version,
