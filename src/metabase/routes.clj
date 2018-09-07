@@ -59,6 +59,7 @@
         (load-template (str "frontend_client/" entry ".html")
                        {:bootstrap_json    (escape-script (json/generate-string (public-settings/public-settings)))
                         :favicon           (escape-html (public-settings/application-favicon-url))
+                        :application_name  (escape-html (public-settings/application-name))
                         :localization_json (escape-script (load-localization))
                         :uri               (escape-script (json/generate-string uri))
                         :base_href         (escape-script (json/generate-string (base-href)))
