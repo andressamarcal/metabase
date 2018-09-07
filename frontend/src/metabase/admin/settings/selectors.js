@@ -569,6 +569,11 @@ const SECTIONS = [
         type: "string",
         widget: LogoUpload,
       },
+      {
+        key: "application-favicon-url",
+        display_name: "Favicon",
+        type: "string",
+      },
       // {
       //     key: "landing-page",
       //     display_name: "Landing Page",
