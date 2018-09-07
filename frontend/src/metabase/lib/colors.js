@@ -111,6 +111,8 @@ export const getRandomColor = (family: ColorFamily): ColorString => {
   return colors[Math.floor(Math.random() * colors.length)];
 };
 
+export const getNavBarColor = () => colors["nav"] || colors["brand"];
+
 type ColorScale = (input: number) => ColorString;
 
 export const getColorScale = (

@@ -5,7 +5,7 @@ import { t } from "c-3po";
 import { Box, Flex } from "grid-styled";
 import styled from "styled-components";
 import { space, width } from "styled-system";
-import colors from "metabase/lib/colors";
+import colors, { getNavBarColor } from "metabase/lib/colors";
 import color from "color";
 
 import { connect } from "react-redux";
@@ -55,7 +55,7 @@ const AdminNavItem = ({ name, path, currentPath }) => (
   </li>
 );
 
-const NavColor = colors["nav"] || colors["brand"];
+const NavColor = getNavBarColor();
 const DefaultSearchColor = color(NavColor)
   .lighten(0.07)
   .string();

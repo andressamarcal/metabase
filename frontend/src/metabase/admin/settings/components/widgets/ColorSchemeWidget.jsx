@@ -8,8 +8,8 @@ import { originalColors } from "metabase/lib/whitelabel";
 
 const THEMEABLE_COLORS = [
   "brand",
-  ...Object.keys(originalColors).filter(name => name.startsWith("accent")),
   "nav",
+  ...Object.keys(originalColors).filter(name => name.startsWith("accent")),
 ];
 
 const COLOR_DISPLAY_PROPERTIES = {
@@ -20,7 +20,8 @@ const COLOR_DISPLAY_PROPERTIES = {
   },
   nav: {
     name: "Navigation bar color",
-    description: "The color of Metabase's top nav bar everywhere but in the Admin section.",
+    description:
+      "The color of Metabase's top nav bar everywhere but in the Admin section.",
   },
   accent1: {
     name: "Accent 1",
