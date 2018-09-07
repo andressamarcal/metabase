@@ -65,12 +65,6 @@
       color-brand
       color)))
 
-(defn- secondary-color []
-  (let [primary (primary-color)]
-    (if (= primary color-brand)
-      color-purple
-      primary)))
-
 (defn- font-style []
   {:font-family "Lato, \"Helvetica Neue\", Helvetica, Arial, sans-serif"})
 
