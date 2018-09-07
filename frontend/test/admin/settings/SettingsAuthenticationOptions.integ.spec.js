@@ -43,7 +43,7 @@ describe("Admin Auth Options", () => {
     store.goBack();
 
     // test ldap
-    const ldapConfigButton = settingsWrapper.find(".Button").last();
+    const ldapConfigButton = settingsWrapper.find(".Button").at(1); // LDAP is the 2nd in the list
     click(ldapConfigButton);
     expect(settingsWrapper.find(SettingsLdapForm).length).toBe(1);
   });

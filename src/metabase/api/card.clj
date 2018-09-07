@@ -20,7 +20,6 @@
              [collection :as collection :refer [Collection]]
              [database :refer [Database]]
              [interface :as mi]
-             [permissions :as perms]
              [pulse :as pulse :refer [Pulse]]
              [query :as query]
              [table :refer [Table]]

@@ -4,9 +4,7 @@
             [clojure.core.memoize :as memoize]
             [clojure.tools.logging :as log]
             [environ.core :refer [env]]
-            [metabase
-             [config :as config]
-             [util :as u]]
+            [metabase.config :as config]
             [metabase.models.setting :as setting :refer [defsetting]]
             [metabase.util.schema :as su]
             [puppetlabs.i18n.core :refer [trs tru]]
