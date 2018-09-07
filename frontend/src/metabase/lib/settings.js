@@ -103,9 +103,10 @@ const MetabaseSettings = {
 
     return (
       versionInfo &&
+      versionInfo.latest_enterprise &&
       MetabaseUtils.compareVersions(
         currentVersion,
-        versionInfo.latest.version,
+        versionInfo.latest_enterprise.version,
       ) < 0
     );
   },

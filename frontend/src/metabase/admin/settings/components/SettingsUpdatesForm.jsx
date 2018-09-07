@@ -50,6 +50,8 @@ export default class SettingsUpdatesForm extends Component {
             The 'older' section should contain only the last 5 previous versions, we don't need to go on forever.
             The highlights for a version should just be text and should be limited to 5 items tops.
 
+            latest/older is for the OSS version, latest_enterprise/older_entperise is for the commercial version
+
             {
                 "latest": {
                     "version": "v0.17.1",
@@ -80,9 +82,10 @@ export default class SettingsUpdatesForm extends Component {
 
     if (
       !versionInfo ||
+      !versionInfo.latest_enterprise ||
       MetabaseUtils.compareVersions(
         currentVersion,
-        versionInfo.latest.version,
+        versionInfo.latest_enterprise.version,
       ) >= 0
     ) {
       return (
@@ -97,14 +100,14 @@ export default class SettingsUpdatesForm extends Component {
         <div>
           <div className="p2 bg-green bordered rounded border-success flex flex-row align-center justify-between">
             <span className="text-white text-bold">{jt`Metabase ${this.removeVersionPrefixIfNeeded(
-              versionInfo.latest.version,
+              versionInfo.latest_enterprise.version,
             )} is available.  You're running ${this.removeVersionPrefixIfNeeded(
               currentVersion,
             )}`}</span>
             <a
               data-metabase-event={
                 "Updates Settings; Update link clicked; " +
-                versionInfo.latest.version
+                versionInfo.latest_enterprise.version
               }
               className="Button Button--white Button--medium borderless"
               href="http://www.metabase.com/start"
@@ -115,10 +118,10 @@ export default class SettingsUpdatesForm extends Component {
           <div className="text-medium">
             <h3 className="py3 text-uppercase">{t`What's Changed:`}</h3>
 
-            {this.renderVersion(versionInfo.latest)}
+            {this.renderVersion(versionInfo.latest_enterprise)}
 
-            {versionInfo.older &&
-              versionInfo.older.map(this.renderVersion.bind(this))}
+            {versionInfo.older_enterprise &&
+              versionInfo.older_enterprise.map(this.renderVersion.bind(this))}
           </div>
         </div>
       );
