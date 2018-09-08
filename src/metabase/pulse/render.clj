@@ -65,8 +65,8 @@
       color-brand
       color)))
 
-(defn- color-awt [str]
-  (Color/decode str))
+(defn- color-awt [color]
+  (Color/decode color))
 
 (defn- alpha-awt [color alpha]
   (Color. (.getRed color)
