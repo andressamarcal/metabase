@@ -47,14 +47,14 @@
 (def ^:private ^:const sparkline-pad 8)
 
 ;;; ## STYLES
-(def ^:private ^:const color-brand      "rgb(45,134,212)")
-(def ^:private ^:const color-purple     "rgb(135,93,175)")
+(def ^:private ^:const color-brand      "#2D86D4")
+(def ^:private ^:const color-purple     "#875DAF")
 (def ^:private ^:const color-gold       "#F9D45C")
 (def ^:private ^:const color-error      "#EF8C8C")
-(def ^:private ^:const color-gray-1     "rgb(248,248,248)")
-(def ^:private ^:const color-gray-2     "rgb(189,193,191)")
-(def ^:private ^:const color-gray-3     "rgb(124,131,129)")
-(def ^:const color-gray-4 "A ~25% Gray color." "rgb(57,67,64)")
+(def ^:private ^:const color-gray-1     "#F8F8F8")
+(def ^:private ^:const color-gray-2     "#BDC1BF")
+(def ^:private ^:const color-gray-3     "#7C8381")
+(def ^:const color-gray-4 "A ~25% Gray color." "#394340")
 (def ^:private ^:const color-dark-gray  "#616D75")
 (def ^:private ^:const color-row-border "#EDF0F1")
 
@@ -64,6 +64,15 @@
     (if (= color "#509EE3")
       color-brand
       color)))
+
+(defn- color-awt [str]
+  (Color/decode str))
+
+(defn- alpha-awt [color alpha]
+  (Color. (.getRed color)
+          (.getGreen color)
+          (.getBlue color)
+          (int (* alpha 255))))
 
 (defn- font-style []
   {:font-family "Lato, \"Helvetica Neue\", Helvetica, Arial, sans-serif"})
@@ -536,12 +545,12 @@
         yt    (map #(+ sparkline-pad (- height (* height %))) ys)]
     (doto (.createGraphics image)
       (.setRenderingHints (RenderingHints. RenderingHints/KEY_ANTIALIASING RenderingHints/VALUE_ANTIALIAS_ON))
-      (.setColor (Color. 211 227 241))
+      (.setColor (alpha-awt (color-awt (primary-color)) 0.2))
       (.setStroke (BasicStroke. sparkline-thickness BasicStroke/CAP_ROUND BasicStroke/JOIN_ROUND))
       (.drawPolyline (int-array (count xt) xt)
                      (int-array (count yt) yt)
                      (count xt))
-      (.setColor (Color. 45 134 212))
+      (.setColor (color-awt (primary-color)))
       (.fillOval (- (last xt) sparkline-dot-radius)
                  (- (last yt) sparkline-dot-radius)
                  (* 2 sparkline-dot-radius)
@@ -689,7 +698,7 @@
                           :src   (:image-src image-bundle)}]
                    [:table
                     [:tr
-                     [:td {:style (style {:color         color-brand
+                     [:td {:style (style {:color         (primary-color)
                                           :font-size     :24px
                                           :font-weight   700
                                           :padding-right :16px})}
@@ -699,7 +708,7 @@
                                           :font-weight 700})}
                       (second values)]]
                     [:tr
-                     [:td {:style (style {:color         color-brand
+                     [:td {:style (style {:color         (primary-color)
                                           :font-size     :16px
                                           :font-weight   700
                                           :padding-right :16px})}
