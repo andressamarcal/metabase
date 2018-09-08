@@ -4,11 +4,16 @@ import Icon from "metabase/components/Icon";
 import LogoIcon from "metabase/components/LogoIcon";
 import SettingInput from "./SettingInput";
 
+import { getNavBarColor } from "metabase/lib/colors";
+
 const LogoUpload = ({ setting, onChange, ...props }) => (
   <div>
     <div className="mb1">
       {/* Preview of icon as it will appear in the nav bar */}
-      <span className="mb1 bg-brand p1 rounded flex layout-centered">
+      <span
+        className="mb1 p1 rounded flex layout-centered"
+        style={{ backgroundColor: getNavBarColor() }}
+      >
         <LogoIcon dark height={32} />
       </span>
     </div>
