@@ -47,8 +47,6 @@
 (def ^:private ^:const sparkline-pad 8)
 
 ;;; ## STYLES
-(def ^:private ^:const color-brand      "#2D86D4")
-(def ^:private ^:const color-purple     "#875DAF")
 (def ^:private ^:const color-gold       "#F9D45C")
 (def ^:private ^:const color-error      "#EF8C8C")
 (def ^:private ^:const color-gray-1     "#F8F8F8")
@@ -60,10 +58,7 @@
 
 
 (defn- primary-color []
-  (let [color (public-settings/application-color)]
-    (if (= color "#509EE3")
-      color-brand
-      color)))
+  (public-settings/application-color))
 
 (defn- color-awt [color]
   (Color/decode color))
@@ -396,7 +391,7 @@
                                    row)
                       (when bar-width
                         [:td {:style (style (bar-td-style) {:width :99%})}
-                         [:div {:style (style {:background-color color-purple
+                         [:div {:style (style {:background-color (primary-color)
                                                :max-height       :10px
                                                :height           :10px
                                                :border-radius    :2px
