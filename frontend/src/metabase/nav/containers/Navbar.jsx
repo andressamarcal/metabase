@@ -55,23 +55,25 @@ const AdminNavItem = ({ name, path, currentPath }) => (
   </li>
 );
 
-const NavColor = getNavBarColor();
-const DefaultSearchColor = color(NavColor)
-  .lighten(0.07)
-  .string();
-const ActiveSearchColor = color(NavColor)
-  .lighten(0.1)
-  .string();
+const getDefaultSearchColor = () =>
+  color(getNavBarColor())
+    .lighten(0.07)
+    .string();
+
+const getActiveSearchColor = () =>
+  color(getNavBarColor())
+    .lighten(0.1)
+    .string();
 
 const SearchWrapper = Flex.extend`
   ${width} background-color: ${props =>
-      props.active ? ActiveSearchColor : DefaultSearchColor};
+      props.active ? getActiveSearchColor() : getDefaultSearchColor()};
   border-radius: 6px;
   align-items: center;
   color: white;
   transition: background 300ms ease-in;
   &:hover {
-    background-color: ${ActiveSearchColor};
+    background-color: ${props => getActiveSearchColor()};
   }
 `;
 
@@ -262,7 +264,7 @@ export default class Navbar extends Component {
         // TODO: hide nav using state in redux instead?
         className="Nav relative text-white z3"
         align="center"
-        style={{ backgroundColor: NavColor }}
+        style={{ backgroundColor: getNavBarColor() }}
         py={1}
         pr={2}
       >
@@ -273,7 +275,7 @@ export default class Navbar extends Component {
             className="relative cursor-pointer z2 rounded flex justify-center transition-background"
             p={1}
             mx={1}
-            hover={{ backgroundColor: DefaultSearchColor }}
+            hover={{ backgroundColor: getDefaultSearchColor() }}
           >
             <Flex
               style={{ minWidth: 32, height: 32 }}
