@@ -68,7 +68,7 @@
 (defn- color-awt [color]
   (Color/decode color))
 
-(defn- alpha-awt [color alpha]
+(defn- alpha-awt [^java.awt.Color color alpha]
   (Color. (.getRed color)
           (.getGreen color)
           (.getBlue color)
