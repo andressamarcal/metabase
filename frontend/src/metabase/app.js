@@ -68,8 +68,9 @@ function _init(reducers, getRoutes, callback) {
   const routes = getRoutes(store);
   const history = syncHistoryWithStore(browserHistory, store);
 
+  let root;
   ReactDOM.render(
-    <Provider store={store}>
+    <Provider store={store} ref={ref => (root = ref)}>
       <DragDropContextProvider backend={HTML5Backend} context={{ window }}>
         <ThemeProvider theme={theme}>
           <Router history={history}>{routes}</Router>
@@ -96,6 +97,9 @@ function _init(reducers, getRoutes, callback) {
   });
 
   MetabaseSettings.on("application-colors", updateColors);
+  MetabaseSettings.on("application-colors", () => {
+    root.forceUpdate();
+  });
   updateColors();
 
   window.Metabase = window.Metabase || {};
