@@ -128,7 +128,7 @@
   :default "Metabase")
 
 (defsetting application-colors
-  "These are the primary colors used in charts and throughout Metabase."
+  "These are the primary colors used in charts and throughout Metabase. You might need to refresh your browser to see your changes take effect."
   :type    :json
   :default {})
 
