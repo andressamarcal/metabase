@@ -6,15 +6,22 @@ import { humanize } from "metabase/lib/formatting";
 
 import { originalColors } from "metabase/lib/whitelabel";
 
-const THEMEABLE_COLORS = ["brand"].concat(
-  Object.keys(originalColors).filter(name => name.startsWith("accent")),
-);
+const THEMEABLE_COLORS = [
+  "brand",
+  "nav",
+  ...Object.keys(originalColors).filter(name => name.startsWith("accent")),
+];
 
 const COLOR_DISPLAY_PROPERTIES = {
   brand: {
     name: "Primary color",
     description:
-      "The main color used throughout the app for the top nav bar, buttons, links, and the default chart color.",
+      "The main color used throughout the app for buttons, links, and the default chart color.",
+  },
+  nav: {
+    name: "Navigation bar color",
+    description:
+      "The top nav bar of Metabase. Defaults to the Primary Color if not set.",
   },
   accent1: {
     name: "Accent 1",
