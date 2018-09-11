@@ -14,6 +14,10 @@
   "Schema for a valid metastore token. Must be 64 lower-case hex characters."
   #"^[0-9a-f]{64}$")
 
+(def ^:private TokenFeature
+  "Schema for a valid 'feature' the token is approved for. A token can support zero or more features."
+  (s/enum "whitelabel" "embedding" "audit-app" "sandboxes"))
+
 (def store-url
   "URL to the MetaStore. Hardcoded by default but for development purposes you can use a local server. Specify the env
    var `METASTORE_DEV_SERVER_URL`."
@@ -33,8 +37,8 @@
 
 (def ^:private ^:const fetch-token-status-timeout-ms 10000) ; 10 seconds
 
-(s/defn ^:private fetch-token-status :- {:valid s/Bool, :status su/NonBlankString}
-  "Fetch info about the validity of TOKEN from the MetaStore. "
+(s/defn ^:private fetch-token-status :- {:valid s/Bool, :status su/NonBlankString, :features [TokenFeature]}
+  "Fetch info about the validity of `token` from the MetaStore."
   [token :- ValidToken]
   (try
     ;; attempt to query the metastore API about the status of this token. If the request doesn't complete in a
@@ -56,23 +60,24 @@
            fetch-token-status-timeout-ms
            {:valid false, :status (tru "Token validation timed out.")})))
 
-(defn- check-embedding-token-is-valid* [token]
-  (when (s/check ValidToken token)
-    (throw (Exception. (str (trs "Invalid token: token isn't in the right format.")))))
+(s/defn ^:private valid-token->features* :- #{TokenFeature}
+  [token :- ValidToken]
   (log/info (trs "Checking with the MetaStore to see whether {0} is valid..." token))
-  (let [{:keys [valid status]} (fetch-token-status token)]
-    (or valid
-        ;; if token isn't valid throw an Exception with the `:status` message
-        (throw (Exception. ^String status)))))
+  (let [{:keys [valid status features]} (fetch-token-status token)]
+    ;; if token isn't valid throw an Exception with the `:status` message
+    (when-not valid
+      (throw (Exception. ^String status)))
+    ;; otherwise return the features this token supports
+    (set features)))
 
 (def ^:private ^:const valid-token-recheck-interval-ms
   "Amount of time to cache the status of a valid embedding token before forcing a re-check"
   (* 1000 60 60 24)) ; once a day
 
-(def ^:private ^{:arglists '([token])} check-embedding-token-is-valid
-  "Check whether TOKEN is valid. Throws an Exception if not."
-  ;; this is just `check-embedding-token-is-valid*` with some light caching
-  (memoize/ttl check-embedding-token-is-valid*
+(def ^:private ^{:arglists '([token])} valid-token->features
+  "Check whether `token` is valid. Throws an Exception if not. Returns a set of supported features if it is."
+  ;; this is just `valid-token->features*` with some light caching
+  (memoize/ttl valid-token->features*
     :ttl/threshold valid-token-recheck-interval-ms))
 
 
@@ -80,23 +85,41 @@
 ;;; |                                             SETTING & RELATED FNS                                              |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-;; TODO - better docstring
-(defsetting premium-embedding-token
-  (tru "Token for premium embedding. Go to the MetaStore to get yours!")
+(defsetting premium-embedding-token ; TODO - rename this to premium-features-token?
+  (tru "Token for premium features. Go to the MetaStore to get yours!")
   :setter (fn [new-value]
             ;; validate the new value if we're not unsetting it
             (try
               (when (seq new-value)
-                (check-embedding-token-is-valid new-value)
+                (valid-token->features new-value)
                 (log/info (trs "Token is valid.")))
               (setting/set-string! :premium-embedding-token new-value)
               (catch Throwable e
                 (log/error e (trs "Error setting premium embedding token"))
                 (throw (ex-info (.getMessage e) {:status-code 400}))))))
 
+(s/defn ^:private token-features :- (s/maybe #{TokenFeature})
+  "Get the features associated with the system's premium features token."
+  []
+  (some-> (premium-embedding-token) valid-token->features))
+
 (defn hide-embed-branding?
   "Should we hide the 'Powered by Metabase' attribution on the embedding pages? `true` if we have a valid premium
    embedding token."
   []
-  ;; WHITELABEL: hardcoded to true
-  true)
+  (boolean ((token-features) "embedding")))
+
+(defn enable-whitelabeling?
+  "Should we allow full whitelabel embedding (reskinning the entire interface?)"
+  []
+  (boolean ((token-features) "whitelabel")))
+
+(defn enable-audit-app?
+  "Should we allow use of the audit app?"
+  []
+  (boolean ((token-features) "audit-app")))
+
+(defn enable-sandboxes?
+  "Should we enable data sandboxes (row and column-level permissions?"
+  []
+  (boolean ((token-features) "sandboxes")))
