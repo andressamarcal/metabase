@@ -16,8 +16,6 @@ const PAGE_PADDING = 10;
 // Popover padding and border
 const POPOVER_BODY_PADDING = 2;
 
-const POPOVER_TRANSITION_LEAVE = 100;
-
 export default class Popover extends Component {
   constructor(props, context) {
     super(props, context);
@@ -101,13 +99,11 @@ export default class Popover extends Component {
     }
     if (this._popoverElement) {
       this._renderPopover(false);
-      setTimeout(() => {
-        ReactDOM.unmountComponentAtNode(this._popoverElement);
-        if (this._popoverElement.parentNode) {
-          this._popoverElement.parentNode.removeChild(this._popoverElement);
-        }
-        delete this._popoverElement;
-      }, POPOVER_TRANSITION_LEAVE);
+      ReactDOM.unmountComponentAtNode(this._popoverElement);
+      if (this._popoverElement.parentNode) {
+        this._popoverElement.parentNode.removeChild(this._popoverElement);
+      }
+      delete this._popoverElement;
       clearInterval(this._timer);
       delete this._timer;
     }
