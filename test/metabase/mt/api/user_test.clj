@@ -20,7 +20,7 @@
 ;; are an example usage of this. Segmented users should not have that ability. Instead they should only see
 ;; themselves. This test checks that GET /api/user for a segmented user only returns themselves
 (expect
-  [{:common_name "Rasta Toucan", :last_name "Toucan", :first_name "Rasta", :email "rasta@metabase.com", :id 1}]
+  [{:common_name "Rasta Toucan", :last_name "Toucan", :first_name "Rasta", :email "rasta@metabase.com", :id true}]
   (rlrt/call-with-segmented-perms
    (fn [db-id]
      (tt/with-temp* [Card [{card-id :id :as card} {:name          "magic"
@@ -40,4 +40,4 @@
        ;; Make sure personal Collections have been created
        (collection-test/force-create-personal-collections!)
        ;; Now do the request
-       ((user->client :rasta) :get 200 "user")))))
+       (tu/boolean-ids-and-timestamps ((user->client :rasta) :get 200 "user"))))))
