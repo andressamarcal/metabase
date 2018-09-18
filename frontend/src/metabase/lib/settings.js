@@ -89,7 +89,7 @@ const MetabaseSettings = {
       .map(([key]) => key);
   },
 
-  hideEmbedBranding: () => mb_settings.hide_embed_branding,
+  hideEmbedBranding: () => mb_settings.premium_features.hide_embed_branding,
 
   metastoreUrl: () => mb_settings.metastore_url,
 
