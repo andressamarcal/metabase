@@ -7,6 +7,7 @@ import { push } from "react-router-redux";
 import TogglePropagateAction from "./containers/TogglePropagateAction";
 
 import MetabaseAnalytics from "metabase/lib/analytics";
+import MetabaseSettings from "metabase/lib/settings";
 import colors, { alpha } from "metabase/lib/colors";
 
 import { t } from "c-3po";
@@ -354,7 +355,11 @@ export const getTablesPermissionsGrid = createSelector(
         fields: {
           header: t`Data Access`,
           options(groupId, entityId) {
-            return [OPTION_ALL, OPTION_SEGMENTED, OPTION_NONE];
+            if (MetabaseSettings.hasPremiumFeature("sandboxes")) {
+              return [OPTION_ALL, OPTION_SEGMENTED, OPTION_NONE];
+            } else {
+              return [OPTION_ALL, OPTION_NONE];
+            }
           },
           actions(groupId, entityId) {
             return getFieldsPermission(permissions, groupId, entityId) ===

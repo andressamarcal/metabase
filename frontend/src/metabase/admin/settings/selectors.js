@@ -549,7 +549,22 @@ const SECTIONS = [
       },
     ],
   },
-  {
+  /*
+    {
+        name: "Premium Embedding",
+        settings: [
+            {
+                key: "premium-embedding-token",
+                display_name: "Premium Embedding Token",
+                widget: PremiumEmbeddingWidget
+            }
+        ]
+    }
+    */
+];
+
+if (MetabaseSettings.hasPremiumFeature("whitelabel")) {
+  SECTIONS.push({
     name: "Whitelabel",
     slug: "whitelabel",
     settings: [
@@ -610,20 +625,8 @@ const SECTIONS = [
       //     type: "boolean"
       // },
     ],
-  },
-  /*
-    {
-        name: "Premium Embedding",
-        settings: [
-            {
-                key: "premium-embedding-token",
-                display_name: "Premium Embedding Token",
-                widget: PremiumEmbeddingWidget
-            }
-        ]
-    }
-    */
-];
+  });
+}
 
 for (const section of SECTIONS) {
   if (section.slug == null) {

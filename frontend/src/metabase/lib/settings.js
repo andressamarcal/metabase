@@ -89,7 +89,14 @@ const MetabaseSettings = {
       .map(([key]) => key);
   },
 
-  hideEmbedBranding: () => mb_settings.premium_features.hide_embed_branding,
+  hasPremiumFeature: feature => {
+    const hasFeature =
+      mb_settings.premium_features && mb_settings.premium_features[feature];
+    if (hasFeature == undefined) {
+      console.warn("Unknown premium feature", feature);
+    }
+    return hasFeature;
+  },
 
   metastoreUrl: () => mb_settings.metastore_url,
 

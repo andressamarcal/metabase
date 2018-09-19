@@ -233,11 +233,11 @@
    :ga_code                 "UA-60817802-1"
    :google_auth_client_id   (setting/get :google-auth-client-id)
    :has_sample_dataset      (db/exists? 'Database, :is_sample true)
-   :premium_features        {:hide_embed_branding (metastore/hide-embed-branding?)
-                             :whitelabeling       (metastore/enable-whitelabeling?)
-                             :audit_app           (metastore/enable-audit-app?)
-                             :sandboxes           (metastore/enable-sandboxes?)
-                             :sso                 (metastore/enable-sso?)}
+   :premium_features        {:embedding  (metastore/hide-embed-branding?)
+                             :whitelabel (metastore/enable-whitelabeling?)
+                             :audit_app  (metastore/enable-audit-app?)
+                             :sandboxes  (metastore/enable-sandboxes?)
+                             :sso        (metastore/enable-sso?)}
    :landing_page            (setting/get :landing-page)
    :ldap_configured         ((resolve 'metabase.integrations.ldap/ldap-configured?))
    :sso_configured          (or ((resolve 'metabase.mt.integrations.sso-settings/saml-configured?))
