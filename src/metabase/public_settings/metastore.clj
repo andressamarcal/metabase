@@ -2,6 +2,7 @@
   "Settings related to checking token validity and accessing the MetaStore."
   (:require [cheshire.core :as json]
             [clojure.core.memoize :as memoize]
+            [clojure.string :as str]
             [clojure.tools.logging :as log]
             [environ.core :refer [env]]
             [metabase.config :as config]
@@ -20,8 +21,13 @@
   (or
    ;; only enable the changing the store url during dev because we don't want people switching it out in production!
    (when config/is-dev?
-     (env :metastore-dev-server-url))
+     (some-> (env :metastore-dev-server-url)
+             ;; remove trailing slashes
+             (str/replace  #"/$" "")))
    "https://store.metabase.com"))
+
+(log/info (tru "Using MetaStore URL:") store-url)
+
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                                TOKEN VALIDATION                                                |
@@ -33,7 +39,12 @@
 
 (def ^:private ^:const fetch-token-status-timeout-ms 10000) ; 10 seconds
 
-(s/defn ^:private fetch-token-status :- {:valid s/Bool, :status su/NonBlankString, :features [su/NonBlankString]}
+(def ^:private TokenStatus
+  {:valid              s/Bool
+   :status             su/NonBlankString
+   (s/maybe :features) [su/NonBlankString]})
+
+(s/defn ^:private fetch-token-status :- TokenStatus
   "Fetch info about the validity of `token` from the MetaStore."
   [token :- ValidToken]
   (try
