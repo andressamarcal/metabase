@@ -98,10 +98,11 @@
                 (log/error e (trs "Error setting premium embedding token"))
                 (throw (ex-info (.getMessage e) {:status-code 400}))))))
 
-(s/defn ^:private token-features :- (s/maybe #{TokenFeature})
+(s/defn ^:private token-features :- #{TokenFeature}
   "Get the features associated with the system's premium features token."
   []
-  (some-> (premium-embedding-token) valid-token->features))
+  (or (some-> (premium-embedding-token) valid-token->features)
+      #{}))
 
 (defn hide-embed-branding?
   "Should we hide the 'Powered by Metabase' attribution on the embedding pages? `true` if we have a valid premium
