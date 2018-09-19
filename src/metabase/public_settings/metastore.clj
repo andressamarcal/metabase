@@ -16,7 +16,7 @@
 
 (def ^:private TokenFeature
   "Schema for a valid 'feature' the token is approved for. A token can support zero or more features."
-  (s/enum "whitelabel" "embedding" "audit-app" "sandboxes"))
+  (s/enum "whitelabel" "embedding" "audit-app" "sandboxes" "sso"))
 
 (def store-url
   "URL to the MetaStore. Hardcoded by default but for development purposes you can use a local server. Specify the env
