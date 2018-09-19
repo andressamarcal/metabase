@@ -28,6 +28,10 @@ import GroupDetailApp from "metabase/admin/people/containers/GroupDetailApp.jsx"
 
 import getAdminPermissionsRoutes from "metabase/admin/permissions/routes.jsx";
 
+// Store
+//
+import StoreApp, { Activate, Account } from "metabase/admin/store/Store";
+
 const getRoutes = (store, IsAdmin) => (
   <Route
     path="/admin"
@@ -35,6 +39,12 @@ const getRoutes = (store, IsAdmin) => (
     component={withBackground("bg-white")(IsAdmin)}
   >
     <IndexRedirect to="/admin/settings" />
+
+    <Route path="store" title={t`Store`}>
+      <IndexRoute component={StoreApp} />
+      <Route path="activate" component={Activate} />
+      <Route path="account" component={Account} />
+    </Route>
 
     <Route path="databases" title={t`Databases`}>
       <IndexRoute component={DatabaseListApp} />
