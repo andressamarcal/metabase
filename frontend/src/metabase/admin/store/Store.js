@@ -2,7 +2,7 @@ import React from "react";
 import { Box, Flex } from "grid-styled";
 import { t } from "c-3po";
 
-import { colors } from "metabase/lib/colors";
+import colors from "metabase/lib/colors";
 
 import Button from "metabase/components/Button";
 import Icon from "metabase/components/Icon";
