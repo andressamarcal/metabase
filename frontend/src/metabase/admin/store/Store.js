@@ -21,14 +21,16 @@ class StoreApp extends React.Component {
         justify="center"
         className={this.props.fitClassNames}
       >
-        <Box>
+        <Box mr={4}>
           <StoreDetails />
         </Box>
-        <Card p={3} w={"35%"}>
-          <h4>{t`Already have a key?`}</h4>
-          <Link to="/admin/store/activate">
-            <Button>{t`Activate a product`}</Button>
-          </Link>
+        <Card>
+          <Box w={400} p={3}>
+            <h4>{t`Already have a key?`}</h4>
+            <Link to="/admin/store/activate">
+              <Button>{t`Activate a product`}</Button>
+            </Link>
+          </Box>
         </Card>
       </Flex>
     );
@@ -53,7 +55,9 @@ class StoreDetails extends React.Component {
   render() {
     return (
       <Box>
-        <h2>{t`Enterprise features`}</h2>
+        <Box my={2}>
+          <h2>{t`Enterprise features`}</h2>
+        </Box>
         <Box is="ul" className="text-measure">
           <Flex>
             <IconWrapper>
@@ -79,7 +83,7 @@ class StoreDetails extends React.Component {
           </Flex>
           <Flex>
             <IconWrapper>
-              <Icon name="star" size={28} />
+              <Icon name="group" size={28} />
             </IconWrapper>
             <Box ml={1}>
               <h2>{t`SSO`}</h2>
