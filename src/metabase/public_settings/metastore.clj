@@ -40,9 +40,9 @@
 (def ^:private ^:const fetch-token-status-timeout-ms 10000) ; 10 seconds
 
 (def ^:private TokenStatus
-  {:valid              s/Bool
-   :status             su/NonBlankString
-   (s/maybe :features) [su/NonBlankString]})
+  {:valid                     s/Bool
+   :status                    su/NonBlankString
+   (s/optional-key :features) [su/NonBlankString]})
 
 (s/defn ^:private fetch-token-status :- TokenStatus
   "Fetch info about the validity of `token` from the MetaStore."
@@ -102,7 +102,7 @@
                 (log/info (trs "Token is valid.")))
               (setting/set-string! :premium-embedding-token new-value)
               (catch Throwable e
-                (log/error e (trs "Error setting premium embedding token"))
+                (log/error e (trs "Error setting premium features token"))
                 (throw (ex-info (.getMessage e) {:status-code 400}))))))
 
 (s/defn ^:private token-features :- #{su/NonBlankString}
