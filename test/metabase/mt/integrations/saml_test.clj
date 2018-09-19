@@ -14,7 +14,10 @@
   (:import java.nio.charset.StandardCharsets
            org.apache.http.client.utils.URLEncodedUtils))
 
-(defmacro with-valid-metastore-token [& body]
+(defmacro with-valid-metastore-token
+  "Stubs the `metastore/enable-sso?` function to simulate a valid token. This needs to be included to test any of the
+  SSO features"
+  [& body]
   `(with-redefs [metastore/enable-sso? (constantly true)]
      ~@body))
 
