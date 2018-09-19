@@ -133,6 +133,10 @@ export class Account extends React.Component {
 
 @fitViewport
 export class Activate extends React.Component {
+  state = {
+    heading: t`Enter the token you recieved from the store`,
+    error: false,
+  };
   activate = async () => {
     const value = this._input.value;
     try {
@@ -140,8 +144,8 @@ export class Activate extends React.Component {
       // set window.location so we do a hard refresh
       window.location = "/admin/store/account";
     } catch (e) {
-      console.error(e);
-      alert("Invalid token");
+      console.error(e.data);
+      this.setState({ error: true, heading: e.data });
     }
   };
   render() {
@@ -153,8 +157,11 @@ export class Activate extends React.Component {
       >
         <Box>
           <Box my={3}>
-            <h2 className="text-centered">
-              {t`Enter the token you recieved from the store`}
+            <h2
+              className="text-centered"
+              style={{ color: this.state.error ? colors["error"] : "inherit" }}
+            >
+              {this.state.heading}
             </h2>
           </Box>
           <input
