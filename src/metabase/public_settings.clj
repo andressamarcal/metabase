@@ -236,7 +236,8 @@
    :premium_features        {:hide_embed_branding (metastore/hide-embed-branding?)
                              :whitelabeling       (metastore/enable-whitelabeling?)
                              :audit_app           (metastore/enable-audit-app?)
-                             :sandboxes           (metastore/enable-sandboxes?)}
+                             :sandboxes           (metastore/enable-sandboxes?)
+                             :sso                 (metastore/enable-sso?)}
    :landing_page            (setting/get :landing-page)
    :ldap_configured         ((resolve 'metabase.integrations.ldap/ldap-configured?))
    :sso_configured          (or ((resolve 'metabase.mt.integrations.sso-settings/saml-configured?))

@@ -14,10 +14,6 @@
   "Schema for a valid metastore token. Must be 64 lower-case hex characters."
   #"^[0-9a-f]{64}$")
 
-(def ^:private TokenFeature
-  "Schema for a valid 'feature' the token is approved for. A token can support zero or more features."
-  (s/enum "whitelabel" "embedding" "audit-app" "sandboxes" "sso"))
-
 (def store-url
   "URL to the MetaStore. Hardcoded by default but for development purposes you can use a local server. Specify the env
    var `METASTORE_DEV_SERVER_URL`."
@@ -37,7 +33,7 @@
 
 (def ^:private ^:const fetch-token-status-timeout-ms 10000) ; 10 seconds
 
-(s/defn ^:private fetch-token-status :- {:valid s/Bool, :status su/NonBlankString, :features [TokenFeature]}
+(s/defn ^:private fetch-token-status :- {:valid s/Bool, :status su/NonBlankString, :features [su/NonBlankString]}
   "Fetch info about the validity of `token` from the MetaStore."
   [token :- ValidToken]
   (try
@@ -60,7 +56,7 @@
            fetch-token-status-timeout-ms
            {:valid false, :status (tru "Token validation timed out.")})))
 
-(s/defn ^:private valid-token->features* :- #{TokenFeature}
+(s/defn ^:private valid-token->features* :- #{su/NonBlankString}
   [token :- ValidToken]
   (log/info (trs "Checking with the MetaStore to see whether {0} is valid..." token))
   (let [{:keys [valid status features]} (fetch-token-status token)]
@@ -98,7 +94,7 @@
                 (log/error e (trs "Error setting premium embedding token"))
                 (throw (ex-info (.getMessage e) {:status-code 400}))))))
 
-(s/defn ^:private token-features :- #{TokenFeature}
+(s/defn ^:private token-features :- #{su/NonBlankString}
   "Get the features associated with the system's premium features token."
   []
   (or (some-> (premium-embedding-token) valid-token->features)
@@ -124,3 +120,8 @@
   "Should we enable data sandboxes (row and column-level permissions?"
   []
   (boolean ((token-features) "sandboxes")))
+
+(defn enable-sso?
+  "Should we enable SAML/JWT sign-in?"
+  []
+  (boolean ((token-features) "sso")))
