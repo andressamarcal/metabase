@@ -138,7 +138,10 @@ export class Activate extends React.Component {
     error: false,
   };
   activate = async () => {
-    const value = this._input.value;
+    const value = this._input.value.trim();
+    if (!value) {
+      return false;
+    }
     try {
       await SettingsApi.put({ key: "premium-embedding-token", value });
       // set window.location so we do a hard refresh
