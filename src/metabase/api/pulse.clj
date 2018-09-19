@@ -17,6 +17,7 @@
              [interface :as mi]
              [pulse :as pulse :refer [Pulse]]
              [pulse-channel :refer [channel-types]]]
+            [metabase.mt.api.util :as mau]
             [metabase.pulse.render :as render]
             [metabase.util
              [schema :as su]
@@ -121,10 +122,14 @@
   (let [chan-types (-> channel-types
                        (assoc-in [:slack :configured] (slack/slack-configured?))
                        (assoc-in [:email :configured] (email/email-configured?)))]
-    {:channels (if-not (get-in chan-types [:slack :configured])
+    {:channels (cond
+                 (mau/segmented-user?)
+                 (dissoc chan-types :slack)
                  ;; no Slack integration, so we are g2g
+                 (not (get-in chan-types [:slack :configured]))
                  chan-types
                  ;; if we have Slack enabled build a dynamic list of channels/users
+                 :else
                  (try
                    (let [slack-channels (for [channel (slack/channels-list)]
                                           (str \# (:name channel)))
