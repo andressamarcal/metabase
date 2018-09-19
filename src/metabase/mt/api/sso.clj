@@ -4,6 +4,7 @@
   (:require [compojure.core :refer [GET POST]]
             [metabase.api.common :as api]
             [metabase.mt.integrations.sso-settings :as sso-settings]
+            [metabase.public-settings.metastore :as metastore]
             [puppetlabs.i18n.core :refer [tru]]))
 
 (defn- sso-backend
@@ -28,24 +29,33 @@
   validate the POST from the SSO backend and successfully log the user into Metabase."
   sso-backend)
 
-(defmethod sso-get :default
-  [_]
+(defn- throw-not-configured-error []
   (throw (ex-info (tru "SSO has not been enabled and/or configured")
            {:status-code 400})))
 
+(defmethod sso-get :default
+  [_]
+  (throw-not-configured-error))
+
 (defmethod sso-post :default
   [_]
-  (throw (ex-info (tru "SSO has not been enabled and/or configured")
-           {:status-code 400})))
+  (throw-not-configured-error))
+
+(defn- throw-if-no-metastore-token []
+  (when-not (metastore/enable-sso?)
+    (throw (ex-info (tru "SSO requires a valid token")
+             {:status-code 403}))))
 
 (api/defendpoint GET "/"
   "SSO entry-point for an SSO user that has not logged in yet"
   {:as req}
+  (throw-if-no-metastore-token)
   (sso-get req))
 
 (api/defendpoint POST "/"
   "Route the SSO backends call with successful login details"
   {:as req}
+  (throw-if-no-metastore-token)
   (sso-post req))
 
 (api/define-routes)
