@@ -28,7 +28,7 @@ class StoreApp extends React.Component {
           <Box w={400} p={3}>
             <h4>{t`Already have a key?`}</h4>
             <Link to="/admin/store/activate">
-              <Button>{t`Activate a product`}</Button>
+              <Button primary>{t`Activate a product`}</Button>
             </Link>
           </Box>
         </Card>
@@ -37,6 +37,9 @@ class StoreApp extends React.Component {
   }
 }
 
+const ICON_SIZE = 22;
+const WRAPPER_SIZE = ICON_SIZE * 2.5;
+
 const IconWrapper = ({ children }) => (
   <Flex
     align="center"
@@ -44,8 +47,8 @@ const IconWrapper = ({ children }) => (
     p={2}
     bg={colors["brand"]}
     color="white"
-    w="40px"
-    style={{ borderRadius: 99, height: 40 }}
+    w={WRAPPER_SIZE}
+    style={{ borderRadius: 99, height: WRAPPER_SIZE }}
   >
     {children}
   </Flex>
@@ -55,13 +58,13 @@ class StoreDetails extends React.Component {
   render() {
     return (
       <Box>
-        <Box my={2}>
+        <Box my={3}>
           <h2>{t`Enterprise features`}</h2>
         </Box>
         <Box is="ul" className="text-measure">
           <Flex>
             <IconWrapper>
-              <Icon name="lock" size={28} />
+              <Icon name="lock" size={ICON_SIZE} />
             </IconWrapper>
             <Box ml={1}>
               <h2>{t`Row level permissions`}</h2>
@@ -72,7 +75,7 @@ class StoreDetails extends React.Component {
           </Flex>
           <Flex>
             <IconWrapper>
-              <Icon name="star" size={28} />
+              <Icon name="star" size={ICON_SIZE} />
             </IconWrapper>
             <Box ml={1}>
               <h2>{t`Whitelabeling`}</h2>
@@ -83,7 +86,7 @@ class StoreDetails extends React.Component {
           </Flex>
           <Flex>
             <IconWrapper>
-              <Icon name="group" size={28} />
+              <Icon name="group" size={ICON_SIZE} />
             </IconWrapper>
             <Box ml={1}>
               <h2>{t`SSO`}</h2>
@@ -93,9 +96,13 @@ class StoreDetails extends React.Component {
             </Box>
           </Flex>
         </Box>
-        <Link to="">
-          <Button primary>{t`Learn more`}</Button>
-        </Link>
+        <a
+          href="https://metabase.com/offerings/"
+          target="_blank"
+          className="my2"
+        >
+          <Button>{t`Learn more`}</Button>
+        </a>
       </Box>
     );
   }
