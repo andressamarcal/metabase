@@ -12,6 +12,8 @@ import Text from "metabase/components/Text";
 
 import fitViewport from "metabase/hoc/FitViewPort";
 
+import { SettingsApi } from "metabase/services";
+
 @fitViewport
 class StoreApp extends React.Component {
   render() {
@@ -131,6 +133,17 @@ export class Account extends React.Component {
 
 @fitViewport
 export class Activate extends React.Component {
+  activate = async () => {
+    const value = this._input.value;
+    try {
+      await SettingsApi.put({ key: "premium-embedding-token", value });
+      // set window.location so we do a hard refresh
+      window.location = "/admin/store/account";
+    } catch (e) {
+      console.error(e);
+      alert("Invalid token");
+    }
+  };
   render() {
     return (
       <Flex
@@ -145,13 +158,12 @@ export class Activate extends React.Component {
             </h2>
           </Box>
           <input
+            ref={ref => (this._input = ref)}
             type="text"
             className="input"
             placeholder="XXXX-XXXX-XXXX-XXXX"
           />
-          <Link to="/admin/store/account">
-            <Button>{t`Activate`}</Button>
-          </Link>
+          <Button onClick={this.activate}>{t`Activate`}</Button>
         </Box>
       </Flex>
     );
