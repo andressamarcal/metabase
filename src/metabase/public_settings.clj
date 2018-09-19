@@ -246,7 +246,6 @@
    :map_tile_server_url     (map-tile-server-url)
    :metastore_url           metastore/store-url
    :password_complexity     password/active-password-complexity
-   :premium_token           (metastore/premium-embedding-token)
    :public_sharing          (enable-public-sharing)
    :report_timezone         (setting/get :report-timezone)
    :setup_token             ((resolve 'metabase.setup/token-value))
