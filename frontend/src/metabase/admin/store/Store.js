@@ -58,7 +58,7 @@ class StoreApp extends React.Component {
 
 const FEATURES = {
   sandboxes: {
-    name: t`Row level permissions`,
+    name: t`Data sandboxes`,
     description: t`Make sure you're showing the right people the right data with automatic and secure filters based on user attributes.`,
     icon: "lock",
     docs:
