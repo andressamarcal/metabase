@@ -1,6 +1,8 @@
 import React from "react";
 import { Box, Flex } from "grid-styled";
 import { t } from "c-3po";
+import { connect } from "react-redux";
+import { push } from "react-router-redux";
 
 import colors from "metabase/lib/colors";
 
@@ -15,7 +17,22 @@ import fitViewport from "metabase/hoc/FitViewPort";
 import { SettingsApi } from "metabase/services";
 
 @fitViewport
+@connect(
+  state => {
+    const featuresEnabled = state.settings.values["premium_features"];
+    const isActivated = Object.values(featuresEnabled).some(f => f === true);
+    return {
+      isActivated,
+    };
+  },
+  { push },
+)
 class StoreApp extends React.Component {
+  componentWillMount() {
+    if (this.props.isActivated) {
+      this.props.push("/admin/store/account");
+    }
+  }
   render() {
     return (
       <Flex
@@ -158,7 +175,7 @@ export class Activate extends React.Component {
         justify="center"
         className={this.props.fitClassNames}
       >
-        <Box>
+        <Flex align="center" flexDirection="column">
           <Box my={3}>
             <h2
               className="text-centered"
@@ -167,14 +184,16 @@ export class Activate extends React.Component {
               {this.state.heading}
             </h2>
           </Box>
-          <input
-            ref={ref => (this._input = ref)}
-            type="text"
-            className="input"
-            placeholder="XXXX-XXXX-XXXX-XXXX"
-          />
-          <Button onClick={this.activate}>{t`Activate`}</Button>
-        </Box>
+          <Box>
+            <input
+              ref={ref => (this._input = ref)}
+              type="text"
+              className="input"
+              placeholder="XXXX-XXXX-XXXX-XXXX"
+            />
+            <Button onClick={this.activate}>{t`Activate`}</Button>
+          </Box>
+        </Flex>
       </Flex>
     );
   }
