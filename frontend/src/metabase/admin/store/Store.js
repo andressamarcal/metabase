@@ -56,15 +56,36 @@ class StoreApp extends React.Component {
   }
 }
 
+const FEATURES = {
+  sandboxes: {
+    name: t`Row level permissions`,
+    description: t`Make sure you're showing the right people the right data with automatic and secure filters based on user attributes.`,
+    icon: "lock",
+    docs: "",
+  },
+  whitelabel: {
+    name: t`Whitelabeling`,
+    description: t`Match Metabase to your brand with custom colors, your own logo and more.`,
+    icon: "star",
+    docs: "",
+  },
+  sso: {
+    name: t`SSO`,
+    description: t`Provide easy login that works with your exisiting authentication infrastructure.`,
+    icon: "group",
+    docs: "",
+  },
+};
+
 const ICON_SIZE = 22;
 const WRAPPER_SIZE = ICON_SIZE * 2.5;
 
-const IconWrapper = ({ children }) => (
+const IconWrapper = ({ children, color }) => (
   <Flex
     align="center"
     justify="center"
     p={2}
-    bg={colors["brand"]}
+    bg={color || colors["brand"]}
     color="white"
     w={WRAPPER_SIZE}
     style={{ borderRadius: 99, height: WRAPPER_SIZE }}
@@ -81,39 +102,17 @@ class StoreDetails extends React.Component {
           <h2>{t`Enterprise features`}</h2>
         </Box>
         <Box is="ul" className="text-measure">
-          <Flex>
-            <IconWrapper>
-              <Icon name="lock" size={ICON_SIZE} />
-            </IconWrapper>
-            <Box ml={1}>
-              <h2>{t`Row level permissions`}</h2>
-              <Text>
-                {t`Make sure you're showing the right people the right data with automatic and secure filters based on user attributes.`}
-              </Text>
-            </Box>
-          </Flex>
-          <Flex>
-            <IconWrapper>
-              <Icon name="star" size={ICON_SIZE} />
-            </IconWrapper>
-            <Box ml={1}>
-              <h2>{t`Whitelabeling`}</h2>
-              <Text>
-                {t`Match Metabase to your brand with custom colors, your own logo and more.`}
-              </Text>
-            </Box>
-          </Flex>
-          <Flex>
-            <IconWrapper>
-              <Icon name="group" size={ICON_SIZE} />
-            </IconWrapper>
-            <Box ml={1}>
-              <h2>{t`SSO`}</h2>
-              <Text>
-                {t`Provide easy login that works with your exisiting authentication infrastructure.`}
-              </Text>
-            </Box>
-          </Flex>
+          {Object.values(FEATURES).map(({ name, description, icon }) => (
+            <Flex>
+              <IconWrapper>
+                <Icon name={icon} size={ICON_SIZE} />
+              </IconWrapper>
+              <Box ml={1}>
+                <h2>{name}</h2>
+                <Text>{description}</Text>
+              </Box>
+            </Flex>
+          ))}
         </Box>
         <a
           href="https://metabase.com/offerings/"
@@ -128,6 +127,12 @@ class StoreDetails extends React.Component {
 }
 
 @fitViewport
+@connect(state => {
+  const featuresEnabled = state.settings.values["premium_features"];
+  return {
+    featuresEnabled,
+  };
+})
 export class Account extends React.Component {
   render() {
     return (
@@ -137,12 +142,38 @@ export class Account extends React.Component {
         flexDirection="column"
         className={this.props.fitClassNames}
       >
-        <Box my={3}>
-          <Icon name="check" size={64} color={colors["success"]} />
-        </Box>
-        <Box py={3}>
-          <h2>{t`Your features are active!`}</h2>
-        </Box>
+        <Flex align="center" flexDirection="column" py={3}>
+          <Box mb={3}>
+            <h2>{t`Your features are active!`}</h2>
+          </Box>
+          <Flex align="center">
+            {this.props.featuresEnabled &&
+              Object.keys(this.props.featuresEnabled).map(f => {
+                const feature = FEATURES[f];
+                return (
+                  feature && (
+                    <Card p={4} mx={3}>
+                      <Flex
+                        align="center"
+                        justify="center"
+                        flexDirection="column"
+                      >
+                        <IconWrapper color={colors["success"]}>
+                          <Icon name={feature.icon} size={ICON_SIZE} />
+                        </IconWrapper>
+                        <Box my={2}>
+                          <h3>{feature.name}</h3>
+                        </Box>
+                        <a href={feature.docs} className="mt2 link">
+                          {t`Learn how to use this`}
+                        </a>
+                      </Flex>
+                    </Card>
+                  )
+                );
+              })}
+          </Flex>
+        </Flex>
       </Flex>
     );
   }
