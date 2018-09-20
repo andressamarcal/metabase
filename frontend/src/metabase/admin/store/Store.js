@@ -61,19 +61,36 @@ const FEATURES = {
     name: t`Row level permissions`,
     description: t`Make sure you're showing the right people the right data with automatic and secure filters based on user attributes.`,
     icon: "lock",
-    docs: "",
+    docs:
+      "http://www.metabase.com/docs/latest/administration-guide/17-data-sandboxes.md",
   },
   whitelabel: {
     name: t`Whitelabeling`,
     description: t`Match Metabase to your brand with custom colors, your own logo and more.`,
     icon: "star",
-    docs: "",
+    docs:
+      "http://metabase.com/docs/latest/administration-guide/15-whitelabeling.md",
   },
   sso: {
     name: t`SSO`,
     description: t`Provide easy login that works with your exisiting authentication infrastructure.`,
     icon: "group",
-    docs: "",
+    docsRender: () => (
+      <Flex align="center">
+        <a
+          href="http://metabase.com/docs/latest/administration-guide/16-authenticating-with-saml.md"
+          className="mx2 link"
+        >
+          SAML
+        </a>
+        <a
+          href="http://metabase.com/docs/latest/administration-guide/18-authenticating-with-jwt.md"
+          className="mx2 link"
+        >
+          JWT
+        </a>
+      </Flex>
+    ),
   },
 };
 
@@ -164,9 +181,12 @@ export class Account extends React.Component {
                         <Box my={2}>
                           <h3>{feature.name}</h3>
                         </Box>
-                        <a href={feature.docs} className="mt2 link">
-                          {t`Learn how to use this`}
-                        </a>
+                        {feature.docs && (
+                          <a href={feature.docs} className="link">
+                            {t`Learn how to use this`}
+                          </a>
+                        )}
+                        {feature.docsRender && feature.docsRender()}
                       </Flex>
                     </Card>
                   )
