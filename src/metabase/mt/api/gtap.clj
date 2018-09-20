@@ -3,8 +3,10 @@
   (:require [compojure.core :refer [DELETE GET POST PUT]]
             [metabase.api.common :as api]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
+            [metabase.public-settings.metastore :as metastore]
             [metabase.util :as u]
             [metabase.util.schema :as su]
+            [puppetlabs.i18n.core :refer [tru]]
             [schema.core :as s]
             [toucan.db :as db]))
 
@@ -62,6 +64,17 @@
   api/generic-204-no-content)
 
 
+(defn- +check-sandboxes-enabled
+  "Wrap the Ring handler to make sure sandboxes are enabled before allowing access to the API endpoints."
+  [handler]
+  (fn [request]
+    (when-not (metastore/enable-sandboxes?)
+      (throw (ex-info (str (tru "Error: sandboxing is not enabled for this instance.")
+                           " "
+                           (tru "Please check you have set a valid Entrprise token and try again."))
+               {:status-code 403})))
+    (handler request)))
+
 ;; All endpoints in this namespace require superuser perms to view
 ;;
 ;; TODO - does it make sense to have this middleware
@@ -70,4 +83,4 @@
 ;; TODO - defining the `check-superuser` check *here* means the API documentation function won't pick up on the "this
 ;; requires a superuser" stuff since it parses the `defendpoint` body to look for a call to `check-superuser`. I
 ;; suppose this doesn't matter (much) since this is an enterprise endpoint and won't go in the dox anyway.
-(api/define-routes api/+check-superuser)
+(api/define-routes api/+check-superuser +check-sandboxes-enabled)

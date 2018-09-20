@@ -8,16 +8,24 @@
              [permissions-group :refer [PermissionsGroup]]
              [table :refer [Table]]]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
+            [metabase.public-settings.metastore :as metastore]
             [metabase.test.data.users :refer :all]
             [metabase.test.util :as tu]
             [toucan.util.test :as tt]))
 
+(defmacro ^:private with-sandboxes-enabled [& body]
+  `(with-redefs [metastore/enable-sandboxes? (constantly true)]
+     ~@body))
+
 ;; Must be authenticated to query for gtaps
-(expect (get middleware/response-unauthentic :body) (http/client :get 401 "mt/gtap"))
+(expect (get middleware/response-unauthentic :body)
+        (with-sandboxes-enabled
+          (http/client :get 401 "mt/gtap")))
 
 (expect
   "You don't have permissions to do that."
-  ((user->client :rasta) :get 403 (str "mt/gtap")))
+  (with-sandboxes-enabled
+    ((user->client :rasta) :get 403 (str "mt/gtap"))))
 
 (def ^:private default-gtap-results
   {:id                   true
@@ -30,8 +38,9 @@
   "Invokes `body` ensuring any `GroupTableAccessPolicy` created will be removed afterward. Leaving behind a GTAP can
   case referential integrity failures for any related `Card` that would be cleaned up as part of a `with-temp*` call"
   [& body]
-  `(tu/with-model-cleanup [GroupTableAccessPolicy]
-     ~@body))
+  `(with-sandboxes-enabled
+     (tu/with-model-cleanup [GroupTableAccessPolicy]
+       ~@body)))
 
 (defn- gtap-post
   "`gtap-data` is a map to be POSTed to the GTAP endpoint"
@@ -39,6 +48,18 @@
   ((user->client :crowberto) :post 200 "mt/gtap" gtap-data))
 
 ;; ## POST /api/mt/gtap
+;; Must have a valid token to use GTAPs
+(expect
+  #"sandboxing is not enabled"
+  (tt/with-temp* [Table            [{table-id :id}]
+                  PermissionsGroup [{group-id :id}]
+                  Card             [{card-id :id}]]
+    ((user->client :crowberto) :post 403 "mt/gtap"
+     {:table_id             table-id
+      :group_id             group-id
+      :card_id              card-id
+      :attribute_remappings {"foo" 1}})))
+
 ;; Test that we can create a new GTAP
 (expect
   [default-gtap-results true]
@@ -95,9 +116,10 @@
                                                          :group_id             group-id
                                                          :card_id              card-id
                                                          :attribute_remappings {"foo" 1}}]]
-    (tu/boolean-ids-and-timestamps
-     ((user->client :crowberto) :put 200 (format "mt/gtap/%s" gtap-id)
-      {:attribute_remappings {:bar 2}}))))
+    (with-sandboxes-enabled
+      (tu/boolean-ids-and-timestamps
+       ((user->client :crowberto) :put 200 (format "mt/gtap/%s" gtap-id)
+        {:attribute_remappings {:bar 2}})))))
 
 ;; Test that we can add a card_id via PUT
 (expect
@@ -109,9 +131,10 @@
                                                          :group_id             group-id
                                                          :card_id              nil
                                                          :attribute_remappings {"foo" 1}}]]
-    (tu/boolean-ids-and-timestamps
-     ((user->client :crowberto) :put 200 (format "mt/gtap/%s" gtap-id)
-      {:card_id card-id}))))
+    (with-sandboxes-enabled
+      (tu/boolean-ids-and-timestamps
+       ((user->client :crowberto) :put 200 (format "mt/gtap/%s" gtap-id)
+        {:card_id card-id})))))
 
 ;; Test that we can remove a card_id via PUT
 (expect
@@ -123,9 +146,10 @@
                                                          :group_id             group-id
                                                          :card_id              card-id
                                                          :attribute_remappings {"foo" 1}}]]
-    (tu/boolean-ids-and-timestamps
-     ((user->client :crowberto) :put 200 (format "mt/gtap/%s" gtap-id)
-      {:card_id nil}))))
+    (with-sandboxes-enabled
+      (tu/boolean-ids-and-timestamps
+       ((user->client :crowberto) :put 200 (format "mt/gtap/%s" gtap-id)
+        {:card_id nil})))))
 
 ;; Test that we can remove a card_id and change attribute remappings via PUT
 (expect
@@ -137,7 +161,8 @@
                                                          :group_id             group-id
                                                          :card_id              card-id
                                                          :attribute_remappings {"foo" 1}}]]
-    (tu/boolean-ids-and-timestamps
-     ((user->client :crowberto) :put 200 (format "mt/gtap/%s" gtap-id)
-      {:card_id              nil
-       :attribute_remappings {:bar 2}}))))
+    (with-sandboxes-enabled
+      (tu/boolean-ids-and-timestamps
+       ((user->client :crowberto) :put 200 (format "mt/gtap/%s" gtap-id)
+        {:card_id              nil
+         :attribute_remappings {:bar 2}})))))

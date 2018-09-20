@@ -7,11 +7,19 @@
              [util :as u]]
             [metabase.models.user :refer [User]]
             [metabase.mt.integrations.saml :as saml :refer :all]
+            [metabase.public-settings.metastore :as metastore]
             [metabase.test.data.users :as users :refer :all]
             [metabase.test.util :as tu]
             [toucan.db :as db])
   (:import java.nio.charset.StandardCharsets
            org.apache.http.client.utils.URLEncodedUtils))
+
+(defmacro with-valid-metastore-token
+  "Stubs the `metastore/enable-sso?` function to simulate a valid token. This needs to be included to test any of the
+  SSO features"
+  [& body]
+  `(with-redefs [metastore/enable-sso? (constantly true)]
+     ~@body))
 
 (defn client
   "Same as `http/client` but doesn't include the `/api` in the URL prefix"
@@ -56,18 +64,25 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
 
 ;; SSO requests fail if SAML hasn't been enabled
 (expect
-  (client :get 400 "/auth/sso"))
+  (with-valid-metastore-token
+    (client :get 400 "/auth/sso")))
+
+;; SSO requests fail if they don't have a valid metastore token
+(expect
+  (client :get 403 "/auth/sso"))
 
 ;; SSO requests fail if SAML is enabled but hasn't been configured
 (expect
-  (tu/with-temporary-setting-values [saml-enabled "true"]
-    (client :get 400 "/auth/sso")))
+  (with-valid-metastore-token
+    (tu/with-temporary-setting-values [saml-enabled "true"]
+      (client :get 400 "/auth/sso"))))
 
 ;; The IDP provider certificate must also be included for SSO to be configured
 (expect
-  (tu/with-temporary-setting-values [saml-enabled "true"
-                                     saml-identity-provider-uri default-idp-uri]
-    (client :get 400 "/auth/sso")))
+  (with-valid-metastore-token
+    (tu/with-temporary-setting-values [saml-enabled "true"
+                                       saml-identity-provider-uri default-idp-uri]
+      (client :get 400 "/auth/sso"))))
 
 ;;
 ;; The basic flow of of a SAML login is below
@@ -97,12 +112,13 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
       (u/ignore-exceptions (db/update-where! User {} :login_attributes nil)))))
 
 (defmacro ^:private with-saml-default-setup [& body]
-  `(call-with-login-attributes-cleared!
-    (fn []
-      (users/create-users-if-needed!)
-      (call-with-default-saml-config
-       (fn []
-         ~@body)))))
+  `(with-valid-metastore-token
+     (call-with-login-attributes-cleared!
+      (fn []
+        (users/create-users-if-needed!)
+        (call-with-default-saml-config
+         (fn []
+           ~@body))))))
 
 ; With SAML configured, a GET request should result in a redirect to the IDP
 (expect
