@@ -90,7 +90,6 @@ const MetabaseSettings = {
   },
 
   hasPremiumFeature: feature => {
-    console.log(mb_settings.premium_features);
     const hasFeature =
       mb_settings.premium_features && mb_settings.premium_features[feature];
     if (hasFeature == undefined) {
