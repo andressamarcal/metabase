@@ -2,12 +2,14 @@
   "/api/user endpoints"
   (:require [cemerick.friend.credentials :as creds]
             [compojure.core :refer [DELETE GET POST PUT]]
+            [honeysql.helpers :as hh]
             [metabase.api
              [common :as api]
              [session :as session-api]]
             [metabase.email.messages :as email]
             [metabase.integrations.ldap :as ldap]
             [metabase.models.user :as user :refer [User]]
+            [metabase.mt.api.util :as mau]
             [metabase.util :as u]
             [metabase.util.schema :as su]
             [puppetlabs.i18n.core :refer [tru]]
@@ -26,7 +28,7 @@
 (api/defendpoint GET "/"
   "Fetch a list of `Users` for the admin People page or for Pulses. By default returns only active users. If
   `include_deactivated` is true, return all Users (active and inactive). (Using `include_deactivated` requires
-  superuser permissions.)"
+  superuser permissions.). For users with segmented permissions, return only themselves."
   [include_deactivated]
   {include_deactivated (s/maybe su/BooleanString)}
   (when include_deactivated
@@ -34,10 +36,12 @@
   (cond-> (db/select (vec (cons User (if api/*is-superuser?*
                                        user/admin-or-self-visible-columns
                                        user/non-admin-or-self-visible-columns)))
-            (merge {:order-by [[:%lower.last_name :asc]
-                               [:%lower.first_name :asc]]}
-                   (when-not include_deactivated
-                     {:where [:= :is_active true]})))
+            (-> {}
+                (hh/merge-order-by [:%lower.last_name :asc] [:%lower.first_name :asc])
+                (hh/merge-where (when-not include_deactivated
+                                  [:= :is_active true]))
+                (hh/merge-where (when (mau/segmented-user?)
+                                  [:= :id api/*current-user-id*]))))
     ;; For admins, also include the IDs of the  Users' Personal Collections
     api/*is-superuser?* (hydrate :personal_collection_id)))
 

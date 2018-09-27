@@ -124,12 +124,6 @@
       (get-in [:mutables :secret-key-spec])
       (saml-routes/valid-hmac-relay-state? relay-state)))
 
-#_(defn- saml-attributes->login-attributes [attributes]
-  (dissoc attributes
-          (sso-settings/saml-attribute-email)
-          (sso-settings/saml-attribute-firstname)
-          (sso-settings/saml-attribute-lastname)))
-
 (defmethod sso/sso-post :saml
   ;; Does the verification of the IDP's response and 'logs the user in'. The attributes are available in the response:
   ;; `(get-in saml-info [:assertions :attrs])

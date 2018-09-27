@@ -9,9 +9,6 @@
              [table :as table]
              [user :as user]]))
 
-;; Required so that the multimethod implementations for SSO are loaded
-(require '[metabase.mt.integrations jwt saml])
-
 ;; this is copied from `metabase.api.routes` because if we require that above we will destroy startup times for `lein
 ;; ring server`
 (def ^:private +auth
@@ -42,4 +39,8 @@
   (require 'metabase.api.routes)
   (intern 'metabase.api.routes 'routes (routes mt-routes @(resolve 'metabase.api.routes/routes)))
   (require 'metabase.routes)
-  (intern 'metabase.routes 'routes (routes auth-routes @(resolve 'metabase.routes/routes))))
+  (intern 'metabase.routes 'routes (routes auth-routes @(resolve 'metabase.routes/routes)))
+  ;; Required so that the multimethod implementations for SSO are loaded. This could be in the ns declaration, but
+  ;; would cause our linter to fail since they're not used.
+  (require 'metabase.mt.integrations.jwt)
+  (require 'metabase.mt.integrations.saml))

@@ -549,7 +549,22 @@ const SECTIONS = [
       },
     ],
   },
-  {
+  /*
+    {
+        name: "Premium Embedding",
+        settings: [
+            {
+                key: "premium-embedding-token",
+                display_name: "Premium Embedding Token",
+                widget: PremiumEmbeddingWidget
+            }
+        ]
+    }
+    */
+];
+
+if (MetabaseSettings.hasPremiumFeature("whitelabel")) {
+  SECTIONS.push({
     name: "Whitelabel",
     slug: "whitelabel",
     settings: [
@@ -568,6 +583,11 @@ const SECTIONS = [
         display_name: "Logo",
         type: "string",
         widget: LogoUpload,
+      },
+      {
+        key: "application-favicon-url",
+        display_name: "Favicon",
+        type: "string",
       },
       // {
       //     key: "landing-page",
@@ -605,20 +625,8 @@ const SECTIONS = [
       //     type: "boolean"
       // },
     ],
-  },
-  /*
-    {
-        name: "Premium Embedding",
-        settings: [
-            {
-                key: "premium-embedding-token",
-                display_name: "Premium Embedding Token",
-                widget: PremiumEmbeddingWidget
-            }
-        ]
-    }
-    */
-];
+  });
+}
 
 for (const section of SECTIONS) {
   if (section.slug == null) {

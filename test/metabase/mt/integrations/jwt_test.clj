@@ -17,18 +17,25 @@
 
 ;; SSO requests fail if SAML hasn't been enabled
 (expect
-  (saml-test/client :get 400 "/auth/sso"))
+  (saml-test/with-valid-metastore-token
+    (saml-test/client :get 400 "/auth/sso")))
+
+;; SSO requests fail if they don't have a valid metastore token
+(expect
+  (saml-test/client :get 403 "/auth/sso"))
 
 ;; SSO requests fail if SAML is enabled but hasn't been configured
 (expect
-  (tu/with-temporary-setting-values [jwt-enabled "true"]
-    (saml-test/client :get 400 "/auth/sso")))
+  (saml-test/with-valid-metastore-token
+    (tu/with-temporary-setting-values [jwt-enabled "true"]
+      (saml-test/client :get 400 "/auth/sso"))))
 
 ;; The IDP provider certificate must also be included for SSO to be configured
 (expect
-  (tu/with-temporary-setting-values [jwt-enabled "true"
-                                     jwt-identity-provider-uri default-idp-uri]
-    (saml-test/client :get 400 "/auth/sso")))
+  (saml-test/with-valid-metastore-token
+    (tu/with-temporary-setting-values [jwt-enabled "true"
+                                       jwt-identity-provider-uri default-idp-uri]
+      (saml-test/client :get 400 "/auth/sso"))))
 
 (defn- call-with-default-jwt-config [f]
   (tu/with-temporary-setting-values [jwt-enabled "true"
@@ -37,12 +44,13 @@
     (f)))
 
 (defmacro ^:private with-jwt-default-setup [& body]
-  `(saml-test/call-with-login-attributes-cleared!
-    (fn []
-      (users/create-users-if-needed!)
-      (call-with-default-jwt-config
-       (fn []
-         ~@body)))))
+  `(saml-test/with-valid-metastore-token
+     (saml-test/call-with-login-attributes-cleared!
+      (fn []
+        (users/create-users-if-needed!)
+        (call-with-default-jwt-config
+         (fn []
+           ~@body))))))
 
 ; With JWT configured, a GET request should result in a redirect to the IDP
 (expect

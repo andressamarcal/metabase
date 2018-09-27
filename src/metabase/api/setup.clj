@@ -143,7 +143,7 @@
      {:title       (tru "Organize questions")
       :group       (tru "Curate your data")
       :description (tru "Have a lot of saved questions in {0}? Create collections to help manage them and add context." (u/app-name-tru))
-      :link        "/questions/"
+      :link        "/collection/root"
       :completed   has-collections?
       :triggered   (>= num-cards 30)}
      {:title       (tru "Create metrics")

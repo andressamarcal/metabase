@@ -3,7 +3,7 @@
   results. The current focus of this namespace is around column metadata from the results of a query. Going forward
   this is likely to extend beyond just metadata about columns but also about the query results as a whole and over
   time."
-  (:require [metabase.models.humanization :as humanization]
+  (:require [clojure.string :as str]
             [metabase.query-processor.interface :as qp.i]
             [metabase.sync.interface :as i]
             [metabase.sync.analyze.classifiers.name :as classify-name]
@@ -40,8 +40,8 @@
   special type with a nil special type"
   [result-metadata col]
   (update result-metadata :special_type (fn [original-value]
-                                          ;; If we already know the special type, becouse it is stored, don't classify again.
-                                          ;; Also try to refine special type set upstream for aggregation cols (which comes back as :type/Number)
+                                          ;; If we already know the special type, becouse it is stored, don't classify again,
+                                          ;; but try to refine special type set upstream for aggregation cols (which come back as :type/Number).
                                           (case original-value
                                             (nil :type/Number) (classify-name/infer-special-type col)
                                             original-value))))
@@ -52,9 +52,6 @@
   populate the ResultColumnMetadata"
   [column]
   (merge
-   ;; if base-type isn't set put a default one in there. Similarly just use humanized value of `:name` for `:display_name` if one isn't set
-   {:base_type    :type/*
-    :display_name (humanization/name->human-readable-name (name (:name column)))}
    (u/select-non-nil-keys column [:name :display_name :description :base_type :special_type :unit :fingerprint])
    ;; since years are actually returned as text they can't be used for breakout purposes so don't advertise them as DateTime columns
    (when (= (:unit column) :year)
@@ -65,27 +62,26 @@
   "Return the desired storage format for the column metadata coming back from RESULTS and fingerprint the RESULTS."
   [results]
   (let [result-metadata (for [col (:cols results)]
-                          (-> col
-                              stored-column-metadata->result-column-metadata
-                              (maybe-infer-special-type col)))]
+                          ;; Rarely certain queries will return columns with no names. For example
+                          ;; `SELECT COUNT(*)` in SQL Server seems to come back with no name.
+                          ;; Since we can't use those as field literals in subsequent queries,
+                          ;; filter them out.
+                          (when-not (str/blank? (:name col))
+                            (-> col
+                                stored-column-metadata->result-column-metadata
+                                (maybe-infer-special-type col))))]
     (transduce identity
                (redux/post-complete
                 (apply f/col-wise (for [metadata result-metadata]
-                                    (if (and (seq (:name metadata))
+                                    (if (and metadata
                                              (nil? (:fingerprint metadata)))
                                       (f/fingerprinter metadata)
                                       (f/constant-fingerprinter (:fingerprint metadata)))))
                 (fn [fingerprints]
-                  ;; Rarely certain queries will return columns with no names. For example
-                  ;; `SELECT COUNT(*)` in SQL Server seems to come back with no name. Since we
-                  ;; can't use those as field literals in subsequent queries just filter them out
                   (->> (map (fn [fingerprint metadata]
-                              (cond
-                                (instance? Throwable fingerprint)
+                              (if (instance? Throwable fingerprint)
                                 metadata
-
-                                (not-empty (:name metadata))
-                                (assoc metadata :fingerprint fingerprint)))
+                                (some-> metadata (assoc :fingerprint fingerprint))))
                             fingerprints
                             result-metadata)
                        (remove nil?))))
