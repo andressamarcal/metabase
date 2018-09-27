@@ -64,14 +64,14 @@ const FEATURES = {
     description: t`Make sure you're showing the right people the right data with automatic and secure filters based on user attributes.`,
     icon: "lock",
     docs:
-      "http://www.metabase.com/docs/latest/administration-guide/17-data-sandboxes.md",
+      "http://www.metabase.com/docs/latest/administration-guide/17-data-sandboxes.html",
   },
   whitelabel: {
     name: t`Whitelabeling`,
     description: t`Match Metabase to your brand with custom colors, your own logo and more.`,
     icon: "star",
     docs:
-      "http://metabase.com/docs/latest/administration-guide/15-whitelabeling.md",
+      "http://metabase.com/docs/latest/administration-guide/15-whitelabeling.html",
   },
   audit_app: {
     name: t`Auditing`,
@@ -92,13 +92,13 @@ function ssoDocs() {
   return (
     <Flex align="center">
       <a
-        href="http://metabase.com/docs/latest/administration-guide/16-authenticating-with-saml.md"
+        href="http://metabase.com/docs/latest/administration-guide/16-authenticating-with-saml.html"
         className="mx2 link"
       >
         SAML
       </a>
       <a
-        href="http://metabase.com/docs/latest/administration-guide/18-authenticating-with-jwt.md"
+        href="http://metabase.com/docs/latest/administration-guide/18-authenticating-with-jwt.html"
         className="mx2 link"
       >
         JWT
