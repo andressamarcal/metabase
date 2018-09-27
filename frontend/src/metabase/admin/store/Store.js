@@ -152,8 +152,12 @@ class StoreDetails extends React.Component {
 
 @fitViewport
 @connect(state => {
-  const featuresEnabled = state.settings.values["premium_features"];
+  const features = state.settings.values["premium_features"];
+  const featuresEnabled = Object.keys(features).filter(
+    f => features[f] === true,
+  );
   return {
+    features,
     featuresEnabled,
   };
 })
@@ -172,7 +176,7 @@ export class Account extends React.Component {
           </Box>
           <Flex align="center">
             {this.props.featuresEnabled &&
-              Object.keys(this.props.featuresEnabled).map(f => {
+              this.props.featuresEnabled.map(f => {
                 const feature = FEATURES[f];
                 return (
                   feature && (
