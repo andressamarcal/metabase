@@ -71,6 +71,13 @@ const FEATURES = {
     docs:
       "http://metabase.com/docs/latest/administration-guide/15-whitelabeling.md",
   },
+  audit_app: {
+    name: t`Auditing`,
+    description: t`Keep an eye on performance and behavior with robust auditing tools.`,
+    icon: "clipboard",
+    docs:
+      "http://metabase.com/docs/latest/administration-guide/15-whitelabeling.md",
+  },
   sso: {
     name: t`SSO`,
     description: t`Provide easy login that works with your exisiting authentication infrastructure.`,
