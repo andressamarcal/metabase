@@ -36,6 +36,7 @@ const colors = {
   "bg-white": "#FFFFFF",
   shadow: "rgba(0,0,0,0.08)",
   border: "#D7DBDE",
+  nav: undefined,
 };
 /* eslint-enable no-color-literals */
 export default colors;

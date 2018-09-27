@@ -82,24 +82,28 @@ const FEATURES = {
     name: t`SSO`,
     description: t`Provide easy login that works with your exisiting authentication infrastructure.`,
     icon: "group",
-    docsRender: () => (
-      <Flex align="center">
-        <a
-          href="http://metabase.com/docs/latest/administration-guide/16-authenticating-with-saml.md"
-          className="mx2 link"
-        >
-          SAML
-        </a>
-        <a
-          href="http://metabase.com/docs/latest/administration-guide/18-authenticating-with-jwt.md"
-          className="mx2 link"
-        >
-          JWT
-        </a>
-      </Flex>
-    ),
+    docsRender: ssoDocs,
   },
 };
+
+function ssoDocs() {
+  return (
+    <Flex align="center">
+      <a
+        href="http://metabase.com/docs/latest/administration-guide/16-authenticating-with-saml.md"
+        className="mx2 link"
+      >
+        SAML
+      </a>
+      <a
+        href="http://metabase.com/docs/latest/administration-guide/18-authenticating-with-jwt.md"
+        className="mx2 link"
+      >
+        JWT
+      </a>
+    </Flex>
+  );
+}
 
 const ICON_SIZE = 22;
 const WRAPPER_SIZE = ICON_SIZE * 2.5;
