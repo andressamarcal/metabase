@@ -197,6 +197,8 @@ export default class DashCard extends Component {
                 }
               : null
           }
+          onChangeLocation={this.props.onChangeLocation}
+          actionsForClick={this.props.actionsForClick}
         />
       </div>
     );

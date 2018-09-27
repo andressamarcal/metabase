@@ -7,6 +7,7 @@ import styled from "styled-components";
 import { space, width } from "styled-system";
 import colors, { getNavBarColor } from "metabase/lib/colors";
 import color from "color";
+import MetabaseSettings from "metabase/lib/settings";
 
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
@@ -225,6 +226,13 @@ export default class Navbar extends Component {
               path="/admin/permissions"
               currentPath={this.props.path}
             />
+            {MetabaseSettings.hasPremiumFeature("audit_app") && (
+              <AdminNavItem
+                name={t`Audit`}
+                path="/admin/audit"
+                currentPath={this.props.path}
+              />
+            )}
             <AdminNavItem
               name={t`Enterprise`}
               path="/admin/store"

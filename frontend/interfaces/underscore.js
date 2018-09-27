@@ -116,7 +116,7 @@ declare module "underscore" {
 
   declare function flatten(a: Array<any>): Array<any>;
 
-  declare function debounce<T: any => any>(func: T): T;
+  declare function debounce<T: Function>(func: T): T;
 
   declare function partition<T>(
     array: T[],
@@ -130,4 +130,6 @@ declare module "underscore" {
 
   declare function isMatch(object: Object, properties: Object): boolean;
   declare function identity<T>(o: T): T;
+
+  declare function uniqueId(prefix?: string): string;
 }

@@ -10,6 +10,7 @@ import StructuredQuery, {
   STRUCTURED_QUERY_TEMPLATE,
 } from "./queries/StructuredQuery";
 import NativeQuery from "./queries/NativeQuery";
+import InternalQuery from "./queries/InternalQuery";
 
 import { memoize } from "metabase-lib/lib/utils";
 import * as Card_DEPRECATED from "metabase/lib/card";
@@ -156,7 +157,7 @@ export default class Question {
   query(): Query {
     const datasetQuery = this._card.dataset_query;
 
-    for (const QueryClass of [StructuredQuery, NativeQuery]) {
+    for (const QueryClass of [StructuredQuery, NativeQuery, InternalQuery]) {
       if (QueryClass.isDatasetQueryType(datasetQuery)) {
         return new QueryClass(this, datasetQuery);
       }

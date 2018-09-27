@@ -73,28 +73,39 @@ const FEATURES = {
     docs:
       "http://metabase.com/docs/latest/administration-guide/15-whitelabeling.md",
   },
+  audit_app: {
+    name: t`Auditing`,
+    description: t`Keep an eye on performance and behavior with robust auditing tools.`,
+    icon: "clipboard",
+    docs:
+      "http://metabase.com/docs/latest/administration-guide/15-whitelabeling.md",
+  },
   sso: {
     name: t`SSO`,
     description: t`Provide easy login that works with your exisiting authentication infrastructure.`,
     icon: "group",
-    docsRender: () => (
-      <Flex align="center">
-        <a
-          href="http://metabase.com/docs/latest/administration-guide/16-authenticating-with-saml.md"
-          className="mx2 link"
-        >
-          SAML
-        </a>
-        <a
-          href="http://metabase.com/docs/latest/administration-guide/18-authenticating-with-jwt.md"
-          className="mx2 link"
-        >
-          JWT
-        </a>
-      </Flex>
-    ),
+    docsRender: ssoDocs,
   },
 };
+
+function ssoDocs() {
+  return (
+    <Flex align="center">
+      <a
+        href="http://metabase.com/docs/latest/administration-guide/16-authenticating-with-saml.md"
+        className="mx2 link"
+      >
+        SAML
+      </a>
+      <a
+        href="http://metabase.com/docs/latest/administration-guide/18-authenticating-with-jwt.md"
+        className="mx2 link"
+      >
+        JWT
+      </a>
+    </Flex>
+  );
+}
 
 const ICON_SIZE = 22;
 const WRAPPER_SIZE = ICON_SIZE * 2.5;
@@ -147,8 +158,12 @@ class StoreDetails extends React.Component {
 
 @fitViewport
 @connect(state => {
-  const featuresEnabled = state.settings.values["premium_features"];
+  const features = state.settings.values["premium_features"];
+  const featuresEnabled = Object.keys(features).filter(
+    f => features[f] === true,
+  );
   return {
+    features,
     featuresEnabled,
   };
 })
@@ -167,7 +182,7 @@ export class Account extends React.Component {
           </Box>
           <Flex align="center">
             {this.props.featuresEnabled &&
-              Object.keys(this.props.featuresEnabled).map(f => {
+              this.props.featuresEnabled.map(f => {
                 const feature = FEATURES[f];
                 return (
                   feature && (

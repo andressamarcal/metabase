@@ -46,6 +46,7 @@ import type {
   Series,
   RawSeries,
   OnChangeCardAndRun,
+  ClickAction,
 } from "metabase/meta/types/Visualization";
 import Metadata from "metabase-lib/lib/metadata/Metadata";
 
@@ -78,6 +79,12 @@ type Props = {
   // for click actions
   metadata: Metadata,
   onChangeCardAndRun: OnChangeCardAndRun,
+  onChangeLocation: (url: string) => void,
+
+  actionsForClick?: (args: {
+    question: Question,
+    clicked: ClickObject,
+  }) => ClickAction[],
 
   // used for showing content in place of visualization, e.x. dashcard filter mapping
   replacementContent: Element<any>,
@@ -137,6 +144,10 @@ export default class Visualization extends Component {
     isEditing: false,
     onUpdateVisualizationSettings: (...args) =>
       console.warn("onUpdateVisualizationSettings", args),
+    // prefer passing in a function that doesn't cause the application to reload
+    onChangeLocation: location => {
+      window.location = location;
+    },
   };
 
   componentWillMount() {
@@ -236,13 +247,18 @@ export default class Visualization extends Component {
     if (!clicked) {
       return [];
     }
+    const { rawSeries, metadata, actionsForClick } = this.props;
     // TODO: push this logic into Question?
-    const { rawSeries, metadata } = this.props;
     const seriesIndex = clicked.seriesIndex || 0;
     const card = rawSeries[seriesIndex].card;
     const question = new Question(metadata, card);
-    const mode = question.mode();
-    return mode ? mode.actionsForClick(clicked, {}) : [];
+
+    if (actionsForClick) {
+      return actionsForClick({ question, clicked });
+    } else {
+      const mode = question.mode();
+      return mode ? mode.actionsForClick(clicked, {}) : [];
+    }
   }
 
   visualizationIsClickable = (clicked: ClickObject) => {
@@ -269,10 +285,22 @@ export default class Visualization extends Component {
       );
     }
 
-    // needs to be delayed so we don't clear it when switching from one drill through to another
-    setTimeout(() => {
-      this.setState({ clicked });
-    }, 100);
+    const actions = this.getClickActions(clicked);
+    if (actions.length === 1 && actions[0].default) {
+      if (actions[0].question) {
+        const question = actions[0].question();
+        if (question) {
+          this.handleOnChangeCardAndRun(question.card());
+        }
+      } else if (actions[0].url) {
+        this.props.onChangeLocation(actions[0].url());
+      }
+    } else {
+      // needs to be delayed so we don't clear it when switching from one drill through to another
+      setTimeout(() => {
+        this.setState({ clicked });
+      }, 100);
+    }
   };
 
   // Add the underlying card of current series to onChangeCardAndRun if available

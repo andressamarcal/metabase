@@ -40,6 +40,12 @@ export type FormattingOptions = {
   round?: boolean,
   // always format as the start value rather than the range, e.x. for bar histogram
   noRange?: boolean,
+
+  // NOTE: not exposed in the UI
+  date_format?: string,
+  markdown_format?: string,
+  // display in local timezone or parsed timezone
+  local?: boolean,
 };
 
 const DEFAULT_NUMBER_OPTIONS: FormattingOptions = {
@@ -161,7 +167,7 @@ export function formatTimeRangeWithUnit(
   unit: DatetimeUnit,
   options: FormattingOptions = {},
 ) {
-  let m = parseTimestamp(value, unit);
+  let m = parseTimestamp(value, unit, options.local);
   if (!m.isValid()) {
     return String(value);
   }
@@ -212,7 +218,7 @@ export function formatTimeWithUnit(
   unit: DatetimeUnit,
   options: FormattingOptions = {},
 ) {
-  let m = parseTimestamp(value, unit);
+  let m = parseTimestamp(value, unit, options.local);
   if (!m.isValid()) {
     return String(value);
   }
@@ -279,12 +285,43 @@ export function formatTimeWithUnit(
   }
 }
 
+export function formatTimeWithFormat(value: Value, options: FormattingOptions) {
+  const unit = options.column && options.column.unit;
+  const dateFormat = options.date_format;
+  let m = parseTimestamp(value, unit, options.local);
+  if (!m.isValid()) {
+    return String(value);
+  }
+  return m.format(dateFormat);
+}
+
 export function formatTimeValue(value: Value) {
   let m = parseTime(value);
   if (!m.isValid()) {
     return String(value);
   } else {
     return m.format("LT");
+  }
+}
+
+import Mustache from "mustache";
+import ReactMarkdown from "react-markdown";
+
+const MARKDOWN_RENDERERS = {
+  // eslint-disable-next-line react/display-name
+  link: ({ href, children }) => (
+    <ExternalLink href={href}>{children}</ExternalLink>
+  ),
+};
+
+export function formatWithMarkdown(value: Value, options: FormattingOptions) {
+  const markdown = Mustache.render(options.markdown_format, { value });
+  if (options.jsx) {
+    return <ReactMarkdown source={markdown} renderers={MARKDOWN_RENDERERS} />;
+  } else {
+    // FIXME?
+    console.warn("markdown_format not supported with options.jsx = false");
+    return markdown;
   }
 }
 
@@ -357,6 +394,10 @@ export function formatValue(value: Value, options: FormattingOptions = {}) {
     return formatUrl(value, options);
   } else if (column && isa(column.special_type, TYPE.Email)) {
     return formatEmail(value, options);
+  } else if (options.date_format) {
+    return formatTimeWithFormat(value, options);
+  } else if (options.markdown_format) {
+    return formatWithMarkdown(value, options);
   } else if (column && isa(column.base_type, TYPE.Time)) {
     return formatTimeValue(value);
   } else if (column && column.unit != null) {
@@ -367,7 +408,9 @@ export function formatValue(value: Value, options: FormattingOptions = {}) {
     moment.isMoment(value) ||
     moment(value, ["YYYY-MM-DD'T'HH:mm:ss.SSSZ"], true).isValid()
   ) {
-    return parseTimestamp(value, column && column.unit).format("LLLL");
+    return parseTimestamp(value, column && column.unit, options.local).format(
+      "LLLL",
+    );
   } else if (typeof value === "string") {
     return formatStringFallback(value, options);
   } else if (typeof value === "number") {

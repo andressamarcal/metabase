@@ -226,8 +226,10 @@ export default class DashboardGrid extends Component {
         navigateToNewCardFromDashboard={
           this.props.navigateToNewCardFromDashboard
         }
+        onChangeLocation={this.props.onChangeLocation}
         metadata={this.props.metadata}
         dashboard={this.props.dashboard}
+        actionsForClick={this.props.actionsForClick}
       />
     );
   }

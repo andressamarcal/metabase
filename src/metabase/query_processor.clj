@@ -32,6 +32,7 @@
              [parameters :as parameters]
              [permissions :as perms]
              [resolve :as resolve]
+             [internal-queries :as internal-queries]
              [resolve-driver :as resolve-driver]
              [results-metadata :as results-metadata]
              [source-table :as source-table]]
@@ -105,6 +106,7 @@
    #'log-query/log-initial-query
    #'cache/maybe-return-cached-results
    #'log-query/log-results-metadata
+   #'internal-queries/handle-internal-queries
    #'catch-exceptions/catch-exceptions])
 ;; ▲▲▲ PRE-PROCESSING ▲▲▲ happens from BOTTOM-TO-TOP, e.g. the results of `expand-macros` are passed to
 ;; `substitute-parameters`
@@ -159,16 +161,19 @@
 
 (def ^:private NativeQuery
   (assoc DefaultQueryContext
-    (s/optional-key :type) (s/enum :native "native")
+    (s/optional-key :type)   (s/enum :native "native")
     (s/optional-key :native) {:query                          s/Str
-                              (s/optional-key :template_tags) {s/Keyword {s/Any s/Any}}}))
+                              (s/optional-key :template_tags) {s/Keyword {s/Any s/Any}}
+                              (s/optional-key :collection) (s/maybe su/NonBlankString)}))
+
+(defn- query-type-is [query-type query]
+  (= query-type (keyword (:type query))))
 
 (def ^:private QueryContext
   (s/conditional
-   #(contains? % :query)
-   MBQLQuery
-   #(contains? % :native)
-   NativeQuery))
+   (partial query-type-is :query)    MBQLQuery
+   (partial query-type-is :native)   NativeQuery
+   (partial query-type-is :internal) internal-queries/InternalQuery))
 
 (s/defn ^:private make-canonical-query :- QueryContext
   [query]
@@ -212,9 +217,9 @@
 
 (defn- save-query-execution!
   "Save a `QueryExecution` and update the average execution time for the corresponding `Query`."
-  [query-execution]
+  [{query :json_query, :as query-execution}]
   (u/prog1 query-execution
-    (query/update-average-execution-time! (:hash query-execution) (:running_time query-execution))
+    (query/save-query-and-update-average-execution-time! query (:hash query-execution) (:running_time query-execution))
     (db/insert! QueryExecution (dissoc query-execution :json_query))))
 
 (defn- save-and-return-failed-query!
@@ -271,11 +276,14 @@
   false)
 
 (defn- query-execution-info
-  "Return the info for the `QueryExecution` entry for this QUERY."
-  [{{:keys [executed-by query-hash query-type context card-id dashboard-id pulse-id]} :info, :as query}]
+  "Return the info for the QueryExecution entry for this `query`."
+  [{{:keys [executed-by query-hash query-type context card-id dashboard-id pulse-id]} :info
+    database-id                                                                       :database
+    :as                                                                               query}]
   {:pre [(instance? (Class/forName "[B") query-hash)
          (string? query-type)]}
-  {:executor_id       executed-by
+  {:database_id       database-id
+   :executor_id       executed-by
    :card_id           card-id
    :dashboard_id      dashboard-id
    :pulse_id          pulse-id

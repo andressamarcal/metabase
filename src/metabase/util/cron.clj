@@ -4,8 +4,10 @@
    format."
   (:require [clojure.string :as str]
             [schema.core :as s]
-            [metabase.util.schema :as su])
-  (:import org.quartz.CronExpression))
+            [metabase.util.schema :as su]
+            [puppetlabs.i18n.core :as i18n])
+  (:import org.quartz.CronExpression
+           net.redhogs.cronparser.CronExpressionDescriptor))
 
 (def CronScheduleString
   "Schema for a valid cron schedule string."
@@ -140,3 +142,8 @@
      :schedule_frame (cron-day-of-week+day-of-month->frame day-of-week day-of-month)
      :schedule_hour  (cron->hour hours)
      :schedule_type  (cron->schedule-type hours day-of-month day-of-week)}))
+
+(s/defn describe-cron-string :- su/NonBlankString
+  "Return a human-readable description of a cron expression, localized for the current User."
+  [cron-string :- CronScheduleString]
+  (CronExpressionDescriptor/getDescription ^String cron-string, ^java.util.Locale (i18n/user-locale)))
