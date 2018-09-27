@@ -12,6 +12,8 @@ import Link from "metabase/components/Link";
 import Card from "metabase/components/Card";
 import Text from "metabase/components/Text";
 
+import ModalWithTrigger from "metabase/components/ModalWithTrigger";
+
 import fitViewport from "metabase/hoc/FitViewPort";
 
 import { SettingsApi } from "metabase/services";
@@ -218,6 +220,8 @@ export class Account extends React.Component {
 export class Activate extends React.Component {
   state = {
     heading: t`Enter the token you recieved from the store`,
+    errorMessage: "",
+    showVerbose: false,
     error: false,
   };
   activate = async () => {
@@ -231,7 +235,11 @@ export class Activate extends React.Component {
       window.location = "/admin/store/account";
     } catch (e) {
       console.error(e.data);
-      this.setState({ error: true, heading: e.data });
+      this.setState({
+        error: true,
+        heading: e.data.message,
+        errorMessage: e.data["error-details"],
+      });
     }
   };
   render() {
@@ -259,6 +267,34 @@ export class Activate extends React.Component {
             />
             <Button onClick={this.activate}>{t`Activate`}</Button>
           </Box>
+
+          {this.state.error && (
+            <ModalWithTrigger
+              triggerElement={
+                <Box mt={3}>
+                  <Link
+                    className="link"
+                    onClick={() => this.setState({ showVerbose: true })}
+                  >{t`Need help?`}</Link>
+                </Box>
+              }
+              onClose={() => this.setState({ showVerbose: false })}
+              title={t`More info about your problem.`}
+              open={this.state.showVerbose}
+            >
+              <Box>{this.state.errorMessage}</Box>
+              <Flex my={2}>
+                <a
+                  className="ml-auto"
+                  href={`mailto:support@metabase.com?Subject="Issue with token activation for token ${
+                    this._input.value
+                  }"&Body="${this.state.errorMessage}"`}
+                >
+                  <Button primary>{t`Contact support`}</Button>
+                </a>
+              </Flex>
+            </ModalWithTrigger>
+          )}
         </Flex>
       </Flex>
     );
