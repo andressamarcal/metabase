@@ -78,7 +78,7 @@ const FEATURES = {
     description: t`Keep an eye on performance and behavior with robust auditing tools.`,
     icon: "clipboard",
     docs:
-      "http://metabase.com/docs/latest/administration-guide/15-whitelabeling.md",
+      "https://metabase.com/offerings/auditing_info/",
   },
   sso: {
     name: t`SSO`,
