@@ -51,6 +51,7 @@
                :revision_id (-> revision :id)})})
 
 (s/defn audit-log
+  "Get a view log for a Card or Dashboard."
   [model :- ModelName, model-id :- su/IntGreaterThanZero]
   {:metadata [[:when    {:display_name "When",    :base_type :type/DateTime}]
               [:user_id {:display_name "User ID", :base_type :type/Integer, :remapped_to   :who}]

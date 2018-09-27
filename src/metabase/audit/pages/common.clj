@@ -16,7 +16,10 @@
 
 (def ^:private ^:const default-limit 1000)
 
-(defn query {:style/indent 0} [query-map]
+(defn query
+  "Run a internal audit query, automatically including limits and offsets for paging."
+  {:style/indent 0}
+  [query-map]
   (let [{:keys [limit offset]} internal-queries/*additional-query-params*]
     (db/query (merge
                {:limit  (or limit default-limit)

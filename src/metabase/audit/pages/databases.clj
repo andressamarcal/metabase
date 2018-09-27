@@ -16,6 +16,7 @@
 ;; GROUP BY db.id
 ;; ORDER BY lower(db.name) ASC
 (defn ^:internal-query-fn ^:deprecated total-query-executions-by-db
+  "Return Databases with the total number of queries ran against them and the average running time for all queries."
   []
   {:metadata [[:database_id      {:display_name "Database ID",            :base_type :type/Integer, :remapped_to   :database_name}]
               [:database_name    {:display_name "Database",               :base_type :type/Text,    :remapped_from :database_id}]
@@ -34,6 +35,7 @@
                :order-by [[:%lower.db.name :asc]]})})
 
 (s/defn ^:internal-query-fn query-executions-by-time
+  "Query that returns count of query executions grouped by Database and a `datetime-unit`."
   [datetime-unit :- common/DateTimeUnitStr]
   {:metadata [[:date          {:display_name "Date",          :base_type (common/datetime-unit-str->base-type datetime-unit)}]
               [:database_id   {:display_name "Database ID",   :base_type :type/Integer, :remapped_to   :database_name}]
@@ -61,7 +63,9 @@
                            [:%lower.db.name :asc]
                            [:qx.database_id :asc]]})})
 
-(defn ^:deprecated ^:internal-query-fn query-executions-per-db-per-day []
+(defn ^:deprecated ^:internal-query-fn query-executions-per-db-per-day
+  "Query that returns count of query executions grouped by Database and day."
+  []
   (query-executions-by-time "day"))
 
 

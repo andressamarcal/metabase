@@ -223,6 +223,8 @@
 
 
 (defn ^:internal-query-fn query-views
+  "Return a log of all query executions, including information about the Card associated with the query and the
+  Collection it is in (both, if applicable) and Database/Table referenced by the query."
   []
   {:metadata [[:viewed_on     {:display_name "Viewed On",       :base_type :type/DateTime}]
               [:card_id       {:display_name "Card ID"          :base_type :type/Integer, :remapped_to   :card_name}]
@@ -267,6 +269,7 @@
 
 
 (defn ^:internal-query-fn dashboard-views
+  "Return a log of when all Dashboard views, including the Collection the Dashboard belongs to."
   []
   {:metadata [[:timestamp       {:display_name "Viewed on",     :base_type :type/DateTime}]
               [:dashboard_id    {:display_name "Dashboard ID",  :base_type :type/Integer, :remapped_to   :dashboard_name}]

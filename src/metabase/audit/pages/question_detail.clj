@@ -13,9 +13,11 @@
 
 
 (s/defn ^:internal-query-fn revision-history
+  "Get the revision history for a Card."
   [card-id :- su/IntGreaterThanZero]
   (card-and-dash-detail/revision-history Card card-id))
 
 (s/defn ^:internal-query-fn audit-log
+  "Get a view log for a Card."
   [card-id :- su/IntGreaterThanZero]
   (card-and-dash-detail/audit-log "card" card-id))
