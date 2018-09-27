@@ -25,6 +25,7 @@
              [data :as data]
              [string :as str]]
             [metabase.api.common :as api]
+            [metabase.public-settings.metastore :as metastore]
             [metabase.util.schema :as su]
             [puppetlabs.i18n.core :refer [tru]]
             [schema.core :as s]))
@@ -99,19 +100,16 @@
   [{qualified-fn-str :fn, args :args, :as query} :- InternalQuery]
   ;; Make sure current user is a superuser
   (api/check-superuser)
-  ;; now resolve the query
+  ;; Make sure audit app is enabled (currently the only use case for internal queries). We can figure out a way to
+  ;; allow non-audit-app queries if and when we add some
+  (when-not (metastore/enable-audit-app?)
+    (throw (Exception. (str (tru "Audit App queries are not enabled on this instance.")))))
+  ;;now resolve the query
   (let [fn-varr (resolve-internal-query-fn qualified-fn-str)]
     ;; Make sure this is actually allowed to be a internal query fn & has the results metadata we'll need
     (when-not (:internal-query-fn (meta fn-varr))
       (throw (Exception. (str (tru "Invalid internal query function: {0} is not marked as an ^:internal-query-fn"
                                    qualified-fn-str)))))
-    ;; if this function is marked deprecated log a warning.
-    ;; Primarily for dev/testing purposes. TODO - remove this once v1 [beta] is done or upgrade it to use log/ + i18n
-    #_(when (:deprecated (meta fn-varr))
-      (println (u/format-color 'red
-                   (str "Warning: %s is marked deprecated. This is probably because it's not in the new designs. "
-                        "This function will be removed in the [very] near future.")
-                 qualified-fn-str)))
     ;; ok, run the query
     (format-results (binding [*additional-query-params* (dissoc query :fn :args)]
                       (apply @fn-varr args)))))

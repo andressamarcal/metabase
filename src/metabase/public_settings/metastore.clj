@@ -41,7 +41,8 @@
 (def ^:private TokenStatus
   {:valid                     s/Bool
    :status                    su/NonBlankString
-   (s/optional-key :features) [su/NonBlankString]})
+   (s/optional-key :features) [su/NonBlankString]
+   s/Any                      s/Any}) ; don't explode in the future if we add more to the response! lol
 
 (s/defn ^:private fetch-token-status* :- TokenStatus
   "Fetch info about the validity of `token` from the MetaStore."
