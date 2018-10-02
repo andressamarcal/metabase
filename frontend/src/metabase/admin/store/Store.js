@@ -77,8 +77,7 @@ const FEATURES = {
     name: t`Auditing`,
     description: t`Keep an eye on performance and behavior with robust auditing tools.`,
     icon: "clipboard",
-    docs:
-      "https://metabase.com/offerings/auditing_info/",
+    docs: "https://metabase.com/offerings/auditing_info/",
   },
   sso: {
     name: t`SSO`,
