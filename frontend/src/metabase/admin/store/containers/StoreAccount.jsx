@@ -57,17 +57,19 @@ const Unlicensed = () => (
   <AccountStatus
     title={t`Get even more out of Metabase with the Enterprise Edition`}
     subtitle={
-      <h4
-      >{t`All the tools you need to quickly and easily provide reports for your customers, or to help you run and monitor Metabase in a large organization`}</h4>
+      <h4 className="text-centered">{t`All the tools you need to quickly and easily provide reports for your customers, or to help you run and monitor Metabase in a large organization`}</h4>
     }
     preview
   >
     <Box m={4}>
       <a
         className="Button Button--primary"
-        href={"http://metabase.com"}
+        href={"http://metabase.com/offerings/enterprise/"}
       >{t`Learn more`}</a>
-      <a className="Button ml2">{t`Activate a license`}</a>
+      <a
+        className="Button ml2"
+        href={"admin/store/activate"}
+      >{t`Activate a license`}</a>
     </Box>
   </AccountStatus>
 );
@@ -81,7 +83,9 @@ const TrialActive = ({ features }) => (
     <CallToAction
       title={t`Need help? Ready to buy?`}
       buttonText={t`Talk to us`}
-      buttonLink={"http://metabase.com"}
+      buttonLink={
+        "mailto:support@metabase.com?Subject=Metabase Enterprise Edition"
+      }
     />
   </AccountStatus>
 );
@@ -91,7 +95,9 @@ const TrialExpired = ({ features }) => (
     <CallToAction
       title={t`Need more time? Ready to buy?`}
       buttonText={t`Talk to us`}
-      buttonLink={"http://metabase.com"}
+      buttonLink={
+        "mailto:support@metabase.com?Subject=Expired Enterprise Trial"
+      }
     />
   </AccountStatus>
 );
@@ -116,9 +122,11 @@ const Expired = ({ features }) => (
     expired
   >
     <CallToAction
-      title={t`Want to renew your license`}
+      title={t`Want to renew your license?`}
       buttonText={t`Talk to us`}
-      buttonLink={"http://metabase.com"}
+      buttonLink={
+        "mailto:support@metabase.com?Subject=Renewing my Enterprise License"
+      }
     />
   </AccountStatus>
 );
