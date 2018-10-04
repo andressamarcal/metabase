@@ -43,6 +43,8 @@
    :status                         su/NonBlankString
    (s/optional-key :error-details) (s/maybe su/NonBlankString)
    (s/optional-key :features)      [su/NonBlankString]
+   (s/optional-key :trial)         s/Bool
+   (s/optional-key :valid_thru)    su/NonBlankString ; ISO 8601 timestamp
    ;; don't explode in the future if we add more to the response! lol
    s/Any                           s/Any})
 
@@ -71,7 +73,7 @@
    fetch-token-status-timeout-ms
    {:valid false, :status (tru "Unable to validate token"), :error-details (tru "Token validation timed out.")}))
 
-(def ^:private ^{:arglists '([token])} fetch-token-status
+(def ^{:arglists '([token])} fetch-token-status
   "TTL-memoized version of `fetch-token-status*`. Caches API responses for 5 minutes. This is important to avoid making
   too many API calls to the Store, which will throttle us if we make too many requests; putting in a bad token could
   otherwise put us in a state where `valid-token->features*` made API calls over and over, never itself getting cached
