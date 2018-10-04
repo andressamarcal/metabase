@@ -23,7 +23,7 @@ const FEATURES = {
       },
     ],
   },
-  audit_app: {
+  "audit-app": {
     name: t`Auditing`,
     description: t`Keep an eye on performance and behavior with robust auditing tools.`,
     icon: "clipboard",

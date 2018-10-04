@@ -33,7 +33,6 @@ import getAdminAuditRoutes from "metabase/admin/audit/routes.jsx";
 import getAdminPermissionsRoutes from "metabase/admin/permissions/routes.jsx";
 
 // Store
-import StoreLanding from "metabase/admin/store/containers/StoreLanding";
 import StoreActivate from "metabase/admin/store/containers/StoreActivate";
 import StoreAccount from "metabase/admin/store/containers/StoreAccount";
 
@@ -46,9 +45,8 @@ const getRoutes = (store, IsAdmin) => (
     <IndexRedirect to="/admin/settings" />
 
     <Route path="store" title={t`Store`}>
-      <IndexRoute component={StoreLanding} />
+      <IndexRoute component={StoreAccount} />
       <Route path="activate" component={StoreActivate} />
-      <Route path="account" component={StoreAccount} />
     </Route>
 
     <Route path="databases" title={t`Databases`}>

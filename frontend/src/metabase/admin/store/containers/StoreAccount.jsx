@@ -1,7 +1,6 @@
 import React from "react";
 import { Box, Flex } from "grid-styled";
 import { t } from "c-3po";
-import { connect } from "react-redux";
 
 import _ from "underscore";
 
@@ -9,27 +8,42 @@ import colors from "metabase/lib/colors";
 
 import StoreIcon from "../components/StoreIcon";
 import Card from "metabase/components/Card";
+import Link from "metabase/components/Link";
+import ExternalLink from "metabase/components/ExternalLink";
+import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
 
 import fitViewport from "metabase/hoc/FitViewPort";
 
 import moment from "moment";
 
 import FEATURES from "../lib/features";
+import { StoreApi } from "../lib/services";
 
 @fitViewport
-@connect(state => {
-  const features = state.settings.values["premium_features"];
-  const featuresEnabled = Object.keys(features).filter(
-    f => features[f] === true,
-  );
-  return {
-    features,
-    featuresEnabled,
-  };
-})
 export default class StoreAccount extends React.Component {
+  state = {
+    status: null,
+    error: null,
+  };
+
+  async componentWillMount() {
+    try {
+      this.setState({
+        status: await StoreApi.tokenStatus(),
+      });
+    } catch (e) {
+      this.setState({
+        error: e,
+      });
+    }
+  }
+
   render() {
-    const { features, location: { query } } = this.props;
+    const { status, error } = this.state;
+
+    const features = status && _.object(status.features.map(f => [f, true]));
+    const expires = status && status.valid_thru && moment(status.valid_thru);
+
     return (
       <Flex
         align="center"
@@ -37,21 +51,46 @@ export default class StoreAccount extends React.Component {
         flexDirection="column"
         className={this.props.fitClassNames}
       >
-        {query.state === "active" ? (
-          <Active features={features} />
-        ) : query.state === "expired" ? (
-          <Expired features={features} />
-        ) : query.state === "trial_active" ? (
-          <TrialActive features={features} />
-        ) : query.state === "trial_expired" ? (
-          <TrialExpired features={features} />
+        {error ? (
+          error.status === 404 ? (
+            <Unlicensed />
+          ) : (
+            <TokenError />
+          )
         ) : (
-          <Unlicensed />
+          <LoadingAndErrorWrapper loading={!status}>
+            {() =>
+              status.valid && !status.trial ? (
+                <Active features={features} expires={expires} />
+              ) : !status.valid && !status.trial ? (
+                <Expired features={features} expires={expires} />
+              ) : status.valid && status.trial ? (
+                <TrialActive features={features} expires={expires} />
+              ) : !status.valid && status.trial ? (
+                <TrialExpired features={features} expires={expires} />
+              ) : (
+                <h2>{status.status}</h2>
+              )
+            }
+          </LoadingAndErrorWrapper>
         )}
       </Flex>
     );
   }
 }
+
+const TokenError = () => (
+  <Flex align="center" justify="center" flexDirection="column">
+    <h2 className="text-error">{t`We're having trouble validating your token`}</h2>
+    <h4 className="mt2">{t`Please double-check that your instance can connect to Metabase's servers`}</h4>
+    <ExternalLink
+      className="Button Button--primary mt4"
+      href="mailto:support@metabase.com"
+    >
+      {t`Get help`}
+    </ExternalLink>
+  </Flex>
+);
 
 const Unlicensed = () => (
   <AccountStatus
@@ -62,22 +101,23 @@ const Unlicensed = () => (
     preview
   >
     <Box m={4}>
-      <a
+      <ExternalLink
         className="Button Button--primary"
         href={"http://metabase.com/offerings/enterprise/"}
-      >{t`Learn more`}</a>
-      <a
-        className="Button ml2"
-        href={"admin/store/activate"}
-      >{t`Activate a license`}</a>
+      >
+        {t`Learn more`}
+      </ExternalLink>
+      <Link className="Button ml2" to={"admin/store/activate"}>
+        {t`Activate a license`}
+      </Link>
     </Box>
   </AccountStatus>
 );
 
-const TrialActive = ({ features }) => (
+const TrialActive = ({ features, expires }) => (
   <AccountStatus
     title={t`Your trial is active with these features`}
-    subtitle={<h3>{t`Trial expires in 14 days`}</h3>}
+    subtitle={expires && <h3>{t`Trial expires in ${expires.fromNow()}`}</h3>}
     features={features}
   >
     <CallToAction
@@ -102,22 +142,26 @@ const TrialExpired = ({ features }) => (
   </AccountStatus>
 );
 
-const Active = ({ features }) => (
+const Active = ({ features, expires }) => (
   <AccountStatus
     title={t`Your features are active!`}
     subtitle={
-      <h3>{t`Your licence is valid through ${moment().format(
-        "MMMM d, YYYY",
-      )}`}</h3>
+      expires && (
+        <h3>{t`Your licence is valid through ${expires.format(
+          "MMMM D, YYYY",
+        )}`}</h3>
+      )
     }
     features={features}
   />
 );
 
-const Expired = ({ features }) => (
+const Expired = ({ features, expires }) => (
   <AccountStatus
     title={t`Your license has expired`}
-    subtitle={<h3>{t`It expired on ${moment().format("MMMM d, YYYY")}`}</h3>}
+    subtitle={
+      expires && <h3>{t`It expired on ${expires.format("MMMM D, YYYY")}`}</h3>
+    }
     features={features}
     expired
   >
@@ -180,9 +224,9 @@ const AccountStatus = ({
 const CallToAction = ({ title, buttonText, buttonLink }) => (
   <Box className="rounded bg-medium m4 py3 px4 flex flex-column layout-centered">
     <h3 className="mb3">{title}</h3>
-    <a className="Button Button--primary" href={buttonLink}>
+    <ExternalLink className="Button Button--primary" href={buttonLink}>
       {buttonText}
-    </a>
+    </ExternalLink>
   </Box>
 );
 
@@ -238,9 +282,9 @@ const FeatureLinks = ({ links, defaultTitle }) => (
   <Flex align="center">
     {links &&
       links.map(({ link, title }) => (
-        <a href={link} className="mx2 link">
+        <ExternalLink href={link} className="mx2 link">
           {title || defaultTitle}
-        </a>
+        </ExternalLink>
       ))}
   </Flex>
 );

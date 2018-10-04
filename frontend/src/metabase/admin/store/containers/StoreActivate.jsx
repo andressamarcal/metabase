@@ -29,7 +29,7 @@ export default class Activate extends React.Component {
     try {
       await SettingsApi.put({ key: "premium-embedding-token", value });
       // set window.location so we do a hard refresh
-      window.location = "/admin/store/account";
+      window.location = "/admin/store";
     } catch (e) {
       console.error(e.data);
       this.setState({
