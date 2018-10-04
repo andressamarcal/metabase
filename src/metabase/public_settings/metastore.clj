@@ -61,6 +61,7 @@
      (println (u/format-color 'green (trs "Using this URL to check token: {0}" (token-status-url token))))
      (try (some-> (token-status-url token)
                   http/get
+                  :body
                   (json/parse-string keyword))
           ;; if there was an error fetching the token, log it and return a generic message about the
           ;; token being invalid. This message will get displayed in the Settings page in the admin panel so
@@ -124,6 +125,7 @@
         (log/info (trs "Token is valid.")))
       (setting/set-string! :premium-embedding-token new-value)
       (catch Throwable e
+        (println "e:" e) ; NOCOMMIT
         (log/error e (trs "Error setting premium features token"))
         (throw (ex-info (.getMessage e) (merge
                                          {:message (.getMessage e), :status-code 400}
