@@ -1,16 +1,18 @@
 (ns metabase.public-settings.metastore
   "Settings related to checking token validity and accessing the MetaStore."
   (:require [cheshire.core :as json]
+            [clj-http.client :as http]
             [clojure.core.memoize :as memoize]
             [clojure.string :as str]
             [clojure.tools.logging :as log]
             [environ.core :refer [env]]
-            [metabase.config :as config]
+            [metabase
+             [config :as config]
+             [util :as u]]
             [metabase.models.setting :as setting :refer [defsetting]]
             [metabase.util.schema :as su]
             [puppetlabs.i18n.core :refer [trs tru]]
-            [schema.core :as s]
-            [metabase.util :as u]))
+            [schema.core :as s]))
 
 (def ^:private ValidToken
   "Schema for a valid metastore token. Must be 64 lower-case hex characters."
@@ -58,18 +60,19 @@
    (future
      (println (u/format-color 'green (trs "Using this URL to check token: {0}" (token-status-url token))))
      (try (some-> (token-status-url token)
-                  slurp
+                  http/get
                   (json/parse-string keyword))
-          ;; slurp will throw a FileNotFoundException for 404s, so in that case just return an appropriate
-          ;; 'Not Found' message
-          (catch java.io.FileNotFoundException e
-            {:valid false, :status (tru "Unable to validate token"), :error-details (tru "Token does not exist.")})
-          ;; if there was any other error fetching the token, log it and return a generic message about the
+          ;; if there was an error fetching the token, log it and return a generic message about the
           ;; token being invalid. This message will get displayed in the Settings page in the admin panel so
           ;; we do not want something complicated
-          (catch Throwable e
+          (catch clojure.lang.ExceptionInfo e
             (log/error e (trs "Error fetching token status:"))
-            {:valid false, :status (tru "Unable to validate token"), :error-details (.getMessage e)})))
+            (let [body (some-> (ex-data e) :object :body (json/parse-string keyword))]
+              (or
+               body
+               {:valid         false
+                :status        (tru "Unable to validate token")
+                :error-details (.getMessage e)})))))
    fetch-token-status-timeout-ms
    {:valid false, :status (tru "Unable to validate token"), :error-details (tru "Token validation timed out.")}))
 
