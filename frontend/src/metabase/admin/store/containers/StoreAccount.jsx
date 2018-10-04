@@ -58,7 +58,7 @@ export default class StoreAccount extends React.Component {
             <TokenError />
           )
         ) : (
-          <LoadingAndErrorWrapper loading={!status}>
+          <LoadingAndErrorWrapper loading={!status} className="full">
             {() =>
               status.valid && !status.trial ? (
                 <Active features={features} expires={expires} />
@@ -196,7 +196,8 @@ const AccountStatus = ({
       justify="center"
       flexDirection="column"
       className={className}
-      py={3}
+      p={[2, 4]}
+      w="100%"
     >
       <Box>
         <h2>{title}</h2>
@@ -206,7 +207,7 @@ const AccountStatus = ({
           {subtitle}
         </Box>
       )}
-      <Flex mt={4} align="center">
+      <Flex mt={4} align="center" flexWrap="wrap" w="100%">
         {featuresOrdered.map(([id, feature]) => (
           <Feature
             feature={feature}
@@ -231,47 +232,48 @@ const CallToAction = ({ title, buttonText, buttonLink }) => (
 );
 
 const Feature = ({ feature, included, expired, preview }) => (
-  <Card
-    mx={3}
-    p={2}
-    style={{
-      opacity: expired ? 0.5 : 1,
-      width: 260,
-      height: 260,
-      backgroundColor: included ? undefined : colors["bg-light"],
-      color: included ? colors["text-dark"] : colors["text-medium"],
-    }}
-    className="relative flex flex-column layout-centered"
-  >
-    <StoreIcon
-      name={feature.icon}
-      color={
-        preview
-          ? colors["brand"]
-          : included ? colors["success"] : colors["text-medium"]
-      }
-    />
-
-    <Box my={2}>
-      <h3 className="text-dark">{feature.name}</h3>
-    </Box>
-
-    {preview ? (
-      <FeatureDescription feature={feature} />
-    ) : included ? (
-      <FeatureLinks
-        links={feature.docs}
-        defaultTitle={t`Learn how to use this`}
+  <Box w={[1, 1 / 2, 1 / 4]} p={2}>
+    <Card
+      p={[1, 2]}
+      style={{
+        opacity: expired ? 0.5 : 1,
+        width: "100%",
+        height: 260,
+        backgroundColor: included ? undefined : colors["bg-light"],
+        color: included ? colors["text-dark"] : colors["text-medium"],
+      }}
+      className="relative flex flex-column layout-centered"
+    >
+      <StoreIcon
+        name={feature.icon}
+        color={
+          preview
+            ? colors["brand"]
+            : included ? colors["success"] : colors["text-medium"]
+        }
       />
-    ) : (
-      <FeatureLinks links={feature.info} defaultTitle={t`Learn more`} />
-    )}
 
-    {!included &&
-      !preview && (
-        <div className="spread text-centered pt2 pointer-events-none">{t`Not included in your current plan`}</div>
+      <Box my={2}>
+        <h3 className="text-dark">{feature.name}</h3>
+      </Box>
+
+      {preview ? (
+        <FeatureDescription feature={feature} />
+      ) : included ? (
+        <FeatureLinks
+          links={feature.docs}
+          defaultTitle={t`Learn how to use this`}
+        />
+      ) : (
+        <FeatureLinks links={feature.info} defaultTitle={t`Learn more`} />
       )}
-  </Card>
+
+      {!included &&
+        !preview && (
+          <div className="spread text-centered pt2 pointer-events-none">{t`Not included in your current plan`}</div>
+        )}
+    </Card>
+  </Box>
 );
 
 const FeatureDescription = ({ feature }) => (
