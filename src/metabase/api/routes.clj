@@ -16,6 +16,7 @@
              [field :as field]
              [geojson :as geojson]
              [ldap :as ldap]
+             [metastore :as metastore]
              [metric :as metric]
              [notify :as notify]
              [permissions :as permissions]
@@ -68,6 +69,7 @@
   (context "/field"                [] (+auth field/routes))
   (context "/geojson"              [] (+auth geojson/routes))
   (context "/ldap"                 [] (+auth ldap/routes))
+  (context "/metastore"            [] (+auth metastore/routes))
   (context "/metric"               [] (+auth metric/routes))
   (context "/notify"               [] (+apikey notify/routes))
   (context "/permissions"          [] (+auth permissions/routes))
