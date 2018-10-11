@@ -11,6 +11,7 @@ import {
   GRAPH_GOAL_SETTINGS,
   GRAPH_COLORS_SETTINGS,
   GRAPH_AXIS_SETTINGS,
+  GRAPH_DRILL_THROUGH_SETTINGS,
 } from "../lib/settings/graph";
 
 export default class AreaChart extends LineAreaBarChart {
@@ -26,6 +27,7 @@ export default class AreaChart extends LineAreaBarChart {
     ...GRAPH_GOAL_SETTINGS,
     ...GRAPH_COLORS_SETTINGS,
     ...GRAPH_AXIS_SETTINGS,
+    ...GRAPH_DRILL_THROUGH_SETTINGS,
   };
 
   static renderer = areaRenderer;

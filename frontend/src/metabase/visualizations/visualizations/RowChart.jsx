@@ -7,6 +7,7 @@ import rowRenderer from "../lib/RowRenderer.js";
 import {
   GRAPH_DATA_SETTINGS,
   GRAPH_COLORS_SETTINGS,
+  GRAPH_DRILL_THROUGH_SETTINGS,
 } from "metabase/visualizations/lib/settings/graph";
 
 export default class RowChart extends LineAreaBarChart {
@@ -22,6 +23,7 @@ export default class RowChart extends LineAreaBarChart {
   static settings = {
     ...GRAPH_DATA_SETTINGS,
     ...GRAPH_COLORS_SETTINGS,
+    ...GRAPH_DRILL_THROUGH_SETTINGS,
   };
 }
 

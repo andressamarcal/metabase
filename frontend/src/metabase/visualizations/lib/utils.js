@@ -328,3 +328,33 @@ export function getDefaultDimensionAndMetric([{ data }]) {
     };
   }
 }
+
+export function renderUrlTemplateForClick(urlTemplate, clicked) {
+  const valueMap = getValueMapForClick(clicked);
+  const url = urlTemplate.replace(/{{([^}]+)}}/g, (whole, name) => {
+    name = name.toLowerCase();
+    if (valueMap.has(name)) {
+      return encodeURIComponent(valueMap.get(name));
+    }
+    console.warn("Missing value for " + name);
+    return "";
+  });
+  return url;
+}
+
+function getValueMapForClick(clicked) {
+  const map = new Map();
+  const addValue = (column, value) => {
+    if (value != undefined && column && column.name) {
+      map.set(column.name.toLowerCase(), value);
+    }
+  };
+  addValue(clicked.column, clicked.value);
+  for (const { value, column } of clicked.dimensions || []) {
+    addValue(column, value);
+  }
+  for (let i = 0; clicked.origin && i < clicked.origin.cols.length; i++) {
+    addValue(clicked.origin.cols[i], clicked.origin.row[i]);
+  }
+  return map;
+}

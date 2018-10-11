@@ -1,3 +1,4 @@
+import React from "react";
 import {
   isDimension,
   isMetric,
@@ -512,4 +513,39 @@ export const GRAPH_AXIS_SETTINGS = {
   },
   // DEPRECATED" replaced with "label" series setting
   "graph.series_labels": {},
+};
+
+export const GRAPH_DRILL_THROUGH_SETTINGS = {
+  "graph.click": {
+    title: t`What should happen when you click on a bar?`,
+    section: t`Drill-through`,
+    widget: "radio",
+    default: "menu",
+    props: {
+      options: [
+        { name: t`Open the actions menu`, value: "menu" },
+        { name: t`Go to a custom link`, value: "link" },
+      ],
+    },
+  },
+  "graph.click_link": {
+    title: t`Link template`,
+    section: t`Drill-through`,
+    description: (
+      <span>
+        {t`You can use the name of any column in your question's result to insert it's value, like this:`}{" "}
+        <strong>{`{{column}}`}</strong>
+      </span>
+    ),
+    widget: "input",
+    props: {
+      placeholder: t`e.g. http://acme.cool-crm.com/client/{{column}}`,
+      options: [
+        { name: t`Open the actions menu`, value: "action" },
+        { name: t`Go to a custom link`, value: "link" },
+      ],
+    },
+    getHidden: (series, settings) => settings["graph.click"] !== "link",
+    readDependencies: ["graph.click"],
+  },
 };
