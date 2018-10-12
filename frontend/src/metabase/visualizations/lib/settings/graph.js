@@ -537,15 +537,45 @@ export const GRAPH_DRILL_THROUGH_SETTINGS = {
         <strong>{`{{column}}`}</strong>
       </span>
     ),
-    widget: "input",
-    props: {
+    widget: ChartSettingInputWithColumnNames,
+    getProps: ([{ data: { cols } }], settings) => ({
       placeholder: t`e.g. http://acme.cool-crm.com/client/{{column}}`,
       options: [
         { name: t`Open the actions menu`, value: "action" },
         { name: t`Go to a custom link`, value: "link" },
       ],
-    },
+      columnNames: cols.map(col => col.name),
+    }),
     getHidden: (series, settings) => settings["graph.click"] !== "link",
     readDependencies: ["graph.click"],
   },
 };
+
+import ChartSettingInput from "metabase/visualizations/components/settings/ChartSettingInput";
+import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
+import Icon from "metabase/components/Icon";
+
+const ChartSettingInputWithColumnNames = ({ columnNames, ...props }) => (
+  <div>
+    <ChartSettingInput {...props} />
+    <div className="mt1">
+      <PopoverWithTrigger
+        triggerElement={
+          <span className="h4 text-brand cursor-pointer">
+            <Icon name="info" className="mr1" />
+            {t`Columns`}
+          </span>
+        }
+        sizeToFit
+      >
+        <div className="scroll-y px2 pt2">
+          {columnNames.map(name => (
+            <div className="pb2">
+              <span className="text-code p1">{name}</span>
+            </div>
+          ))}
+        </div>
+      </PopoverWithTrigger>
+    </div>
+  </div>
+);
