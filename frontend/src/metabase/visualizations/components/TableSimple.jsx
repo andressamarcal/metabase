@@ -225,6 +225,7 @@ export default class TableSimple extends Component {
                             ) : (
                               formatValue(value, {
                                 ...columnSettings,
+                                clicked: clicked,
                                 type: "cell",
                                 jsx: true,
                                 rich: true,

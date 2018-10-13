@@ -511,21 +511,37 @@ export function formatEmail(
 
 // based on https://github.com/angular/angular.js/blob/v1.6.3/src/ng/directive/input.js#L25
 const URL_WHITELIST_REGEX = /^(https?|mailto):\/*(?:[^:@]+(?::[^@]+)?@)?(?:[^\s:/?#]+|\[[a-f\d:]+])(?::\d+)?(?:\/[^?#]*)?(?:\?[^#]*)?(?:#.*)?$/i;
+const URL_BLACKLIST_REGEX = /^\s*javascript:/i;
 
 export function formatUrl(
   value: Value,
-  { jsx, rich, view_as = "auto", link_text }: FormattingOptions = {},
+  {
+    jsx,
+    rich,
+    view_as = "auto",
+    link_text,
+    link_template,
+    clicked,
+  }: FormattingOptions = {},
 ) {
-  const url = String(value);
+  const url =
+    link_template && clicked
+      ? renderTemplateForClick(link_template, clicked, encodeURIComponent)
+      : String(value);
+  const text =
+    link_text && clicked
+      ? renderTemplateForClick(link_text, clicked)
+      : link_text || String(value);
   if (
     jsx &&
     rich &&
-    (view_as === "link" || view_as === "auto") &&
-    URL_WHITELIST_REGEX.test(url)
+    (view_as === "link" ||
+      (view_as === "auto" && URL_WHITELIST_REGEX.test(url))) &&
+    !URL_BLACKLIST_REGEX.test(url)
   ) {
     return (
       <ExternalLink className="link link--wrappable" href={url}>
-        {link_text || url}
+        {text}
       </ExternalLink>
     );
   } else {
@@ -543,6 +559,36 @@ export function formatImage(
   } else {
     return url;
   }
+}
+
+export function renderTemplateForClick(template, clicked, escapeFunction) {
+  const valueMap = getValueMapForClick(clicked);
+  return template.replace(/{{([^}]+)}}/g, (whole, name) => {
+    name = name.toLowerCase();
+    if (valueMap.has(name)) {
+      const value = valueMap.get(name);
+      return escapeFunction ? escapeFunction(value) : value;
+    }
+    console.warn("Missing value for " + name);
+    return "";
+  });
+}
+
+function getValueMapForClick(clicked) {
+  const map = new Map();
+  const addValue = (column, value) => {
+    if (value != undefined && column && column.name) {
+      map.set(column.name.toLowerCase(), String(value));
+    }
+  };
+  addValue(clicked.column, clicked.value);
+  for (const { value, column } of clicked.dimensions || []) {
+    addValue(column, value);
+  }
+  for (let i = 0; clicked.origin && i < clicked.origin.cols.length; i++) {
+    addValue(clicked.origin.cols[i], clicked.origin.row[i]);
+  }
+  return map;
 }
 
 // fallback for formatting a string without a column special_type
@@ -624,7 +670,10 @@ export function formatValueRaw(value: Value, options: FormattingOptions = {}) {
 
   if (value == undefined) {
     return null;
-  } else if (column && isa(column.special_type, TYPE.URL)) {
+  } else if (
+    (column && isa(column.special_type, TYPE.URL)) ||
+    options.view_as === "link"
+  ) {
     return formatUrl(value, options);
   } else if (column && isa(column.special_type, TYPE.Email)) {
     return formatEmail(value, options);
@@ -716,6 +765,15 @@ export function titleize(...args) {
 // $FlowFixMe
 export function humanize(...args) {
   return inflection.humanize(...args);
+}
+
+export function conjunct(list, conjunction) {
+  return (
+    list.slice(0, -1).join(`, `) +
+    (list.length > 2 ? `,` : ``) +
+    (list.length > 1 ? ` ${conjunction} ` : ``) +
+    (list[list.length - 1] || ``)
+  );
 }
 
 export function duration(milliseconds: number) {

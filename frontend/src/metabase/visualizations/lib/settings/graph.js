@@ -530,7 +530,7 @@ export const GRAPH_DRILL_THROUGH_SETTINGS = {
       ],
     },
   },
-  "graph.click_link": {
+  "graph.click_link_template": {
     title: t`Link template`,
     section: t`Drill-through`,
     description: (
@@ -542,10 +542,6 @@ export const GRAPH_DRILL_THROUGH_SETTINGS = {
     widget: ChartSettingInputWithInfo,
     getProps: ([{ data: { cols } }], settings) => ({
       placeholder: t`e.g. http://acme.cool-crm.com/client/{{column}}`,
-      options: [
-        { name: t`Open the actions menu`, value: "action" },
-        { name: t`Go to a custom link`, value: "link" },
-      ],
       infoName: t`Columns`,
       infos: cols.map(col => col.name),
     }),

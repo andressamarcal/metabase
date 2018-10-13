@@ -7,7 +7,7 @@ import TableSimple from "../components/TableSimple.jsx";
 import { t } from "c-3po";
 import * as DataGrid from "metabase/lib/data_grid";
 import { findColumnIndexForColumnSetting } from "metabase/lib/dataset";
-import { formatColumn } from "metabase/lib/formatting";
+import { formatColumn, conjunct } from "metabase/lib/formatting";
 
 import Query from "metabase/lib/query";
 import {
@@ -21,10 +21,12 @@ import {
   isAvatarURL,
 } from "metabase/lib/schema_metadata";
 import { columnsAreValid } from "metabase/visualizations/lib/utils";
+
 import ChartSettingOrderedColumns from "metabase/visualizations/components/settings/ChartSettingOrderedColumns.jsx";
 import ChartSettingsTableFormatting, {
   isFormattable,
 } from "metabase/visualizations/components/settings/ChartSettingsTableFormatting.jsx";
+import ChartSettingInputWithInfo from "metabase/visualizations/components/settings/ChartSettingInputWithInfo";
 
 import { makeCellBackgroundGetter } from "metabase/visualizations/lib/table_format";
 import { columnSettings } from "metabase/visualizations/lib/settings/column";
@@ -136,48 +138,86 @@ export default class Table extends Component {
         widget: "toggle",
       };
     }
+
+    // VIEW AS settings:
+    let defaultValue = null;
+    const optionNames = [];
+
+    const options: { name: string, value: null | string }[] = [
+      { name: t`Off`, value: null },
+    ];
+    // if (!column.special_type || isURL(column)) {
+    if (isURL(column)) {
+      defaultValue = "link";
+    }
+    options.push({ name: t`Link`, value: "link" });
+    optionNames.push(t`link`);
+    // }
     if (isString(column)) {
-      let defaultValue = null;
-      const options: { name: string, value: null | string }[] = [
-        { name: t`Off`, value: null },
-      ];
-      if (!column.special_type || isURL(column)) {
-        defaultValue = "link";
-        options.push({ name: t`Link`, value: "link" });
-      }
       if (!column.special_type || isEmail(column)) {
-        defaultValue = "email_link";
+        if (isEmail(column)) {
+          defaultValue = "email_link";
+        }
         options.push({ name: t`Email link`, value: "email_link" });
+        optionNames.push(t`email`);
       }
       if (!column.special_type || isImageURL(column) || isAvatarURL(column)) {
-        defaultValue = isAvatarURL(column) ? "image" : "link";
+        if (isImageURL(column) || isAvatarURL(column)) {
+          defaultValue = isAvatarURL(column) ? "image" : "link";
+        }
         options.push({ name: t`Image`, value: "image" });
+        optionNames.push(t`image`);
       }
       if (!column.special_type) {
         defaultValue = "auto";
         options.push({ name: t`Automatic`, value: "auto" });
       }
+    }
 
-      if (options.length > 1) {
-        settings["view_as"] = {
-          title: t`View as link or image`,
-          widget: "select",
-          default: defaultValue,
-          props: {
-            options,
-          },
-        };
-      }
+    console.log("defaultValue", defaultValue);
 
-      settings["link_text"] = {
-        title: t`Link text`,
-        widget: "input",
-        default: null,
-        getHidden: (column, settings) =>
-          settings["view_as"] !== "link" &&
-          settings["view_as"] !== "email_link",
+    if (options.length > 1) {
+      settings["view_as"] = {
+        title: t`View as ${conjunct(optionNames, t`or`)}`,
+        widget: "select",
+        default: defaultValue,
+        props: {
+          options,
+        },
       };
     }
+
+    settings["link_text"] = {
+      title: t`Link text`,
+      widget: "input",
+      default: null,
+      getHidden: (column, settings) =>
+        settings["view_as"] !== "link" && settings["view_as"] !== "email_link",
+    };
+
+    settings["link_template"] = {
+      title: t`Link template`,
+      description: (
+        <span>
+          {t`You can use the name of any column in your question's result to insert it's value, like this:`}{" "}
+          <strong>{`{{column}}`}</strong>
+        </span>
+      ),
+      widget: ChartSettingInputWithInfo,
+      getProps: (
+        column,
+        settings,
+        onChange,
+        { series: [{ data: { cols } }] },
+      ) => ({
+        placeholder: t`e.g. http://acme.cool-crm.com/client/{{column}}`,
+        infoName: t`Columns`,
+        infos: cols.map(col => col.name),
+      }),
+      getHidden: (column, settings) => settings["view_as"] !== "link",
+      readDependencies: ["view_as"],
+    };
+
     return settings;
   };
 

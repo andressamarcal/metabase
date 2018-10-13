@@ -36,9 +36,10 @@ export function getTableCellClickedObject(
       dimensions: cols
         .map((column, index) => ({ value: row[index], column }))
         .filter(dimension => dimension.column.source === "breakout"),
+      origin: { rowIndex, row, cols },
     };
   } else {
-    return { value, column };
+    return { value, column, origin: { rowIndex, row, cols } };
   }
 }
 

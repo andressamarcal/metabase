@@ -373,6 +373,7 @@ export default class TableInteractive extends Component {
             /* using formatValue instead of <Value> here for performance. The later wraps in an extra <span> */
             formatValue(value, {
               ...columnSettings,
+              clicked: clicked,
               type: "cell",
               jsx: true,
               rich: true,

@@ -3,14 +3,14 @@
 import _ from "underscore";
 import d3 from "d3";
 
-import { formatValue } from "metabase/lib/formatting";
+import { formatValue, renderTemplateForClick } from "metabase/lib/formatting";
 import { open } from "metabase/lib/dom";
 
 import type { ClickObject } from "metabase/meta/types/Visualization";
 
 import { isNormalized, isStacked } from "./renderer_utils";
 import { determineSeriesIndexFromElement } from "./tooltip";
-import { getFriendlyName, renderUrlTemplateForClick } from "./utils";
+import { getFriendlyName } from "./utils";
 
 function clickObjectFromEvent(d, { series, isStacked, isScalarSeries }) {
   let [{ data: { cols } }] = series;
@@ -250,9 +250,13 @@ function applyChartTooltips(
           isScalarSeries,
         });
         if (chart.settings["graph.click"] === "link") {
-          const urlTemplate = chart.settings["graph.click_link"];
+          const urlTemplate = chart.settings["graph.click_link_template"];
           if (urlTemplate) {
-            const url = renderUrlTemplateForClick(urlTemplate, clicked);
+            const url = renderTemplateForClick(
+              urlTemplate,
+              clicked,
+              encodeURIComponent,
+            );
             if (url) {
               open(url);
             }
