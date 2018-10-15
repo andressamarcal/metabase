@@ -178,7 +178,7 @@ export default class Table extends Component {
 
     if (options.length > 1) {
       settings["view_as"] = {
-        title: t`View as ${conjunct(optionNames, t`or`)}`,
+        title: t`Display as ${conjunct(optionNames, t`or`)}`,
         widget: "select",
         default: defaultValue,
         props: {
@@ -199,7 +199,7 @@ export default class Table extends Component {
       title: t`Link template`,
       description: (
         <span>
-          {t`You can use the name of any column in your question's result to insert it's value, like this:`}{" "}
+          {t`You can use the name of any column in your question's result to insert its value, like this:`}{" "}
           <strong>{`{{column}}`}</strong>
         </span>
       ),
