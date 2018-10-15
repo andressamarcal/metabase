@@ -18,8 +18,10 @@ import {
   isCoordinate,
   isLatitude,
   isLongitude,
+  isTime,
+  isURL,
+  isEmail,
 } from "metabase/lib/schema_metadata";
-import { isa, TYPE } from "metabase/lib/types";
 import { parseTimestamp, parseTime } from "metabase/lib/time";
 import { rangeForValue } from "metabase/lib/dataset";
 import { getFriendlyName } from "metabase/visualizations/lib/utils";
@@ -670,14 +672,11 @@ export function formatValueRaw(value: Value, options: FormattingOptions = {}) {
 
   if (value == undefined) {
     return null;
-  } else if (
-    (column && isa(column.special_type, TYPE.URL)) ||
-    options.view_as === "link"
-  ) {
+  } else if (isURL(column) || options.view_as === "link") {
     return formatUrl(value, options);
-  } else if (column && isa(column.special_type, TYPE.Email)) {
+  } else if (isEmail(column)) {
     return formatEmail(value, options);
-  } else if (column && isa(column.base_type, TYPE.Time)) {
+  } else if (isTime(column)) {
     return formatTime(value);
   } else if (column && column.unit != null) {
     return formatDateTimeWithUnit(value, column.unit, options);
@@ -691,14 +690,14 @@ export function formatValueRaw(value: Value, options: FormattingOptions = {}) {
   } else if (typeof value === "string") {
     return formatStringFallback(value, options);
   } else if (typeof value === "number" && isCoordinate(column)) {
-    const range = rangeForValue(value, options.column);
+    const range = rangeForValue(value, column);
     if (range && !options.noRange) {
       return formatRange(range, formatCoordinate, options);
     } else {
       return formatCoordinate(value, options);
     }
   } else if (typeof value === "number" && isNumber(column)) {
-    const range = rangeForValue(value, options.column);
+    const range = rangeForValue(value, column);
     if (range && !options.noRange) {
       return formatRange(range, formatNumber, options);
     } else {
