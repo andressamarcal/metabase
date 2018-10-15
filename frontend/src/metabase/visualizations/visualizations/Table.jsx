@@ -178,7 +178,7 @@ export default class Table extends Component {
 
     if (options.length > 1) {
       settings["view_as"] = {
-        title: t`View as ${conjunct(optionNames, t`or`)}`,
+        title: t`Display as ${conjunct(optionNames, t`or`)}`,
         widget: "select",
         default: defaultValue,
         props: {
@@ -187,19 +187,11 @@ export default class Table extends Component {
       };
     }
 
-    settings["link_text"] = {
-      title: t`Link text`,
-      widget: "input",
-      default: null,
-      getHidden: (column, settings) =>
-        settings["view_as"] !== "link" && settings["view_as"] !== "email_link",
-    };
-
     settings["link_template"] = {
       title: t`Link template`,
       description: (
         <span>
-          {t`You can use the name of any column in your question's result to insert it's value, like this:`}{" "}
+          {t`The full URL for where this link should go. You can use the name of any column in your question's result to insert its value, like this:`}{" "}
           <strong>{`{{column}}`}</strong>
         </span>
       ),
@@ -216,6 +208,20 @@ export default class Table extends Component {
       }),
       getHidden: (column, settings) => settings["view_as"] !== "link",
       readDependencies: ["view_as"],
+    };
+
+    settings["link_text"] = {
+      title: t`Link text (optional)`,
+      description: (
+        <span>
+          {t`Whatever you type here will be displayed instead of the value of each cell. You can use the`}{" "}
+          <strong>{`{{column}}`}</strong> {t`notation here as well.`}
+        </span>
+      ),
+      widget: "input",
+      default: null,
+      getHidden: (column, settings) =>
+        settings["view_as"] !== "link" && settings["view_as"] !== "email_link",
     };
 
     return settings;

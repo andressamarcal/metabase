@@ -519,7 +519,7 @@ export const GRAPH_AXIS_SETTINGS = {
 
 export const GRAPH_DRILL_THROUGH_SETTINGS = {
   "graph.click": {
-    title: t`What should happen when you click on a bar?`,
+    title: t`What should happen when you click on a point or bar in this chart?`,
     section: t`Drill-through`,
     widget: "radio",
     default: "menu",
@@ -535,7 +535,7 @@ export const GRAPH_DRILL_THROUGH_SETTINGS = {
     section: t`Drill-through`,
     description: (
       <span>
-        {t`You can use the name of any column in your question's result to insert it's value, like this:`}{" "}
+        {t`The full URL for where this link should go. You can use the name of any column in your question's result to insert its value, like this:`}{" "}
         <strong>{`{{column}}`}</strong>
       </span>
     ),
