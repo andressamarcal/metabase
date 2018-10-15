@@ -515,17 +515,15 @@ export function formatEmail(
 const URL_WHITELIST_REGEX = /^(https?|mailto):\/*(?:[^:@]+(?::[^@]+)?@)?(?:[^\s:/?#]+|\[[a-f\d:]+])(?::\d+)?(?:\/[^?#]*)?(?:\?[^#]*)?(?:#.*)?$/i;
 const URL_BLACKLIST_REGEX = /^\s*javascript:/i;
 
-export function formatUrl(
-  value: Value,
-  {
+export function formatUrl(value: Value, options: FormattingOptions = {}) {
+  const {
     jsx,
     rich,
     view_as = "auto",
     link_text,
     link_template,
     clicked,
-  }: FormattingOptions = {},
-) {
+  } = options;
   const url =
     link_template && clicked
       ? renderTemplateForClick(link_template, clicked, encodeURIComponent)
@@ -533,7 +531,7 @@ export function formatUrl(
   const text =
     link_text && clicked
       ? renderTemplateForClick(link_text, clicked)
-      : link_text || String(value);
+      : link_text || getRemappedValue(value, options) || String(value);
   if (
     jsx &&
     rich &&
@@ -648,16 +646,11 @@ export function formatValue(value: Value, options: FormattingOptions = {}) {
   }
 }
 
-export function formatValueRaw(value: Value, options: FormattingOptions = {}) {
-  let column = options.column;
-
-  options = {
-    jsx: false,
-    remap: true,
-    ...options,
-  };
-
-  if (options.remap && column) {
+function getRemappedValue(
+  value: Value,
+  { remap, column }: FormattingOptions = {},
+): ?string {
+  if (remap && column) {
     // $FlowFixMe: column could be Field or Column
     if (column.hasRemappedValue && column.hasRemappedValue(value)) {
       // $FlowFixMe: column could be Field or Column
@@ -668,6 +661,21 @@ export function formatValueRaw(value: Value, options: FormattingOptions = {}) {
       return column.remapping.get(value);
     }
     // TODO: get rid of one of these two code paths?
+  }
+}
+
+export function formatValueRaw(value: Value, options: FormattingOptions = {}) {
+  options = {
+    jsx: false,
+    remap: true,
+    ...options,
+  };
+
+  const { column } = options;
+
+  const remapped = getRemappedValue(value, options);
+  if (remapped !== undefined && options.view_as !== "link") {
+    return remapped;
   }
 
   if (value == undefined) {

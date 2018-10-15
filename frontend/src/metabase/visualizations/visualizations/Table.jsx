@@ -146,6 +146,7 @@ export default class Table extends Component {
     const options: { name: string, value: null | string }[] = [
       { name: t`Off`, value: null },
     ];
+
     // if (!column.special_type || isURL(column)) {
     if (isURL(column)) {
       defaultValue = "link";
@@ -153,6 +154,7 @@ export default class Table extends Component {
     options.push({ name: t`Link`, value: "link" });
     optionNames.push(t`link`);
     // }
+
     if (isString(column)) {
       if (!column.special_type || isEmail(column)) {
         if (isEmail(column)) {
@@ -173,8 +175,6 @@ export default class Table extends Component {
         options.push({ name: t`Automatic`, value: "auto" });
       }
     }
-
-    console.log("defaultValue", defaultValue);
 
     if (options.length > 1) {
       settings["view_as"] = {
