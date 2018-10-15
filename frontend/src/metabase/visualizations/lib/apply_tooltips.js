@@ -3,7 +3,8 @@
 import _ from "underscore";
 import d3 from "d3";
 
-import { formatValue, renderTemplateForClick } from "metabase/lib/formatting";
+import { formatValue } from "metabase/lib/formatting";
+import { renderLinkURLForClick } from "metabase/lib/formatting/link";
 import { open } from "metabase/lib/dom";
 
 import type { ClickObject } from "metabase/meta/types/Visualization";
@@ -252,11 +253,7 @@ function applyChartTooltips(
         if (chart.settings["graph.click"] === "link") {
           const urlTemplate = chart.settings["graph.click_link_template"];
           if (urlTemplate) {
-            const url = renderTemplateForClick(
-              urlTemplate,
-              clicked,
-              encodeURIComponent,
-            );
+            const url = renderLinkURLForClick(urlTemplate, clicked);
             if (url) {
               open(url);
             }

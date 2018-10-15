@@ -34,6 +34,10 @@ import {
   getTimeFormatFromStyle,
   hasHour,
 } from "metabase/lib/formatting/date";
+import {
+  renderLinkURLForClick,
+  renderLinkTextForClick,
+} from "metabase/lib/formatting/link";
 
 import Field from "metabase-lib/lib/metadata/Field";
 import type { Column, Value } from "metabase/meta/types/Dataset";
@@ -526,12 +530,14 @@ export function formatUrl(value: Value, options: FormattingOptions = {}) {
   } = options;
   const url =
     link_template && clicked
-      ? renderTemplateForClick(link_template, clicked, encodeURIComponent)
+      ? renderLinkURLForClick(link_template, clicked)
       : String(value);
   const text =
     link_text && clicked
-      ? renderTemplateForClick(link_text, clicked)
-      : link_text || getRemappedValue(value, options) || String(value);
+      ? renderLinkTextForClick(link_text, clicked)
+      : link_text ||
+        getRemappedValue(value, options) ||
+        formatValue(value, { ...options, view_as: null });
   if (
     jsx &&
     rich &&
@@ -561,44 +567,16 @@ export function formatImage(
   }
 }
 
-export function renderTemplateForClick(template, clicked, escapeFunction) {
-  const valueMap = getValueMapForClick(clicked);
-  return template.replace(/{{([^}]+)}}/g, (whole, name) => {
-    name = name.toLowerCase();
-    if (valueMap.has(name)) {
-      const value = valueMap.get(name);
-      return escapeFunction ? escapeFunction(value) : value;
-    }
-    console.warn("Missing value for " + name);
-    return "";
-  });
-}
-
-function getValueMapForClick(clicked) {
-  const map = new Map();
-  const addValue = (column, value) => {
-    if (value != undefined && column && column.name) {
-      map.set(column.name.toLowerCase(), String(value));
-    }
-  };
-  addValue(clicked.column, clicked.value);
-  for (const { value, column } of clicked.dimensions || []) {
-    addValue(column, value);
-  }
-  for (let i = 0; clicked.origin && i < clicked.origin.cols.length; i++) {
-    addValue(clicked.origin.cols[i], clicked.origin.row[i]);
-  }
-  return map;
-}
-
 // fallback for formatting a string without a column special_type
 function formatStringFallback(value: Value, options: FormattingOptions = {}) {
-  value = formatUrl(value, options);
-  if (typeof value === "string") {
-    value = formatEmail(value, options);
-  }
-  if (typeof value === "string") {
-    value = formatImage(value, options);
+  if (options.view_as !== null) {
+    value = formatUrl(value, options);
+    if (typeof value === "string") {
+      value = formatEmail(value, options);
+    }
+    if (typeof value === "string") {
+      value = formatImage(value, options);
+    }
   }
   return value;
 }
