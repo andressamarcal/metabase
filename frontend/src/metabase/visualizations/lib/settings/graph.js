@@ -535,7 +535,7 @@ export const GRAPH_DRILL_THROUGH_SETTINGS = {
     section: t`Drill-through`,
     description: (
       <span>
-        {t`You can use the name of any column in your question's result to insert its value, like this:`}{" "}
+        {t`The full URL for where this link should go. You can use the name of any column in your question's result to insert its value, like this:`}{" "}
         <strong>{`{{column}}`}</strong>
       </span>
     ),
