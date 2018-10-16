@@ -10,7 +10,7 @@ const ChartSettingInputWithInfo = ({ infoName, infos, ...props }) => (
     <div className="mt1">
       <PopoverWithTrigger
         triggerElement={
-          <span className="h4 text-brand cursor-pointer">
+          <span className="h4 text-brand cursor-pointer inline-flex align-center">
             <Icon name="info" className="mr1" />
             {infoName}
           </span>
