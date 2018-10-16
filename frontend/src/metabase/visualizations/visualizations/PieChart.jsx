@@ -309,6 +309,7 @@ export default class PieChart extends Component {
           column: cols[dimensionIndex],
         },
       ],
+      settings,
     });
 
     const isClickable =

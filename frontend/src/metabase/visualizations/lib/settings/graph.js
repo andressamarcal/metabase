@@ -1,4 +1,3 @@
-import React from "react";
 import {
   isDimension,
   isMetric,
@@ -23,8 +22,6 @@ import { columnSettings } from "metabase/visualizations/lib/settings/column";
 import { getOptionFromColumn } from "metabase/visualizations/lib/settings/utils";
 import { dimensionIsNumeric } from "metabase/visualizations/lib/numeric";
 import { dimensionIsTimeseries } from "metabase/visualizations/lib/timeseries";
-
-import ChartSettingInputWithInfo from "metabase/visualizations/components/settings/ChartSettingInputWithInfo";
 
 import _ from "underscore";
 
@@ -515,37 +512,4 @@ export const GRAPH_AXIS_SETTINGS = {
   },
   // DEPRECATED" replaced with "label" series setting
   "graph.series_labels": {},
-};
-
-export const GRAPH_DRILL_THROUGH_SETTINGS = {
-  "graph.click": {
-    title: t`What should happen when you click on a point or bar in this chart?`,
-    section: t`Drill-through`,
-    widget: "radio",
-    default: "menu",
-    props: {
-      options: [
-        { name: t`Open the actions menu`, value: "menu" },
-        { name: t`Go to a custom link`, value: "link" },
-      ],
-    },
-  },
-  "graph.click_link_template": {
-    title: t`Link template`,
-    section: t`Drill-through`,
-    description: (
-      <span>
-        {t`The full URL for where this link should go. You can use the name of any column in your question's result to insert its value, like this:`}{" "}
-        <strong>{`{{column}}`}</strong>
-      </span>
-    ),
-    widget: ChartSettingInputWithInfo,
-    getProps: ([{ data: { cols } }], settings) => ({
-      placeholder: t`e.g. http://acme.cool-crm.com/client/{{column}}`,
-      infoName: t`Columns`,
-      infos: cols.map(col => col.name),
-    }),
-    getHidden: (series, settings) => settings["graph.click"] !== "link",
-    readDependencies: ["graph.click"],
-  },
 };

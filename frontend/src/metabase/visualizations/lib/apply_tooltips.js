@@ -4,14 +4,13 @@ import _ from "underscore";
 import d3 from "d3";
 
 import { formatValue } from "metabase/lib/formatting";
-import { renderLinkURLForClick } from "metabase/lib/formatting/link";
-import { open } from "metabase/lib/dom";
 
 import type { ClickObject } from "metabase/meta/types/Visualization";
 
 import { isNormalized, isStacked } from "./renderer_utils";
 import { determineSeriesIndexFromElement } from "./tooltip";
 import { getFriendlyName } from "./utils";
+import { hasLink, clickLink } from "metabase/visualizations/lib/settings/drill";
 
 function clickObjectFromEvent(d, { series, isStacked, isScalarSeries }) {
   let [{ data: { cols } }] = series;
@@ -250,14 +249,9 @@ function applyChartTooltips(
           series,
           isScalarSeries,
         });
-        if (chart.settings["graph.click"] === "link") {
-          const urlTemplate = chart.settings["graph.click_link_template"];
-          if (urlTemplate) {
-            const url = renderLinkURLForClick(urlTemplate, clicked);
-            if (url) {
-              open(url);
-            }
-          }
+        // TODO: make this a click action?
+        if (hasLink(chart.settings)) {
+          clickLink(chart.settings);
         } else {
           if (clicked) {
             onVisualizationClick(clicked);
