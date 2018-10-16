@@ -9,6 +9,8 @@ import styles from "./Table.css";
 import ExplicitSize from "metabase/components/ExplicitSize.jsx";
 import Ellipsified from "metabase/components/Ellipsified.jsx";
 import Icon from "metabase/components/Icon.jsx";
+import ExternalLink from "metabase/components/ExternalLink";
+
 import MiniBar from "./MiniBar";
 
 import { formatValue, formatColumn } from "metabase/lib/formatting";
@@ -90,14 +92,17 @@ export default class TableSimple extends Component {
     }
   }
 
+  visualizationIsClickable(clicked: ?ClickObject) {
+    const { onVisualizationClick, visualizationIsClickable } = this.props;
+    return (
+      onVisualizationClick &&
+      visualizationIsClickable &&
+      visualizationIsClickable(clicked)
+    );
+  }
+
   render() {
-    const {
-      data,
-      onVisualizationClick,
-      visualizationIsClickable,
-      isPivoted,
-      settings,
-    } = this.props;
+    const { data, onVisualizationClick, isPivoted, settings } = this.props;
     const { rows, cols } = data;
     const getCellBackgroundColor = settings["table._cell_background_getter"];
 
@@ -175,10 +180,31 @@ export default class TableSimple extends Component {
                         columnIndex,
                         isPivoted,
                       );
-                      const isClickable =
-                        onVisualizationClick &&
-                        visualizationIsClickable(clicked);
                       const columnSettings = settings.column(column);
+
+                      const cellData =
+                        value == null ? (
+                          "-"
+                        ) : columnSettings["show_mini_bar"] ? (
+                          <MiniBar
+                            value={value}
+                            options={columnSettings}
+                            extent={getColumnExtent(cols, rows, columnIndex)}
+                          />
+                        ) : (
+                          formatValue(value, {
+                            ...columnSettings,
+                            clicked: clicked,
+                            type: "cell",
+                            jsx: true,
+                            rich: true,
+                          })
+                        );
+
+                      const isLink = cellData && cellData.type === ExternalLink;
+                      const isClickable =
+                        !isLink && this.visualizationIsClickable(clicked);
+
                       return (
                         <td
                           key={columnIndex}
@@ -217,27 +243,7 @@ export default class TableSimple extends Component {
                                 : undefined
                             }
                           >
-                            {value == null ? (
-                              "-"
-                            ) : columnSettings["show_mini_bar"] ? (
-                              <MiniBar
-                                value={value}
-                                options={columnSettings}
-                                extent={getColumnExtent(
-                                  cols,
-                                  rows,
-                                  columnIndex,
-                                )}
-                              />
-                            ) : (
-                              formatValue(value, {
-                                ...columnSettings,
-                                clicked: clicked,
-                                type: "cell",
-                                jsx: true,
-                                rich: true,
-                              })
-                            )}
+                            {cellData}
                           </span>
                         </td>
                       );
