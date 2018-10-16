@@ -5,7 +5,7 @@ import { parseTimestamp } from "metabase/lib/time";
 
 function formatValueForLinkTemplate(value, column) {
   if (isDate(column) && column.unit) {
-    return formatDateTimeForParameter(value, column);
+    return formatDateTimeForParameter(value, column.unit);
   }
   return value;
 }
