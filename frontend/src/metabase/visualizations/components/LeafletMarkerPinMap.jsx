@@ -54,7 +54,7 @@ export default class LeafletMarkerPinMap extends LeafletMap {
 
   _createMarker = rowIndex => {
     const marker = L.marker([0, 0], { icon: MARKER_ICON });
-    const { onHoverChange, onVisualizationClick } = this.props;
+    const { onHoverChange, onVisualizationClick, settings } = this.props;
     if (onHoverChange) {
       marker.on("mousemove", e => {
         const { series: [{ data: { cols, rows } }] } = this.props;
@@ -81,6 +81,8 @@ export default class LeafletMarkerPinMap extends LeafletMap {
             value: rows[rowIndex][pkIndex],
             column: cols[pkIndex],
             element: marker._icon,
+            origin: { row: rows[rowIndex], cols },
+            settings,
           });
         }
       });

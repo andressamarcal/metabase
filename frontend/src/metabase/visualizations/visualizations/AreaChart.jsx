@@ -12,7 +12,7 @@ import {
   GRAPH_COLORS_SETTINGS,
   GRAPH_AXIS_SETTINGS,
 } from "../lib/settings/graph";
-import { DRILL_THROUGH_SETTINGS } from "../lib/settings/drill";
+import { drillThroughSettings } from "../lib/settings/drill";
 
 export default class AreaChart extends LineAreaBarChart {
   static uiName = t`Area`;
@@ -27,7 +27,7 @@ export default class AreaChart extends LineAreaBarChart {
     ...GRAPH_GOAL_SETTINGS,
     ...GRAPH_COLORS_SETTINGS,
     ...GRAPH_AXIS_SETTINGS,
-    ...DRILL_THROUGH_SETTINGS,
+    ...drillThroughSettings(),
   };
 
   static renderer = areaRenderer;

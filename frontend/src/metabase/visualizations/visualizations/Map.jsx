@@ -23,6 +23,7 @@ import {
   fieldSetting,
 } from "metabase/visualizations/lib/settings/utils";
 import { columnSettings } from "metabase/visualizations/lib/settings/column";
+import { drillThroughSettings } from "../lib/settings/drill";
 
 import MetabaseSettings from "metabase/lib/settings";
 
@@ -213,6 +214,7 @@ export default class Map extends Component {
       default: 1,
       getHidden: (series, vizSettings) => vizSettings["map.type"] !== "heat",
     },
+    ...drillThroughSettings(),
   };
 
   static checkRenderable([{ data: { cols, rows } }], settings) {

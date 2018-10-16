@@ -7,9 +7,12 @@ import ChartSettingInputWithInfo from "metabase/visualizations/components/settin
 import { renderLinkURLForClick } from "metabase/lib/formatting/link";
 import { open } from "metabase/lib/dom";
 
-export const DRILL_THROUGH_SETTINGS = {
+export const drillThroughSettings = ({
+  objectNames = t`something in this chart`,
+  getHidden = () => false,
+} = {}) => ({
   click: {
-    title: t`What should happen when you click on a point or bar in this chart?`,
+    title: t`What should happen when you click on ${objectNames}?`,
     section: t`Drill-through`,
     widget: "radio",
     default: "menu",
@@ -19,6 +22,7 @@ export const DRILL_THROUGH_SETTINGS = {
         { name: t`Go to a custom link`, value: "link" },
       ],
     },
+    getHidden,
   },
   click_link_template: {
     title: t`Link template`,
@@ -35,21 +39,27 @@ export const DRILL_THROUGH_SETTINGS = {
       infoName: t`Columns`,
       infos: cols.map(col => col.name),
     }),
-    getHidden: (series, settings) => settings["click"] !== "link",
+    getHidden: (series, settings, extra) =>
+      getHidden(series, settings, extra) || settings["click"] !== "link",
     readDependencies: ["click"],
   },
-};
+});
+
+export function hasLink(clicked, settings) {
+  return (
+    settings && settings["click"] === "link" && settings["click_link_template"]
+  );
+}
+
+export function getLink(clicked, settings) {
+  return renderLinkURLForClick(settings["click_link_template"] || "", clicked);
+}
 
 export function clickLink(clicked, settings) {
-  const urlTemplate = settings["click_link_template"];
-  if (urlTemplate) {
-    const url = renderLinkURLForClick(urlTemplate, clicked);
+  if (hasLink(clicked, settings)) {
+    const url = getLink(clicked, settings);
     if (url) {
       open(url);
     }
   }
-}
-
-export function hasLink(clicked, settings) {
-  return settings["click"] === "link";
 }
