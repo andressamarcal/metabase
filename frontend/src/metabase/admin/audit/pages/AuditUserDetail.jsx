@@ -57,6 +57,10 @@ const AuditUserDashboardViewsTab = ({ userId }) => (
   <AuditTable table={UserDetailCards.dashboardViews(userId)} />
 );
 
+const AuditUserDownloadsTab = ({ userId }) => (
+  <AuditTable table={UserDetailCards.downloads(userId)} />
+);
+
 AuditUserDetail.tabs = [
   { path: "activity", title: "Activity", component: AuditUserActivityTab },
   { path: "details", title: "Account details" },
@@ -72,6 +76,11 @@ AuditUserDetail.tabs = [
     path: "dashboard_views",
     title: "Dashboard views",
     component: AuditUserDashboardViewsTab,
+  },
+  {
+    path: "downloads",
+    title: "Downloads",
+    component: AuditUserDownloadsTab,
   },
 ];
 
