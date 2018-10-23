@@ -15,6 +15,9 @@ import EmbedFrame from "../components/EmbedFrame";
 
 import { fetchDatabaseMetadata } from "metabase/redux/metadata";
 import { setErrorPage } from "metabase/redux/app";
+import { getMetadata } from "metabase/selectors/metadata";
+
+import PublicMode from "metabase/qb/components/modes/PublicMode";
 
 import {
   getDashboardComplete,
@@ -38,6 +41,7 @@ import _ from "underscore";
 
 const mapStateToProps = (state, props) => {
   return {
+    metadata: getMetadata(state, props),
     dashboardId:
       props.params.dashboardId || props.params.uuid || props.params.token,
     dashboard: getDashboardComplete(state, props),
@@ -158,8 +162,9 @@ export default class PublicDashboard extends Component {
             <DashboardGrid
               {...this.props}
               className={"spread"}
-              // Don't allow clicking titles on public dashboards
-              navigateToNewCardFromDashboard={null}
+              mode={PublicMode}
+              metadata={this.props.metadata}
+              navigateToNewCardFromDashboard={() => {}}
             />
           )}
         </LoadingAndErrorWrapper>

@@ -71,6 +71,7 @@ export default class DashCard extends Component {
       metadata,
       dashboard,
       parameterValues,
+      mode,
     } = this.props;
 
     const mainCard = {
@@ -187,6 +188,7 @@ export default class DashCard extends Component {
             )
           }
           metadata={metadata}
+          mode={mode}
           onChangeCardAndRun={
             navigateToNewCardFromDashboard
               ? ({ nextCard, previousCard }) => {

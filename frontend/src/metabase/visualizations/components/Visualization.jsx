@@ -37,6 +37,7 @@ export const ERROR_MESSAGE_GENERIC = t`There was a problem displaying this chart
 export const ERROR_MESSAGE_PERMISSION = t`Sorry, you don't have permission to see this card.`;
 
 import Question from "metabase-lib/lib/Question";
+import Mode from "metabase-lib/lib/Mode";
 import type {
   Card as CardObject,
   VisualizationSettings,
@@ -245,7 +246,12 @@ export default class Visualization extends Component {
     const seriesIndex = clicked.seriesIndex || 0;
     const card = rawSeries[seriesIndex].card;
     const question = new Question(metadata, card);
-    const mode = question.mode();
+    let mode;
+    if (this.props.mode) {
+      mode = new Mode(question, this.props.mode);
+    } else {
+      mode = question.mode();
+    }
     return mode ? mode.actionsForClick(clicked, {}) : [];
   }
 
