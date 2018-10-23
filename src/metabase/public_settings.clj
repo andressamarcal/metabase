@@ -177,6 +177,11 @@
   :type    :boolean
   :default true)
 
+(defsetting enable-password-login
+  (tru "Allow logging in by email and password.")
+  :type    :boolean
+  :default true)
+
 (defsetting breakout-bins-num
   (tru "When using the default binning strategy and a number of bins is not provided, this number will be used as the default.")
   :type :integer
@@ -223,6 +228,7 @@
    :embedding               (enable-embedding)
    :enable_query_caching    (enable-query-caching)
    :enable_nested_queries   (enable-nested-queries)
+   :enable_password_login   (enable-password-login)
    :engines                 ((resolve 'metabase.driver/available-drivers))
    :features                {:home       (setting/get :enable-home)
                              :question   (setting/get :enable-query-builder)

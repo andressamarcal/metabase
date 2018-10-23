@@ -15,6 +15,7 @@ import EmbeddingLevel from "./components/widgets/EmbeddingLevel";
 import LdapGroupMappingsWidget from "./components/widgets/LdapGroupMappingsWidget";
 import LogoUpload from "./components/widgets/LogoUpload";
 import ColorSchemeWidget from "./components/widgets/ColorSchemeWidget";
+import AuthenticationOption from "./components/widgets/AuthenticationOption";
 
 import { UtilApi } from "metabase/services";
 
@@ -197,7 +198,45 @@ const SECTIONS = [
   {
     name: t`Authentication`,
     slug: "authentication",
-    settings: [],
+    settings: [
+      {
+        authName: t`Sign in with Google`,
+        authDescription: t`Allows users with existing Metabase accounts to login with a Google account that matches their email address in addition to their Metabase username and password.`,
+        authType: "google",
+        widget: AuthenticationOption,
+      },
+      {
+        authName: t`LDAP`,
+        authDescription: t`Allows users within your LDAP directory to log in to Metabase with their LDAP credentials, and allows automatic mapping of LDAP groups to Metabase groups.`,
+        authType: "ldap",
+        widget: AuthenticationOption,
+      },
+      {
+        authName: t`SAML`,
+        authDescription: t`Allows users to login via a SAML Identity Provider.`,
+        authType: "saml",
+        widget: AuthenticationOption,
+        getHidden: () => !MetabaseSettings.hasPremiumFeature("sso"),
+      },
+      {
+        authName: t`JWT`,
+        authDescription: t`Allows users to login via a JWT Identity Provider.`,
+        authType: "jwt",
+        widget: AuthenticationOption,
+        getHidden: () => !MetabaseSettings.hasPremiumFeature("sso"),
+      },
+      {
+        key: "enable-password-login",
+        display_name: t`Enable Password Authentication`,
+        description: null,
+        type: "boolean",
+        getHidden: settings =>
+          !settings["google-auth-client-id"] &&
+          !settings["ldap-enabled"] &&
+          !settings["saml-enabled"] &&
+          !settings["jwt-enabled"],
+      },
+    ],
   },
   {
     name: t`LDAP`,

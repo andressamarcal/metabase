@@ -134,16 +134,18 @@ export default class LoginApp extends Component {
             >
               <h3 className="Login-header Form-offset">{t`Sign in to Metabase`}</h3>
 
-              {Settings.ssoEnabled() && (
+              {Settings.googleAuthEnabled() && (
                 <div className="mx4 mb4 py3 border-bottom relative">
                   <SSOLoginButton provider="google" ref="ssoLoginButton" />
                   {/*<div className="g-signin2 ml1 relative z2" id="g-signin2"></div>*/}
-                  <div
-                    className="mx1 absolute text-centered left right"
-                    style={{ bottom: -8 }}
-                  >
-                    <span className="text-bold px3 py2 text-medium bg-white">{t`OR`}</span>
-                  </div>
+                  {Settings.passwordEnabled() && (
+                    <div
+                      className="mx1 absolute text-centered left right"
+                      style={{ bottom: -8 }}
+                    >
+                      <span className="text-bold px3 py2 text-medium bg-white">{t`OR`}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -157,7 +159,7 @@ export default class LoginApp extends Component {
                     {t`Sign in`}
                   </Button>
                 </div>
-              ) : (
+              ) : Settings.passwordEnabled() ? (
                 <div>
                   <FormMessage
                     formError={
@@ -252,7 +254,7 @@ export default class LoginApp extends Component {
                     >{t`I seem to have forgotten my password`}</Link>
                   </div>
                 </div>
-              )}
+              ) : null}
             </form>
             {Settings.get("sso_configured") &&
               !adminLogin && (
