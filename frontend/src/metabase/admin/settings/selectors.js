@@ -228,7 +228,7 @@ const SECTIONS = [
       {
         key: "enable-password-login",
         display_name: t`Enable Password Authentication`,
-        description: null,
+        description: t`Turn this off to force users to log in with your auth system instead of email and password.`,
         type: "boolean",
         getHidden: settings =>
           !settings["google-auth-client-id"] &&
