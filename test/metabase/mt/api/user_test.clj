@@ -36,7 +36,7 @@
                                                    :card_id card-id
                                                    :attribute_remappings {:cat ["variable" ["template-tag" "cat"]]}}]]
 
-       (rlrt/add-segmented-perms db-id)
+       (rlrt/add-segmented-perms! db-id)
        ;; Make sure personal Collections have been created
        (collection-test/force-create-personal-collections!)
        ;; Now do the request

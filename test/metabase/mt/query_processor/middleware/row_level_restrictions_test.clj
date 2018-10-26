@@ -1,5 +1,7 @@
 (ns metabase.mt.query-processor.middleware.row-level-restrictions-test
-  (:require [metabase
+  (:require [clojure.string :as str]
+            [expectations :refer [expect]]
+            [metabase
              [driver :as driver]
              [middleware :as mid]
              [query-processor :as qp]
@@ -14,9 +16,13 @@
              [permissions :as perms :refer [Permissions]]
              [permissions-group :as perms-group :refer [PermissionsGroup]]
              [permissions-group-membership :refer [PermissionsGroupMembership]]
-             [table :refer [Table]]]
+             [table :refer [Table]]
+             [user :refer [User]]]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
-            [metabase.test.data :as data]
+            [metabase.query-processor.util :as qputil]
+            [metabase.test
+             [data :as data]
+             [util :as tu]]
             [metabase.test.data
              [dataset-definitions :as defs]
              [datasets :as datasets]
@@ -33,7 +39,7 @@
   (assoc query-context :user (assoc (#'mid/find-user (users/user->id :rasta))
                                :login_attributes user-attributes)))
 
-(defn- call-with-segmented-perms
+(defn call-with-segmented-perms
   "This function creates a new database with the test data so that our test users permissions can be safely changed
   without affect other tests that use those same accounts and the test database."
   [f]
@@ -100,10 +106,8 @@
        ~@body)))
 
 (defn- process-query-with-rasta [query]
-  (users/do-with-test-user
-   :rasta
-   (fn []
-     (qp/process-query query))))
+  (users/with-test-user :rasta
+    (qp/process-query query)))
 
 (defn- gtap {:style/indent 3} [group-or-id table-or-kw-or-id-or-nil card-or-id-or-nil & {:as kvs}]
   (merge {:group_id (u/get-id group-or-id)
@@ -444,3 +448,28 @@
                (with-user-attributes {"user" 5, "price" 1})
                process-query-with-rasta
                qpt/rows)))))))
+
+;; make sure GTAP queries still include ID of user who ran them in the remark
+(defn- run-query-returning-remark [run-query-fn]
+  (let [remark        (atom nil)
+        query->remark qputil/query->remark]
+    (with-redefs [qputil/query->remark (fn [outer-query]
+                                         (u/prog1 (query->remark outer-query)
+                                           (reset! remark <>)))]
+      (let [results (run-query-fn)]
+        (or (some-> @remark (str/replace #"queryHash: \w+" "queryHash: <hash>"))
+            (println "NO REMARK FOUND:\n" (u/pprint-to-str 'red results))
+            (throw (ex-info "No remark found!" results)))))))
+
+(expect
+  (format "Metabase:: userID: %d queryType: MBQL queryHash: <hash>" (users/user->id :rasta))
+  (with-segmented-perms [db]
+    (tt/with-temp Card [card (venues-source-table-card (u/get-id db))]
+      (with-gtaps [group nil
+                   _     (gtap group :venues card
+                           :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]})]
+        (add-segmented-perms! db)
+        (tu/with-temp-vals-in-db User (users/user->id :rasta) {:login_attributes {"cat" 50}}
+          (run-query-returning-remark
+           (fn []
+             ((users/user->client :rasta) :post "dataset" (venues-count-mbql-query)))))))))
