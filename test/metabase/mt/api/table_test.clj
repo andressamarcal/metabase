@@ -45,7 +45,7 @@
                                                      :table_id             (data/id :venues)
                                                      :card_id              card-id
                                                      :attribute_remappings attr-remappings}]]
-         (rlrt/add-segmented-perms db-id)
+         (rlrt/add-segmented-perms! db-id)
          (f))))))
 
 (defmacro with-segmented-test-setup [make-query-fn & body]

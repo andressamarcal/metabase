@@ -35,7 +35,7 @@
                                                    :card_id card-id
                                                    :attribute_remappings {:cat ["variable" ["template-tag" "cat"]]}}]]
 
-       (rlrt/add-segmented-perms db-id)
+       (rlrt/add-segmented-perms! db-id)
        (tu/with-temporary-setting-values [slack-token nil]
          (-> ((user->client :rasta) :get 200 "pulse/form_input")
              (get-in [:channels :slack])))))))
