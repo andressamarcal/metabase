@@ -27,7 +27,8 @@
              [datasets :as datasets]
              [users :refer [create-users-if-needed! user->client]]]
             [toucan.db :as db]
-            [toucan.util.test :as tt]))
+            [toucan.util.test :as tt]
+            [metabase.api.dataset :as dataset]))
 
 (defn- rows+cols
   "Return the `:rows` and relevant parts of `:cols` from the RESULTS.
@@ -63,26 +64,6 @@
                                    :limit        10}
                     :limit        5}}))))
 
-;; TODO - `identifier`, `quoted-identifier` might belong in some sort of shared util namespace
-(defn- identifier
-  "Return a properly formatted *UNQUOTED* identifier for a Table or Field.
-  (This handles DBs like H2 who require uppercase identifiers, or databases like Redshift do clever hacks
-   like prefixing table names with a unique schema for each test run because we're not
-   allowed to create new databases.)"
-  (^String [table-kw]
-   (let [{schema :schema, table-name :name} (db/select-one [Table :name :schema] :id (data/id table-kw))]
-     (name (hsql/qualify schema table-name))))
-  (^String [table-kw field-kw]
-   (db/select-one-field :name Field :id (data/id table-kw field-kw))))
-
-(defn- quote-identifier [identifier]
-  (first (hsql/format (keyword identifier)
-           :quoting (generic-sql/quote-style datasets/*driver*))))
-
-(def ^:private ^{:arglists '([table-kw] [table-kw field-kw])} ^String quoted-identifier
-  "Return a *QUOTED* identifier for a Table or Field. (This behaves just like `identifier`, but quotes the result)."
-  (comp quote-identifier identifier))
-
 ;; make sure we can do a basic query with a SQL source-query
 (datasets/expect-with-engines (non-timeseries-engines-with-feature :nested-queries)
   {:rows [[1 -165.374  4 3 "Red Medicine"                 10.0646]
@@ -101,17 +82,19 @@
       (qp/process-query
         {:database (data/id)
          :type     :query
-         :query    {:source-query {:native (format "SELECT %s, %s, %s, %s, %s, %s FROM %s"
-                                                   (quoted-identifier :venues :id)
-                                                   (quoted-identifier :venues :longitude)
-                                                   (quoted-identifier :venues :category_id)
-                                                   (quoted-identifier :venues :price)
-                                                   (quoted-identifier :venues :name)
-                                                   (quoted-identifier :venues :latitude)
-                                                   (quoted-identifier :venues))}
+         :query    {:source-query {:native (:query
+                                            (qp/query->native
+                                              {:database (data/id)
+                                               :type     :query
+                                               :query    {:source-table (data/id :venues)
+                                                          :fields       [[:field-id (data/id :venues :id)]
+                                                                         [:field-id (data/id :venues :longitude)]
+                                                                         [:field-id (data/id :venues :category_id)]
+                                                                         [:field-id (data/id :venues :price)]
+                                                                         [:field-id (data/id :venues :name)]
+                                                                         [:field-id (data/id :venues :latitude)]]}}))}
                     :order-by     [:asc [:field-literal (keyword (data/format-name :id)) :type/Integer]]
                     :limit        5}}))))
-
 
 (def ^:private ^:const breakout-results
   {:rows [[1 22]
@@ -193,7 +176,7 @@
                     :filter       [["=" (ql/fk-> (data/id :checkins :venue_id) (data/id :venues :price)) 1]]
                     :order-by     [[:asc (ql/fk-> (data/id :checkins :venue_id) (data/id :venues :price))]]
                     :breakout     [(ql/fk-> (data/id :checkins :venue_id) (data/id :venues :price))
-                                   [:field-literal (keyword (data/format-name :user_id)) :type/Integer]]
+                                   [:field-literal (data/format-name :user_id) :type/Integer]]
                     :limit        5}}))))
 
 ;; make sure we can do a query with breakout and aggregation using a SQL source query
@@ -204,7 +187,9 @@
       (qp/process-query
         {:database (data/id)
          :type     :query
-         :query    {:source-query {:native (format "SELECT * FROM %s" (quoted-identifier :venues))}
+         :query    {:source-query {:native (:query (qp/query->native {:database (data/id)
+                                                                      :type     :query
+                                                                      :query    {:source-table (data/id :venues)}}))}
                     :aggregation  [:count]
                     :breakout     [[:field-literal (keyword (data/format-name :price)) :type/Integer]]}}))))
 
@@ -513,6 +498,9 @@
                                  :breakout     [[:datetime-field [:field-id (data/id :checkins :date)] :year]])]
         (qp/process-query (query-with-source-card card)))
       results-metadata))
+
+(defn- identifier [table-kw field-kw]
+  (db/select-one-field :name Field :id (data/id table-kw field-kw)))
 
 ;; make sure using a time interval filter works
 (datasets/expect-with-engines (non-timeseries-engines-with-feature :nested-queries)

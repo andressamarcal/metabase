@@ -9,12 +9,14 @@
              [google :as google]]
             [metabase.test.data
              [datasets :as datasets]
+             [generic-sql :as sql.data]
              [interface :as i]]
             [metabase.util :as u]
             [metabase.util
              [date :as du]
              [schema :as su]]
-            [schema.core :as s])
+            [schema.core :as s]
+            [honeysql.core :as hsql])
   (:import com.google.api.client.util.DateTime
            com.google.api.services.bigquery.Bigquery
            [com.google.api.services.bigquery.model Dataset DatasetReference QueryRequest Table TableDataInsertAllRequest
@@ -230,6 +232,12 @@
             (destroy-dataset! database-name))
           (throw e))))))
 
+(defn- qualify+quote-name
+  ([db-name table-name]
+   (format "`%s.%s`" (normalize-name db-name) (normalize-name table-name)))
+  ([db-name table-name field-name]
+   (format "%s.`%s`" (qualify+quote-name db-name table-name) (normalize-name field-name))))
+
 
 ;;; --------------------------------------------- IDriverTestExtensions ----------------------------------------------
 
@@ -239,3 +247,9 @@
          {:engine                       (constantly :bigquery)
           :database->connection-details (u/drop-first-arg database->connection-details)
           :create-db!                   (u/drop-first-arg create-db!)}))
+
+;; we don't actually implement the Generic SQL test extensions protocol except for `qualify+quote-name` which is used
+;; by a few tests
+(extend BigQueryDriver
+  sql.data/IGenericSQLTestExtensions
+  {:qualify+quote-name (u/drop-first-arg qualify+quote-name)})

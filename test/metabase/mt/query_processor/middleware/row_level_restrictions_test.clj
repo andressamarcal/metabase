@@ -81,13 +81,9 @@
 
 (defn- quote-native-identifier
   ([{db-name :name :as db} table-name]
-   (-> datasets/*engine*
-       driver/engine->driver
-       (gsql/qualify+quote-name (name db-name) (name table-name))))
+   (gsql/qualify+quote-name datasets/*driver* (name db-name) (name table-name)))
   ([{db-name :name :as db} table-name field-name]
-   (-> datasets/*engine*
-       driver/engine->driver
-       (gsql/qualify+quote-name (name db-name) (name table-name) (name field-name)))))
+   (gsql/qualify+quote-name datasets/*driver* (name db-name) (name table-name) (name field-name))))
 
 ;; Basic test around querying a table by a user with segmented only permissions and a GTAP question that is a native
 ;; query
@@ -280,8 +276,8 @@
     (data/with-db db
       (tt/with-temp* [Card [gtap-card {:dataset_query {:database (u/get-id db)
                                                        :type     :native
-                                                       :native   {:query (format (str "SELECT %s AS \"venue_name\","
-                                                                                      " 1000 AS \"one_thousand\" "
+                                                       :native   {:query (format (str "SELECT %s AS venue_name,"
+                                                                                      " 1000 AS one_thousand "
                                                                                       "FROM %s "
                                                                                       "ORDER BY lower(%s);")
                                                                                  (quote-native-identifier db :venues :name)
