@@ -288,10 +288,11 @@
                  _     (gtap group :venues nil
                          :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]})]
       (add-segmented-perms! db)
-      (-> (venues-count-mbql-query)
-          (with-user-attributes {"cat" "50"})
-          process-query-with-rasta
-          qpt/rows))))
+      (qpt/format-rows-by [int]
+        (-> (venues-count-mbql-query)
+            (with-user-attributes {"cat" "50"})
+            process-query-with-rasta
+            qpt/rows)))))
 
 ;; Users with view access to the related collection should bypass segmented permissions
 (datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)

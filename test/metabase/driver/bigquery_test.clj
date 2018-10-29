@@ -211,12 +211,12 @@
 (expect-with-engine :bigquery
   (str
    "-- Metabase:: userID: 1000 queryType: MBQL queryHash: 01020304\n"
-   "SELECT `test_data.venues`.`id` AS `venues___id`,"
-   " `test_data.venues`.`name` AS `venues___name`,"
-   " `test_data.venues`.`category_id` AS `venues___category_id`,"
-   " `test_data.venues`.`latitude` AS `venues___latitude`,"
-   " `test_data.venues`.`longitude` AS `venues___longitude`,"
-   " `test_data.venues`.`price` AS `venues___price` "
+   "SELECT `test_data.venues`.`id` AS `id`,"
+   " `test_data.venues`.`name` AS `name`,"
+   " `test_data.venues`.`category_id` AS `category_id`,"
+   " `test_data.venues`.`latitude` AS `latitude`,"
+   " `test_data.venues`.`longitude` AS `longitude`,"
+   " `test_data.venues`.`price` AS `price` "
    "FROM `test_data.venues` "
    "LIMIT 1")
   (let [native-query (atom nil)]
