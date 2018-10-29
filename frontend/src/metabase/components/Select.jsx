@@ -57,10 +57,11 @@ class BrowserSelect extends Component {
   };
   static defaultProps = {
     className: "",
-    width: 320,
+    width: 300,
     height: 320,
     rowHeight: 40,
     multiple: false,
+    searchCaseInsensitive: true,
     searchFuzzy: true,
   };
 
