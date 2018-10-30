@@ -9,7 +9,8 @@ import type {
 } from "metabase/meta/types/Visualization";
 
 export default ({ question, clicked }: ClickActionProps): ClickAction[] => {
-  if (!clicked || !clicked.settings || !hasLink(clicked, clicked.settings)) {
+  const settings = clicked && clicked.settings;
+  if (!settings || !hasLink(clicked, settings)) {
     return [];
   }
 
@@ -18,7 +19,7 @@ export default ({ question, clicked }: ClickActionProps): ClickAction[] => {
       name: "link",
       title: t`Go to link`,
       defaultAlways: true,
-      url: () => getLink(clicked, clicked.settings),
+      url: () => getLink(clicked, settings),
     },
   ];
 };

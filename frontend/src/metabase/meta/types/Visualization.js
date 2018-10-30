@@ -37,6 +37,7 @@ export type ClickObject = {
   event?: MouseEvent,
   element?: HTMLElement,
   seriesIndex?: number,
+  settings?: { [key: string]: any },
 };
 
 export type ClickAction = {

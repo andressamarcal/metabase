@@ -209,6 +209,7 @@ export default class PublicQuestion extends Component {
               showTitle={false}
               isDashboard
               mode={PublicMode}
+              // $FlowFixMe: metadata provided by @connect
               metadata={this.props.metadata}
               onChangeCardAndRun={() => {}}
             />

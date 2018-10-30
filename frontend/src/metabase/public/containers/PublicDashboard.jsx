@@ -163,6 +163,7 @@ export default class PublicDashboard extends Component {
               {...this.props}
               className={"spread"}
               mode={PublicMode}
+              // $FlowFixMe: metadata provided by @connect
               metadata={this.props.metadata}
               navigateToNewCardFromDashboard={() => {}}
             />

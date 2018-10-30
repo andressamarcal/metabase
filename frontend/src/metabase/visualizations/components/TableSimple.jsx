@@ -26,7 +26,10 @@ import _ from "underscore";
 
 import { isID, isFK } from "metabase/lib/schema_metadata";
 
-import type { VisualizationProps } from "metabase/meta/types/Visualization";
+import type {
+  ClickObject,
+  VisualizationProps,
+} from "metabase/meta/types/Visualization";
 
 type Props = VisualizationProps & {
   height: number,
@@ -204,6 +207,7 @@ export default class TableSimple extends Component {
                           })
                         );
 
+                      // $FlowFixMe: proper test for a React element?
                       const isLink = cellData && cellData.type === ExternalLink;
                       const isClickable =
                         !isLink && this.visualizationIsClickable(clicked);

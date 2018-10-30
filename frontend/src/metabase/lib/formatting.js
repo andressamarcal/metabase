@@ -49,6 +49,7 @@ import type {
   TimeStyle,
   TimeEnabled,
 } from "metabase/lib/formatting/date";
+import type { ClickObject } from "metabase/meta/types/Visualization";
 
 // a one or two character string specifying the decimal and grouping separator characters
 export type NumberSeparators = ".," | ", " | ",." | ".";
@@ -62,6 +63,7 @@ export type FormattingOptions = {
   majorWidth?: number,
   type?: "axis" | "cell" | "tooltip",
   jsx?: boolean,
+  remap?: boolean,
   // render links for type/URLs, type/Email, etc
   rich?: boolean,
   compact?: boolean,
@@ -81,8 +83,10 @@ export type FormattingOptions = {
   // decimals sets both minimumFractionDigits and maximumFractionDigits
   decimals?: number,
   // STRING
-  view_as?: "link" | "email_link" | "image",
+  view_as?: null | "link" | "email_link" | "image" | "auto",
   link_text?: string,
+  link_template?: string,
+  clicked?: ClickObject,
   // DATE/TIME
   // date/timeout style string that is used to derive a date_format or time_format for different units, see metabase/lib/formatting/date
   date_style?: DateStyle,
@@ -498,6 +502,7 @@ const EMAIL_WHITELIST_REGEX = /^(?=.{1,254}$)(?=.{1,64}@)[-!#$%&'*+/0-9=?A-Z^_`a
 
 export function formatEmail(
   value: Value,
+  // $FlowFixMe: unclear problem with `view_as` default
   { jsx, rich, view_as = "auto", link_text }: FormattingOptions = {},
 ) {
   const email = String(value);
@@ -557,6 +562,7 @@ export function formatUrl(value: Value, options: FormattingOptions = {}) {
 
 export function formatImage(
   value: Value,
+  // $FlowFixMe: unclear problem with `view_as` default
   { jsx, rich, view_as = "auto", link_text }: FormattingOptions = {},
 ) {
   const url = String(value);
@@ -752,7 +758,7 @@ export function humanize(...args) {
   return inflection.humanize(...args);
 }
 
-export function conjunct(list, conjunction) {
+export function conjunct(list: string[], conjunction: string) {
   return (
     list.slice(0, -1).join(`, `) +
     (list.length > 2 ? `,` : ``) +
