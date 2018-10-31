@@ -455,7 +455,7 @@
       (let [results (run-query-fn)]
         (or (some-> @remark (str/replace #"queryHash: \w+" "queryHash: <hash>"))
             (println "NO REMARK FOUND:\n" (u/pprint-to-str 'red results))
-            (throw (ex-info "No remark found!" results)))))))
+            (throw (ex-info "No remark found!" {:results results})))))))
 
 (expect
   (format "Metabase:: userID: %d queryType: MBQL queryHash: <hash>" (users/user->id :rasta))
