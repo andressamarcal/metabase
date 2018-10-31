@@ -14,6 +14,27 @@
             [toucan.db :as db])
   (:import [java.util TimeZone UUID]))
 
+(defn- google-auth-configured?
+  []
+  (boolean (setting/get :google-auth-client-id)))
+
+(defn- ldap-configured?
+  []
+  ((resolve 'metabase.integrations.ldap/ldap-configured?)))
+
+(defn- other-sso-configured?
+  []
+  (or
+    ((resolve 'metabase.mt.integrations.sso-settings/saml-configured?))
+    ((resolve 'metabase.mt.integrations.sso-settings/jwt-configured?))))
+
+(defn sso-configured?
+  "Any SSO provider is configured"
+  []
+  (or (google-auth-configured?)
+      (ldap-configured?)
+      (other-sso-configured?)))
+
 (defsetting check-for-updates
   (tru "Identify when new versions of Metabase are available.")
   :type    :boolean
@@ -180,7 +201,10 @@
 (defsetting enable-password-login
   (tru "Allow logging in by email and password.")
   :type    :boolean
-  :default true)
+  :default true
+  :getter  (fn []
+             (or (setting/get-boolean :enable-password-login)
+                 (not (sso-configured?)))))
 
 (defsetting breakout-bins-num
   (tru "When using the default binning strategy and a number of bins is not provided, this number will be used as the default.")
@@ -245,9 +269,8 @@
                              :sandboxes  (metastore/enable-sandboxes?)
                              :sso        (metastore/enable-sso?)}
    :landing_page            (setting/get :landing-page)
-   :ldap_configured         ((resolve 'metabase.integrations.ldap/ldap-configured?))
-   :sso_configured          (or ((resolve 'metabase.mt.integrations.sso-settings/saml-configured?))
-                                ((resolve 'metabase.mt.integrations.sso-settings/jwt-configured?)))
+   :ldap_configured         (ldap-configured?)
+   :other_sso_configured    (other-sso-configured?)
    :available_locales       (available-locales-with-names)
    :map_tile_server_url     (map-tile-server-url)
    :metastore_url           metastore/store-url

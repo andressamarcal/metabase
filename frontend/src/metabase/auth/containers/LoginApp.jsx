@@ -149,7 +149,7 @@ export default class LoginApp extends Component {
                 </div>
               )}
 
-              {Settings.get("sso_configured") && !adminLogin ? (
+              {Settings.get("other_sso_configured") && !adminLogin ? (
                 <div className="mx4 mb1 py3 border-bottom relative">
                   <Button
                     type="button"
@@ -256,7 +256,8 @@ export default class LoginApp extends Component {
                 </div>
               ) : null}
             </form>
-            {Settings.get("sso_configured") &&
+            {Settings.get("other_sso_configured") &&
+              Settings.passwordEnabled() &&
               !adminLogin && (
                 <div
                   className="mt2 px2 cursor-pointer text-grey-1 text-right"

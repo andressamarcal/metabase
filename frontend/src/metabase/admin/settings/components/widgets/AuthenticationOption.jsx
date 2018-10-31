@@ -3,10 +3,7 @@ import { Link } from "react-router";
 import { t } from "c-3po";
 
 const AuthenticationOption = ({ setting, settingValues }) => (
-  <div
-    className="bordered rounded shadowed bg-white p4"
-    style={{ maxWidth: 500 }}
-  >
+  <div className="bordered rounded shadowed bg-white p4" style={{ width: 500 }}>
     <div className="flex align-center">
       <h2>{setting.authName}</h2>
       {setting.authEnabled &&
