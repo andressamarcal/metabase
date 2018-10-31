@@ -5112,8 +5112,7 @@ databaseChangeLog:
               type: integer
               remarks: 'ID of the database this query was ran against.'
         - sql:
-            dbms: postgresql,mysql
-            sql: UPDATE query_execution SET database_id = report_card.database_id FROM report_card WHERE query_execution.card_id = report_card.id
+            sql: UPDATE query_execution SET database_id = (select database_id from report_card where id = query_execution.card_id);
 
 # Start recording the actual query dictionary that's been executed
 
