@@ -139,17 +139,16 @@
   (tu/db-timezone-id))
 
 
-;; make sure that BigQuery properly aliases the names generated for Join Tables. It's important to use the right
-;; alias, e.g. something like `categories__via__category_id`, which is considerably different from what other SQL
-;; databases do. (#4218)
+;; make sure that BigQuery properly aliases the names generated for Join Tables. It's important to use the alias we
+;; give the column in the `SELECT` clause rather than repeating the definition like we do for other databases (#4218)
 (expect-with-engine :bigquery
   (str "SELECT count(*) AS `count`,"
-       " `test_data.categories__via__category_id`.`name` AS `categories__via__category_id___name` "
+       " `test_data.categories__via__category_id`.`name` AS `name` "
        "FROM `test_data.venues` "
        "LEFT JOIN `test_data.categories` `test_data.categories__via__category_id`"
        " ON `test_data.venues`.`category_id` = `test_data.categories__via__category_id`.`id` "
-       "GROUP BY `categories__via__category_id___name` "
-       "ORDER BY `categories__via__category_id___name` ASC")
+       "GROUP BY `name` "
+       "ORDER BY `name` ASC")
   ;; normally for test purposes BigQuery doesn't support foreign keys so override the function that checks that and
   ;; make it return `true` so this test proceeds as expected
   (with-redefs [qpi/driver-supports? (constantly true)]
@@ -212,12 +211,12 @@
 (expect-with-engine :bigquery
   (str
    "-- Metabase:: userID: 1000 queryType: MBQL queryHash: 01020304\n"
-   "SELECT `test_data.venues`.`id` AS `venues___id`,"
-   " `test_data.venues`.`name` AS `venues___name`,"
-   " `test_data.venues`.`category_id` AS `venues___category_id`,"
-   " `test_data.venues`.`latitude` AS `venues___latitude`,"
-   " `test_data.venues`.`longitude` AS `venues___longitude`,"
-   " `test_data.venues`.`price` AS `venues___price` "
+   "SELECT `test_data.venues`.`id` AS `id`,"
+   " `test_data.venues`.`name` AS `name`,"
+   " `test_data.venues`.`category_id` AS `category_id`,"
+   " `test_data.venues`.`latitude` AS `latitude`,"
+   " `test_data.venues`.`longitude` AS `longitude`,"
+   " `test_data.venues`.`price` AS `price` "
    "FROM `test_data.venues` "
    "LIMIT 1")
   (let [native-query (atom nil)]

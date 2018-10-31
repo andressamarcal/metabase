@@ -29,7 +29,7 @@
   "The outer query currently being processed."
   nil)
 
-(def ^:private ^:dynamic *nested-query-level*
+(def ^:dynamic *nested-query-level*
   "How many levels deep are we into nested queries? (0 = top level.) We keep track of this so we know what level to
   find referenced aggregations (otherwise something like [:aggregate-field 0] could be ambiguous in a nested query).
   Each nested query increments this counter by 1."
@@ -351,6 +351,10 @@
 
 (declare apply-clauses)
 
+(def ^String source-query-alias
+  "Alias used for source queries."
+  "source")
+
 (defn- apply-source-query [driver honeysql-form {{:keys [native], :as source-query} :source-query}]
   ;; TODO - what alias should we give the source query?
   (assoc honeysql-form
@@ -358,7 +362,7 @@
               (hsql/raw (str "(" (str/replace native #";+\s*$" "") ")")) ; strip off any trailing slashes
               (binding [*nested-query-level* (inc *nested-query-level*)]
                 (apply-clauses driver {} source-query)))
-            :source]]))
+            (keyword source-query-alias)]]))
 
 (def ^:private clause-handlers
   ;; 1) Use the vars rather than the functions themselves because them implementation

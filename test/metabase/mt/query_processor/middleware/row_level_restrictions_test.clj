@@ -65,13 +65,9 @@
 
 (defn- quote-native-identifier
   ([{db-name :name :as db} table-name]
-   (-> datasets/*engine*
-       driver/engine->driver
-       (gsql/qualify+quote-name (name db-name) (name table-name))))
+   (gsql/qualify+quote-name datasets/*driver* (name db-name) (name table-name)))
   ([{db-name :name :as db} table-name field-name]
-   (-> datasets/*engine*
-       driver/engine->driver
-       (gsql/qualify+quote-name (name db-name) (name table-name) (name field-name)))))
+   (gsql/qualify+quote-name datasets/*driver* (name db-name) (name table-name) (name field-name))))
 
 (defn- venues-count-mbql-query []
   {:database (data/id)
@@ -249,8 +245,8 @@
       (data/with-db db
         (tt/with-temp* [Card [card {:dataset_query {:database (u/get-id db)
                                                     :type     :native
-                                                    :native   {:query (format (str "SELECT %s AS \"venue_name\","
-                                                                                   " 1000 AS \"one_thousand\" "
+                                                    :native   {:query (format (str "SELECT %s AS venue_name,"
+                                                                                   " 1000 AS one_thousand "
                                                                                    "FROM %s "
                                                                                    "ORDER BY lower(%s);")
                                                                               (quote-native-identifier db :venues :name)
@@ -262,7 +258,6 @@
           (binding [*current-user-id*              (users/user->id :rasta)
                     *current-user-permissions-set* (let [perms (db/select-field :object Permissions :group_id (u/get-id group))]
                                                      (atom perms))]
-
             (->> (qp/process-query {:database (u/get-id db)
                                     :type     :query
                                     :query    {:source-table (data/id :venues)
@@ -293,10 +288,11 @@
                  _     (gtap group :venues nil
                          :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]})]
       (add-segmented-perms! db)
-      (-> (venues-count-mbql-query)
-          (with-user-attributes {"cat" "50"})
-          process-query-with-rasta
-          qpt/rows))))
+      (qpt/format-rows-by [int]
+        (-> (venues-count-mbql-query)
+            (with-user-attributes {"cat" "50"})
+            process-query-with-rasta
+            qpt/rows)))))
 
 ;; Users with view access to the related collection should bypass segmented permissions
 (datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
@@ -459,7 +455,7 @@
       (let [results (run-query-fn)]
         (or (some-> @remark (str/replace #"queryHash: \w+" "queryHash: <hash>"))
             (println "NO REMARK FOUND:\n" (u/pprint-to-str 'red results))
-            (throw (ex-info "No remark found!" results)))))))
+            (throw (ex-info "No remark found!" {:results results})))))))
 
 (expect
   (format "Metabase:: userID: %d queryType: MBQL queryHash: <hash>" (users/user->id :rasta))
