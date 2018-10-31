@@ -125,7 +125,6 @@
         (log/info (trs "Token is valid.")))
       (setting/set-string! :premium-embedding-token new-value)
       (catch Throwable e
-        (println "e:" e) ; NOCOMMIT
         (log/error e (trs "Error setting premium features token"))
         (throw (ex-info (.getMessage e) (merge
                                          {:message (.getMessage e), :status-code 400}
