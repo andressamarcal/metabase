@@ -11,7 +11,7 @@
              [config :as config]
              [util :as u]]
             [metabase.db.spec :as dbspec]
-            [puppetlabs.i18n.core :refer [trs]]
+            [metabase.util.i18n :refer [trs]]
             [ring.util.codec :as codec]
             [toucan.db :as db])
   (:import com.mchange.v2.c3p0.ComboPooledDataSource
@@ -46,12 +46,15 @@
                                   ;; if we don't have an absolute path then make sure we start from "user.dir"
                                   [(System/getProperty "user.dir") "/" db-file-name options]))))))
 
+(def ^:private jdbc-connection-regex
+  #"^(jdbc:)?([^:/@]+)://(?:([^:/@]+)(?::([^:@]+))?@)?([^:@]+)(?::(\d+))?/([^/?]+)(?:\?(.*))?$")
+
 (defn- parse-connection-string
   "Parse a DB connection URI like
   `postgres://cam@localhost.com:5432/cams_cool_db?ssl=true&sslfactory=org.postgresql.ssl.NonValidatingFactory` and
   return a broken-out map."
   [uri]
-  (when-let [[_ protocol user pass host port db query] (re-matches #"^([^:/@]+)://(?:([^:/@]+)(?::([^:@]+))?@)?([^:@]+)(?::(\d+))?/([^/?]+)(?:\?(.*))?$" uri)]
+  (when-let [[_ _ protocol user pass host port db query] (re-matches jdbc-connection-regex uri)]
     (merge {:type     (case (keyword protocol)
                         :postgres   :postgres
                         :postgresql :postgres
@@ -126,7 +129,7 @@
 
   MySQL gets snippy if we try to run the entire DB migration as one single string; it seems to only like it if we run
   one statement at a time; Liquibase puts each DDL statement on its own line automatically so just split by lines and
-  filter out blank / comment lines. Even though this is not neccesary for H2 or Postgres go ahead and do it anyway
+  filter out blank / comment lines. Even though this is not necessary for H2 or Postgres go ahead and do it anyway
   because it keeps the code simple and doesn't make a significant performance difference."
   [^Liquibase liquibase]
   (for [line  (s/split-lines (migrations-sql liquibase))

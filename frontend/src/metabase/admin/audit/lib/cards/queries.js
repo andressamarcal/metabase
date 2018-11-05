@@ -63,7 +63,7 @@ export const table = (searchString?: string) => ({
         {
           name: "public_link",
           enabled: true,
-          markdown_format: "[Link]({{value}})",
+          markdown_template: "[Link]({{value}})",
         },
         { name: "cache_ttl", enabled: true },
         { name: "total_views", enabled: true },

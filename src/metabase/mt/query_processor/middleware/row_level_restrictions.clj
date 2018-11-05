@@ -1,8 +1,6 @@
 (ns metabase.mt.query-processor.middleware.row-level-restrictions
-  (:require [metabase
-             [query-processor :as qp]
-             [util :as u]]
-            [metabase.api.common :refer [*current-user-id* *current-user-permissions-set*]]
+  (:require [metabase.api.common :refer [*current-user-id* *current-user-permissions-set*]]
+            [metabase.mbql.schema :as mbql.s]
             [metabase.models
              [card :refer [Card]]
              [database :as database]
@@ -13,13 +11,8 @@
              [table :refer [Table]]]
             [metabase.models.query.permissions :as query-perms]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
-            [metabase.mt.query-processor.middleware.util :as mt-util]
-            [metabase.query-processor :as qp]
-            [metabase.query-processor
-             [interface :as qpi]
-             [util :as qputil]]
-            [metabase.query-processor.middleware.log :as log-query]
-            [metabase.query-processor.middleware.binning :as binning]
+            [metabase.query-processor.util :as qputil]
+            [metabase.util :as u]
             [metabase.util.schema :as su]
             [puppetlabs.i18n.core :refer [tru]]
             [schema.core :as s]
@@ -55,10 +48,10 @@
 
 (s/defn ^:private query->source-table-id :- (s/maybe su/IntGreaterThanZero)
   "Return the ID of the source Table for this `query`, if this is an MBQL query."
-  [{inner-query :query, :as outer-query}]
-  (if-let [source-query (qputil/get-normalized outer-query :source-query)]
+  [{{source-table-id :source-table} :query, source-query :source-query, :as outer-query}]
+  (if source-query
     (recur (assoc outer-query :query source-query))
-    (some-> (qputil/get-normalized inner-query :source-table) table->id)))
+    (some-> source-table-id table->id)))
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -131,7 +124,7 @@
   permissions, allowing the user to run their GTAPped query."
   [{:keys [card_id table_id]}]
   (if card_id
-    (query-perms/perms-set (db/select-one-field :dataset_query Card :id card_id) :throw-exceptions)
+    (query-perms/perms-set (db/select-one-field :dataset_query Card :id card_id), :throw-exceptions? true)
     #{(perms/table-query-path (Table table_id))}))
 
 
@@ -158,45 +151,46 @@
 ;;; |                                           Applying GTAPs to a Query                                            |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-(defn- apply-row-level-permissions
-  "Does the work of swapping the given table the user was querying against with a nested subquery that restricts the
-  rows returned. Will return the original query if there are no segmented permissions found"
-  [outer-query]
+;;; ------------------------------------------ apply-row-level-permissions -------------------------------------------
+
+(defn- apply-row-level-permissions* [{{:keys [login-attributes]} :user, :as outer-query}]
   (if-let [{:keys [attribute_remappings] :as gtap} (and (table-should-have-segmented-permissions? (query->source-table-id outer-query))
                                                         (gtap-for-table outer-query (query->source-table-id outer-query)))]
-    (let [login-attributes (qputil/get-in-normalized outer-query [:user :login-attributes])]
-      (-> outer-query
-          (assoc :database    (gtap->database-id gtap)
-                 :type        :query
-                 :gtap-perms  (gtap->perms-set gtap))
-          ;; We need to dissoc the source-table before associng a new one. Due to normalization, it's possible that
-          ;; we'll have `:source_table` and `:source-table` after this next line, removing it ensures we'll at least not
-          ;; have more source table entries after the next line
-          (update :query qputil/dissoc-normalized :source-table)
-          (update :query assoc :source-table (gtap->source-table gtap))
-          (update :parameters into (map #(attr-remapping->parameter login-attributes %)
-                                        attribute_remappings))))
+    (-> outer-query
+        (assoc :database    (gtap->database-id gtap)
+               :type        :query
+               :gtap-perms  (gtap->perms-set gtap))
+        ;; We need to dissoc the source-table before associng a new one. Due to normalization, it's possible that
+        ;; we'll have `:source_table` and `:source-table` after this next line, removing it ensures we'll at least not
+        ;; have more source table entries after the next line
+        (update :query dissoc :source-table)
+        (update :query assoc :source-table (gtap->source-table gtap))
+        (update :parameters into (map #(attr-remapping->parameter login-attributes %)
+                                      attribute_remappings)))
     outer-query))
 
-(defn create-join-query
-  "Create a `JoinQuery` with a new GTAP query used for the join and using the original `JoinTable` data from
-  `join-table`"
-  [join-table gtap {:keys [database user user-attributes] :as orig-query}]
-  (let [new-query-params  (map #(attr-remapping->parameter (:login_attributes user) %) (:attribute_remappings gtap))]
-    (qpi/map->JoinQuery
-     (-> join-table
-         (select-keys [:table-id :join-alias :source-field :pk-field :schema])
-         (assoc :query (qp/expand {:database        (u/get-id database)
-                                   :type            :query
-                                   :user            user
-                                   :user-attributes user-attributes
-                                   :query           {:source-table (gtap->source-table gtap)}
-                                   :parameters      new-query-params}))))))
+(defn apply-row-level-permissions
+  "Does the work of swapping the given table the user was querying against with a nested subquery that restricts the
+  rows returned. Will return the original query if there are no segmented permissions found"
+  [qp]
+  (comp qp apply-row-level-permissions*))
 
-(defn- apply-row-level-permissions-for-joins
-  "Looks in the `:join-tables` of the query for segmented permissions. If any are found, swap them for a gtap
-  otherwise return the original query"
-  [query]
+
+;;; ------------------------------------- apply-row-level-permissions-for-joins --------------------------------------
+
+(s/defn create-join-query :- mbql.s/JoinQueryInfo
+  "Create a join query with a new GTAP query used for the join and using the original join Table data from `join-table`"
+  [join-table :- mbql.s/JoinTableInfo, gtap, {:keys [database user user-attributes] :as orig-query}]
+  (let [new-query-params (map #(attr-remapping->parameter (:login_attributes user) %) (:attribute_remappings gtap))]
+    {:join-alias (:join-alias join-table)
+     :query      {:database        (u/get-id database)
+                  :type            :query
+                  :user            user
+                  :user-attributes user-attributes
+                  :query           {:source-table (gtap->source-table gtap)}
+                  :parameters      new-query-params}}))
+
+(defn- apply-row-level-permissions-for-joins* [query]
   (let [join-tables     (qputil/get-in-query query [:join-tables])
         table-ids->gtap (into {} (for [{:keys [table-id]} join-tables
                                        :when (table-should-have-segmented-permissions? table-id)]
@@ -210,19 +204,8 @@
                                                     jt))))
       query)))
 
-;;; +----------------------------------------------------------------------------------------------------------------+
-;;; |                                 The Middleware Itself & Logic for Injecting It                                 |
-;;; +----------------------------------------------------------------------------------------------------------------+
-
-(defn- inject-middleware
-  [middleware]
-  (fn [qp]
-    (comp qp middleware)))
-
-(defn update-qp-pipeline
-  "Update the query pipeline atom to include the row level restrictions middleware. Intended to be called on startup."
-  []
-  (mt-util/update-qp-pipeline #'log-query/log-initial-query
-                              (inject-middleware #'apply-row-level-permissions))
-  (mt-util/update-qp-pipeline #'binning/update-binning-strategy
-                              (inject-middleware #'apply-row-level-permissions-for-joins)))
+(defn apply-row-level-permissions-for-joins
+  "Looks in the `:join-tables` of the query for segmented permissions. If any are found, swap them for a gtap
+  otherwise return the original query"
+  [qp]
+  (comp qp apply-row-level-permissions-for-joins*))

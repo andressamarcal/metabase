@@ -238,6 +238,11 @@ export default class Navbar extends Component {
               path="/admin/store"
               currentPath={this.props.path}
             />
+            <AdminNavItem
+              name={t`Troubleshooting`}
+              path="/admin/troubleshooting"
+              currentPath={this.props.path}
+            />
           </ul>
 
           <ProfileLink {...this.props} />

@@ -3,17 +3,20 @@
   (:require [clojure
              [data :as data]
              [pprint :refer [pprint]]
-             [string :as s]]
+             [string :as s]
+             [walk :as walk]]
             [clojure.java.classpath :as classpath]
             [clojure.math.numeric-tower :as math]
             [clojure.tools.logging :as log]
             [clojure.tools.namespace.find :as ns-find]
             [colorize.core :as colorize]
+            [medley.core :as m]
             [metabase.config :as config]
-            [puppetlabs.i18n.core :as i18n :refer [trs tru]]
+            [metabase.util.i18n :refer [trs tru]]
             [ring.util.codec :as codec])
   (:import [java.net InetAddress InetSocketAddress Socket]
-           [java.text Normalizer Normalizer$Form]))
+           [java.text Normalizer Normalizer$Form]
+           java.util.concurrent.TimeoutException))
 
 (defn app-name-trs
   "Return the user configured application name, or Metabase translated
@@ -249,10 +252,10 @@
   {:style/indent 2}
   (^String [color x]
    {:pre [((some-fn symbol? keyword?) color)]}
-   (colorize color x))
+   (colorize color (str x)))
 
   (^String [color format-string & args]
-   (colorize color (apply format format-string args))))
+   (colorize color (apply format (str format-string) args))))
 
 (defn pprint-to-str
   "Returns the output of pretty-printing `x` as a string.
@@ -270,7 +273,8 @@
 
 (defprotocol ^:private IFilteredStacktrace
   (filtered-stacktrace [this]
-    "Get the stack trace associated with E and return it as a vector with non-metabase frames filtered out."))
+    "Get the stack trace associated with E and return it as a vector with non-metabase frames after the last Metabase
+    frame filtered out."))
 
 ;; These next two functions are a workaround for this bug https://dev.clojure.org/jira/browse/CLJ-1790
 ;; When Throwable/Thread are type-hinted, they return an array of type StackTraceElement, this causes
@@ -293,20 +297,32 @@
   IFilteredStacktrace {:filtered-stacktrace (fn [this]
                                               (filtered-stacktrace (thread-get-stack-trace this)))})
 
+(defn- metabase-frame? [frame]
+  (re-find #"metabase" (str frame)))
+
 ;; StackTraceElement[] is what the `.getStackTrace` method for Thread and Throwable returns
 (extend (Class/forName "[Ljava.lang.StackTraceElement;")
-  IFilteredStacktrace {:filtered-stacktrace (fn [this]
-                                              (vec (for [frame this
-                                                         :let  [s (str frame)]
-                                                         :when (re-find #"metabase" s)]
-                                                     (s/replace s #"^metabase\." ""))))})
+  IFilteredStacktrace
+  {:filtered-stacktrace
+   (fn [this]
+     ;; keep all the frames before the last Metabase frame, but then filter out any other non-Metabase frames after
+     ;; that
+     (let [[frames-after-last-mb other-frames]     (split-with (complement metabase-frame?)
+                                                               (map str (seq this)))
+           [last-mb-frame & frames-before-last-mb] (map #(s/replace % #"^metabase\." "")
+                                                        (filter metabase-frame? other-frames))]
+       (concat
+        frames-after-last-mb
+        ;; add a little arrow to the frame so it stands out more
+        (cons (str "--> " last-mb-frame)
+              frames-before-last-mb))))})
 
 (defn deref-with-timeout
   "Call `deref` on a FUTURE and throw an exception if it takes more than TIMEOUT-MS."
   [futur timeout-ms]
   (let [result (deref futur timeout-ms ::timeout)]
     (when (= result ::timeout)
-      (throw (Exception. (format "Timed out after %d milliseconds." timeout-ms))))
+      (throw (TimeoutException. (format "Timed out after %d milliseconds." timeout-ms))))
     result))
 
 (defmacro with-timeout
@@ -579,8 +595,29 @@
    (when-let [[_ java-major-version-str] (re-matches #"^(?:1\.)?(\d+).*$" java-version-str)]
      (>= (Integer/parseInt java-major-version-str) 9))))
 
-(defn hexidecimal-string?
-  "Returns truthy if `new-value` is a hexedecimal-string"
+(defn hexadecimal-string?
+  "Returns truthy if `new-value` is a hexadecimal-string"
   [new-value]
   (and (string? new-value)
        (re-matches #"[0-9a-f]{64}" new-value)))
+
+(defn snake-key
+  "Convert a keyword or string `k` from `lisp-case` to `snake-case`."
+  [k]
+  (if (keyword? k)
+    (keyword (snake-key (name k)))
+    (s/replace k #"-" "_")))
+
+(defn recursive-map-keys
+  "Recursively replace the keys in a map with the value of `(f key)`."
+  [f m]
+  (walk/postwalk
+   #(if (map? %)
+      (m/map-keys f %)
+      %)
+   m))
+
+(defn snake-keys
+  "Convert the keys in a map from `lisp-case` to `snake-case`."
+  [m]
+  (recursive-map-keys snake-key m))

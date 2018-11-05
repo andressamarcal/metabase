@@ -9,8 +9,9 @@
              [permissions :as perms]]
             [metabase.query-processor.util :as qputil]
             [metabase.util :as u]
-            [metabase.util.schema :as su]
-            [puppetlabs.i18n.core :refer [tru]]
+            [metabase.util
+             [i18n :refer [tru]]
+             [schema :as su]]
             [schema.core :as s]
             [toucan.db :as db]))
 
@@ -38,7 +39,7 @@
 ;; segmented access
 
 (defn- query->source-and-join-tables
-  "Return a sequence of all Tables (as TableInstance maps) referenced by QUERY."
+  "Return a sequence of all Tables (as TableInstance maps, or IDs) referenced by `query`."
   [{:keys [source-table join-tables source-query native], :as query}]
   (cond
     ;; if we come across a native query just put a placeholder (`::native`) there so we know we need to add native
@@ -47,17 +48,18 @@
     ;; if we have a source-query just recur until we hit either the native source or the MBQL source
     source-query (recur source-query)
     ;; for root MBQL queries just return source-table + join-tables
-    :else        (cons source-table join-tables)))
+    :else        (cons source-table (map :table-id join-tables))))
 
 (def ^:private PermsOptions
   "Map of options to be passed to the permissions checking functions."
-  {:throw-exceptions? s/Bool
-   :segmented-perms?  s/Bool})
+  {(s/optional-key :throw-exceptions?)     (s/maybe s/Bool)
+   (s/optional-key :segmented-perms?)      s/Bool
+   (s/optional-key :already-preprocessed?) s/Bool})
 
 (s/defn ^:private tables->permissions-path-set :- #{perms/ObjectPath}
   "Given a sequence of `tables` referenced by a query, return a set of required permissions. A truthy value for
   `segmented-perms?` will return segmented permissions for the table rather that full table permissions."
-  [database-or-id tables {:keys [segmented-perms?]}]
+  [database-or-id tables, {:keys [segmented-perms?]} :- PermsOptions]
   (let [table-perms-fn (if segmented-perms?
                          perms/table-segmented-query-path
                          perms/table-query-path)]
@@ -78,10 +80,12 @@
                            (throw (Exception. (str (tru "Card {0} does not exist." source-card-id)))))
                        :read))
 
-(defn- expand-query-if-needed [query]
-  (if (map? (:database query))
-    query
-    ((resolve 'metabase.query-processor/expand) query)))
+(defn- preprocess-query [query]
+  ;; ignore the current user for the purposes of calculating the permissions required to run the query. Don't want the
+  ;; preprocessing to fail because current user doesn't have permissions to run it when we're not trying to run it at
+  ;; all
+  (binding [api/*current-user-id* nil]
+    ((resolve 'metabase.query-processor/query->preprocessed) query)))
 
 ;; TODO - not sure how we can prevent circular source Cards if source Cards permissions are just collection perms now???
 (s/defn ^:private mbql-permissions-path-set :- #{perms/ObjectPath}
@@ -91,13 +95,15 @@
   things when a single Card is busted (e.g. API endpoints that filter out unreadable Cards) and instead returns 'only
   admins can see this' permissions -- `#{\"db/0\"}` (DB 0 will never exist, thus normal users will never be able to
   get permissions for it, but admins have root perms and will still get to see (and hopefully fix) it)."
-  [query :- {:query su/Map, s/Keyword s/Any}, {:keys [throw-exceptions?] :as perms-opts} :- PermsOptions]
+  [query :- {:query su/Map, s/Keyword s/Any}
+   {:keys [throw-exceptions? already-preprocessed?], :as perms-opts} :- PermsOptions]
   (try
     ;; if we are using a Card as our perms are that Card's (i.e. that Card's Collection's) read perms
     (if-let [source-card-id (qputil/query->source-card-id query)]
       (source-card-read-perms source-card-id)
       ;; otherwise if there's no source card then calculate perms based on the Tables referenced in the query
-      (let [{:keys [query database]} (expand-query-if-needed query)]
+      (let [{:keys [query database]} (cond-> query
+                                       (not already-preprocessed?) preprocess-query)]
         (tables->permissions-path-set database (query->source-and-join-tables query) perms-opts)))
     ;; if for some reason we can't expand the Card (i.e. it's an invalid legacy card) just return a set of permissions
     ;; that means no one will ever get to see it (except for superusers who get to see everything)
@@ -112,7 +118,6 @@
 (s/defn ^:private perms-set* :- #{perms/ObjectPath}
   "Does the heavy lifting of creating the perms set. `opts` will indicate whether exceptions should be thrown and
   whether full or segmented table permissions should be returned."
-  {:arglists '([outer-query & [throw-exceptions?]])}
   [{query-type :type, database :database, :as query}, perms-opts :- PermsOptions]
   (cond
     (empty? query)                   #{}
@@ -120,19 +125,16 @@
     (= (keyword query-type) :query)  (mbql-permissions-path-set query perms-opts)
     :else                            (throw (Exception. (str (tru "Invalid query type: {0}" query-type))))))
 
-(s/defn segmented-perms-set :- #{perms/ObjectPath}
+(defn segmented-perms-set
   "Calculate the set of permissions including segmented (not full) table permissions."
-  [query & [throw-exceptions? :- (s/maybe (s/eq :throw-exceptions))]]
-  (perms-set* query {:throw-exceptions? (boolean throw-exceptions?)
-                     :segmented-perms?  true}))
+  [query & {:as perms-opts}]
+  (perms-set* query (assoc perms-opts :segmented-perms? true)))
 
-(s/defn perms-set :- #{perms/ObjectPath}
+(defn perms-set
   "Calculate the set of permissions required to run an ad-hoc `query`. Returns permissions for full table access (not
   segmented)"
-  {:arglists '([outer-query & [throw-exceptions?]])}
-  [query & [throw-exceptions? :- (s/maybe (s/eq :throw-exceptions))]]
-  (perms-set* query {:throw-exceptions? (boolean throw-exceptions?)
-                     :segmented-perms?  false}))
+  [query & {:as perms-opts}]
+  (perms-set* query (assoc perms-opts :segmented-perms? false)))
 
 (s/defn can-run-query?
   "Return `true` if the current-user has sufficient permissions to run `query`. Handles checking for full table

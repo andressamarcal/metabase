@@ -10,8 +10,9 @@
              [config :as config]
              [util :as u]]
             [metabase.models.setting :as setting :refer [defsetting]]
-            [metabase.util.schema :as su]
-            [puppetlabs.i18n.core :refer [trs tru]]
+            [metabase.util
+             [i18n :refer [trs tru]]
+             [schema :as su]]
             [schema.core :as s]))
 
 (def ^:private ValidToken

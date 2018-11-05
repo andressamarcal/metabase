@@ -1,4 +1,4 @@
-(ns ^:internal-query-fn metabase.query-processor.middleware.internal-queries
+(ns metabase.query-processor.middleware.internal-queries
   "Middleware that handles special `internal` type queries. `internal` queries are implementeed directly by Clojure
   functions, and do not neccesarily need to query a database to provide results; by default, they completely skip
   the rest of the normal QP pipeline. `internal` queries should look like the following:
@@ -26,8 +26,9 @@
              [string :as str]]
             [metabase.api.common :as api]
             [metabase.public-settings.metastore :as metastore]
-            [metabase.util.schema :as su]
-            [puppetlabs.i18n.core :refer [tru]]
+            [metabase.util
+             [i18n :refer [tru]]
+             [schema :as su]]
             [schema.core :as s]))
 
 (def ^:private ResultsMetadata

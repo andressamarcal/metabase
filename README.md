@@ -82,7 +82,7 @@ Some questions come up over and over again. Check here first:
 
 # Security Disclosure
 
-Security is very important to us. If discover any issue regarding security, please disclose the information responsibly by sending an email to security@metabase.com and not by creating a GitHub issue.
+Security is very important to us. If you discover any issue regarding security, please disclose the information responsibly by sending an email to security@metabase.com and not by creating a GitHub issue.
 
 
 # Contributing
@@ -92,6 +92,9 @@ To get started with a development installation of the Metabase, follow the instr
 Then take a look at our [Contribution Guide](docs/contributing.md) for information about our process and where you can fit in!
 
 Talk to other contributors [in our Gitter room](https://gitter.im/metabase/metabase).
+
+# Internationalization
+We want Metabase to be avaliable in as many languages as possible. See what translations are avaliable and help contribute to internationalization using our project [over at POEditor](https://poeditor.com/join/project/ynjQmwSsGh)
 
 # Extending and Deep Integrations
 
@@ -112,4 +115,4 @@ The button below will deploy the branch where this README.md lives onto Heroku. 
 
 This Edition of Metabase is made available only to those with a fully paid up commerical license from Metabase. Access to this repository does not provide the permission to use the application.
 
-Unless otherwise noted, all files © 2017 Metabase, Inc.
+Unless otherwise noted, all files © 2018 Metabase, Inc.

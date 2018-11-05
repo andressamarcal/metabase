@@ -7,8 +7,9 @@
              [interface :as mi]
              [permissions :as perms]]
             [metabase.models.query.permissions :as query-perms]
-            [metabase.util.schema :as su]
-            [puppetlabs.i18n.core :refer [tru]]
+            [metabase.util
+             [i18n :refer [tru]]
+             [schema :as su]]
             [schema.core :as s]
             [toucan.db :as db]))
 
@@ -25,7 +26,7 @@
               ;; *If* we're using a GTAP, the User is obviously allowed to run its source query. So subtract the set of
               ;; perms required to run the source query. (See further discussion in
               ;; metabase.mt.query-processor.middleware.row-level-restrictions)
-              (set/difference (query-perms/perms-set outer-query :throw-exceptions)
+              (set/difference (query-perms/perms-set outer-query, :throw-exceptions? true, :already-preprocessed? true)
                               gtap-perms))
     (throw (Exception. (str (tru "You do not have permissions to run this query."))))))
 
