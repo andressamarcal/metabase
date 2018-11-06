@@ -13,7 +13,9 @@
              [interface :as mi]
              [permissions :as perms]
              [table :refer [Table]]]
-            [metabase.util.schema :as su]
+            [metabase.util
+             [i18n :refer [tru]]
+             [schema :as su]]
             [schema.core :as s]
             [toucan
              [db :as db]
@@ -336,6 +338,9 @@
   (let [field   (follow-fks field)
         results (qp/process-query (search-values-query field search-field value limit))
         rows    (get-in results [:data :rows])]
+    (when (= (:status results) :failed)
+      (throw (ex-info (str (tru "Error searching values."))
+               (assoc results :status-code 500))))
     ;; if the two Fields are different, we'll get results like [[v1 v2] [v1 v2]]. That is the expected format and we can
     ;; return them as-is
     (if-not (= (u/get-id field) (u/get-id search-field))

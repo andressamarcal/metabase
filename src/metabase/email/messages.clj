@@ -86,7 +86,9 @@
 
 (defn- abandonment-context []
   {:heading      (str (trs "We’d love your feedback."))
-   :callToAction (str (trs "It looks like Metabase wasn’t quite a match for you. Would you mind taking a fast 5 question survey to help the Metabase team understand why and make things better in the future?"))
+   :callToAction (str (trs "It looks like Metabase wasn’t quite a match for you.")
+                      " "
+                      (trs "Would you mind taking a fast 5 question survey to help the Metabase team understand why and make things better in the future?"))
    :link         "https://www.metabase.com/feedback/inactive"})
 
 (defn- follow-up-context []

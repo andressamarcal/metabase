@@ -6,7 +6,8 @@
             [metabase.api.common :as api]
             [metabase.models
              [interface :as i]
-             [permissions :as perms]]
+             [permissions :as perms]
+             [table :refer [Table]]]
             [metabase.query-processor.util :as qputil]
             [metabase.util :as u]
             [metabase.util
@@ -52,25 +53,39 @@
 
 (def ^:private PermsOptions
   "Map of options to be passed to the permissions checking functions."
-  {(s/optional-key :throw-exceptions?)     (s/maybe s/Bool)
-   (s/optional-key :segmented-perms?)      s/Bool
+  {:segmented-perms?                       s/Bool
+   (s/optional-key :throw-exceptions?)     (s/maybe s/Bool)
    (s/optional-key :already-preprocessed?) s/Bool})
 
+(def ^:private TableOrIDOrNativePlaceholder
+  (s/cond-pre
+   (s/eq ::native)
+   su/IntGreaterThanZero
+   {:id                      su/IntStringGreaterThanZero
+    (s/optional-key :schema) (s/maybe su/NonBlankString)
+    s/Keyword                s/Any}))
+
 (s/defn ^:private tables->permissions-path-set :- #{perms/ObjectPath}
-  "Given a sequence of `tables` referenced by a query, return a set of required permissions. A truthy value for
+  "Given a sequence of `tables-or-ids` referenced by a query, return a set of required permissions. A truthy value for
   `segmented-perms?` will return segmented permissions for the table rather that full table permissions."
-  [database-or-id tables, {:keys [segmented-perms?]} :- PermsOptions]
-  (let [table-perms-fn (if segmented-perms?
-                         perms/table-segmented-query-path
-                         perms/table-query-path)]
-    (set (for [table tables]
-           (if (= ::native table)
+  [database-or-id, tables-or-ids :- [TableOrIDOrNativePlaceholder], {:keys [segmented-perms?]} :- PermsOptions]
+  (let [table-ids           (filter integer? tables-or-ids)
+        table-id->schema    (when (seq table-ids)
+                              (db/select-id->field :schema Table :id [:in table-ids]))
+        table-or-id->schema #(if (integer? %)
+                               (table-id->schema %)
+                               (:schema %))
+        table-perms-fn      (if segmented-perms?
+                              perms/table-segmented-query-path
+                              perms/table-query-path)]
+    (set (for [table-or-id tables-or-ids]
+           (if (= ::native table-or-id)
              ;; Any `::native` placeholders from above mean we need native ad-hoc query permissions for this DATABASE
              (perms/adhoc-native-query-path database-or-id)
              ;; anything else (i.e., a normal table) just gets normal table permissions
              (table-perms-fn (u/get-id database-or-id)
-                             (:schema table)
-                             (or (:id table) (:table-id table))))))))
+                             (table-or-id->schema table-or-id)
+                             (u/get-id table-or-id)))))))
 
 (s/defn ^:private source-card-read-perms :- #{perms/ObjectPath}
   "Calculate the permissions needed to run an ad-hoc query that uses a Card with `source-card-id` as its source
@@ -127,12 +142,14 @@
 
 (defn segmented-perms-set
   "Calculate the set of permissions including segmented (not full) table permissions."
+  {:arglists '([query & {:keys [throw-exceptions? already-preprocessed?]}])}
   [query & {:as perms-opts}]
   (perms-set* query (assoc perms-opts :segmented-perms? true)))
 
 (defn perms-set
   "Calculate the set of permissions required to run an ad-hoc `query`. Returns permissions for full table access (not
   segmented)"
+  {:arglists '([query & {:keys [throw-exceptions? already-preprocessed?]}])}
   [query & {:as perms-opts}]
   (perms-set* query (assoc perms-opts :segmented-perms? false)))
 

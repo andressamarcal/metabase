@@ -577,7 +577,7 @@
                  :card-id      card-id
                  :dashboard-id dashboard-id}]
     (api/check-not-archived card)
-    (qp/process-query-and-save-execution! (api/with-current-user-info query) options)))
+    (qp/process-query-and-save-execution! query options)))
 
 (api/defendpoint POST "/:card-id/query"
   "Run the query associated with a Card."

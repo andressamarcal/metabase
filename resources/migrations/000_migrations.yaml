@@ -5104,6 +5104,8 @@ databaseChangeLog:
       id: 92
       author: camsaul
       comment: 'Added 0.31.0'
+      validCheckSum: 8:a875945f36824a0667c740888c00c37f
+      validCheckSum: 8:83ded48e18fe8f70d6ec09add042124d
       changes:
         - addColumn:
             tableName: query_execution

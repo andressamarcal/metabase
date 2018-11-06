@@ -11,8 +11,8 @@
              [query :as query]
              [query-execution :as query-execution :refer [QueryExecution]]]
             [metabase.mt.query-processor.middleware
-             [column-level-perms-check :as column-level-perms-check]
-             [row-level-restrictions :as row-level-restrictions]]
+             [column-level-perms-check :as mt.column-level-perms-check]
+             [row-level-restrictions :as mt.row-level-restrictions]]
             [metabase.query-processor.middleware
              [add-dimension-projections :as add-dim]
              [add-implicit-clauses :as implicit-clauses]
@@ -110,19 +110,19 @@
       wrap-value-literals/wrap-value-literals
       annotate/add-column-info
       perms/check-query-permissions
+      cumulative-ags/handle-cumulative-aggregations
+      mt.row-level-restrictions/apply-row-level-permissions-for-joins
       resolve-joined-tables/resolve-joined-tables
       dev/check-results-format
       limit/limit
-      cumulative-ags/handle-cumulative-aggregations
       results-metadata/record-and-return-metadata!
       format-rows/format-rows
       desugar/desugar
-      row-level-restrictions/apply-row-level-permissions-for-joins
       binning/update-binning-strategy
       resolve-fields/resolve-fields
       add-dim/add-remapping
-      column-level-perms-check/maybe-apply-column-level-perms-check
       implicit-clauses/add-implicit-clauses
+      mt.column-level-perms-check/maybe-apply-column-level-perms-check
       reconcile-bucketing/reconcile-breakout-and-order-by-bucketing
       bucket-datetime/auto-bucket-datetime-breakouts
       resolve-source-table/resolve-source-table
@@ -145,7 +145,7 @@
       fetch-source-query/fetch-source-query
       store/initialize-store
       query-throttle/maybe-add-query-throttle
-      row-level-restrictions/apply-row-level-permissions
+      mt.row-level-restrictions/apply-row-level-permissions
       log-query/log-initial-query
       ;; TODO - bind `*query*` here ?
       cache/maybe-return-cached-results
@@ -234,9 +234,9 @@
 
 (defn- save-query-execution!
   "Save a `QueryExecution` and update the average execution time for the corresponding `Query`."
-  [query-execution]
+  [{query :json_query, :as query-execution}]
   (u/prog1 query-execution
-    (query/save-query-and-update-average-execution-time! (:hash query-execution) (:running_time query-execution))
+    (query/save-query-and-update-average-execution-time! query (:hash query-execution) (:running_time query-execution))
     (db/insert! QueryExecution (dissoc query-execution :json_query))))
 
 (defn- save-and-return-failed-query!
@@ -301,10 +301,14 @@
 
 (defn- query-execution-info
   "Return the info for the `QueryExecution` entry for this QUERY."
-  [{{:keys [executed-by query-hash query-type context card-id dashboard-id pulse-id]} :info, :as query}]
+  {:arglists '([query])}
+  [{{:keys [executed-by query-hash query-type context card-id dashboard-id pulse-id]} :info
+    database-id                                                                       :database
+    :as                                                                               query}]
   {:pre [(instance? (Class/forName "[B") query-hash)
          (string? query-type)]}
-  {:executor_id       executed-by
+  {:database_id       database-id
+   :executor_id       executed-by
    :card_id           card-id
    :dashboard_id      dashboard-id
    :pulse_id          pulse-id

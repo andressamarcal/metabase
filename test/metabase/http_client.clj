@@ -137,6 +137,12 @@
         [body [& {:as url-param-kwargs}]] (u/optional map? args)]
     [credentials method expected-status url body url-param-kwargs request-options]))
 
+(defn client-full-response
+  "Identical to `client` except returns the full HTTP response map, not just the body of the response"
+  {:arglists '([credentials? method expected-status-code? url request-options? http-body-map? & url-kwargs])}
+  [& args]
+  (apply -client (parse-http-client-args args)))
+
 (defn client
   "Perform an API call and return the response (for test purposes).
    The first arg after URL will be passed as a JSON-encoded body if it is a map.
@@ -150,7 +156,8 @@
 
   Args:
 
-   *  CREDENTIALS           Optional map of `:username` and `:password` or `X-METABASE-SESSION` token of a User who we should perform the request as
+   *  CREDENTIALS           Optional map of `:username` and `:password` or `X-METABASE-SESSION` token of a User who we
+                            should perform the request as
    *  METHOD                `:get`, `:post`, `:delete`, or `:put`
    *  EXPECTED-STATUS-CODE  When passed, throw an exception if the response has a different status code.
    *  URL                   Base URL of the request, which will be appended to `*url-prefix*`. e.g. `card/1/favorite`
@@ -158,10 +165,4 @@
    *  URL-KWARGS            key-value pairs that will be encoded and added to the URL as GET params"
   {:arglists '([credentials? method expected-status-code? url request-options? http-body-map? & url-kwargs])}
   [& args]
-  (:body (apply -client (parse-http-client-args args))))
-
-(defn client-full-response
-  "Identical to `client` except returns the full HTTP response map, not just the body of the response"
-  {:arglists '([credentials? method expected-status-code? url request-options? http-body-map? & url-kwargs])}
-  [& args]
-  (apply -client (parse-http-client-args args)))
+  (:body (apply client-full-response args)))

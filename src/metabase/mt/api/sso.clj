@@ -5,12 +5,16 @@
             [metabase.api.common :as api]
             [metabase.mt.integrations.sso-settings :as sso-settings]
             [metabase.public-settings.metastore :as metastore]
-            [puppetlabs.i18n.core :refer [tru]]))
+            [metabase.util.i18n :refer [tru]]))
 
 (defn- sso-backend
   "Function that powers the defmulti in figuring out which SSO backend to use. It might be that we need to have more
   complex logic around this, but now it's just a simple priority. If SAML is configured use that otherwise JWT"
   [_]
+  ;; load the SSO integrations so their implementations for the multimethods below are available. Can't load in
+  ;; `:require` because it would cause a circular ref / those namespaces aren't used here at any rate
+  ;; (`cljr-clean-namespace` would remove them)
+  (require '[metabase.mt.integrations jwt saml])
   (cond
     (sso-settings/saml-configured?)
     :saml
@@ -30,7 +34,7 @@
   sso-backend)
 
 (defn- throw-not-configured-error []
-  (throw (ex-info (tru "SSO has not been enabled and/or configured")
+  (throw (ex-info (str (tru "SSO has not been enabled and/or configured"))
            {:status-code 400})))
 
 (defmethod sso-get :default
@@ -43,7 +47,7 @@
 
 (defn- throw-if-no-metastore-token []
   (when-not (metastore/enable-sso?)
-    (throw (ex-info (tru "SSO requires a valid token")
+    (throw (ex-info (str (tru "SSO requires a valid token"))
              {:status-code 403}))))
 
 (api/defendpoint GET "/"
@@ -57,5 +61,9 @@
   {:as req}
   (throw-if-no-metastore-token)
   (sso-post req))
+
+;; need to load these so the integrations' multimethods are added. Not actually used in this namespace however so
+(require 'metabase.mt.integrations.jwt 'metabase.mt.integrations.saml)
+
 
 (api/define-routes)

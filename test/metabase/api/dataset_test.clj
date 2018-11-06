@@ -72,7 +72,7 @@
     :context                "ad-hoc"
     :json_query             (-> (data/mbql-query checkins
                                   {:aggregation [[:count]]})
-                                (assoc :type "query", :user (query-user :rasta))
+                                (assoc :type "query")
                                 (assoc-in [:query :aggregation] [["count"]])
                                 (assoc :constraints qp/default-query-constraints))
     :started_at             true
@@ -102,7 +102,7 @@
 
 ;; Even if a query fails we still expect a 200 response from the api
 (expect
-  [;; API call response
+  [ ;; API call response
    {:data         {:rows    []
                    :columns []
                    :cols    []}
@@ -113,7 +113,6 @@
     :json_query   {:database    (id)
                    :type        "native"
                    :native      {:query "foobar"}
-                   :user        (query-user :rasta)
                    :constraints qp/default-query-constraints}
     :database_id  (id)
     :started_at   true

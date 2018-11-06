@@ -243,7 +243,10 @@
 
 (s/defn query->source-table-id :- (s/maybe su/IntGreaterThanZero)
   "Return the source Table ID associated with `query`, if applicable; handles nested queries as well. If `query` is
-  `nil`, returns `nil`."
+  `nil`, returns `nil`.
+
+  Throws an Exception when it encounters a unresolved source query (i.e., the `:source-table \"card__id\"`
+  form), because it cannot return an accurate result for a query that has not yet been preprocessed."
   {:argslists '([outer-query])}
   [{{source-table-id :source-table, source-query :source-query} :query, query-type :type, :as query}]
   (cond
@@ -261,11 +264,11 @@
 
     ;; if ID is a `card__id` form that can only mean we haven't preprocessed the query and resolved the source query.
     ;; This is almost certainly an accident, so throw an Exception so we can make the proper fixes
-    ((every-pred string? (partial re-matches mbql.s/source-table-card-id-regex)) source-table-id)
+    (and ((every-pred string? (partial re-matches mbql.s/source-table-card-id-regex)) source-table-id))
     (throw
      (Exception.
       (str
-       (tru "Error: query's source query has not been resolved. You probably need to `preprocess` the query first."))))
+       (tru "Error: query''s source query has not been resolved. You probably need to `preprocess` the query first."))))
 
     ;; otherwise resolve the source Table
     :else
