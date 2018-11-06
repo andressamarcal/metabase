@@ -1,7 +1,6 @@
 (ns metabase.mt.api.routes
   "Multi-tenant API routes."
-  (:require [clojure.tools.logging :as log]
-            [compojure.core :refer [context defroutes routes]]
+  (:require [compojure.core :refer [context defroutes routes]]
             [metabase.middleware :as middleware]
             [metabase.mt.api
              [gtap :as gtap]

@@ -1,6 +1,8 @@
 (ns metabase.mt.query-processor.middleware.row-level-restrictions
-  (:require [metabase.api.common :refer [*current-user-id* *current-user* *current-user-permissions-set*]]
-            [metabase.mbql.schema :as mbql.s]
+  (:require [metabase.api.common :as api :refer [*current-user* *current-user-id* *current-user-permissions-set*]]
+            [metabase.mbql
+             [schema :as mbql.s]
+             [util :as mbql.u]]
             [metabase.models
              [card :refer [Card]]
              [database :as database]
@@ -11,16 +13,11 @@
              [table :refer [Table]]]
             [metabase.models.query.permissions :as query-perms]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
-            [metabase.query-processor.util :as qputil]
+            [metabase.query-processor.middleware.resolve-fields :as resolve-fields]
             [metabase.util :as u]
-            [metabase.util.schema :as su]
             [puppetlabs.i18n.core :refer [tru]]
             [schema.core :as s]
-            [toucan.db :as db]
-            [metabase.api.common :as api]
-            [metabase.query-processor.middleware.resolve-fields :as resolve-fields]
-            [metabase.mbql.util :as mbql.u]))
-
+            [toucan.db :as db]))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                     Fetching Appropriate GTAPs for a Table                                     |

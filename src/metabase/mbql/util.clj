@@ -247,7 +247,7 @@
 
   Throws an Exception when it encounters a unresolved source query (i.e., the `:source-table \"card__id\"`
   form), because it cannot return an accurate result for a query that has not yet been preprocessed."
-  {:argslists '([outer-query])}
+  {:arglists '([outer-query])}
   [{{source-table-id :source-table, source-query :source-query} :query, query-type :type, :as query}]
   (cond
     ;; for native queries, there's no source table to resolve
@@ -264,7 +264,7 @@
 
     ;; if ID is a `card__id` form that can only mean we haven't preprocessed the query and resolved the source query.
     ;; This is almost certainly an accident, so throw an Exception so we can make the proper fixes
-    (and ((every-pred string? (partial re-matches mbql.s/source-table-card-id-regex)) source-table-id))
+    ((every-pred string? (partial re-matches mbql.s/source-table-card-id-regex)) source-table-id)
     (throw
      (Exception.
       (str

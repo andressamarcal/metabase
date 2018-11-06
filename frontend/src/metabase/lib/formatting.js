@@ -393,7 +393,11 @@ function replaceDateFormatNames(format, options) {
 }
 
 function formatDateTimeWithFormats(value, dateFormat, timeFormat, options) {
-  let m = parseTimestamp(value, options.column && options.column.unit, options.local);
+  let m = parseTimestamp(
+    value,
+    options.column && options.column.unit,
+    options.local,
+  );
   if (!m.isValid()) {
     return String(value);
   }
@@ -409,7 +413,11 @@ function formatDateTimeWithFormats(value, dateFormat, timeFormat, options) {
 }
 
 function formatDateTime(value, options) {
-  let m = parseTimestamp(value, options.column && options.column.unit, options.local);
+  let m = parseTimestamp(
+    value,
+    options.column && options.column.unit,
+    options.local,
+  );
   if (!m.isValid()) {
     return String(value);
   }

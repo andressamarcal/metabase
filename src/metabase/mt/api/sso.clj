@@ -62,8 +62,5 @@
   (throw-if-no-metastore-token)
   (sso-post req))
 
-;; need to load these so the integrations' multimethods are added. Not actually used in this namespace however so
-(require 'metabase.mt.integrations.jwt 'metabase.mt.integrations.saml)
-
 
 (api/define-routes)

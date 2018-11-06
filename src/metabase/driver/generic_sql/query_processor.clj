@@ -6,7 +6,6 @@
             [honeysql
              [core :as hsql]
              [helpers :as h]]
-            [medley.core :as m]
             [metabase
              [driver :as driver]
              [util :as u]]

@@ -12,7 +12,6 @@
              [table :refer [Table]]
              [user :refer [User]]]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
-            [metabase.mt.test-util :as mt.tu]
             [metabase.test
              [data :as data]
              [util :as tu]]
