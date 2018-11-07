@@ -4,7 +4,7 @@
              [route :as route]]
             [metabase.api
              [activity :as activity]
-             [alert    :as alert]
+             [alert :as alert]
              [automagic-dashboards :as magic]
              [card :as card]
              [collection :as collection]
@@ -31,11 +31,13 @@
              [setup :as setup]
              [slack :as slack]
              [table :as table]
+             [task :as task]
              [tiles :as tiles]
              [user :as user]
              [util :as util]]
             [metabase.middleware :as middleware]
-            [puppetlabs.i18n.core :refer [tru]]))
+            [metabase.mt.api.routes :as mt-routes]
+            [metabase.util.i18n :refer [tru]]))
 
 (def ^:private +generic-exceptions
   "Wrap ROUTES so any Exception thrown is just returned as a generic 400, to prevent details from leaking in public
@@ -56,6 +58,7 @@
   middleware/enforce-authentication)
 
 (defroutes ^{:doc "Ring routes for API endpoints."} routes
+  mt-routes/mt-routes
   (context "/activity"             [] (+auth activity/routes))
   (context "/alert"                [] (+auth alert/routes))
   (context "/automagic-dashboards" [] (+auth magic/routes))
@@ -84,6 +87,7 @@
   (context "/setup"                [] setup/routes)
   (context "/slack"                [] (+auth slack/routes))
   (context "/table"                [] (+auth table/routes))
+  (context "/task"                 [] (+auth task/routes))
   (context "/tiles"                [] (+auth tiles/routes))
   (context "/user"                 [] (+auth user/routes))
   (context "/util"                 [] util/routes)

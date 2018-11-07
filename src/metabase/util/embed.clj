@@ -11,7 +11,7 @@
              [public-settings :as public-settings]
              [util :as u]]
             [metabase.models.setting :as setting]
-            [puppetlabs.i18n.core :refer [trs tru]]
+            [metabase.util.i18n :refer [trs tru]]
             [ring.util.codec :as codec]))
 
 ;;; --------------------------------------------- PUBLIC LINKS UTIL FNS ----------------------------------------------
@@ -59,7 +59,7 @@
   (tru "Secret key used to sign JSON Web Tokens for requests to `/api/embed` endpoints.")
   :setter (fn [new-value]
             (when (seq new-value)
-              (assert (u/hexidecimal-string? new-value)
+              (assert (u/hexadecimal-string? new-value)
                 (tru "Invalid embedding-secret-key! Secret key must be a hexadecimal-encoded 256-bit key (i.e., a 64-character string).")))
             (setting/set-string! :embedding-secret-key new-value)))
 

@@ -1,6 +1,4 @@
 (ns metabase.db.metadata-queries
-  ;; TODO - should this go under `metabase.db`? `metabase.db` is stuff related to the application database, and this
-  ;; stuff is QP & sync related
   "Predefined MBQL queries for getting metadata about an external database."
   (:require [clojure.tools.logging :as log]
             [metabase
@@ -9,38 +7,37 @@
             [metabase.api.common :as api]
             [metabase.models.table :refer [Table]]
             [metabase.query-processor.interface :as qpi]
-            [metabase.query-processor.middleware.expand :as ql]
             [metabase.util.schema :as su]
             [schema.core :as s]
             [toucan.db :as db]))
 
-(defn- qp-query [db-id query]
+(defn- qp-query [db-id mbql-query]
+  {:pre [(integer? db-id)]}
   (-> (binding [qpi/*disable-qp-logging* true]
         (qp/process-query
-          {:type     :query
-           :database (u/get-id db-id)
-           :query    query
-           ;; for things like ad-hoc FieldValues fetching. If current user has an applicable GTAP we need to
-           ;; know about them in order to apply it.
-           :user     @api/*current-user*}))
+         {:type     :query
+          :database db-id
+          :query    mbql-query
+          ;; for things like ad-hoc FieldValues fetching. If current user has an applicable GTAP we need to
+          ;; know about them in order to apply it.
+          :user     @api/*current-user*}))
       :data
       :rows))
 
-(defn- field-query [{table-id :table_id} query]
+(defn- field-query [{table-id :table_id} mbql-query]
   {:pre [(integer? table-id)]}
   (qp-query (db/select-one-field :db_id Table, :id table-id)
             ;; this seeming useless `merge` statement IS in fact doing something important. `ql/query` is a threading
             ;; macro for building queries. Do not remove
-            (ql/query (merge query)
-                      (ql/source-table table-id))))
+            (assoc mbql-query :source-table table-id)))
 
 (defn table-row-count
   "Fetch the row count of TABLE via the query processor."
   [table]
   {:pre  [(map? table)]
    :post [(integer? %)]}
-  (let [results (qp-query (:db_id table) (ql/query (ql/source-table (u/get-id table))
-                                                   (ql/aggregation (ql/count))))]
+  (let [results (qp-query (:db_id table) {:source-table (u/get-id table)
+                                          :aggregation  [[:count]]})]
     (try (-> results first first long)
          (catch Throwable e
            (log/error "Error fetching table row count. Query returned:\n"
@@ -73,22 +70,20 @@
   ([field]
    (field-distinct-values field absolute-max-distinct-values-limit))
   ([field, max-results :- su/IntGreaterThanZero]
-   (mapv first (field-query field (-> {}
-                                      (ql/breakout (ql/field-id (u/get-id field)))
-                                      (ql/limit max-results))))))
+   (mapv first (field-query field {:breakout [[:field-id (u/get-id field)]]
+                                   :limit    max-results}))))
 
 (defn field-distinct-count
   "Return the distinct count of FIELD."
   [field & [limit]]
-  (-> (field-query field (-> {}
-                             (ql/aggregation (ql/distinct (ql/field-id (u/get-id field))))
-                             (ql/limit limit)))
+  (-> (field-query field {:aggregation [[:distinct [:field-id (u/get-id field)]]]
+                          :limit       limit})
       first first int))
 
 (defn field-count
   "Return the count of FIELD."
   [field]
-  (-> (field-query field (ql/aggregation {} (ql/count (ql/field-id (u/get-id field)))))
+  (-> (field-query field {:aggregation [[:count [:field-id (u/get-id field)]]]})
       first first int))
 
 (defn db-id

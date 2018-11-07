@@ -10,8 +10,9 @@
              [config :as config]
              [util :as u]]
             [metabase.models.setting :as setting :refer [defsetting]]
-            [metabase.util.schema :as su]
-            [puppetlabs.i18n.core :refer [trs tru]]
+            [metabase.util
+             [i18n :refer [trs tru]]
+             [schema :as su]]
             [schema.core :as s]))
 
 (def ^:private ValidToken
@@ -125,7 +126,6 @@
         (log/info (trs "Token is valid.")))
       (setting/set-string! :premium-embedding-token new-value)
       (catch Throwable e
-        (println "e:" e) ; NOCOMMIT
         (log/error e (trs "Error setting premium features token"))
         (throw (ex-info (.getMessage e) (merge
                                          {:message (.getMessage e), :status-code 400}
