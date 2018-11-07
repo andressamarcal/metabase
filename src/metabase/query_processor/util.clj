@@ -59,20 +59,6 @@
      (recur (assoc m :query source-query) ks not-found)
      (get-in m (cons :query ks) not-found))))
 
-(defn assoc-in-query
-  "Similar to `assoc-in` but will add the value to the most deeply nested MBQL query (i.e., the top-level MBQL query if
-  there are no source queries; or the most deeply nested source query if there are). Using this function will avoid
-  having to check if there's a nested query vs. top-level query. "
-  [m ks v]
-  (if-let [source-query (get-in m [:query :source-query])]
-    ;; We have a soure-query, we need to recursively `assoc-in` with the source query as the query
-    (assoc-in m
-              [:query :source-query]
-              (-> (assoc m :query source-query)
-                  (assoc-in-query ks v)
-                  :query))
-    (assoc-in m (cons :query ks) v)))
-
 
 ;;; ---------------------------------------------------- Hashing -----------------------------------------------------
 
