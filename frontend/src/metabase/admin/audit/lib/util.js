@@ -26,8 +26,11 @@ const AuditDrill = ({
   clicked,
 }: {
   question: Question,
-  clicked: ClickObject,
+  clicked?: ClickObject,
 }) => {
+  if (!clicked) {
+    return [];
+  }
   const metricAndDimensions = [clicked].concat(clicked.dimensions || []);
   for (const { column, value } of metricAndDimensions) {
     if (column && columnNameToUrl[column.name] != null && value != null) {
@@ -43,13 +46,15 @@ const AuditDrill = ({
       ];
     }
   }
+
   // NOTE: special case for showing query detail links for ad-hoc queries in the card id column
-  if (clicked.column && clicked.column.name === "card_id") {
+  const { column, origin } = clicked;
+  if (origin && column && column.name === "card_id") {
     const queryHashColIndex = _.findIndex(
-      clicked.cols,
+      origin.cols,
       col => col.name === "query_hash",
     );
-    const value = clicked.row && clicked.row[queryHashColIndex];
+    const value = origin.row[queryHashColIndex];
     if (value) {
       return [
         {
@@ -65,7 +70,6 @@ const AuditDrill = ({
   }
   return [];
 };
-
 
 export const AuditMode: QueryMode = {
   name: "audit",
