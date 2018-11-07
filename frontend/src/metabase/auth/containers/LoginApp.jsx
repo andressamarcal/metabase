@@ -118,7 +118,6 @@ export default class LoginApp extends Component {
   render() {
     const { loginError } = this.props;
     const { adminLogin } = this.state;
-    const ldapEnabled = Settings.ldapEnabled();
 
     return (
       <div className="full flex flex-column flex-full md-layout-centered">
@@ -159,7 +158,7 @@ export default class LoginApp extends Component {
                     {t`Sign in`}
                   </Button>
                 </div>
-              ) : Settings.passwordEnabled() ? (
+              ) : Settings.passwordEnabled() || Settings.ldapEnabled() ? (
                 <div>
                   <FormMessage
                     formError={
@@ -192,7 +191,7 @@ export default class LoginApp extends Component {
                          * in auth, set the input type to email so we get built in
                          * validation in modern browsers
                          * */
-                        ldapEnabled ? "text" : "email"
+                        Settings.ldapEnabled() ? "text" : "email"
                       }
                       onChange={e => this.onChange("username", e.target.value)}
                       autoFocus
