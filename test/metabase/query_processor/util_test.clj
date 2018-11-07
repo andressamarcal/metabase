@@ -108,12 +108,31 @@
                         :native      {:query "SELECT pg_sleep(15), 2 AS two"}})))
 
 
-(defrecord ^:private TestRecord1 [x])
-(defrecord ^:private TestRecord2 [x])
+(def ^:private test-inner-map
+  {:test {:value 10}})
 
-(def ^:private test-tree
-  {:a {:aa (TestRecord1. 1)
-       :ab (TestRecord2. 1)}
-   :b (TestRecord1. 1)
-   :c (TestRecord2. 1)
-   :d [1 2 3 4]})
+;; get-in-query should work for a nested query
+(expect
+  10
+  (qputil/get-in-query {:query {:source-query test-inner-map}} [:test :value]))
+
+;; Not currently supported, but get-in-query should work for a double nested query
+(expect
+  10
+  (qputil/get-in-query {:query {:source-query {:source-query test-inner-map}}} [:test :value]))
+
+;; get-in-query should also work with non-nested queries
+(expect
+  10
+  (qputil/get-in-query {:query test-inner-map} [:test :value]))
+
+;; Not providing a `not-found` value should just return nil
+(expect
+  nil
+  (qputil/get-in-query {} [:test]))
+
+;; Providing a `not-found` value should return that
+(let [not-found (gensym)]
+  (expect
+    not-found
+    (qputil/get-in-query {} [:test] not-found)))

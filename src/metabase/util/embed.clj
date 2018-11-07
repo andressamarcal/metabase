@@ -90,7 +90,7 @@
       (check-valid-alg message)
       (jwt/unsign message
                   (or (embedding-secret-key)
-                      (throw (ex-info (tru "The embedding secret key has not been set.") {:status-code 400})))
+                      (throw (ex-info (str (tru "The embedding secret key has not been set.")) {:status-code 400})))
                   ;; The library will reject tokens with a created at timestamp in the future, so to account for clock
                   ;; skew tell the library that "now" is actually two minutes ahead of whatever the system time is so
                   ;; tokens don't get inappropriately rejected
@@ -103,4 +103,4 @@
   "Find KEYSEQ in the UNSIGNED-TOKEN (a JWT token decoded by `unsign`) or throw a 400."
   [unsigned-token keyseq]
   (or (get-in unsigned-token keyseq)
-      (throw (ex-info (str (tru "Token is missing value for keypath") keyseq) {:status-code 400}))))
+      (throw (ex-info (str (tru "Token is missing value for keypath") " " keyseq) {:status-code 400}))))
