@@ -1,6 +1,7 @@
 (ns metabase.public-settings.metastore
   "Settings related to checking token validity and accessing the MetaStore."
   (:require [cheshire.core :as json]
+            [clj-http.client :as http]
             [clojure.core.memoize :as memoize]
             [clojure.string :as str]
             [clojure.tools.logging :as log]
@@ -41,9 +42,14 @@
 (def ^:private ^:const fetch-token-status-timeout-ms 10000) ; 10 seconds
 
 (def ^:private TokenStatus
-  {:valid                     s/Bool
-   :status                    su/NonBlankString
-   (s/optional-key :features) [su/NonBlankString]})
+  {:valid                          s/Bool
+   :status                         su/NonBlankString
+   (s/optional-key :error-details) (s/maybe su/NonBlankString)
+   (s/optional-key :features)      [su/NonBlankString]
+   (s/optional-key :trial)         s/Bool
+   (s/optional-key :valid_thru)    su/NonBlankString ; ISO 8601 timestamp
+   ;; don't explode in the future if we add more to the response! lol
+   s/Any                           s/Any})
 
 (s/defn ^:private fetch-token-status* :- TokenStatus
   "Fetch info about the validity of `token` from the MetaStore."
@@ -53,26 +59,26 @@
   (log/info (trs "Checking with the MetaStore to see whether {0} is valid..." token))
   (deref
    (future
-     (println (u/format-color 'green (trs "Using this URL to check token: {0}" (token-status-url token))))
+     (log/info (u/format-color 'green (trs "Using this URL to check token: {0}" (token-status-url token))))
      (try (some-> (token-status-url token)
-                  slurp
+                  http/get
+                  :body
                   (json/parse-string keyword))
-          ;; slurp will throw a FileNotFoundException for 404s, so in that case just return an appropriate
-          ;; 'Not Found' message
-          (catch java.io.FileNotFoundException e
-            {:valid false, :status (tru "Unable to validate token: 404 not found.")})
-          ;; if there was any other error fetching the token, log it and return a generic message about the
+          ;; if there was an error fetching the token, log it and return a generic message about the
           ;; token being invalid. This message will get displayed in the Settings page in the admin panel so
           ;; we do not want something complicated
-          (catch Throwable e
+          (catch clojure.lang.ExceptionInfo e
             (log/error e (trs "Error fetching token status:"))
-            {:valid false, :status (str (tru "There was an error checking whether this token was valid:")
-                                        " "
-                                        (.getMessage e))})))
+            (let [body (u/ignore-exceptions (some-> (ex-data e) :object :body (json/parse-string keyword)))]
+              (or
+               body
+               {:valid         false
+                :status        (tru "Unable to validate token")
+                :error-details (.getMessage e)})))))
    fetch-token-status-timeout-ms
-   {:valid false, :status (tru "Token validation timed out.")}))
+   {:valid false, :status (tru "Unable to validate token"), :error-details (tru "Token validation timed out.")}))
 
-(def ^:private ^{:arglists '([token])} fetch-token-status
+(def ^{:arglists '([token])} fetch-token-status
   "TTL-memoized version of `fetch-token-status*`. Caches API responses for 5 minutes. This is important to avoid making
   too many API calls to the Store, which will throttle us if we make too many requests; putting in a bad token could
   otherwise put us in a state where `valid-token->features*` made API calls over and over, never itself getting cached
@@ -83,10 +89,11 @@
 
 (s/defn ^:private valid-token->features* :- #{su/NonBlankString}
   [token :- ValidToken]
-  (let [{:keys [valid status features]} (fetch-token-status token)]
+  (let [{:keys [valid status features error-details]} (fetch-token-status token)]
     ;; if token isn't valid throw an Exception with the `:status` message
     (when-not valid
-      (throw (Exception. ^String status)))
+      (throw (ex-info status
+               {:status-code 400, :error-details error-details})))
     ;; otherwise return the features this token supports
     (set features)))
 
@@ -113,14 +120,16 @@
     (try
       (when (seq new-value)
         (when (s/check ValidToken new-value)
-          (throw (ex-info (tru "Token format is invalid. Token should be 64 hexadecimal characters.")
-                   {:status-code 400})))
+          (throw (ex-info (tru "Token format is invalid.")
+                   {:status-code 400, :error-details "Token should be 64 hexadecimal characters."})))
         (valid-token->features new-value)
         (log/info (trs "Token is valid.")))
       (setting/set-string! :premium-embedding-token new-value)
       (catch Throwable e
         (log/error e (trs "Error setting premium features token"))
-        (throw (ex-info (.getMessage e) {:status-code 400}))))))
+        (throw (ex-info (.getMessage e) (merge
+                                         {:message (.getMessage e), :status-code 400}
+                                         (ex-data e)))))))) ; merge in error-details if present
 
 (s/defn ^:private token-features :- #{su/NonBlankString}
   "Get the features associated with the system's premium features token."

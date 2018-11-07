@@ -30,7 +30,15 @@ import PeopleListingApp from "metabase/admin/people/containers/PeopleListingApp.
 import GroupsListingApp from "metabase/admin/people/containers/GroupsListingApp.jsx";
 import GroupDetailApp from "metabase/admin/people/containers/GroupDetailApp.jsx";
 
+// Audit
+import getAdminAuditRoutes from "metabase/admin/audit/routes.jsx";
+
+// Permissions
 import getAdminPermissionsRoutes from "metabase/admin/permissions/routes.jsx";
+
+// Store
+import StoreActivate from "metabase/admin/store/containers/StoreActivate";
+import StoreAccount from "metabase/admin/store/containers/StoreAccount";
 
 const getRoutes = (store, IsAdmin) => (
   <Route
@@ -39,6 +47,11 @@ const getRoutes = (store, IsAdmin) => (
     component={withBackground("bg-white")(IsAdmin)}
   >
     <IndexRedirect to="/admin/settings" />
+
+    <Route path="store" title={t`Store`}>
+      <IndexRoute component={StoreAccount} />
+      <Route path="activate" component={StoreActivate} />
+    </Route>
 
     <Route path="databases" title={t`Databases`}>
       <IndexRoute component={DatabaseListApp} />
@@ -95,6 +108,10 @@ const getRoutes = (store, IsAdmin) => (
       <Route path=":section" component={SettingsEditorApp} />
     </Route>
 
+    {/* AUDIT APP */}
+    {getAdminAuditRoutes(store)}
+
+    {/* PERMISSIONS */}
     {getAdminPermissionsRoutes(store)}
   </Route>
 );

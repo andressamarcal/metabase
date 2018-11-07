@@ -18,6 +18,13 @@ import "metabase/lib/i18n";
 // NOTE: why do we need to load this here?
 import "metabase/lib/colors";
 
+import { updateColors, updateColorsJS } from "metabase/lib/whitelabel";
+// Update the JS colors to ensure components that use a color statically get the
+// whitelabeled color (though this doesn't help if the admin changes a color and
+// doesn't refresh)
+// Don't update CSS colors yet since all the CSS hasn't been loaded yet
+updateColorsJS();
+
 import React from "react";
 import ReactDOM from "react-dom";
 import { Provider } from "react-redux";
@@ -61,8 +68,9 @@ function _init(reducers, getRoutes, callback) {
   const routes = getRoutes(store);
   const history = syncHistoryWithStore(browserHistory, store);
 
+  let root;
   ReactDOM.render(
-    <Provider store={store}>
+    <Provider store={store} ref={ref => (root = ref)}>
       <DragDropContextProvider backend={HTML5Backend} context={{ window }}>
         <ThemeProvider theme={theme}>
           <Router history={history}>{routes}</Router>
@@ -87,6 +95,12 @@ function _init(reducers, getRoutes, callback) {
       "ga-disable-" + MetabaseSettings.get("ga_code")
     ] = MetabaseSettings.isTrackingEnabled() ? null : true;
   });
+
+  MetabaseSettings.on("application-colors", updateColors);
+  MetabaseSettings.on("application-colors", () => {
+    root.forceUpdate();
+  });
+  updateColors();
 
   window.Metabase = window.Metabase || {};
   window.Metabase.store = store;

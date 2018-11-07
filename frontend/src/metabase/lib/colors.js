@@ -22,6 +22,7 @@ const colors = {
   accent5: "#F2A86F",
   accent6: "#98D9D9",
   accent7: "#7172AD",
+  "admin-navbar": "#7172AD",
   white: "#FFFFFF",
   black: "#2E353B",
   success: "#84BB4C",
@@ -38,6 +39,7 @@ const colors = {
   "bg-white": "#FFFFFF",
   shadow: "rgba(0,0,0,0.08)",
   border: "#D7DBDE",
+  nav: undefined,
 };
 /* eslint-enable no-color-literals */
 export default colors;
@@ -114,6 +116,8 @@ export const getRandomColor = (family: ColorFamily): ColorString => {
   const colors: ColorString[] = Object.values(family);
   return colors[Math.floor(Math.random() * colors.length)];
 };
+
+export const getNavBarColor = () => colors["nav"] || colors["brand"];
 
 type ColorScale = (input: number) => ColorString;
 

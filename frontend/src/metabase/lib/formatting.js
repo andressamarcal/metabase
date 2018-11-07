@@ -96,6 +96,10 @@ export type FormattingOptions = {
   time_style?: TimeStyle,
   time_enabled?: TimeEnabled,
   time_format?: string,
+  // display in local timezone or parsed timezone
+  local?: boolean,
+  // markdown template
+  markdown_template?: string,
 };
 
 type FormattedString = string | React$Element<any>;
@@ -346,7 +350,7 @@ export function formatDateTimeRangeWithUnit(
   unit: DatetimeUnit,
   options: FormattingOptions = {},
 ) {
-  let m = parseTimestamp(value, unit);
+  let m = parseTimestamp(value, unit, options.local);
   if (!m.isValid()) {
     return String(value);
   }
@@ -399,7 +403,11 @@ function replaceDateFormatNames(format, options) {
 }
 
 function formatDateTimeWithFormats(value, dateFormat, timeFormat, options) {
-  let m = parseTimestamp(value, options.column && options.column.unit);
+  let m = parseTimestamp(
+    value,
+    options.column && options.column.unit,
+    options.local,
+  );
   if (!m.isValid()) {
     return String(value);
   }
@@ -415,7 +423,11 @@ function formatDateTimeWithFormats(value, dateFormat, timeFormat, options) {
 }
 
 function formatDateTime(value, options) {
-  let m = parseTimestamp(value, options.column && options.column.unit);
+  let m = parseTimestamp(
+    value,
+    options.column && options.column.unit,
+    options.local,
+  );
   if (!m.isValid()) {
     return String(value);
   }
@@ -441,7 +453,7 @@ export function formatDateTimeWithUnit(
   unit: DatetimeUnit,
   options: FormattingOptions = {},
 ) {
-  let m = parseTimestamp(value, unit);
+  let m = parseTimestamp(value, unit, options.local);
   if (!m.isValid()) {
     return String(value);
   }

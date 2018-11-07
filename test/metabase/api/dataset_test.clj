@@ -8,6 +8,7 @@
             [expectations :refer :all]
             [medley.core :as m]
             [metabase
+             [middleware :as mid]
              [query-processor :as qp]
              [util :as u]]
             [metabase.models
@@ -47,6 +48,11 @@
                                 (update v :native_form boolean))]
                :else [k v]))))
 
+(defn- query-user [user-kwd]
+  ;; Find user returns a UserInstance, which isn't comparable with a map of the UserInstance data, so we need to dump
+  ;; the UserInstance defrecord into a map first
+  (into {} (#'mid/find-user (user->id user-kwd))))
+
 (defn- most-recent-query-execution [] (db/select-one QueryExecution {:order-by [[:id :desc]]}))
 
 ;;; ## POST /api/meta/dataset
@@ -71,7 +77,8 @@
                                 (assoc :constraints qp/default-query-constraints))
     :started_at             true
     :running_time           true
-    :average_execution_time nil}
+    :average_execution_time nil
+    :database_id            (id)}
    ;; QueryExecution record in the DB
    {:hash         true
     :row_count    1
@@ -84,6 +91,7 @@
     :dashboard_id nil
     :error        nil
     :id           true
+    :database_id  (id)
     :started_at   true
     :running_time true}]
   (let [result ((user->client :rasta) :post 200 "dataset" (data/mbql-query checkins
@@ -94,7 +102,7 @@
 
 ;; Even if a query fails we still expect a 200 response from the api
 (expect
-  [;; API call response
+  [ ;; API call response
    {:data         {:rows    []
                    :columns []
                    :cols    []}
@@ -106,6 +114,7 @@
                    :type        "native"
                    :native      {:query "foobar"}
                    :constraints qp/default-query-constraints}
+    :database_id  (id)
     :started_at   true
     :running_time true}
    ;; QueryExecution entry in the DB
@@ -115,6 +124,7 @@
     :row_count    0
     :context      :ad-hoc
     :error        true
+    :database_id  (id)
     :started_at   true
     :running_time true
     :executor_id  (user->id :rasta)

@@ -10,6 +10,9 @@
             [metabase.models
              [query :as query]
              [query-execution :as query-execution :refer [QueryExecution]]]
+            [metabase.mt.query-processor.middleware
+             [column-level-perms-check :as mt.column-level-perms-check]
+             [row-level-restrictions :as mt.row-level-restrictions]]
             [metabase.query-processor.middleware
              [add-dimension-projections :as add-dim]
              [add-implicit-clauses :as implicit-clauses]
@@ -30,6 +33,7 @@
              [expand-macros :as expand-macros]
              [fetch-source-query :as fetch-source-query]
              [format-rows :as format-rows]
+             [internal-queries :as internal-queries]
              [limit :as limit]
              [log :as log-query]
              [mbql-to-native :as mbql-to-native]
@@ -106,10 +110,11 @@
       wrap-value-literals/wrap-value-literals
       annotate/add-column-info
       perms/check-query-permissions
+      cumulative-ags/handle-cumulative-aggregations
+      mt.row-level-restrictions/apply-row-level-permissions-for-joins
       resolve-joined-tables/resolve-joined-tables
       dev/check-results-format
       limit/limit
-      cumulative-ags/handle-cumulative-aggregations
       results-metadata/record-and-return-metadata!
       format-rows/format-rows
       desugar/desugar
@@ -117,6 +122,7 @@
       resolve-fields/resolve-fields
       add-dim/add-remapping
       implicit-clauses/add-implicit-clauses
+      mt.column-level-perms-check/maybe-apply-column-level-perms-check
       reconcile-bucketing/reconcile-breakout-and-order-by-bucketing
       bucket-datetime/auto-bucket-datetime-breakouts
       resolve-source-table/resolve-source-table
@@ -139,12 +145,14 @@
       fetch-source-query/fetch-source-query
       store/initialize-store
       query-throttle/maybe-add-query-throttle
+      mt.row-level-restrictions/apply-row-level-permissions
       log-query/log-initial-query
       ;; TODO - bind `*query*` here ?
       cache/maybe-return-cached-results
       log-query/log-results-metadata
       validate/validate-query
       normalize/normalize
+      internal-queries/handle-internal-queries
       catch-exceptions/catch-exceptions))
 ;; ▲▲▲ PRE-PROCESSING ▲▲▲ happens from BOTTOM-TO-TOP, e.g. the results of `expand-macros` are passed to
 ;; `substitute-parameters`
@@ -226,9 +234,9 @@
 
 (defn- save-query-execution!
   "Save a `QueryExecution` and update the average execution time for the corresponding `Query`."
-  [query-execution]
+  [{query :json_query, :as query-execution}]
   (u/prog1 query-execution
-    (query/update-average-execution-time! (:hash query-execution) (:running_time query-execution))
+    (query/save-query-and-update-average-execution-time! query (:hash query-execution) (:running_time query-execution))
     (db/insert! QueryExecution (dissoc query-execution :json_query))))
 
 (defn- save-and-return-failed-query!
@@ -293,10 +301,14 @@
 
 (defn- query-execution-info
   "Return the info for the `QueryExecution` entry for this QUERY."
-  [{{:keys [executed-by query-hash query-type context card-id dashboard-id pulse-id]} :info, :as query}]
+  {:arglists '([query])}
+  [{{:keys [executed-by query-hash query-type context card-id dashboard-id pulse-id]} :info
+    database-id                                                                       :database
+    :as                                                                               query}]
   {:pre [(instance? (Class/forName "[B") query-hash)
          (string? query-type)]}
-  {:executor_id       executed-by
+  {:database_id       database-id
+   :executor_id       executed-by
    :card_id           card-id
    :dashboard_id      dashboard-id
    :pulse_id          pulse-id
@@ -327,6 +339,11 @@
                                       (u/pprint-to-str (u/filtered-stacktrace e))))
             (save-and-return-failed-query! query-execution e)))))))
 
+(s/defn ^:private assoc-query-info [query, options :- mbql.s/Info]
+  (assoc query :info (assoc options
+                       :query-hash (qputil/query-hash query)
+                       :query-type (if (qputil/mbql-query? query) "MBQL" "native"))))
+
 ;; TODO - couldn't saving the query execution be done by MIDDLEWARE?
 (s/defn process-query-and-save-execution!
   "Process and run a json based dataset query and return results.
@@ -342,9 +359,7 @@
   OPTIONS must conform to the `mbql.s/Info` schema; refer to that for more details."
   {:style/indent 1}
   [query, options :- mbql.s/Info]
-  (run-and-save-query! (assoc query :info (assoc options
-                                            :query-hash (qputil/query-hash query)
-                                            :query-type (if (qputil/mbql-query? query) "MBQL" "native")))))
+  (run-and-save-query! (assoc-query-info query options)))
 
 (def ^:private ^:const max-results-bare-rows
   "Maximum number of rows to return specifically on :rows type queries via the API."
@@ -364,3 +379,8 @@
   {:style/indent 1}
   [query, options :- mbql.s/Info]
   (process-query-and-save-execution! (assoc query :constraints default-query-constraints) options))
+
+(s/defn process-query-without-save!
+  "Invokes `process-query` with info needed for the included remark."
+  [user query]
+  (process-query (assoc-query-info query {:executed-by user})))

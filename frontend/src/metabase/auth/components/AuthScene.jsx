@@ -1,22 +1,20 @@
 /* eslint-disable no-color-literals */
 
 import React, { Component } from "react";
-import ReactDOM from "react-dom";
 
-export default class AuthScene extends Component {
-  componentDidMount() {
-    // HACK: React 0.14 doesn't support "fill-rule" attribute. We can remove this when upgrading to React 0.15.
-    ReactDOM.findDOMNode(this.refs.HACK_fill_rule_1).setAttribute(
-      "fill-rule",
-      "evenodd",
-    );
-    ReactDOM.findDOMNode(this.refs.HACK_fill_rule_2).setAttribute(
-      "fill-rule",
-      "evenodd",
-    );
-  }
+import { connect } from "react-redux";
+import { getIsWhitelabeled } from "metabase/selectors/settings";
 
+const mapStateToProps = (state, props) => ({
+  isWhitelabeled: getIsWhitelabeled(state, props),
+});
+
+class AuthScene extends Component {
   render() {
+    if (this.props.isWhitelabeled) {
+      return null;
+    }
+
     return (
       <section className="z1 brand-scene absolute bottom left right hide sm-show">
         <div className="brand-boat-container">
@@ -528,3 +526,5 @@ export default class AuthScene extends Component {
     );
   }
 }
+
+export default connect(mapStateToProps)(AuthScene);

@@ -7,6 +7,7 @@ import { push } from "react-router-redux";
 import TogglePropagateAction from "./containers/TogglePropagateAction";
 
 import MetabaseAnalytics from "metabase/lib/analytics";
+import MetabaseSettings from "metabase/lib/settings";
 import colors, { alpha } from "metabase/lib/colors";
 
 import { t } from "c-3po";
@@ -240,6 +241,10 @@ const OPTION_RED = {
   iconColor: colors["error"],
   bgColor: alpha(colors["error"], BG_ALPHA),
 };
+const OPTION_BLUE = {
+  iconColor: colors["brand"],
+  bgColor: alpha(colors["brand"], BG_ALPHA),
+};
 
 const OPTION_ALL = {
   ...OPTION_GREEN,
@@ -285,6 +290,30 @@ const OPTION_COLLECTION_READ = {
   tooltip: t`Can view items in this collection`,
 };
 
+const OPTION_SEGMENTED = {
+  ...OPTION_BLUE,
+  value: "controlled",
+  title: t`Grant sandboxed access`,
+  tooltip: t`Sandboxed access`,
+  icon: "permissionsLimited",
+};
+
+const getEditSegementedAccessUrl = (
+  groupId,
+  { databaseId, schemaName, tableId },
+) =>
+  `/admin/permissions` +
+  `/databases/${databaseId}` +
+  (schemaName ? `/schemas/${encodeURIComponent(schemaName)}` : "") +
+  `/tables/${tableId}/segmented/group/${groupId}`;
+
+const getEditSegementedAccessAction = (groupId, entityId) => ({
+  ...OPTION_BLUE,
+  title: t`Edit sandboxed access`,
+  icon: "pencil",
+  value: push(getEditSegementedAccessUrl(groupId, entityId)),
+});
+
 export const getTablesPermissionsGrid = createSelector(
   getMetadata,
   getGroups,
@@ -326,7 +355,17 @@ export const getTablesPermissionsGrid = createSelector(
         fields: {
           header: t`Data Access`,
           options(groupId, entityId) {
-            return [OPTION_ALL, OPTION_NONE];
+            if (MetabaseSettings.hasPremiumFeature("sandboxes")) {
+              return [OPTION_ALL, OPTION_SEGMENTED, OPTION_NONE];
+            } else {
+              return [OPTION_ALL, OPTION_NONE];
+            }
+          },
+          actions(groupId, entityId) {
+            return getFieldsPermission(permissions, groupId, entityId) ===
+              "controlled"
+              ? [getEditSegementedAccessAction(groupId, entityId)]
+              : [];
           },
           getter(groupId, entityId) {
             return getFieldsPermission(permissions, groupId, entityId);
@@ -346,6 +385,11 @@ export const getTablesPermissionsGrid = createSelector(
               entityId,
               metadata,
             );
+          },
+          postAction(groupId, entityId, value) {
+            if (value === "controlled") {
+              return push(getEditSegementedAccessUrl(groupId, entityId));
+            }
           },
           confirm(groupId, entityId, value) {
             return [

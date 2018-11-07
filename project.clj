@@ -38,7 +38,8 @@
                                commons-io
                                slingshot]]
                  [clj-time "0.13.0"]                                  ; library for dealing with date/time
-                 [clojurewerkz/quartzite "2.0.0"]                     ; scheduling library
+                 [clojurewerkz/quartzite "2.0.0"                      ; scheduling library
+                  :exclusions [c3p0]]
                  [colorize "0.1.1" :exclusions [org.clojure/clojure]] ; string output with ANSI color codes (for logging)
                  [com.amazon.redshift/redshift-jdbc42-no-awssdk       ; Redshift JDBC driver without embedded Amazon SDK
                   "1.2.12.1017"]
@@ -73,6 +74,7 @@
                  [io.forward/yaml "1.0.6"                             ; Clojure wrapper for YAML library SnakeYAML (which we already use for liquidbase)
                   :exclusions [org.clojure/clojure
                                org.yaml/snakeyaml]]
+                 [k2n/saml20-clj "0.1.9"]
                  [kixi/stats "0.4.1"                                  ; Various statistic measures implemented as transducers
                   :exclusions [org.clojure/data.avl]]
                  [log4j/log4j "1.2.17"                                ; logging framework
@@ -85,6 +87,8 @@
                  [mysql/mysql-connector-java "5.1.45"]                ; !!! Don't upgrade to 6.0+ yet -- that's Java 8 only !!!
                  [jdistlib "0.5.1"                                    ; Distribution statistic tests
                   :exclusions [com.github.wendykierp/JTransforms]]
+                 [net.redhogs.cronparser/cron-parser-core "3.4"       ; describe Cron schedule in human-readable language
+                  :exclusions [org.slf4j/slf4j-api]]
                  [net.sf.cssbox/cssbox "4.12"                         ; HTML / CSS rendering
                   :exclusions [org.slf4j/slf4j-api]]
                  [net.snowflake/snowflake-jdbc "3.6.13"]              ; Snowflake JDBC Client Library
@@ -99,8 +103,9 @@
                  [prismatic/schema "1.1.9"]                           ; Data schema declaration and validation library
                  [puppetlabs/i18n "0.8.0"]                            ; Internationalization library
                  [redux "0.1.4"]                                      ; Utility functions for building and composing transducers
-                 [ring/ring-core "1.6.0"]
-                 [ring/ring-jetty-adapter "1.6.0"]                    ; Ring adapter using Jetty webserver (used to run a Ring server for unit tests)
+                 [ring/ring-core "1.6.3"]
+                 [ring/ring-jetty-adapter "1.6.3"]                    ; Ring adapter using Jetty webserver (used to run a Ring server for unit tests)
+                 [org.eclipse.jetty/jetty-server "9.4.11.v20180605"]  ; We require JDK 8 which allows us to run Jetty 9.4, ring-jetty-adapter runs on 1.7 which forces an older version
                  [ring/ring-json "0.4.0"]                             ; Ring middleware for reading/writing JSON automatically
                  [stencil "0.5.0"]                                    ; Mustache templates for Clojure
                  [toucan "1.1.9"                                      ; Model layer, hydration, and DB utilities

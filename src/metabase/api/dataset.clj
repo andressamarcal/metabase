@@ -33,17 +33,23 @@
 
 (api/defendpoint POST "/"
   "Execute a query and retrieve the results in the usual format."
-  [:as {{:keys [database], :as query} :body}]
-  {database s/Int}
+  [:as {{:keys [database], query-type :type, :as query} :body}]
+  {database (s/maybe s/Int)}
+  ;; database is required unless this is an `internal` query.
   ;; don't permissions check the 'database' if it's the virtual database. That database doesn't actually exist :-)
-  (when-not (= database database/virtual-id)
+  (when (and (not= query-type "internal")
+             (not= database database/virtual-id))
+    (when-not database
+      (throw (Exception. (str (tru "`database` is required for all queries whose type is not `internal`.")))))
     (api/read-check Database database))
   ;; add sensible constraints for results limits on our query
   (let [source-card-id (query->source-card-id query)]
     (api/cancellable-json-response
      (fn []
-       (qp/process-query-and-save-with-max! query {:executed-by api/*current-user-id*, :context :ad-hoc,
-                                                   :card-id     source-card-id,        :nested? (boolean source-card-id)})))))
+       (qp/process-query-and-save-with-max!
+           query
+           {:executed-by api/*current-user-id*, :context :ad-hoc,
+            :card-id     source-card-id,        :nested? (boolean source-card-id)})))))
 
 
 ;;; ----------------------------------- Downloading Query Results in Other Formats -----------------------------------

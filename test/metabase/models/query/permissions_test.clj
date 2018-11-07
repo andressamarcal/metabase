@@ -13,9 +13,9 @@
             [metabase.models.query.permissions :as query-perms]
             [metabase.test.data :as data]
             [metabase.test.data.users :as users]
+            [metabase.test.util.log :as tu.log]
             [metabase.util :as u]
-            [toucan.util.test :as tt]
-            [metabase.test.util.log :as tu.log]))
+            [toucan.util.test :as tt]))
 
 ;;; ---------------------------------------------- Permissions Checking ----------------------------------------------
 
@@ -128,11 +128,11 @@
 ;;; ------------------------------------------------- MBQL w/o JOIN --------------------------------------------------
 
 (expect
-  #{(perms/object-path (data/id) "PUBLIC" (data/id :venues))}
+  #{(perms/table-query-path (data/id) "PUBLIC" (data/id :venues))}
   (query-perms/perms-set (data/mbql-query venues)))
 
 (expect
-  #{(perms/object-path (data/id) "PUBLIC" (data/id :venues))}
+  #{(perms/table-query-path (data/id) "PUBLIC" (data/id :venues))}
   (query-perms/perms-set
    {:query    {:source-table (data/id :venues)
                :filter       [:> [:field-id (data/id :venues :id)] 10]}
@@ -143,7 +143,7 @@
 (tt/expect-with-temp [Database [db]
                       Table    [table {:db_id (u/get-id db), :schema nil}]
                       Field    [_     {:table_id (u/get-id table)}]]
-  #{(perms/object-path db nil table)}
+  #{(perms/table-query-path db nil table)}
   (do
     (perms/revoke-permissions! (perms-group/all-users) db)
     (binding [*current-user-permissions-set* (atom nil)
@@ -155,7 +155,7 @@
 
 ;; should be able to calculate permissions of a query before normalization
 (expect
-  #{(perms/object-path (data/id) "PUBLIC" (data/id :venues))}
+  #{(perms/table-query-path (data/id) "PUBLIC" (data/id :venues))}
   (query-perms/perms-set
    {:query    {"SOURCE_TABLE" (data/id :venues)
                "FILTER"       [">" (data/id :venues :id) 10]}
@@ -166,8 +166,8 @@
 
 ;; you should need perms for both tables if you include a JOIN
 (expect
-  #{(perms/object-path (data/id) "PUBLIC" (data/id :checkins))
-    (perms/object-path (data/id) "PUBLIC" (data/id :venues))}
+  #{(perms/table-query-path (data/id) "PUBLIC" (data/id :checkins))
+    (perms/table-query-path (data/id) "PUBLIC" (data/id :venues))}
   (query-perms/perms-set
    (data/mbql-query checkins
      {:order-by [[:asc $checkins.venue_id->venues.name]]})))

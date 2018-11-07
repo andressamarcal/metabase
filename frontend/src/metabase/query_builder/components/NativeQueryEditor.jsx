@@ -58,6 +58,9 @@ type AutoCompleteResult = [string, string, string];
 type AceEditor = any; // TODO;
 
 type Props = {
+  className?: string,
+  readOnly?: boolean,
+
   location: LocationDescriptor,
 
   question: Question,
@@ -199,7 +202,9 @@ export default class NativeQueryEditor extends Component {
     this._editor.clearSelection();
 
     // hmmm, this could be dangerous
-    this._editor.focus();
+    if (!this.props.readOnly) {
+      this._editor.focus();
+    }
 
     let aceLanguageTools = ace.require("ace/ext/language_tools");
     this._editor.setOptions({
@@ -286,7 +291,13 @@ export default class NativeQueryEditor extends Component {
   };
 
   render() {
-    const { query, setParameterValue, location } = this.props;
+    const {
+      className,
+      query,
+      setParameterValue,
+      location,
+      readOnly,
+    } = this.props;
     const database = query.database();
     const databases = query.databases();
     const parameters = query.question().parameters();
@@ -309,6 +320,7 @@ export default class NativeQueryEditor extends Component {
               selectedDatabaseId={database && database.id}
               setDatabaseFn={this.setDatabaseId}
               isInitiallyOpen={database == null}
+              readOnly={this.props.readOnly}
             />
           </div>,
         );
@@ -336,6 +348,7 @@ export default class NativeQueryEditor extends Component {
               tables={tables}
               setSourceTableFn={this.setTableId}
               isInitiallyOpen={false}
+              readOnly={this.props.readOnly}
             />
           </div>,
         );
@@ -362,7 +375,7 @@ export default class NativeQueryEditor extends Component {
     }
 
     return (
-      <div className="wrapper">
+      <div className={className}>
         <div className="NativeQueryEditor bordered rounded shadowed">
           <div className="flex align-center" style={{ minHeight: 50 }}>
             {dataSelectors}
@@ -376,13 +389,15 @@ export default class NativeQueryEditor extends Component {
               isQB
               commitImmediately
             />
-            <a
-              className="Query-label no-decoration flex-align-right flex align-center px2"
-              onClick={this.toggleEditor}
-            >
-              <span className="mx2">{toggleEditorText}</span>
-              <Icon name={toggleEditorIcon} size={20} />
-            </a>
+            {!readOnly && (
+              <a
+                className="Query-label no-decoration flex-align-right flex align-center px2"
+                onClick={this.toggleEditor}
+              >
+                <span className="mx2">{toggleEditorText}</span>
+                <Icon name={toggleEditorIcon} size={20} />
+              </a>
+            )}
           </div>
           <ResizableBox
             ref="resizeBox"

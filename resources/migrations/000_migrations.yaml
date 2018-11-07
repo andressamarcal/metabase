@@ -4102,6 +4102,74 @@ databaseChangeLog:
               type: text
               remarks: 'JSON serialized map with attributes used for row level permissions'
   - changeSet:
+      id: 78
+      author: camsaul
+      comment: 'Added 0.30.0'
+      changes:
+        - createTable:
+            tableName: group_table_access_policy
+            remarks: 'Records that a given Card (Question) should automatically replace a given Table as query source for a given a Perms Group.'
+            columns:
+              - column:
+                  name: id
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: group_id
+                  type: int
+                  remarks: 'ID of the Permissions Group this policy affects.'
+                  constraints:
+                    nullable: false
+                    references: permissions_group(id)
+                    foreignKeyName: fk_gtap_group_id
+                    deleteCascade: true
+              - column:
+                  name: table_id
+                  type: int
+                  remarks: 'ID of the Table that should get automatically replaced as query source for the Permissions Group.'
+                  constraints:
+                    nullable: false
+                    references: metabase_table(id)
+                    foreignKeyName: fk_gtap_table_id
+                    deleteCascade: true
+              - column:
+                  name: card_id
+                  type: int
+                  remarks: 'ID of the Card (Question) to be used to replace the Table.'
+                  constraints:
+                    nullable: false
+                    references: report_card(id)
+                    foreignKeyName: fk_gtap_card_id
+                    # This one is not ON DELETE CASCADE because we do not want people going around deleting Cards and
+                    # accidentally deleting their GTAPs that depend on them. However since Cards get archived instead
+                    # of deleted it shouldn't matter anyway
+              - column:
+                  name: attribute_remappings
+                  type: text
+                  remarks: 'JSON-encoded map of user attribute identifier to the param name used in the Card.'
+              # TODO - do we also want to include `created_at` and `updated_at` columns here? We can add them later if needed
+        # Add an index on table_id + group_id since that is what the Query Processor is going to be looking up 99% of
+        # the time in order to get the corresponding Card ID for query-rewriting purposes
+        #
+        # TODO - do we want indexes on any of the other FKs? Are we going to be looking up all the GTAPs for a given
+        # Table or for a given Group with enough regularity we would want to put indexes on those columns?
+        - createIndex:
+            indexName: idx_gtap_table_id_group_id
+            tableName: group_table_access_policy
+            columns:
+              - column:
+                  name: table_id
+              - column:
+                  name: group_id
+        # There should only ever be one GTAP entry for a give Group + Table combination.
+        - addUniqueConstraint:
+            tableName: group_table_access_policy
+            columnNames: table_id, group_id
+            constraintName: unique_gtap_table_id_group_id
+  - changeSet:
       id: 79
       author: camsaul
       comment: 'Added 0.30.0'
@@ -4194,6 +4262,16 @@ databaseChangeLog:
               remarks: 'When was this User last updated?'
         - sql:
             sql: update core_user set updated_at=date_joined
+# Remove the GTAP card_id constraint. When not included, will default to querying against the GTAP table_id.
+  - changeSet:
+      id: 83
+      author: senior
+      comment: 'Added 0.30.0'
+      changes:
+        - dropNotNullConstraint:
+            tableName: group_table_access_policy
+            columnName: card_id
+            columnDataType: int
 # Switch the logic for metric/segment archiving to be more consistent with other entities in the model.
 # Similarly, add the archived flag to pulses which doesn't have one.
   - changeSet:
@@ -4317,6 +4395,20 @@ databaseChangeLog:
             tableName: raw_column
         - dropTable:
             tableName: raw_table
+  - changeSet:
+      id: 88
+      author: senior
+      comment: 'Added 0.30.0'
+      changes:
+        - addColumn:
+            tableName: core_user
+            columns:
+              name: saml_auth
+              type: boolean
+              defaultValueBoolean: false
+              constraints:
+                nullable: false
+              remarks: 'Boolean to indicate if this user is authenticated via SAML'
 
 # The Quartz Task Scheduler can use a DB to 'cluster' tasks and make sure they are only ran by a single instance where
 # using a multi-instance Metabase setup.
@@ -4975,6 +5067,23 @@ databaseChangeLog:
               - column:
                   name: TRIGGER_GROUP
 
+  - changeSet:
+      id: 90
+      author: senior
+      comment: 'Added 0.30.0'
+      changes:
+        - addColumn:
+            tableName: core_user
+            columns:
+              name: sso_source
+              type: varchar(254)
+              remarks: 'String to indicate the SSO backend the user is from'
+        - sql:
+            sql: update core_user set sso_source='saml' where saml_auth=true
+        - dropColumn:
+            tableName: core_user
+            columnName: saml_auth
+
 # Forgot to get rid of the raw_table_id and raw_column_id columns when we dropped the tables they referenced in migration 87.
 
   - changeSet:
@@ -4988,6 +5097,38 @@ databaseChangeLog:
         - dropColumn:
             tableName: metabase_field
             columnName: raw_column_id
+
+# Add database_id column to query_execution
+
+  - changeSet:
+      id: 92
+      author: camsaul
+      comment: 'Added 0.31.0'
+      validCheckSum: 8:a875945f36824a0667c740888c00c37f
+      validCheckSum: 8:83ded48e18fe8f70d6ec09add042124d
+      changes:
+        - addColumn:
+            tableName: query_execution
+            columns:
+              name: database_id
+              type: integer
+              remarks: 'ID of the database this query was ran against.'
+        - sql:
+            sql: UPDATE query_execution SET database_id = (select database_id from report_card where id = query_execution.card_id);
+
+# Start recording the actual query dictionary that's been executed
+
+  - changeSet:
+      id: 93
+      author: camsaul
+      comment: 'Added 0.31.0'
+      changes:
+        - addColumn:
+            tableName: query
+            columns:
+              name: query
+              type: text
+              remarks: 'The actual "query dictionary" for this query.'
 
 # Create the TaskHistory table, intended to provide debugging info on our background/quartz processes
   - changeSet:

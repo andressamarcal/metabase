@@ -4,7 +4,7 @@
              [route :as route]]
             [metabase.api
              [activity :as activity]
-             [alert    :as alert]
+             [alert :as alert]
              [automagic-dashboards :as magic]
              [card :as card]
              [collection :as collection]
@@ -16,6 +16,7 @@
              [field :as field]
              [geojson :as geojson]
              [ldap :as ldap]
+             [metastore :as metastore]
              [metric :as metric]
              [notify :as notify]
              [permissions :as permissions]
@@ -30,11 +31,12 @@
              [setup :as setup]
              [slack :as slack]
              [table :as table]
-             [tiles :as tiles]
              [task :as task]
+             [tiles :as tiles]
              [user :as user]
              [util :as util]]
             [metabase.middleware :as middleware]
+            [metabase.mt.api.routes :as mt-routes]
             [metabase.util.i18n :refer [tru]]))
 
 (def ^:private +generic-exceptions
@@ -56,6 +58,7 @@
   middleware/enforce-authentication)
 
 (defroutes ^{:doc "Ring routes for API endpoints."} routes
+  mt-routes/mt-routes
   (context "/activity"             [] (+auth activity/routes))
   (context "/alert"                [] (+auth alert/routes))
   (context "/automagic-dashboards" [] (+auth magic/routes))
@@ -69,6 +72,7 @@
   (context "/field"                [] (+auth field/routes))
   (context "/geojson"              [] (+auth geojson/routes))
   (context "/ldap"                 [] (+auth ldap/routes))
+  (context "/metastore"            [] (+auth metastore/routes))
   (context "/metric"               [] (+auth metric/routes))
   (context "/notify"               [] (+apikey notify/routes))
   (context "/permissions"          [] (+auth permissions/routes))

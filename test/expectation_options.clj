@@ -1,5 +1,6 @@
 (ns expectation-options
-  "Namspace expectations will automatically load before running a tests")
+  "Namspace expectations will automatically load before running a tests"
+  (:require [metabase.plugins :as plugins]))
 
 (defn- tables-with-data->error-msg
   "Function that takes a list of modes and whill query each. If records are found, return a string with an error

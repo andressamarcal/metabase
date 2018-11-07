@@ -15,6 +15,9 @@ import EmbeddingLevel from "./components/widgets/EmbeddingLevel";
 import LdapGroupMappingsWidget from "./components/widgets/LdapGroupMappingsWidget";
 import FormattingWidget from "./components/widgets/FormattingWidget";
 
+import LogoUpload from "./components/widgets/LogoUpload";
+import ColorSchemeWidget from "./components/widgets/ColorSchemeWidget";
+
 import { UtilApi } from "metabase/services";
 
 /* Note - do not translate slugs */
@@ -296,6 +299,132 @@ const SECTIONS = [
       },
     ],
   },
+
+  {
+    name: t`SAML`,
+    slug: "saml",
+    sidebar: false,
+    settings: [
+      {
+        key: "saml-enabled",
+        display_name: t`SAML Authentication`,
+        description: null,
+        type: "boolean",
+      },
+      {
+        key: "saml-identity-provider-uri",
+        display_name: t`SAML Identity Provider URI`,
+        placeholder: "https://saml.yourdomain.org",
+        type: "string",
+        required: true,
+        autoFocus: true,
+      },
+      {
+        key: "saml-identity-provider-certificate",
+        display_name: t`SAML Identity Provider Certificate`,
+        type: "text",
+        required: true,
+      },
+      {
+        key: "saml-application-name",
+        display_name: t`SAML Application Name`,
+        type: "string",
+      },
+      {
+        key: "saml-keystore-path",
+        display_name: t`SAML Keystore Path`,
+        type: "string",
+      },
+      {
+        key: "saml-keystore-password",
+        display_name: t`SAML Keystore Password`,
+        placeholder: "Shh...",
+        type: "password",
+      },
+      {
+        key: "saml-keystore-alias",
+        display_name: t`SAML Keystore Alias`,
+        type: "string",
+      },
+      {
+        key: "saml-attribute-email",
+        display_name: t`Email attribute`,
+        type: "string",
+      },
+      {
+        key: "saml-attribute-firstname",
+        display_name: t`First name attribute`,
+        type: "string",
+      },
+      {
+        key: "saml-attribute-lastname",
+        display_name: t`Last name attribute`,
+        type: "string",
+      },
+    ],
+  },
+  {
+    name: t`JWT`,
+    slug: "jwt",
+    sidebar: false,
+    settings: [
+      {
+        key: "jwt-enabled",
+        description: null,
+        getHidden: settings => settings["jwt-enabled"],
+        onChanged: async (
+          oldValue,
+          newValue,
+          settingsValues,
+          onChangeSetting,
+        ) => {
+          // Generate a secret key if none already exists
+          if (!oldValue && newValue && !settingsValues["jwt-shared-secret"]) {
+            let result = await UtilApi.random_token();
+            await onChangeSetting("jwt-shared-secret", result.token);
+          }
+        },
+      },
+      {
+        key: "jwt-enabled",
+        display_name: t`JWT Authentication`,
+        type: "boolean",
+        getHidden: settings => !settings["jwt-enabled"],
+      },
+      {
+        key: "jwt-identity-provider-uri",
+        display_name: t`JWT Identity Provider URI`,
+        placeholder: "https://jwt.yourdomain.org",
+        type: "string",
+        required: true,
+        autoFocus: true,
+        getHidden: settings => !settings["jwt-enabled"],
+      },
+      {
+        key: "jwt-shared-secret",
+        display_name: t`String used by the JWT signing key`,
+        type: "text",
+        required: true,
+        widget: SecretKeyWidget,
+        getHidden: settings => !settings["jwt-enabled"],
+      },
+      {
+        key: "jwt-attribute-email",
+        display_name: t`Email attribute`,
+        type: "string",
+      },
+      {
+        key: "jwt-attribute-firstname",
+        display_name: t`First name attribute`,
+        type: "string",
+      },
+      {
+        key: "jwt-attribute-lastname",
+        display_name: t`Last name attribute`,
+        type: "string",
+      },
+    ],
+  },
   {
     name: t`Maps`,
     slug: "maps",
@@ -384,7 +513,8 @@ const SECTIONS = [
       },
       {
         widget: EmbeddingLevel,
-        getHidden: settings => !settings["enable-embedding"],
+        // WHITELABEL: always hide this setting
+        getHidden: () => true,
       },
       {
         key: "embedding-secret-key",
@@ -451,6 +581,77 @@ const SECTIONS = [
     }
     */
 ];
+
+if (MetabaseSettings.hasPremiumFeature("whitelabel")) {
+  SECTIONS.push({
+    name: "Whitelabel",
+    slug: "whitelabel",
+    settings: [
+      {
+        key: "application-name",
+        display_name: "Application Name",
+        type: "string",
+      },
+      {
+        key: "application-colors",
+        display_name: "Color Palette",
+        widget: ColorSchemeWidget,
+      },
+      {
+        key: "application-logo-url",
+        display_name: "Logo",
+        type: "string",
+        widget: LogoUpload,
+      },
+      {
+        key: "application-favicon-url",
+        display_name: "Favicon",
+        type: "string",
+      },
+      // {
+      //     key: "landing-page",
+      //     display_name: "Landing Page",
+      //     type: "select",
+      //     options: [
+      //         { name: "Home Page", value: "" },
+      //         { name: "Query Builder", value: "question" },
+      //         { name: "Questions", value: "questions" },
+      //         { name: "Dashboards", value: "dashboards" }
+      //     ]
+      // },
+      // {
+      //     key: "enable-home",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-query-builder",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-saved-questions",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-dashboards",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-pulses",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-dataref",
+      //     type: "boolean"
+      // },
+    ],
+  });
+}
+
+for (const section of SECTIONS) {
+  if (section.slug == null) {
+    console.warn("Warning: settings section missing slug:", section.name);
+  }
+}
 
 export const getSettings = createSelector(
   state => state.settings.settings,

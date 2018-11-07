@@ -1,5 +1,5 @@
 (ns metabase.public-settings
-  (:require [clojure.string :as s]
+  (:require [clojure.string :as str]
             [metabase
              [config :as config]
              [types :as types]]
@@ -47,8 +47,8 @@
   (tru "The base URL of this Metabase instance, e.g. \"http://metabase.my-company.com\".")
   :setter (fn [new-value]
             (setting/set-string! :site-url (when new-value
-                                             (cond->> (s/replace new-value #"/$" "")
-                                               (not (s/starts-with? new-value "http")) (str "http://"))))))
+                                             (cond->> (str/replace new-value #"/$" "")
+                                               (not (str/starts-with? new-value "http")) (str "http://"))))))
 
 (defsetting site-locale
   (str  (tru "The default language for this Metabase instance.")
@@ -70,6 +70,11 @@
 (defsetting map-tile-server-url
   (tru "The map tile server URL template used in map visualizations, for example from OpenStreetMaps or MapBox.")
   :default "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png")
+
+(defsetting landing-page
+  (tru "Default page to show the user")
+  :type    :string
+  :default "")
 
 (defsetting enable-public-sharing
   (tru "Enable admins to create publicly viewable links (and embeddable iframes) for Questions and Dashboards?")
@@ -116,6 +121,61 @@
   :type    :integer
   :default 10)
 
+(defsetting application-name
+  (tru "This will replace the word \"Metabase\" wherever it appears.")
+  :type    :string
+  :default "Metabase")
+
+(defsetting application-colors
+  (tru "These are the primary colors used in charts and throughout Metabase. You might need to refresh your browser to see your changes take effect.")
+  :type    :json
+  :default {})
+
+(defn application-color
+  "The primary color, a.k.a. brand color"
+  []
+  (or (:brand (setting/get-json :application-colors)) "#509EE3"))
+
+(defsetting application-logo-url
+  (tru "For best results, use an SVG file with a transparent background.")
+  :type :string
+  :default "app/assets/img/logo.svg")
+
+(defsetting application-favicon-url
+  (tru "The url or image that you want to use as the favicon.")
+  :type :string
+  :default "frontend_client/favicon.ico")
+
+(defsetting enable-home
+  (tru "Enable the home screen")
+  :type    :boolean
+  :default true)
+
+(defsetting enable-query-builder
+  (tru "Enable the query builder")
+  :type    :boolean
+  :default true)
+
+(defsetting enable-saved-questions
+  (tru "Enable saved questions")
+  :type    :boolean
+  :default true)
+
+(defsetting enable-dashboards
+  (tru "Enable dashboards")
+  :type    :boolean
+  :default true)
+
+(defsetting enable-pulses
+  (tru "Enable pulses")
+  :type    :boolean
+  :default true)
+
+(defsetting enable-dataref
+  (tru "Enable data reference")
+  :type    :boolean
+  :default true)
+
 (defsetting breakout-bins-num
   (tru "When using the default binning strategy and a number of bins is not provided, this number will be used as the default.")
   :type :integer
@@ -161,33 +221,49 @@
   "Return a simple map of key/value pairs which represent the public settings (`MetabaseBootstrap`) for the front-end
    application."
   []
-  {:admin_email           (admin-email)
-   :anon_tracking_enabled (anon-tracking-enabled)
-   :custom_geojson        (setting/get :custom-geojson)
-   :custom_formatting     (setting/get :custom-formatting)
-   :email_configured      ((resolve 'metabase.email/email-configured?))
-   :embedding             (enable-embedding)
-   :enable_query_caching  (enable-query-caching)
-   :enable_nested_queries (enable-nested-queries)
-   :enable_xrays          (enable-xrays)
-   :engines               ((resolve 'metabase.driver/available-drivers))
-   :ga_code               "UA-60817802-1"
-   :google_auth_client_id (setting/get :google-auth-client-id)
-   :has_sample_dataset    (db/exists? 'Database, :is_sample true)
-   :hide_embed_branding   (metastore/hide-embed-branding?)
-   :ldap_configured       ((resolve 'metabase.integrations.ldap/ldap-configured?))
-   :available_locales     (available-locales-with-names)
-   :map_tile_server_url   (map-tile-server-url)
-   :metastore_url         metastore/store-url
-   :password_complexity   password/active-password-complexity
-   :premium_token         (metastore/premium-embedding-token)
-   :public_sharing        (enable-public-sharing)
-   :report_timezone       (setting/get :report-timezone)
-   :setup_token           ((resolve 'metabase.setup/token-value))
-   :site_name             (site-name)
-   :site_url              (site-url)
-   :timezone_short        (short-timezone-name (setting/get :report-timezone))
-   :timezones             common/timezones
-   :types                 (types/types->parents :type/*)
-   :entities              (types/types->parents :entity/*)
-   :version               config/mb-version-info})
+  {:admin_email             (admin-email)
+   :anon_tracking_enabled   (anon-tracking-enabled)
+   :application_colors      (setting/get-json :application-colors)
+   :application_favicon_url (setting/get :application-favicon-url)
+   :application_logo_url    (setting/get :application-logo-url)
+   :application_name        (setting/get :application-name)
+   :available_locales       (available-locales-with-names)
+   :custom_formatting       (setting/get :custom-formatting)
+   :custom_geojson          (setting/get :custom-geojson)
+   :email_configured        ((resolve 'metabase.email/email-configured?))
+   :embedding               (enable-embedding)
+   :enable_nested_queries   (enable-nested-queries)
+   :enable_query_caching    (enable-query-caching)
+   :enable_xrays            (enable-xrays)
+   :engines                 ((resolve 'metabase.driver/available-drivers))
+   :entities                (types/types->parents :entity/*)
+   :features                {:home       (setting/get :enable-home)
+                             :question   (setting/get :enable-query-builder)
+                             :questions  (setting/get :enable-saved-questions)
+                             :dashboards (setting/get :enable-dashboards)
+                             :pulse      (setting/get :enable-pulses)
+                             :reference  (setting/get :enable-dataref)}
+   :ga_code                 "UA-60817802-1"
+   :google_auth_client_id   (setting/get :google-auth-client-id)
+   :has_sample_dataset      (db/exists? 'Database, :is_sample true)
+   :landing_page            (setting/get :landing-page)
+   :ldap_configured         ((resolve 'metabase.integrations.ldap/ldap-configured?))
+   :map_tile_server_url     (map-tile-server-url)
+   :metastore_url           metastore/store-url
+   :password_complexity     password/active-password-complexity
+   :premium_features        {:embedding  (metastore/hide-embed-branding?)
+                             :whitelabel (metastore/enable-whitelabeling?)
+                             :audit_app  (metastore/enable-audit-app?)
+                             :sandboxes  (metastore/enable-sandboxes?)
+                             :sso        (metastore/enable-sso?)}
+   :public_sharing          (enable-public-sharing)
+   :report_timezone         (setting/get :report-timezone)
+   :setup_token             ((resolve 'metabase.setup/token-value))
+   :site_name               (site-name)
+   :site_url                (site-url)
+   :sso_configured          (or ((resolve 'metabase.mt.integrations.sso-settings/saml-configured?))
+                                ((resolve 'metabase.mt.integrations.sso-settings/jwt-configured?)))
+   :timezone_short          (short-timezone-name (setting/get :report-timezone))
+   :timezones               common/timezones
+   :types                   (types/types->parents :type/*)
+   :version                 config/mb-version-info})
