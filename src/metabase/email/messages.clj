@@ -122,8 +122,9 @@
 
 (defn- all-admin-recipients
   "Return a sequence of email addresses for all Admin users.
-   The first recipient will be the site admin (or oldest admin if unset), which is the address that should be used in `mailto` links
-   (e.g., for the new user to email with any questions)."
+
+  The first recipient will be the site admin (or oldest admin if unset), which is the address that should be used in
+  `mailto` links (e.g., for the new user to email with any questions)."
   []
   (concat (when-let [admin-email (public-settings/admin-email)]
             [admin-email])

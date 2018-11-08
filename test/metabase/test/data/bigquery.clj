@@ -15,8 +15,7 @@
             [metabase.util
              [date :as du]
              [schema :as su]]
-            [schema.core :as s]
-            [honeysql.core :as hsql])
+            [schema.core :as s])
   (:import com.google.api.client.util.DateTime
            com.google.api.services.bigquery.Bigquery
            [com.google.api.services.bigquery.model Dataset DatasetReference QueryRequest Table TableDataInsertAllRequest
@@ -235,6 +234,17 @@
              (destroy-dataset! database-name))
            (throw e)))))))
 
+(defn aggregate-column-info
+  ([driver aggregation-type]
+   (i/default-aggregate-column-info driver aggregation-type))
+  ([driver aggregation-type field]
+   (merge
+    (i/default-aggregate-column-info driver aggregation-type field)
+    ;; BigQuery averages, standard deviations come back as Floats. This might apply to some other ag types as well;
+    ;; add them as we come across them.
+    (when (#{:avg :stddev} aggregation-type)
+      {:base_type :type/Float}))))
+
 (defn- qualify+quote-name
   ([db-name table-name]
    (format "`%s.%s`" (normalize-name db-name) (normalize-name table-name)))
@@ -249,7 +259,9 @@
   (merge i/IDriverTestExtensionsDefaultsMixin
          {:engine                       (constantly :bigquery)
           :database->connection-details (u/drop-first-arg database->connection-details)
-          :create-db!                   (u/drop-first-arg create-db!)}))
+          :create-db!                   (u/drop-first-arg create-db!)
+          :aggregate-column-info        aggregate-column-info}))
+
 
 ;; we don't actually implement the Generic SQL test extensions protocol except for `qualify+quote-name` which is used
 ;; by a few tests

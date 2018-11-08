@@ -213,15 +213,19 @@
     (with-group [group]
       (sync/sync-database! db)
       (data/with-db db
-        (tt/with-temp* [Card [card {:dataset_query {:database (u/get-id db)
-                                                    :type     :native
-                                                    :native   {:query (format (str "SELECT %s AS venue_name,"
-                                                                                   " 1000 AS one_thousand "
-                                                                                   "FROM %s "
-                                                                                   "ORDER BY lower(%s);")
-                                                                              (quote-native-identifier db :venues :name)
-                                                                              (quote-native-identifier db :venues)
-                                                                              (quote-native-identifier db :venues :name))}}}]
+        (tt/with-temp* [Card [card {:dataset_query
+                                    {:database (u/get-id db)
+                                     :type     :native
+                                     :native   (-> (qp/query->native
+                                                     {:database (data/id)
+                                                      :type     :query
+                                                      :query    (data/$ids venues
+                                                                  {:source-table $$table
+                                                                   :fields       [[:field-id $name]
+                                                                                  [:expression "one_thousand"]]
+                                                                   :order-by     [[:asc [:field-id $name]]]
+                                                                   :expressions  {"one_thousand" [:+ 500 500]}})})
+                                                   (select-keys [:query]))}}]
                         GroupTableAccessPolicy [_ (gtap group :venues card)]]
           (perms/revoke-permissions! (perms-group/all-users) (u/get-id db))
           (perms/grant-permissions! group (perms/table-segmented-query-path (Table (data/id :venues))))

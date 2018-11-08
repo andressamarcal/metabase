@@ -28,7 +28,6 @@
              [pulse :refer [Pulse]]
              [setting :as setting :refer [Setting]]
              [user :refer [User]]]
-            [metabase.util.date :as du]
             [metabase.util
              [date :as du]
              [i18n :refer [trs]]]

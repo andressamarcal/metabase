@@ -4,7 +4,6 @@
             [metabase
              [query-processor :as qp]
              [util :as u]]
-            [metabase.api.common :as api]
             [metabase.models.table :refer [Table]]
             [metabase.query-processor.interface :as qpi]
             [metabase.util.schema :as su]
@@ -17,10 +16,7 @@
         (qp/process-query
          {:type     :query
           :database db-id
-          :query    mbql-query
-          ;; for things like ad-hoc FieldValues fetching. If current user has an applicable GTAP we need to
-          ;; know about them in order to apply it.
-          :user     @api/*current-user*}))
+          :query    mbql-query}))
       :data
       :rows))
 
