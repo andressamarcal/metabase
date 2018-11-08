@@ -8,7 +8,6 @@
             [expectations :refer :all]
             [medley.core :as m]
             [metabase
-             [middleware :as mid]
              [query-processor :as qp]
              [util :as u]]
             [metabase.models
@@ -47,11 +46,6 @@
                                 v
                                 (update v :native_form boolean))]
                :else [k v]))))
-
-(defn- query-user [user-kwd]
-  ;; Find user returns a UserInstance, which isn't comparable with a map of the UserInstance data, so we need to dump
-  ;; the UserInstance defrecord into a map first
-  (into {} (#'mid/find-user (user->id user-kwd))))
 
 (defn- most-recent-query-execution [] (db/select-one QueryExecution {:order-by [[:id :desc]]}))
 
