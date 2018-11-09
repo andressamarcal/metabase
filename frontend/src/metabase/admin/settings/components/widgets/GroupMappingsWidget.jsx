@@ -32,7 +32,7 @@ type State = {
   mappings: { [string]: number[] },
 };
 
-export default class LdapGroupMappingsWidget extends React.Component {
+export default class GroupMappingsWidget extends React.Component {
   props: Props;
   state: State;
 

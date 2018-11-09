@@ -12,7 +12,7 @@ import {
 import SecretKeyWidget from "./components/widgets/SecretKeyWidget.jsx";
 import EmbeddingLegalese from "./components/widgets/EmbeddingLegalese";
 import EmbeddingLevel from "./components/widgets/EmbeddingLevel";
-import GroupMappingsWidget from "./components/widgets/LdapGroupMappingsWidget";
+import GroupMappingsWidget from "./components/widgets/GroupMappingsWidget";
 import FormattingWidget from "./components/widgets/FormattingWidget";
 
 import LogoUpload from "./components/widgets/LogoUpload";
