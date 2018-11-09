@@ -59,7 +59,10 @@ export default class SettingsSetting extends Component {
       <li className="m2 mb4">
         {!setting.noHeader && <SettingHeader setting={setting} />}
         <div className="flex">
-          <Widget {...updatePlaceholderForEnvironmentVars(this.props)} />
+          <Widget
+            {...setting.props || {}}
+            {...updatePlaceholderForEnvironmentVars(this.props)}
+          />
         </div>
         {errorMessage && (
           <div className="text-error text-bold pt1">{errorMessage}</div>

@@ -31,6 +31,10 @@ export default class SettingsJWTForm extends Component {
               "jwt-attribute-lastname",
             ],
           },
+          {
+            title: t`Group Schema`,
+            settings: ["jwt-group-sync"],
+          },
         ]}
       />
     );

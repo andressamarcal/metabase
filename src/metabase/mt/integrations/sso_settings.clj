@@ -44,6 +44,21 @@
   (tru "SAML attribute for the user''s last name")
   :default "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname")
 
+(defsetting saml-group-sync
+  (tru "Enable group membership synchronization with SAML.")
+  :type    :boolean
+  :default false)
+
+(defsetting saml-group-attribute
+  (tru "SAML attribute for group syncing")
+  :default "member-of")
+
+(defsetting saml-group-mappings
+  ;; Should be in the form: {"groupName": [1, 2, 3]} where keys are SAML groups and values are lists of MB groups IDs
+  (tru "JSON containing SAML to Metabase group mappings.")
+  :type    :json
+  :default {})
+
 (defn saml-configured?
   "Check if SAML is enabled and that the mandatory settings are configured."
   []
@@ -78,6 +93,17 @@
 (defsetting jwt-attribute-lastname
   (tru "Key to retrieve the JWT user's last name")
   :default "last_name")
+
+(defsetting jwt-group-sync
+  (tru "Enable group membership synchronization with JWT.")
+  :type    :boolean
+  :default false)
+
+(defsetting jwt-group-mappings
+  ;; Should be in the form: {"groupName": [1, 2, 3]} where keys are JWT groups and values are lists of MB groups IDs
+  (tru "JSON containing JWT to Metabase group mappings.")
+  :type    :json
+  :default {})
 
 (defn jwt-configured?
   "Check if JWT is enabled and that the mandatory settings are configured."

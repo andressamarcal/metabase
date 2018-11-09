@@ -50,7 +50,7 @@ export default class LdapGroupMappingsWidget extends React.Component {
     e.preventDefault();
     // just load the setting again to make sure it's up to date
     const setting = _.findWhere(await SettingsApi.list(), {
-      key: "ldap-group-mappings",
+      key: this.props.mappingSetting,
     });
     this.setState({
       mappings: (setting && setting.value) || {},
@@ -111,9 +111,9 @@ export default class LdapGroupMappingsWidget extends React.Component {
   _saveClick = (e: Event) => {
     e.preventDefault();
     const { state: { mappings }, props: { onChangeSetting } } = this;
-    SettingsApi.put({ key: "ldap-group-mappings", value: mappings }).then(
+    SettingsApi.put({ key: this.props.mappingSetting, value: mappings }).then(
       () => {
-        onChangeSetting("ldap-group-mappings", mappings);
+        onChangeSetting(this.props.mappingSetting, mappings);
         this.setState({ showEditModal: false, showAddRow: false });
       },
     );
@@ -151,13 +151,14 @@ export default class LdapGroupMappingsWidget extends React.Component {
                                     failsafe measure.`}
                 </p>
                 <AdminContentTable
-                  columnTitles={[t`Distinguished Name`, t`Groups`, ""]}
+                  columnTitles={[this.props.groupHeading, t`Groups`, ""]}
                 >
                   {showAddRow ? (
                     <AddMappingRow
                       mappings={mappings}
                       onCancel={this._hideAddRow}
                       onAdd={this._addMapping}
+                      placeholder={this.props.groupPlaceholder}
                     />
                   ) : null}
                   {((Object.entries(mappings): any): Array<
@@ -193,6 +194,7 @@ type AddMappingRowProps = {
   mappings: { [string]: number[] },
   onAdd?: (dn: string) => void,
   onCancel?: () => void,
+  placeholder?: string,
 };
 
 type AddMappingRowState = {
@@ -237,7 +239,7 @@ class AddMappingRow extends React.Component {
               className="input--borderless h3 ml1 flex-full"
               type="text"
               value={value}
-              placeholder="cn=People,ou=Groups,dc=metabase,dc=com"
+              placeholder={this.props.placeholder}
               autoFocus
               onChange={e => this.setState({ value: e.target.value })}
             />
