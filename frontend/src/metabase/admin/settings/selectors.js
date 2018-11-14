@@ -566,6 +566,14 @@ const SECTIONS = [
         getHidden: settings => !settings["enable-embedding"],
       },
       {
+        key: "embedding-app-allowed-origin",
+        display_name: t`Allowed origin to embed full application`,
+        description: t`The origin (protocol and host only) of the website that is allowed to embed the Metabase application in an iframe`,
+        placeholder: "https://example.com",
+        type: "string",
+        getHidden: settings => !settings["enable-embedding"],
+      },
+      {
         key: "-embedded-dashboards",
         display_name: t`Embedded Dashboards`,
         widget: EmbeddedDashboardListing,
