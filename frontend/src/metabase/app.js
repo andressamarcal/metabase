@@ -36,7 +36,7 @@ import MetabaseAnalytics, {
 import MetabaseSettings from "metabase/lib/settings";
 
 import api from "metabase/lib/api";
-import { IFRAMED } from "metabase/lib/dom";
+import { initializeEmbedding } from "metabase/lib/embed";
 
 import { getStore } from "./store";
 
@@ -50,8 +50,6 @@ import { syncHistoryWithStore } from "react-router-redux";
 // drag and drop
 import HTML5Backend from "react-dnd-html5-backend";
 import { DragDropContextProvider } from "react-dnd";
-
-import _ from "underscore";
 
 // remove trailing slash
 const BASENAME = window.MetabaseRoot.replace(/\/+$/, "");
@@ -88,27 +86,7 @@ function _init(reducers, getRoutes, callback) {
     MetabaseAnalytics.trackPageView(location.pathname);
   });
 
-  if (IFRAMED) {
-    let currentHref;
-    // NOTE: history.listen and window's onhashchange + popstate events were not
-    // enough to catch all URL changes, so just poll for now :(
-    setInterval(() => {
-      if (currentHref !== window.location.href) {
-        // FIXME SECURITY: use whitelisted origin instead of "*"
-        window.parent.postMessage(
-          {
-            metabase: {
-              type: "location",
-              // extract just the string properties from window.location
-              location: _.pick(window.location, v => typeof v === "string"),
-            },
-          },
-          "*",
-        );
-        currentHref = window.location.href;
-      }
-    }, 100);
-  }
+  initializeEmbedding(store);
 
   registerAnalyticsClickListener();
 

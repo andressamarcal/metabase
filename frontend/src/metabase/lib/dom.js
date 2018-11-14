@@ -289,6 +289,10 @@ export function clipPathReference(id: string): string {
 }
 
 export function initializeIframeResizer(readyCallback = () => {}) {
+  if (!IFRAMED) {
+    return;
+  }
+
   // Make iFrameResizer avaliable so that embed users can
   // have their embeds autosize to their content
   if (window.iFrameResizer) {
