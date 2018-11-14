@@ -7,7 +7,7 @@ import { click } from "__support__/enzyme_utils";
 import { mount } from "enzyme";
 
 import SettingsEditorApp from "metabase/admin/settings/containers/SettingsEditorApp";
-import SettingsAuthenticationOptions from "metabase/admin/settings/components/SettingsAuthenticationOptions";
+import AuthenticationOption from "metabase/admin/settings/components/widgets/AuthenticationOption";
 import SettingsSingleSignOnForm from "metabase/admin/settings/components/SettingsSingleSignOnForm.jsx";
 import SettingsLdapForm from "metabase/admin/settings/components/SettingsLdapForm.jsx";
 
@@ -32,7 +32,7 @@ describe("Admin Auth Options", () => {
 
     click(authListItem);
 
-    expect(settingsWrapper.find(SettingsAuthenticationOptions).length).toBe(1);
+    expect(settingsWrapper.find(AuthenticationOption).length).toBe(2);
 
     // test google
     const googleConfigButton = settingsWrapper.find(".Button").first();

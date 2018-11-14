@@ -13,6 +13,27 @@
             [toucan.db :as db])
   (:import [java.util TimeZone UUID]))
 
+(defn- google-auth-configured?
+  []
+  (boolean (setting/get :google-auth-client-id)))
+
+(defn- ldap-configured?
+  []
+  ((resolve 'metabase.integrations.ldap/ldap-configured?)))
+
+(defn- other-sso-configured?
+  []
+  (or
+    ((resolve 'metabase.mt.integrations.sso-settings/saml-configured?))
+    ((resolve 'metabase.mt.integrations.sso-settings/jwt-configured?))))
+
+(defn sso-configured?
+  "Any SSO provider is configured"
+  []
+  (or (google-auth-configured?)
+      (ldap-configured?)
+      (other-sso-configured?)))
+
 (defsetting check-for-updates
   (tru "Identify when new versions of Metabase are available.")
   :type    :boolean
@@ -176,6 +197,14 @@
   :type    :boolean
   :default true)
 
+(defsetting enable-password-login
+  (tru "Allow logging in by email and password.")
+  :type    :boolean
+  :default true
+  :getter  (fn []
+             (or (setting/get-boolean :enable-password-login)
+                 (not (sso-configured?)))))
+
 (defsetting breakout-bins-num
   (tru "When using the default binning strategy and a number of bins is not provided, this number will be used as the default.")
   :type :integer
@@ -233,6 +262,7 @@
    :email_configured        ((resolve 'metabase.email/email-configured?))
    :embedding               (enable-embedding)
    :enable_nested_queries   (enable-nested-queries)
+   :enable_password_login   (enable-password-login)
    :enable_query_caching    (enable-query-caching)
    :enable_xrays            (enable-xrays)
    :engines                 ((resolve 'metabase.driver/available-drivers))
@@ -247,9 +277,10 @@
    :google_auth_client_id   (setting/get :google-auth-client-id)
    :has_sample_dataset      (db/exists? 'Database, :is_sample true)
    :landing_page            (setting/get :landing-page)
-   :ldap_configured         ((resolve 'metabase.integrations.ldap/ldap-configured?))
+   :ldap_configured         (ldap-configured?)
    :map_tile_server_url     (map-tile-server-url)
    :metastore_url           metastore/store-url
+   :other_sso_configured    (other-sso-configured?)
    :password_complexity     password/active-password-complexity
    :premium_features        {:embedding  (metastore/hide-embed-branding?)
                              :whitelabel (metastore/enable-whitelabeling?)

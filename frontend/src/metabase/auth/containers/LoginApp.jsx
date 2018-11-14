@@ -118,7 +118,6 @@ export default class LoginApp extends Component {
   render() {
     const { loginError } = this.props;
     const { adminLogin } = this.state;
-    const ldapEnabled = Settings.ldapEnabled();
 
     return (
       <div className="full flex flex-column flex-full md-layout-centered">
@@ -134,20 +133,22 @@ export default class LoginApp extends Component {
             >
               <h3 className="Login-header Form-offset">{t`Sign in to Metabase`}</h3>
 
-              {Settings.ssoEnabled() && (
+              {Settings.googleAuthEnabled() && (
                 <div className="mx4 mb4 py3 border-bottom relative">
                   <SSOLoginButton provider="google" ref="ssoLoginButton" />
                   {/*<div className="g-signin2 ml1 relative z2" id="g-signin2"></div>*/}
-                  <div
-                    className="mx1 absolute text-centered left right"
-                    style={{ bottom: -8 }}
-                  >
-                    <span className="text-bold px3 py2 text-medium bg-white">{t`OR`}</span>
-                  </div>
+                  {Settings.passwordEnabled() && (
+                    <div
+                      className="mx1 absolute text-centered left right"
+                      style={{ bottom: -8 }}
+                    >
+                      <span className="text-bold px3 py2 text-medium bg-white">{t`OR`}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {Settings.get("sso_configured") && !adminLogin ? (
+              {Settings.get("other_sso_configured") && !adminLogin ? (
                 <div className="mx4 mb1 py3 border-bottom relative">
                   <Button
                     type="button"
@@ -157,7 +158,7 @@ export default class LoginApp extends Component {
                     {t`Sign in`}
                   </Button>
                 </div>
-              ) : (
+              ) : Settings.passwordEnabled() || Settings.ldapEnabled() ? (
                 <div>
                   <FormMessage
                     formError={
@@ -190,7 +191,7 @@ export default class LoginApp extends Component {
                          * in auth, set the input type to email so we get built in
                          * validation in modern browsers
                          * */
-                        ldapEnabled ? "text" : "email"
+                        Settings.ldapEnabled() ? "text" : "email"
                       }
                       onChange={e => this.onChange("username", e.target.value)}
                       autoFocus
@@ -252,9 +253,10 @@ export default class LoginApp extends Component {
                     >{t`I seem to have forgotten my password`}</Link>
                   </div>
                 </div>
-              )}
+              ) : null}
             </form>
-            {Settings.get("sso_configured") &&
+            {Settings.get("other_sso_configured") &&
+              Settings.passwordEnabled() &&
               !adminLogin && (
                 <div
                   className="mt2 px2 cursor-pointer text-grey-1 text-right"

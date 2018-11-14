@@ -70,9 +70,10 @@
 (defn- email-login
   "Find a matching `User` if one exists and return a new Session for them, or `nil` if they couldn't be authenticated."
   [username password]
-  (when-let [user (db/select-one [User :id :password_salt :password :last_login], :email username, :is_active true)]
-    (when (pass/verify-password password (:password_salt user) (:password user))
-      {:id (create-session! user)})))
+  (when (public-settings/enable-password-login)
+    (when-let [user (db/select-one [User :id :password_salt :password :last_login], :email username, :is_active true)]
+      (when (pass/verify-password password (:password_salt user) (:password user))
+        {:id (create-session! user)}))))
 
 (def ^:private throttling-disabled? (config/config-bool :mb-disable-session-throttle))
 
