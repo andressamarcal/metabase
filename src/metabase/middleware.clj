@@ -213,7 +213,9 @@
                             :connect-src ["'self'"
                                           "metabase.us10.list-manage.com"
                                           (when config/is-dev?
-                                            "localhost:8080 ws://localhost:8080")]}]
+                                            "localhost:8080 ws://localhost:8080")]
+                            ;; FIXME SECURITY: use a configurable whitelist
+                            :frame-ancestors ["*"]}]
                 (format "%s %s; " (name k) (apply str (interpose " " vs)))))})
 
 (defsetting ssl-certificate-public-key
@@ -235,9 +237,10 @@
    strict-transport-security-header
    content-security-policy-header
    #_(public-key-pins-header)
-   (when-not allow-iframes?
-     ;; Tell browsers not to render our site as an iframe (prevent clickjacking)
-     {"X-Frame-Options"                 "DENY"})
+   ;; FIXME SECURITY: use a configurable whitelist
+   ; (when-not allow-iframes?
+   ;   ;; Tell browsers not to render our site as an iframe (prevent clickjacking)
+   ;   {"X-Frame-Options"                 "DENY"})
    { ;; Tell browser to block suspected XSS attacks
     "X-XSS-Protection"                  "1; mode=block"
     ;; Prevent Flash / PDF files from including content from site.
