@@ -103,7 +103,7 @@
   :default false)
 
 (defsetting enable-embedding
-  (tru "Allow admins to securely embed questions and dashboards within other applications?")
+  (tru "Allows admins to securely embed individual questions and dashboards, or the entire app.")
   :type    :boolean
   :default false)
 
