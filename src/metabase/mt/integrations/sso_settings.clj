@@ -4,7 +4,16 @@
   information. Separating out this information creates a better dependency graph and avoids circular dependencies."
   (:require [metabase.models.setting :as setting :refer [defsetting]]
             [metabase.util :as u]
-            [metabase.util.i18n :refer [tru]]))
+            [metabase.util
+             [i18n :refer [tru]]
+             [schema :as su]]
+            [schema.core :as s]))
+
+(def ^:private GroupMappings
+  (s/maybe {su/NonBlankString [su/IntGreaterThanZero]}))
+
+(def ^:private ^{:arglists '([group-mappings])} validate-group-mappings
+  (s/validator GroupMappings))
 
 (defsetting saml-enabled
   (tru "Enable SAML authentication.")
@@ -57,7 +66,8 @@
   ;; Should be in the form: {"groupName": [1, 2, 3]} where keys are SAML groups and values are lists of MB groups IDs
   (tru "JSON containing SAML to Metabase group mappings.")
   :type    :json
-  :default {})
+  :default {}
+  :setter (comp (partial setting/set-json! :saml-group-mappings) validate-group-mappings))
 
 (defn saml-configured?
   "Check if SAML is enabled and that the mandatory settings are configured."
@@ -94,6 +104,10 @@
   (tru "Key to retrieve the JWT user's last name")
   :default "last_name")
 
+(defsetting jwt-attribute-groups
+  (tru "Key to retrieve the JWT user's groups")
+  :default "groups")
+
 (defsetting jwt-group-sync
   (tru "Enable group membership synchronization with JWT.")
   :type    :boolean
@@ -103,7 +117,8 @@
   ;; Should be in the form: {"groupName": [1, 2, 3]} where keys are JWT groups and values are lists of MB groups IDs
   (tru "JSON containing JWT to Metabase group mappings.")
   :type    :json
-  :default {})
+  :default {}
+  :setter  (comp (partial setting/set-json! :jwt-group-mappings) validate-group-mappings))
 
 (defn jwt-configured?
   "Check if JWT is enabled and that the mandatory settings are configured."

@@ -6,10 +6,17 @@
             [crypto.random :as crypto-random]
             [expectations :refer :all]
             [metabase.models.user :refer [User]]
+            [metabase.mt.integrations.jwt :as mt.jwt]
             [metabase.mt.integrations.saml-test :as saml-test]
             [metabase.test.data.users :as users]
             [metabase.test.util :as tu]
-            [toucan.db :as db]))
+            [toucan.db :as db]
+            [metabase.models
+             [permissions-group :as group :refer [PermissionsGroup]]
+             [permissions-group-membership :refer [PermissionsGroupMembership]]
+             [user :refer [User]]]
+            [toucan.util.test :as tt]
+            [metabase.util :as u]))
 
 (def ^:private default-idp-uri      "http://test.idp.metabase.com")
 (def ^:private default-redirect-uri "http://localhost:3000/test")
@@ -87,6 +94,12 @@
                                                default-jwt-secret)))))
 
 ;; A new account will be created for a JWT user we haven't seen before
+(defmacro with-users-with-email-deleted {:style/indent 1} [user-email & body]
+  `(try
+     ~@body
+     (finally
+       (db/delete! User :email ~user-email))))
+
 (expect
   {:new-user-exists-before? false
    :successful-login?       true
@@ -95,7 +108,7 @@
                               :date_joined true, :common_name "New User"}]
    :login-attributes        {"more" "stuff", "for" "the new user"}}
   (with-jwt-default-setup
-    (try
+    (with-users-with-email-deleted "newuser@metabase.com"
       (let [new-user-exists? (boolean (seq (db/select User :email "newuser@metabase.com")))
             response         (saml-test/client-full-response :get 302 "/auth/sso"
                                                    {:request-options {:follow-redirects false}}
@@ -105,6 +118,46 @@
         {:new-user-exists-before? new-user-exists?
          :successful-login?       (saml-test/successful-login? response)
          :new-user                (tu/boolean-ids-and-timestamps (db/select User :email "newuser@metabase.com"))
-         :login-attributes        (db/select-one-field :login_attributes User :email "newuser@metabase.com")})
-      (finally
-        (db/delete! User :email "newuser@metabase.com")))))
+         :login-attributes        (db/select-one-field :login_attributes User :email "newuser@metabase.com")}))))
+
+;; make sure our setting for mapping group names -> IDs works
+(expect
+ #{1 2 3 4}
+  (tu/with-temporary-setting-values [jwt-group-mappings {"group_1" [1 2 3]
+                                                         "group_2" [3 4]
+                                                         "group_3" [5]}]
+    (#'mt.jwt/group-names->ids [:group_1 :group_2])))
+
+(expect
+ #{3 4 5}
+  (tu/with-temporary-setting-values [jwt-group-mappings {"group_1" [1 2 3]
+                                                         "group_2" [3 4]
+                                                         "group_3" [5]}]
+    (#'mt.jwt/group-names->ids ["group_2" "group_3"])))
+
+;; login should sync group memberships if enabled
+(defn- group-memberships [user-or-id]
+  (when-let [group-ids (seq (db/select-field :group_id PermissionsGroupMembership :user_id (u/get-id user-or-id)))]
+    (db/select-field :name PermissionsGroup :id [:in group-ids])))
+
+(expect
+  #{"All Users" ":metabase.mt.integrations.jwt-test/my-group"}
+  (with-jwt-default-setup
+    (tt/with-temp PermissionsGroup [my-group {:name (str ::my-group)}]
+      (tu/with-temporary-setting-values [jwt-group-sync       true
+                                         jwt-group-mappings   {"my_group" [(u/get-id my-group)]}
+                                         jwt-attribute-groups "GrOuPs"]
+        (with-users-with-email-deleted "newuser@metabase.com"
+          (let [response    (saml-test/client-full-response :get 302 "/auth/sso"
+                                                            {:request-options {:follow-redirects false}}
+                                                            :return_to default-redirect-uri
+                                                            :jwt (jwt/sign {:email      "newuser@metabase.com"
+                                                                            :first_name "New"
+                                                                            :last_name  "User"
+                                                                            :more       "stuff"
+                                                                            :GrOuPs     ["my_group"]
+                                                                            :for        "the new user"}
+                                                                           default-jwt-secret))
+                _           (assert (saml-test/successful-login? response))
+                new-user-id (u/get-id (db/select-one-id User :email "newuser@metabase.com"))]
+            (group-memberships new-user-id)))))))

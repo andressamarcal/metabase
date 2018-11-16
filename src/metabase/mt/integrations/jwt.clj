@@ -4,6 +4,7 @@
             [metabase.api
              [common :as api]
              [session :as session]]
+            [metabase.integrations.common :as integrations.common]
             [metabase.mt.api.sso :as sso]
             [metabase.mt.integrations
              [sso-settings :as sso-settings]
@@ -12,24 +13,22 @@
             [ring.util.response :as resp])
   (:import java.net.URLEncoder))
 
-(defn jwt-auth-fetch-or-create-user!
+(defn fetch-or-create-user!
   "Returns a session map for the given `email`. Will create the user if needed."
   [first-name last-name email user-attributes]
-
   (when-not (sso-settings/jwt-configured?)
-    (throw (IllegalArgumentException. "Can't create new JWT user when JWT is not configured")))
+    (throw (IllegalArgumentException. (str (tru "Can't create new JWT user when JWT is not configured")))))
+  (or (sso-utils/fetch-and-update-login-attributes! email user-attributes)
+      (sso-utils/create-new-sso-user! {:first_name       first-name
+                                       :last_name        last-name
+                                       :email            email
+                                       :sso_source       "jwt"
+                                       :login_attributes user-attributes})))
 
-  (when-let [user (or (sso-utils/fetch-and-update-login-attributes! email user-attributes)
-                      (sso-utils/create-new-sso-user! {:first_name       first-name
-                                                       :last_name        last-name
-                                                       :email            email
-                                                       :sso_source       "jwt"
-                                                       :login_attributes user-attributes}))]
-    {:id (session/create-session! user)}))
-
-(def ^:private jwt-attribute-email     (comp keyword sso-settings/jwt-attribute-email))
-(def ^:private jwt-attribute-firstname (comp keyword sso-settings/jwt-attribute-firstname))
-(def ^:private jwt-attribute-lastname  (comp keyword sso-settings/jwt-attribute-lastname))
+(def ^:private ^{:arglists '([])} jwt-attribute-email     (comp keyword sso-settings/jwt-attribute-email))
+(def ^:private ^{:arglists '([])} jwt-attribute-firstname (comp keyword sso-settings/jwt-attribute-firstname))
+(def ^:private ^{:arglists '([])} jwt-attribute-lastname  (comp keyword sso-settings/jwt-attribute-lastname))
+(def ^:private ^{:arglists '([])} jwt-attribute-groups    (comp keyword sso-settings/jwt-attribute-groups))
 
 (defn- jwt-data->login-attributes [jwt-data]
   (dissoc jwt-data
@@ -43,15 +42,27 @@
 ;; used by Zendesk for their JWT SSO, so it seemed like a good place for us to start
 (def ^:private ^:const three-minutes-in-seconds 180)
 
+(defn- group-names->ids [group-names]
+  (set (mapcat (sso-settings/jwt-group-mappings)
+               (map keyword group-names))))
+
+(defn- sync-groups! [user jwt-data]
+  (when (sso-settings/jwt-group-sync)
+    (when-let [groups-attribute (jwt-attribute-groups)]
+      (when-let [group-names (get jwt-data (jwt-attribute-groups))]
+        (integrations.common/sync-group-memberships! user (group-names->ids group-names))))))
+
 (defn- login-jwt-user
   [jwt redirect]
-  (let [jwt-data            (jwt/unsign jwt (sso-settings/jwt-shared-secret)
-                                        {:max-age three-minutes-in-seconds})
-        login-attrs         (jwt-data->login-attributes jwt-data)
-        email               (get jwt-data (jwt-attribute-email))
-        first-name          (get jwt-data (jwt-attribute-firstname) "Unknown")
-        last-name           (get jwt-data (jwt-attribute-lastname) "Unknown")
-        {session-token :id} (jwt-auth-fetch-or-create-user! first-name last-name email login-attrs)]
+  (let [jwt-data      (jwt/unsign jwt (sso-settings/jwt-shared-secret)
+                                  {:max-age three-minutes-in-seconds})
+        login-attrs   (jwt-data->login-attributes jwt-data)
+        email         (get jwt-data (jwt-attribute-email))
+        first-name    (get jwt-data (jwt-attribute-firstname) "Unknown")
+        last-name     (get jwt-data (jwt-attribute-lastname) "Unknown")
+        user          (fetch-or-create-user! first-name last-name email login-attrs)
+        session-token (session/create-session! user)]
+    (sync-groups! user jwt-data)
     (resp/set-cookie (resp/redirect (or redirect (URLEncoder/encode "/")))
                      "metabase.SESSION_ID" session-token
                      {:path "/"})))
