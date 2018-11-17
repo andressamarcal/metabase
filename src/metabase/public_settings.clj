@@ -107,6 +107,9 @@
   :type    :boolean
   :default false)
 
+(defsetting embedding-app-origin
+  (tru "Allow this origin to embed the full Metabase application"))
+
 (defsetting enable-nested-queries
   (tru "Allow using a saved question as the source for other queries?")
   :type    :boolean
@@ -261,6 +264,7 @@
    :custom_geojson          (setting/get :custom-geojson)
    :email_configured        ((resolve 'metabase.email/email-configured?))
    :embedding               (enable-embedding)
+   :embedding_app_origin    (embedding-app-origin)
    :enable_nested_queries   (enable-nested-queries)
    :enable_password_login   (enable-password-login)
    :enable_query_caching    (enable-query-caching)
