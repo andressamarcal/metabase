@@ -58,9 +58,9 @@
   :type    :boolean
   :default false)
 
-(defsetting saml-group-attribute
+(defsetting saml-attribute-group
   (tru "SAML attribute for group syncing")
-  :default "member-of")
+  :default "member_of")
 
 (defsetting saml-group-mappings
   ;; Should be in the form: {"groupName": [1, 2, 3]} where keys are SAML groups and values are lists of MB groups IDs

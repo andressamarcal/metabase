@@ -5,18 +5,18 @@
             [clojure.string :as str]
             [crypto.random :as crypto-random]
             [expectations :refer :all]
-            [metabase.models.user :refer [User]]
-            [metabase.mt.integrations.jwt :as mt.jwt]
-            [metabase.mt.integrations.saml-test :as saml-test]
-            [metabase.test.data.users :as users]
-            [metabase.test.util :as tu]
-            [toucan.db :as db]
             [metabase.models
              [permissions-group :as group :refer [PermissionsGroup]]
              [permissions-group-membership :refer [PermissionsGroupMembership]]
              [user :refer [User]]]
-            [toucan.util.test :as tt]
-            [metabase.util :as u]))
+            [metabase.mt.integrations
+             [jwt :as mt.jwt]
+             [saml-test :as saml-test]]
+            [metabase.test.data.users :as users]
+            [metabase.test.util :as tu]
+            [metabase.util :as u]
+            [toucan.db :as db]
+            [toucan.util.test :as tt]))
 
 (def ^:private default-idp-uri      "http://test.idp.metabase.com")
 (def ^:private default-redirect-uri "http://localhost:3000/test")

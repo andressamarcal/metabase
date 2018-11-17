@@ -43,7 +43,7 @@ export default class SettingsSAMLForm extends Component {
           },
           {
             title: t`Group Schema`,
-            settings: ["saml-group-sync", "saml-group-attribute"],
+            settings: ["saml-group-sync", "saml-attribute-group"],
           },
         ]}
       />

@@ -421,7 +421,7 @@ const SECTIONS = [
         },
       },
       {
-        key: "saml-group-attribute",
+        key: "saml-attribute-group",
         display_name: t`Group attribute name`,
         type: "string",
       },
