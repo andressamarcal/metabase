@@ -12,5 +12,5 @@
     ;; If the current permissions are nil, then we would return false which could give a potentially segmented user
     ;; access they shouldn't have. If we don't have permissions, we can't determine whether they are segmented, so
     ;; throw.
-    (throw (ex-info (tru "No permissions found for current user")
+    (throw (ex-info (str (tru "No permissions found for current user"))
              {:status-code 403}))))

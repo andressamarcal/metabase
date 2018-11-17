@@ -10,8 +10,9 @@
              [config :as config]
              [util :as u]]
             [metabase.models.setting :as setting :refer [defsetting]]
-            [metabase.util.schema :as su]
-            [puppetlabs.i18n.core :refer [trs tru]]
+            [metabase.util
+             [i18n :refer [trs tru]]
+             [schema :as su]]
             [schema.core :as s]))
 
 (def ^:private ValidToken
@@ -119,7 +120,7 @@
     (try
       (when (seq new-value)
         (when (s/check ValidToken new-value)
-          (throw (ex-info (tru "Token format is invalid.")
+          (throw (ex-info (str (tru "Token format is invalid."))
                    {:status-code 400, :error-details "Token should be 64 hexadecimal characters."})))
         (valid-token->features new-value)
         (log/info (trs "Token is valid.")))

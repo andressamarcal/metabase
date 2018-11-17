@@ -15,8 +15,9 @@
              [session :refer [Session]]
              [setting :refer [defsetting]]
              [user :as user :refer [User]]]
-            [metabase.util.date :as du]
-            [puppetlabs.i18n.core :refer [tru]]
+            [metabase.util
+             [date :as du]
+             [i18n :as ui18n :refer [tru]]]
             [toucan.db :as db])
   (:import com.fasterxml.jackson.core.JsonGenerator
            java.sql.SQLException))
@@ -38,6 +39,11 @@
   [{:keys [uri]}]
   (re-matches #"^/embed/.*$" uri))
 
+(defn- cacheable?
+  "Can the ring request be permanently cached?"
+  [{:keys [uri query-string]}]
+  ;; match requests that are js/css and have a cache-busting query string
+  (and query-string (re-matches #"^/app/dist/.*\.(js|css)$" uri)))
 
 ;;; ------------------------------------------- AUTH & SESSION MANAGEMENT --------------------------------------------
 
@@ -167,6 +173,11 @@
    "Expires"        "Tue, 03 Jul 2001 06:00:00 GMT"
    "Last-Modified"  (du/format-date :rfc822)})
 
+ (defn- cache-far-future-headers
+   "Headers that tell browsers to cache a static resource for a long time."
+   []
+   {"Cache-Control" "public, max-age=31536000"})
+
 (def ^:private ^:const strict-transport-security-header
   "Tell browsers to only access this resource over HTTPS for the next year (prevent MTM attacks). (This only applies if
   the original request was HTTPS; if sent in response to an HTTP request, this is simply ignored)"
@@ -215,10 +226,12 @@
   (when-let [k (ssl-certificate-public-key)]
     {"Public-Key-Pins" (format "pin-sha256=\"base64==%s\"; max-age=31536000" k)}))
 
-(defn- security-headers [& {:keys [allow-iframes?]
-                            :or   {allow-iframes? false}}]
+(defn- security-headers [& {:keys [allow-iframes? allow-cache?]
+                            :or   {allow-iframes? false, allow-cache? false}}]
   (merge
-   (cache-prevention-headers)
+   (if allow-cache?
+     (cache-far-future-headers)
+     (cache-prevention-headers))
    strict-transport-security-header
    content-security-policy-header
    #_(public-key-pins-header)
@@ -238,7 +251,8 @@
   (fn [request]
     (let [response (handler request)]
       ;; add security headers to all responses, but allow iframes on public & embed responses
-      (update response :headers merge (security-headers :allow-iframes? ((some-fn public? embed?) request))))))
+      (update response :headers merge (security-headers :allow-iframes? ((some-fn public? embed?) request)
+                                                        :allow-cache?   (cacheable? request))))))
 
 (defn add-content-type
   "Add an appropriate Content-Type header to response if it doesn't already have one. Most responses should already
@@ -385,18 +399,18 @@
   "Convert an exception from an API endpoint into an appropriate HTTP response."
   [^Throwable e]
   (let [{:keys [status-code], :as info} (ex-data e)
-        other-info                      (dissoc info :status-code)
+        other-info                      (dissoc info :status-code :schema :type)
         message                         (.getMessage e)
         body                            (cond
                                           ;; Exceptions that include a status code *and* other info are things like
                                           ;; Field validation exceptions. Return those as is
                                           (and status-code
                                                (seq other-info))
-                                          other-info
+                                          (ui18n/localized-strings->strings other-info)
                                           ;; If status code was specified but other data wasn't, it's something like a
                                           ;; 404. Return message as the (plain-text) body.
                                           status-code
-                                          message
+                                          (str message)
                                           ;; Otherwise it's a 500. Return a body that includes exception & filtered
                                           ;; stacktrace for debugging purposes
                                           :else

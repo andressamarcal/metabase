@@ -1,7 +1,7 @@
 (ns metabase.mt.api.field-test
   "Tests for special behavior of `/api/metabase/field` endpoints in the Metabase Enterprise Edition."
   (:require [expectations :refer :all]
-            [metabase.mt.api.table-test :as mt-table-test]
+            [metabase.mt.test-util :as mt.tu]
             [metabase.test.data :as data]
             [metabase.test.data.users :as users]))
 
@@ -10,8 +10,8 @@
   {:name             "NAME"
    :display_name     "Name"
    :has_field_values "list"}
-  (mt-table-test/with-segmented-test-setup mt-table-test/restricted-column-query
-    (mt-table-test/with-user-attributes :rasta {:cat 50}
+  (mt.tu/with-segmented-test-setup mt.tu/restricted-column-query
+    (mt.tu/with-user-attributes :rasta {:cat 50}
       (-> ((users/user->client :rasta) :get 200 (str "field/" (data/id :venues :name)))
           (select-keys [:name :display_name :has_field_values])))))
 
@@ -31,8 +31,8 @@
               ["Taqueria San Francisco"]
               ["Tito's Tacos"]
               ["Yuca's Taqueria"]]}
-  (mt-table-test/with-segmented-test-setup mt-table-test/restricted-column-query
-    (mt-table-test/with-user-attributes :rasta {:cat 50}
+  (mt.tu/with-segmented-test-setup mt.tu/restricted-column-query
+    (mt.tu/with-user-attributes :rasta {:cat 50}
       (-> ((users/user->client :rasta) :get 200 (str "field/" (data/id :venues :name) "/values"))
           ;; `with-segmented-test-setup` binds `data/db` and `data/id` to a new temp copy of the test data DB so the
           ;; value of the `data/id` call here will be different from if we were to call it in `expected`.
@@ -46,8 +46,8 @@
   [["Tacos Villa Corona" "Tacos Villa Corona"]
    ["Taqueria Los Coyotes" "Taqueria Los Coyotes"]
    ["Taqueria San Francisco" "Taqueria San Francisco"]]
-  (mt-table-test/with-segmented-test-setup mt-table-test/restricted-column-query
-    (mt-table-test/with-user-attributes :rasta {:cat 50}
+  (mt.tu/with-segmented-test-setup mt.tu/restricted-column-query
+    (mt.tu/with-user-attributes :rasta {:cat 50}
       (let [vn-id (data/id :venues :name)]
         ((users/user->client :rasta) :get 200 (format "field/%s/search/%s" vn-id vn-id) :value "Ta")))))
 
@@ -57,7 +57,7 @@
 (expect
   {:field_id true
    :values   []}
-  (mt-table-test/with-segmented-test-setup mt-table-test/restricted-column-query
-    (mt-table-test/with-user-attributes :rasta {:cat 50}
+  (mt.tu/with-segmented-test-setup mt.tu/restricted-column-query
+    (mt.tu/with-user-attributes :rasta {:cat 50}
       (-> ((users/user->client :rasta) :get 200 (str "field/" (data/id :venues :price) "/values"))
           (update :field_id (partial = (data/id :venues :price)))))))

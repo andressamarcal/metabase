@@ -3,14 +3,13 @@
             [metabase.api
              [common :as api]
              [table :as table-api]]
+            [metabase.mbql.util :as mbql.u]
             [metabase.models
              [card :refer [Card]]
              [permissions :as perms]
              [permissions-group-membership :refer [PermissionsGroupMembership]]
              [table :as table :refer [Table]]]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
-            [metabase.query-processor.middleware.expand :as expand]
-            [metabase.query-processor.util :as qputil]
             [metabase.util :as u]
             [metabase.util.schema :as su]
             [schema.core :as s]
@@ -32,14 +31,6 @@
            first
            (models/do-post-select Card)))
 
-(s/defn ^:private get-field-id :- s/Int
-  "Fields in MBQL `:fields` clauses can be integers (MBQL '95) or can be `[:field-id <int>]` which then get translated
-  into a field placeholder. This function handles that difference and always returns the integer field ID"
-  [field-ph-or-field-id]
-  (if (integer? field-ph-or-field-id)
-    field-ph-or-field-id
-    (:field-id field-ph-or-field-id)))
-
 (s/defn ^:private only-segmented-perms? :- s/Bool
   "Returns true if the user has only segemented and not full table permissions. If the user has full table permissions
   we wouldn't want to apply this segment filtering."
@@ -51,10 +42,8 @@
      (perms/table-segmented-query-path table))))
 
 (s/defn ^:private query->fields-ids :- (s/maybe [s/Int])
-  [{:keys [dataset_query] :as card}]
-  (some->> (qputil/get-in-normalized dataset_query [:query :fields])
-           (map expand/expand-ql-sexpr)
-           (map get-field-id)))
+  [{{{:keys [fields]} :query} :dataset_query}]
+  (mbql.u/match fields [:field-id id] id))
 
 (defn- maybe-filter-fields [table query-metadata-response]
   ;; If we have segmented permissions and the associated GTAP limits the fields returned, we need make sure the

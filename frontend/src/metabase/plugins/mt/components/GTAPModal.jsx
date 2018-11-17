@@ -24,7 +24,6 @@ import EntityObjectLoader from "metabase/entities/containers/EntityObjectLoader"
 import QuestionLoader from "metabase/containers/QuestionLoader";
 
 import Dimension from "metabase-lib/lib/Dimension";
-import { mbqlEq } from "metabase/lib/query/util";
 
 import _ from "underscore";
 import { jt, t } from "c-3po";
@@ -393,15 +392,15 @@ const TableName = ({ tableId }) => (
 const TargetName = ({ gtap, target }: { gtap: GTAP, target: any }) => {
   if (Array.isArray(target)) {
     if (
-      (mbqlEq(target[0], "variable") || mbqlEq(target[0], "dimension")) &&
-      mbqlEq(target[1][0], "template-tag")
+      (target[0] == "variable" || target[0] === "dimension") &&
+      target[1][0] === "template-tag"
     ) {
       return (
         <span>
           <strong>{target[1][1]}</strong> variable
         </span>
       );
-    } else if (mbqlEq(target[0], "dimension")) {
+    } else if (target[0] === "dimension") {
       return (
         <QuestionLoader
           questionId={gtap.card_id}
