@@ -13,7 +13,6 @@ export const IS_EMBED_PREVIEW = IFRAMED_IN_SELF;
 
 export function initializeEmbedding(store) {
   if (IFRAMED) {
-    const embedOrigin = MetabaseSettings.get("embedding_app_origin");
     let currentHref;
     let currentFrame;
     // NOTE: history.listen and window's onhashchange + popstate events were not
