@@ -170,4 +170,6 @@ enabledApplicationNameReplacement();
 // whitelabeled color (though this doesn't help if the admin changes a color and
 // doesn't refresh)
 // Don't update CSS colors yet since all the CSS hasn't been loaded yet
-updateColorsJS();
+try {
+  updateColorsJS();
+} catch (e) {}
