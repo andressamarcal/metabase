@@ -31,6 +31,7 @@ import MetabaseAnalytics, {
 import MetabaseSettings from "metabase/lib/settings";
 
 import api from "metabase/lib/api";
+import { initializeEmbedding } from "metabase/lib/embed";
 
 import { getStore } from "./store";
 
@@ -79,6 +80,8 @@ function _init(reducers, getRoutes, callback) {
   history.listen(location => {
     MetabaseAnalytics.trackPageView(location.pathname);
   });
+
+  initializeEmbedding(store);
 
   registerAnalyticsClickListener();
 

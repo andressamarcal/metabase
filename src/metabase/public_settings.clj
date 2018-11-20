@@ -103,9 +103,12 @@
   :default false)
 
 (defsetting enable-embedding
-  (tru "Allow admins to securely embed questions and dashboards within other applications?")
+  (tru "Allows admins to securely embed individual questions and dashboards, or the entire app.")
   :type    :boolean
   :default false)
+
+(defsetting embedding-app-origin
+  (tru "Allow this origin to embed the full Metabase application"))
 
 (defsetting enable-nested-queries
   (tru "Allow using a saved question as the source for other queries?")
@@ -261,6 +264,7 @@
    :custom_geojson          (setting/get :custom-geojson)
    :email_configured        ((resolve 'metabase.email/email-configured?))
    :embedding               (enable-embedding)
+   :embedding_app_origin    (embedding-app-origin)
    :enable_nested_queries   (enable-nested-queries)
    :enable_password_login   (enable-password-login)
    :enable_query_caching    (enable-query-caching)
