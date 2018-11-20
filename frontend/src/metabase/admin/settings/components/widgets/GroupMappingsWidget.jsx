@@ -32,7 +32,7 @@ type Props = {
 type State = {
   showEditModal: boolean,
   showAddRow: boolean,
-  groups: Object[],
+  groups: ?(Object[]),
   mappings: { [string]: number[] },
 };
 
