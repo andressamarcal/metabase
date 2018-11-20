@@ -15,7 +15,6 @@ import SettingsLdapForm from "../components/SettingsLdapForm.jsx";
 import SettingsSetupList from "../components/SettingsSetupList.jsx";
 import SettingsUpdatesForm from "../components/SettingsUpdatesForm.jsx";
 import SettingsSingleSignOnForm from "../components/SettingsSingleSignOnForm.jsx";
-import SettingsAuthenticationOptions from "../components/SettingsAuthenticationOptions.jsx";
 
 import SettingsSAMLForm from "../components/SettingsSAMLForm.jsx";
 import SettingsJWTForm from "../components/SettingsJWTForm.jsx";
@@ -156,7 +155,10 @@ export default class SettingsEditorApp extends Component {
           updateSetting={this.updateSetting}
         />
       );
-    } else if (activeSection.slug === "authentication") {
+    } else if (
+      activeSection.slug === "authentication" &&
+      this.props.params.authType
+    ) {
       // HACK - the presence of this param is a way for us to tell if
       // a user is looking at a sub section of the autentication section
       // since allowing for multi page settings more broadly would require
@@ -204,8 +206,6 @@ export default class SettingsEditorApp extends Component {
             />
           );
         }
-      } else {
-        return <SettingsAuthenticationOptions />;
       }
     } else {
       return (

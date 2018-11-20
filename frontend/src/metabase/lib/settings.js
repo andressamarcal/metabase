@@ -51,12 +51,16 @@ const MetabaseSettings = {
     );
   },
 
-  ssoEnabled: function() {
+  googleAuthEnabled: function() {
     return mb_settings.google_auth_client_id != null;
   },
 
   ldapEnabled: function() {
     return mb_settings.ldap_configured;
+  },
+
+  passwordEnabled() {
+    return mb_settings.enable_password_login;
   },
 
   colorScheme: function() {

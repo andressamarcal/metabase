@@ -17,6 +17,7 @@ import FormattingWidget from "./components/widgets/FormattingWidget";
 
 import LogoUpload from "./components/widgets/LogoUpload";
 import ColorSchemeWidget from "./components/widgets/ColorSchemeWidget";
+import AuthenticationOption from "./components/widgets/AuthenticationOption";
 
 import { UtilApi } from "metabase/services";
 
@@ -204,7 +205,49 @@ const SECTIONS = [
   {
     name: t`Authentication`,
     slug: "authentication",
-    settings: [],
+    settings: [
+      {
+        authName: t`Sign in with Google`,
+        authDescription: t`Allows users with existing Metabase accounts to login with a Google account that matches their email address in addition to their Metabase username and password.`,
+        authType: "google",
+        authEnabled: settings => !!settings["google-auth-client-id"],
+        widget: AuthenticationOption,
+      },
+      {
+        authName: t`LDAP`,
+        authDescription: t`Allows users within your LDAP directory to log in to Metabase with their LDAP credentials, and allows automatic mapping of LDAP groups to Metabase groups.`,
+        authType: "ldap",
+        authEnabled: settings => settings["ldap-enabled"],
+        widget: AuthenticationOption,
+      },
+      {
+        authName: t`SAML`,
+        authDescription: t`Allows users to login via a SAML Identity Provider.`,
+        authType: "saml",
+        authEnabled: settings => settings["saml-enabled"],
+        widget: AuthenticationOption,
+        getHidden: () => !MetabaseSettings.hasPremiumFeature("sso"),
+      },
+      {
+        authName: t`JWT`,
+        authDescription: t`Allows users to login via a JWT Identity Provider.`,
+        authType: "jwt",
+        authEnabled: settings => settings["jwt-enabled"],
+        widget: AuthenticationOption,
+        getHidden: () => !MetabaseSettings.hasPremiumFeature("sso"),
+      },
+      {
+        key: "enable-password-login",
+        display_name: t`Enable Password Authentication`,
+        description: t`Turn this off to force users to log in with your auth system instead of email and password.`,
+        type: "boolean",
+        getHidden: settings =>
+          !settings["google-auth-client-id"] &&
+          !settings["ldap-enabled"] &&
+          !settings["saml-enabled"] &&
+          !settings["jwt-enabled"],
+      },
+    ],
   },
   {
     name: t`LDAP`,
