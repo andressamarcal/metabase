@@ -218,9 +218,8 @@
 
 (defn- embedding-app-origin
   []
-  (if (and (public-settings/enable-embedding) (public-settings/embedding-app-origin))
-    (public-settings/embedding-app-origin)
-    nil))
+  (when (and (public-settings/enable-embedding) (public-settings/embedding-app-origin))
+    (public-settings/embedding-app-origin)))
 
 (defn- content-security-policy-header-with-frame-ancestors
   [allow-iframes?]
