@@ -165,3 +165,11 @@ export function enabledApplicationNameReplacement() {
 }
 
 enabledApplicationNameReplacement();
+
+// Update the JS colors to ensure components that use a color statically get the
+// whitelabeled color (though this doesn't help if the admin changes a color and
+// doesn't refresh)
+// Don't update CSS colors yet since all the CSS hasn't been loaded yet
+try {
+  updateColorsJS();
+} catch (e) {}

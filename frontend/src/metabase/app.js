@@ -18,12 +18,7 @@ import "metabase/lib/i18n";
 // NOTE: why do we need to load this here?
 import "metabase/lib/colors";
 
-import { updateColors, updateColorsJS } from "metabase/lib/whitelabel";
-// Update the JS colors to ensure components that use a color statically get the
-// whitelabeled color (though this doesn't help if the admin changes a color and
-// doesn't refresh)
-// Don't update CSS colors yet since all the CSS hasn't been loaded yet
-updateColorsJS();
+import { updateColors } from "metabase/lib/whitelabel";
 
 import React from "react";
 import ReactDOM from "react-dom";
