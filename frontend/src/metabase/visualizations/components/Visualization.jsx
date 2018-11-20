@@ -19,6 +19,7 @@ import {
 } from "metabase/visualizations";
 import { getComputedSettingsForSeries } from "metabase/visualizations/lib/settings/visualization";
 import { isSameSeries } from "metabase/visualizations/lib/utils";
+import { performDefaultAction } from "metabase/visualizations/lib/action";
 
 import Utils from "metabase/lib/utils";
 import { datasetContainsNoResults } from "metabase/lib/dataset";
@@ -36,6 +37,7 @@ export const ERROR_MESSAGE_GENERIC = t`There was a problem displaying this chart
 export const ERROR_MESSAGE_PERMISSION = t`Sorry, you don't have permission to see this card.`;
 
 import Question from "metabase-lib/lib/Question";
+import Mode from "metabase-lib/lib/Mode";
 import type {
   Card as CardObject,
   VisualizationSettings,
@@ -46,7 +48,6 @@ import type {
   Series,
   RawSeries,
   OnChangeCardAndRun,
-  ClickAction,
 } from "metabase/meta/types/Visualization";
 import Metadata from "metabase-lib/lib/metadata/Metadata";
 
@@ -79,13 +80,11 @@ type Props = {
 
   // for click actions
   metadata: Metadata,
+  dispatch: Function,
   onChangeCardAndRun: OnChangeCardAndRun,
   onChangeLocation: (url: string) => void,
 
-  actionsForClick?: (args: {
-    question: Question,
-    clicked: ClickObject,
-  }) => ClickAction[],
+  mode?: Mode,
 
   // used for showing content in place of visualization, e.x. dashcard filter mapping
   replacementContent: Element<any>,
@@ -250,18 +249,18 @@ export default class Visualization extends Component {
     if (!clicked) {
       return [];
     }
-    const { rawSeries, metadata, actionsForClick } = this.props;
+    const { rawSeries, metadata } = this.props;
     // TODO: push this logic into Question?
     const seriesIndex = clicked.seriesIndex || 0;
     const card = rawSeries[seriesIndex].card;
     const question = new Question(metadata, card);
-
-    if (actionsForClick) {
-      return actionsForClick({ question, clicked });
+    let mode;
+    if (this.props.mode) {
+      mode = new Mode(question, this.props.mode);
     } else {
-      const mode = question.mode();
-      return mode ? mode.actionsForClick(clicked, {}) : [];
+      mode = question.mode();
     }
+    return mode ? mode.actionsForClick(clicked, {}) : [];
   }
 
   visualizationIsClickable = (clicked: ClickObject) => {
@@ -288,22 +287,19 @@ export default class Visualization extends Component {
       );
     }
 
-    const actions = this.getClickActions(clicked);
-    if (actions.length === 1 && actions[0].default) {
-      if (actions[0].question) {
-        const question = actions[0].question();
-        if (question) {
-          this.handleOnChangeCardAndRun(question.card());
-        }
-      } else if (actions[0].url) {
-        this.props.onChangeLocation(actions[0].url());
-      }
-    } else {
-      // needs to be delayed so we don't clear it when switching from one drill through to another
-      setTimeout(() => {
-        this.setState({ clicked });
-      }, 100);
+    if (
+      performDefaultAction(this.getClickActions(clicked), {
+        dispatch: this.props.dispatch,
+        onChangeCardAndRun: this.handleOnChangeCardAndRun,
+      })
+    ) {
+      return;
     }
+
+    // needs to be delayed so we don't clear it when switching from one drill through to another
+    setTimeout(() => {
+      this.setState({ clicked });
+    }, 100);
   };
 
   // Add the underlying card of current series to onChangeCardAndRun if available

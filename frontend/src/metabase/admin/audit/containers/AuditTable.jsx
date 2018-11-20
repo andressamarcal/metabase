@@ -12,7 +12,7 @@ import { connect } from "react-redux";
 import { push } from "react-router-redux";
 import { getMetadata } from "metabase/selectors/metadata";
 
-import { auditActionsForClick } from "../lib/util";
+import { AuditMode } from "../lib/util";
 
 import { chain } from "icepick";
 import cx from "classnames";
@@ -69,7 +69,7 @@ export default class AuditTable extends React.Component {
         <QuestionLoadAndDisplay
           className="mt3"
           question={question}
-          actionsForClick={auditActionsForClick}
+          mode={AuditMode}
           onChangeLocation={onChangeLocation}
           onChangeCardAndRun={() => {}}
           onLoad={results =>

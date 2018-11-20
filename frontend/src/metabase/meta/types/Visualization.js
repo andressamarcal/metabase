@@ -37,9 +37,11 @@ export type ClickObject = {
   event?: MouseEvent,
   element?: HTMLElement,
   seriesIndex?: number,
-
-  row?: Row,
-  cols?: Column[],
+  settings?: { [key: string]: any },
+  origin?: {
+    row: Row,
+    cols: Column[],
+  },
 };
 
 export type ClickAction = {
@@ -51,6 +53,8 @@ export type ClickAction = {
   action?: () => ?ReduxAction,
   section?: string,
   name?: string,
+  default?: boolean,
+  defaultAlways?: boolean,
 };
 
 export type ClickActionProps = {

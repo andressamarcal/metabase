@@ -9,6 +9,8 @@ import styles from "./Table.css";
 import ExplicitSize from "metabase/components/ExplicitSize.jsx";
 import Ellipsified from "metabase/components/Ellipsified.jsx";
 import Icon from "metabase/components/Icon.jsx";
+import ExternalLink from "metabase/components/ExternalLink";
+
 import MiniBar from "./MiniBar";
 
 import { formatValue } from "metabase/lib/formatting";
@@ -24,7 +26,10 @@ import _ from "underscore";
 
 import { isID, isFK } from "metabase/lib/schema_metadata";
 
-import type { VisualizationProps } from "metabase/meta/types/Visualization";
+import type {
+  ClickObject,
+  VisualizationProps,
+} from "metabase/meta/types/Visualization";
 
 type Props = VisualizationProps & {
   height: number,
@@ -90,11 +95,19 @@ export default class TableSimple extends Component {
     }
   }
 
+  visualizationIsClickable(clicked: ?ClickObject) {
+    const { onVisualizationClick, visualizationIsClickable } = this.props;
+    return (
+      onVisualizationClick &&
+      visualizationIsClickable &&
+      visualizationIsClickable(clicked)
+    );
+  }
+
   render() {
     const {
       data,
       onVisualizationClick,
-      visualizationIsClickable,
       isPivoted,
       settings,
       getColumnTitle,
@@ -173,10 +186,32 @@ export default class TableSimple extends Component {
                         columnIndex,
                         isPivoted,
                       );
-                      const isClickable =
-                        onVisualizationClick &&
-                        visualizationIsClickable(clicked);
                       const columnSettings = settings.column(column);
+
+                      const cellData =
+                        value == null ? (
+                          "-"
+                        ) : columnSettings["show_mini_bar"] ? (
+                          <MiniBar
+                            value={value}
+                            options={columnSettings}
+                            extent={getColumnExtent(cols, rows, columnIndex)}
+                          />
+                        ) : (
+                          formatValue(value, {
+                            ...columnSettings,
+                            clicked: clicked,
+                            type: "cell",
+                            jsx: true,
+                            rich: true,
+                          })
+                        );
+
+                      // $FlowFixMe: proper test for a React element?
+                      const isLink = cellData && cellData.type === ExternalLink;
+                      const isClickable =
+                        !isLink && this.visualizationIsClickable(clicked);
+
                       return (
                         <td
                           key={columnIndex}
@@ -215,26 +250,7 @@ export default class TableSimple extends Component {
                                 : undefined
                             }
                           >
-                            {value == null ? (
-                              "-"
-                            ) : columnSettings["show_mini_bar"] ? (
-                              <MiniBar
-                                value={value}
-                                options={columnSettings}
-                                extent={getColumnExtent(
-                                  cols,
-                                  rows,
-                                  columnIndex,
-                                )}
-                              />
-                            ) : (
-                              formatValue(value, {
-                                ...columnSettings,
-                                type: "cell",
-                                jsx: true,
-                                rich: true,
-                              })
-                            )}
+                            {cellData}
                           </span>
                         </td>
                       );

@@ -253,6 +253,31 @@ export function moveToFront(element) {
   }
 }
 
+export function open(
+  url,
+  {
+    event = window.event,
+    // always open in new window
+    blank = false,
+    // open in new window if command-click
+    blankOnMetaKey = true,
+    // open in new window for different origin
+    blankOnDifferentOrigin = true,
+  } = {},
+) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.rel = "noopener";
+  if (
+    blank ||
+    (blankOnMetaKey && event && event.metaKey) ||
+    (blankOnDifferentOrigin && a.origin !== window.location.origin)
+  ) {
+    a.target = "_blank";
+  }
+  a.click();
+}
+
 export function removeAllChildren(element) {
   while (element.firstChild) {
     element.removeChild(element.firstChild);

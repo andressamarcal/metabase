@@ -6,6 +6,7 @@ import ReactDOM from "react-dom";
 import "./TableInteractive.css";
 
 import Icon from "metabase/components/Icon.jsx";
+import ExternalLink from "metabase/components/ExternalLink.jsx";
 
 import { formatValue } from "metabase/lib/formatting";
 import { isID, isFK } from "metabase/lib/schema_metadata";
@@ -327,12 +328,32 @@ export default class TableInteractive extends Component {
       columnIndex,
       isPivoted,
     );
-    const isClickable = this.visualizationIsClickable(clicked);
     const backgroundColor =
       getCellBackgroundColor &&
       getCellBackgroundColor(value, rowIndex, column.name);
 
     const columnSettings = settings.column(column);
+
+    const cellData = columnSettings["show_mini_bar"] ? (
+      <MiniBar
+        value={value}
+        options={columnSettings}
+        extent={getColumnExtent(data.cols, data.rows, columnIndex)}
+        cellHeight={ROW_HEIGHT}
+      />
+    ) : (
+      /* using formatValue instead of <Value> here for performance. The later wraps in an extra <span> */
+      formatValue(value, {
+        ...columnSettings,
+        clicked: clicked,
+        type: "cell",
+        jsx: true,
+        rich: true,
+      })
+    );
+
+    const isLink = cellData && cellData.type === ExternalLink;
+    const isClickable = !isLink && this.visualizationIsClickable(clicked);
 
     return (
       <div
@@ -364,24 +385,7 @@ export default class TableInteractive extends Component {
             : undefined
         }
       >
-        <div className="cellData">
-          {columnSettings["show_mini_bar"] ? (
-            <MiniBar
-              value={value}
-              options={columnSettings}
-              extent={getColumnExtent(data.cols, data.rows, columnIndex)}
-              cellHeight={ROW_HEIGHT}
-            />
-          ) : (
-            /* using formatValue instead of <Value> here for performance. The later wraps in an extra <span> */
-            formatValue(value, {
-              ...columnSettings,
-              type: "cell",
-              jsx: true,
-              rich: true,
-            })
-          )}
-        </div>
+        <div className="cellData">{cellData}</div>
       </div>
     );
   };
