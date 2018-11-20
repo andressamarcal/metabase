@@ -32,8 +32,9 @@
              [cache :as cache]
              [results-metadata :as results-metadata]]
             [metabase.sync.analyze.query-results :as qr]
-            [metabase.util.schema :as su]
-            [puppetlabs.i18n.core :refer [trs tru]]
+            [metabase.util
+             [i18n :refer [trs tru]]
+             [schema :as su]]
             [schema.core :as s]
             [toucan
              [db :as db]
@@ -185,7 +186,7 @@
    This is obviously a bit wasteful so hopefully we can avoid having to do this."
   [query]
   (binding [qpi/*disable-qp-logging* true]
-    (let [{:keys [status], :as results} (qp/process-query (api/with-current-user-info query))]
+    (let [{:keys [status], :as results} (qp/process-query-without-save! api/*current-user-id* query)]
       (if (= status :failed)
         (log/error (trs "Error running query to determine Card result metadata:")
                    (u/pprint-to-str 'red results))
@@ -560,7 +561,7 @@
         ttl   (when (public-settings/enable-query-caching)
                 (or (:cache_ttl card)
                     (query-magic-ttl query)))]
-    (assoc query :cache_ttl ttl)))
+    (assoc query :cache-ttl ttl)))
 
 (defn run-query-for-card
   "Run the query for Card with PARAMETERS and CONSTRAINTS, and return results in the usual format."
@@ -576,7 +577,7 @@
                  :card-id      card-id
                  :dashboard-id dashboard-id}]
     (api/check-not-archived card)
-    (qp/process-query-and-save-execution! (api/with-current-user-info query) options)))
+    (qp/process-query-and-save-execution! query options)))
 
 (api/defendpoint POST "/:card-id/query"
   "Run the query associated with a Card."

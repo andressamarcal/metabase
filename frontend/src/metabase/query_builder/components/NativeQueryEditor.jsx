@@ -283,6 +283,13 @@ export default class NativeQueryEditor extends Component {
     }
   };
 
+  setParameterIndex = (parameterId: ParameterId, parameterIndex: number) => {
+    const { query, setDatasetQuery } = this.props;
+    query
+      .setParameterIndex(parameterId, parameterIndex)
+      .update(setDatasetQuery);
+  };
+
   render() {
     const {
       className,
@@ -376,7 +383,9 @@ export default class NativeQueryEditor extends Component {
               parameters={parameters}
               query={location.query}
               setParameterValue={setParameterValue}
+              setParameterIndex={this.setParameterIndex}
               syncQueryString
+              isEditing
               isQB
               commitImmediately
             />

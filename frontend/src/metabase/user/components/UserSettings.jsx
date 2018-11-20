@@ -6,6 +6,8 @@ import { t } from "c-3po";
 import SetUserPassword from "./SetUserPassword.jsx";
 import UpdateUserDetails from "./UpdateUserDetails.jsx";
 
+import MetabaseSettings from "metabase/lib/settings";
+
 export default class UserSettings extends Component {
   static propTypes = {
     tab: PropTypes.string.isRequired,
@@ -35,6 +37,8 @@ export default class UserSettings extends Component {
     let { tab } = this.props;
     const nonSSOManagedAccount =
       !this.props.user.google_auth && !this.props.user.ldap_auth;
+    const showChangePassword =
+      nonSSOManagedAccount && MetabaseSettings.passwordEnabled();
 
     let allClasses =
         "Grid-cell md-no-flex md-mt1 text-brand-hover bordered border-brand-hover rounded p1 md-p3 block cursor-pointer text-centered md-text-left",
@@ -56,7 +60,7 @@ export default class UserSettings extends Component {
         </div>
         <div className="mt2 md-mt4 wrapper wrapper--trim">
           <div className="Grid Grid--gutters Grid--full md-Grid--normal md-flex-reverse">
-            {nonSSOManagedAccount && (
+            {showChangePassword && (
               <div className="Grid-cell Grid Grid--fit md-flex-column md-Cell--1of3">
                 <a
                   className={cx(tabClasses["details"])}

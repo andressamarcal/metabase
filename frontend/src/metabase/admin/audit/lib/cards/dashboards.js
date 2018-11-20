@@ -71,7 +71,7 @@ export const table = (searchString?: string) => ({
         {
           name: "public_link",
           enabled: true,
-          markdown_format: "[Link]({{value}})",
+          markdown_template: "[Link]({{value}})",
         },
         { name: "saved_on", enabled: true, date_format: "M/D/YYYY, h:mm A" },
         {

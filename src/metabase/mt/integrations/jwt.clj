@@ -8,7 +8,7 @@
             [metabase.mt.integrations
              [sso-settings :as sso-settings]
              [sso-utils :as sso-utils]]
-            [puppetlabs.i18n.core :refer [tru]]
+            [metabase.util.i18n :refer [tru]]
             [ring.util.response :as resp])
   (:import java.net.URLEncoder))
 

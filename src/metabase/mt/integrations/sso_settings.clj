@@ -4,7 +4,7 @@
   information. Separating out this information creates a better dependency graph and avoids circular dependencies."
   (:require [metabase.models.setting :as setting :refer [defsetting]]
             [metabase.util :as u]
-            [puppetlabs.i18n.core :refer [tru]]))
+            [metabase.util.i18n :refer [tru]]))
 
 (defsetting saml-enabled
   (tru "Enable SAML authentication.")
@@ -63,7 +63,7 @@
   (tru "String used to seed the private key used to validate JWT messages")
   :setter (fn [new-value]
             (when (seq new-value)
-              (assert (u/hexidecimal-string? new-value)
+              (assert (u/hexadecimal-string? new-value)
                        "Invalid JWT Shared Secret key must be a hexadecimal-encoded 256-bit key (i.e., a 64-character string)."))
             (setting/set-string! :jwt-shared-secret new-value)))
 

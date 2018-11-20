@@ -28,8 +28,9 @@
              [pulse :refer [Pulse]]
              [setting :as setting :refer [Setting]]
              [user :refer [User]]]
-            [metabase.util.date :as du]
-            [puppetlabs.i18n.core :refer [trs]]
+            [metabase.util
+             [date :as du]
+             [i18n :refer [trs]]]
             [toucan
              [db :as db]
              [models :as models]])
@@ -197,6 +198,11 @@
   (when-let [site-url (db/select-one-field :value Setting :key "-site-url")]
     (public-settings/site-url site-url)))
 
+
+;;; +----------------------------------------------------------------------------------------------------------------+
+;;; |                                           Migrating QueryExecutions                                            |
+;;; +----------------------------------------------------------------------------------------------------------------+
+
 ;; drop the legacy QueryExecution table now that we don't need it anymore
 (defmigration ^{:author "camsaul", :added "0.23.0"} drop-old-query-execution-table
   ;; DROP TABLE IF EXISTS should work on Postgres, MySQL, and H2
@@ -274,7 +280,7 @@
     ;; For each Card belonging to that BigQuery database...
     (doseq [{query :dataset_query, card-id :id} (db/select [Card :id :dataset_query] :database_id database-id)]
       ;; If the Card isn't native, ignore it
-      (when (= (:type query) "native")
+      (when (= (keyword (:type query)) :native)
         (let [sql (get-in query [:native :query])]
           ;; if the Card already contains a #standardSQL or #legacySQL (both are case-insenstive) directive, ignore it
           (when-not (re-find #"(?i)#(standard|legacy)sql" sql)
@@ -321,9 +327,9 @@
     (doseq [group-id non-admin-group-ids]
       (perms/grant-collection-readwrite-permissions! group-id collection/root-collection))
     ;; 2. Create the new collections.
-    (doseq [[model new-collection-name] {Dashboard (trs "Migrated Dashboards")
-                                         Pulse     (trs "Migrated Pulses")
-                                         Card      (trs "Migrated Questions")}
+    (doseq [[model new-collection-name] {Dashboard (str (trs "Migrated Dashboards"))
+                                         Pulse     (str (trs "Migrated Pulses"))
+                                         Card      (str (trs "Migrated Questions"))}
             :when                       (db/exists? model :collection_id nil)
             :let                        [new-collection (db/insert! Collection
                                                           :name  new-collection-name

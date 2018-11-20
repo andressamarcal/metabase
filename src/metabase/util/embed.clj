@@ -11,7 +11,7 @@
              [public-settings :as public-settings]
              [util :as u]]
             [metabase.models.setting :as setting]
-            [puppetlabs.i18n.core :refer [trs tru]]
+            [metabase.util.i18n :refer [trs tru]]
             [ring.util.codec :as codec]))
 
 ;;; --------------------------------------------- PUBLIC LINKS UTIL FNS ----------------------------------------------
@@ -59,7 +59,7 @@
   (tru "Secret key used to sign JSON Web Tokens for requests to `/api/embed` endpoints.")
   :setter (fn [new-value]
             (when (seq new-value)
-              (assert (u/hexidecimal-string? new-value)
+              (assert (u/hexadecimal-string? new-value)
                 (tru "Invalid embedding-secret-key! Secret key must be a hexadecimal-encoded 256-bit key (i.e., a 64-character string).")))
             (setting/set-string! :embedding-secret-key new-value)))
 
@@ -90,7 +90,7 @@
       (check-valid-alg message)
       (jwt/unsign message
                   (or (embedding-secret-key)
-                      (throw (ex-info (tru "The embedding secret key has not been set.") {:status-code 400})))
+                      (throw (ex-info (str (tru "The embedding secret key has not been set.")) {:status-code 400})))
                   ;; The library will reject tokens with a created at timestamp in the future, so to account for clock
                   ;; skew tell the library that "now" is actually two minutes ahead of whatever the system time is so
                   ;; tokens don't get inappropriately rejected
@@ -103,4 +103,4 @@
   "Find KEYSEQ in the UNSIGNED-TOKEN (a JWT token decoded by `unsign`) or throw a 400."
   [unsigned-token keyseq]
   (or (get-in unsigned-token keyseq)
-      (throw (ex-info (str (tru "Token is missing value for keypath") keyseq) {:status-code 400}))))
+      (throw (ex-info (str (tru "Token is missing value for keypath") " " keyseq) {:status-code 400}))))

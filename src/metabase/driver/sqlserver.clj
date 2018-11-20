@@ -9,8 +9,8 @@
             [metabase.driver.generic-sql.query-processor :as sqlqp]
             [metabase.util
              [honeysql-extensions :as hx]
-             [ssh :as ssh]]
-            [puppetlabs.i18n.core :refer [tru]])
+             [i18n :refer [tru]]
+             [ssh :as ssh]])
   (:import java.sql.Time))
 
 (defrecord SQLServerDriver []
@@ -164,6 +164,10 @@
   [_ time-value]
   (hx/->time time-value))
 
+(defmethod sqlqp/->honeysql [SQLServerDriver :stddev]
+  [driver [_ field]]
+  (hsql/call :stdev (sqlqp/->honeysql driver field)))
+
 (defn- string-length-fn [field-key]
   (hsql/call :len (hx/cast :VARCHAR field-key)))
 
@@ -210,7 +214,6 @@
     :current-datetime-fn       (constantly :%getutcdate)
     :date                      (u/drop-first-arg date)
     :excluded-schemas          (constantly #{"sys" "INFORMATION_SCHEMA"})
-    :stddev-fn                 (constantly :stdev)
     :string-length-fn          (u/drop-first-arg string-length-fn)
     :unix-timestamp->timestamp (u/drop-first-arg unix-timestamp->timestamp)}))
 
