@@ -13,12 +13,13 @@
             [metabase
              [public-settings :as public-settings]
              [util :as u]]
+            [metabase.mbql.util :as mbql.u]
             [metabase.pulse.color :as color]
             [metabase.util
              [date :as du]
+             [i18n :refer [trs tru]]
              [ui-logic :as ui-logic]
              [urls :as urls]]
-            [puppetlabs.i18n.core :refer [trs tru]]
             [schema.core :as s])
   (:import cz.vutbr.web.css.MediaSpec
            [java.awt BasicStroke Color Dimension RenderingHints]
@@ -133,11 +134,6 @@
    (or (ui-logic/y-axis-rowfn card data)
        second)])
 
-(defn- datetime-field?
-  [field]
-  (or (isa? (:base_type field)    :type/DateTime)
-      (isa? (:special_type field) :type/DateTime)))
-
 (defn- number-field?
   [field]
   (or (isa? (:base_type field)    :type/Number)
@@ -161,7 +157,7 @@
            (= row-count 1))                                        :scalar
       (and (= col-count 2)
            (> row-count 1)
-           (datetime-field? col-1)
+           (mbql.u/datetime-field? col-1)
            (number-field? col-2))                                  :sparkline
       (and (= col-count 2)
            (number-field? col-2))                                  :bar
@@ -173,9 +169,10 @@
 
 (defn include-csv-attachment?
   "Returns true if this card and resultset should include a CSV attachment"
-  [{:keys [include_csv] :as card} {:keys [cols rows] :as result-data}]
+  [card {:keys [cols rows] :as result-data}]
   (or (:include_csv card)
-      (and (= :table (detect-pulse-card-type card result-data))
+      (and (not (:include_xls card))
+           (= :table (detect-pulse-card-type card result-data))
            (or
             ;; If some columns are not shown, include an attachment
             (some (complement show-in-table?) cols)
@@ -273,9 +270,9 @@
 (defn- format-cell
   [timezone value col]
   (cond
-    (datetime-field? col) (format-timestamp timezone value col)
-    (and (number? value) (not (datetime-field? col))) (format-number value)
-    :else (str value)))
+    (mbql.u/datetime-field? col)                             (format-timestamp timezone value col)
+    (and (number? value) (not (mbql.u/datetime-field? col))) (format-number value)
+    :else                                                    (str value)))
 
 (defn- render-img-data-uri
   "Takes a PNG byte array and returns a Base64 encoded URI"
@@ -557,7 +554,7 @@
                  (* 2 sparkline-dot-radius)
                  (* 2 sparkline-dot-radius)))
     (when-not (ImageIO/write image "png" os)                    ; returns `true` if successful -- see JavaDoc
-      (let [^String msg (tru "No appropriate image writer found!")]
+      (let [^String msg (str (tru "No appropriate image writer found!"))]
         (throw (Exception. msg))))
     (.toByteArray os)))
 
@@ -662,7 +659,7 @@
 (s/defn ^:private render:sparkline :- RenderedPulseCard
   [render-type timezone card {:keys [rows cols] :as data}]
   (let [[x-axis-rowfn y-axis-rowfn] (graphing-columns card data)
-        ft-row (if (datetime-field? (x-axis-rowfn cols))
+        ft-row (if (mbql.u/datetime-field? (x-axis-rowfn cols))
                  #(.getTime ^Date (du/->Timestamp % timezone))
                  identity)
         rows   (non-nil-rows x-axis-rowfn y-axis-rowfn
@@ -689,7 +686,7 @@
                     (image-bundle->attachment image-bundle))
      :content     [:div
                    [:img {:style (style {:display :block
-                                         :width :100%})
+                                         :width   :100%})
                           :src   (:image-src image-bundle)}]
                    [:table
                     [:tr
@@ -783,11 +780,11 @@
       (:include_xls card)))
 
 (s/defn ^:private render-pulse-card-body :- RenderedPulseCard
-  [render-type timezone card {:keys [data error]}]
+  [render-type timezone card {:keys [data error], :as results}]
   (try
     (when error
-      (let [^String msg (tru "Card has errors: {0}" error)]
-        (throw (Exception. msg))))
+      (let [^String msg (str (tru "Card has errors: {0}" error))]
+        (throw (ex-info msg results))))
     (case (detect-pulse-card-type card data)
       :empty     (render:empty     render-type card data)
       :scalar    (render:scalar    timezone card data)

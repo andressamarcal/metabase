@@ -14,8 +14,8 @@
             [metabase.util
              [date :as du]
              [export :as ex]
+             [i18n :refer [trs tru]]
              [schema :as su]]
-            [puppetlabs.i18n.core :refer [trs tru]]
             [schema.core :as s]))
 
 ;;; -------------------------------------------- Running a Query Normally --------------------------------------------
@@ -47,7 +47,7 @@
     (api/cancellable-json-response
      (fn []
        (qp/process-query-and-save-with-max!
-           (api/with-current-user-info query)
+           query
            {:executed-by api/*current-user-id*, :context :ad-hoc,
             :card-id     source-card-id,        :nested? (boolean source-card-id)})))))
 
@@ -132,8 +132,7 @@
     (as-format export-format
       (qp/process-query-and-save-execution! (-> query
                                                 (dissoc :constraints)
-                                                (assoc-in [:middleware :skip-results-metadata?] true)
-                                                api/with-current-user-info)
+                                                (assoc-in [:middleware :skip-results-metadata?] true))
         {:executed-by api/*current-user-id*, :context (export-format->context export-format)}))))
 
 
