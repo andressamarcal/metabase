@@ -23,6 +23,9 @@ type Props = {
   onChange: (value: any) => void,
   settingValues: { [key: string]: any },
   onChangeSetting: (key: string, value: any) => void,
+  mappingSetting: string,
+  groupHeading: string,
+  groupPlaceholder: string,
 };
 
 type State = {
