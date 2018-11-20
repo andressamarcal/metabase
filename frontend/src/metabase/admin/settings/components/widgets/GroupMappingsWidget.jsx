@@ -13,6 +13,7 @@ import Modal from "metabase/components/Modal";
 import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
 import { t } from "c-3po";
 import { PermissionsApi, SettingsApi } from "metabase/services";
+import { isSpecialGroup } from "metabase/lib/groups";
 
 import _ from "underscore";
 
@@ -35,6 +36,8 @@ type State = {
   mappings: { [string]: number[] },
 };
 
+const groupIsMappable = group => !isSpecialGroup(group);
+
 export default class GroupMappingsWidget extends React.Component {
   props: Props;
   state: State;
@@ -44,7 +47,7 @@ export default class GroupMappingsWidget extends React.Component {
     this.state = {
       showEditModal: false,
       showAddRow: false,
-      groups: [],
+      groups: null,
       mappings: {},
     };
   }
@@ -59,7 +62,9 @@ export default class GroupMappingsWidget extends React.Component {
       mappings: (setting && setting.value) || {},
       showEditModal: true,
     });
-    PermissionsApi.groups().then(groups => this.setState({ groups }));
+    PermissionsApi.groups().then(groups =>
+      this.setState({ groups: groups.filter(groupIsMappable) }),
+    );
   };
 
   _showAddRow = (e: Event) => {
@@ -170,7 +175,7 @@ export default class GroupMappingsWidget extends React.Component {
                     <MappingRow
                       key={dn}
                       dn={dn}
-                      groups={groups}
+                      groups={groups || []}
                       selectedGroups={ids}
                       onChange={this._changeMapping(dn)}
                       onDelete={this._deleteMapping(dn)}
@@ -273,7 +278,7 @@ class MappingGroupSelect extends React.Component {
   render() {
     const { groups, selectedGroups, onGroupChange } = this.props;
 
-    if (!groups || groups.length === 0) {
+    if (!groups) {
       return <LoadingSpinner />;
     }
 
@@ -296,11 +301,15 @@ class MappingGroupSelect extends React.Component {
         triggerClasses="AdminSelectBorderless py1"
         sizeToFit
       >
-        <GroupSelect
-          groups={groups}
-          selectedGroups={selected}
-          onGroupChange={onGroupChange}
-        />
+        {groups.length > 0 ? (
+          <GroupSelect
+            groups={groups}
+            selectedGroups={selected}
+            onGroupChange={onGroupChange}
+          />
+        ) : (
+          <span className="p1">{t`No mappable groups`}</span>
+        )}
       </PopoverWithTrigger>
     );
   }
