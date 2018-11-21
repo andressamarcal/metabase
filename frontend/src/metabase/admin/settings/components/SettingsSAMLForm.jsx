@@ -41,6 +41,10 @@ export default class SettingsSAMLForm extends Component {
               "saml-attribute-lastname",
             ],
           },
+          {
+            title: t`Group Schema`,
+            settings: ["saml-group-sync", "saml-attribute-group"],
+          },
         ]}
       />
     );

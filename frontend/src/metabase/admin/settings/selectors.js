@@ -12,7 +12,7 @@ import {
 import SecretKeyWidget from "./components/widgets/SecretKeyWidget.jsx";
 import EmbeddingLegalese from "./components/widgets/EmbeddingLegalese";
 import EmbeddingLevel from "./components/widgets/EmbeddingLevel";
-import LdapGroupMappingsWidget from "./components/widgets/LdapGroupMappingsWidget";
+import GroupMappingsWidget from "./components/widgets/GroupMappingsWidget";
 import FormattingWidget from "./components/widgets/FormattingWidget";
 
 import LogoUpload from "./components/widgets/LogoUpload";
@@ -330,7 +330,12 @@ const SECTIONS = [
         key: "ldap-group-sync",
         display_name: t`Synchronize group memberships`,
         description: null,
-        widget: LdapGroupMappingsWidget,
+        widget: GroupMappingsWidget,
+        props: {
+          mappingSetting: "ldap-group-mappings",
+          groupHeading: t`Distinguished Name`,
+          groupPlaceholder: "cn=People,ou=Groups,dc=metabase,dc=com",
+        },
       },
       {
         key: "ldap-group-base",
@@ -404,6 +409,25 @@ const SECTIONS = [
         display_name: t`Last name attribute`,
         type: "string",
       },
+      {
+        key: "saml-group-sync",
+        display_name: t`Synchronize group memberships`,
+        description: null,
+        widget: GroupMappingsWidget,
+        props: {
+          mappingSetting: "saml-group-mappings",
+          groupHeading: t`Group Name`,
+          groupPlaceholder: "Group Name",
+        },
+      },
+      {
+        key: "saml-attribute-group",
+        display_name: t`Group attribute name`,
+        type: "string",
+      },
+      {
+        key: "saml-group-mappings",
+      },
     ],
   },
   {
@@ -465,6 +489,20 @@ const SECTIONS = [
         key: "jwt-attribute-lastname",
         display_name: t`Last name attribute`,
         type: "string",
+      },
+      {
+        key: "jwt-group-sync",
+        display_name: t`Synchronize group memberships`,
+        description: null,
+        widget: GroupMappingsWidget,
+        props: {
+          mappingSetting: "jwt-group-mappings",
+          groupHeading: t`Group Name`,
+          groupPlaceholder: "Group Name",
+        },
+      },
+      {
+        key: "jwt-group-mappings",
       },
     ],
   },

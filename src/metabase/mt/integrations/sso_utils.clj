@@ -12,6 +12,8 @@
   {:first_name       su/NonBlankString
    :last_name        su/NonBlankString
    :email            su/Email
+   ;; TODO - we should avoid hardcoding this to make it easier to add new integrations. Maybe look at something like
+   ;; the keys of `(methods sso/sso-get)`
    :sso_source       (s/enum "saml" "jwt")
    :login_attributes (s/maybe {s/Any s/Any})})
 
