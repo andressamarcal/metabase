@@ -6,6 +6,7 @@
             [metabase.models
              [common :as common]
              [setting :as setting :refer [defsetting]]]
+            [metabase.mt.integrations.sso-settings :as sso-settings]
             [metabase.public-settings.metastore :as metastore]
             [metabase.util
              [i18n :refer [available-locales-with-names set-locale tru]]
@@ -13,26 +14,28 @@
             [toucan.db :as db])
   (:import [java.util TimeZone UUID]))
 
-(defn- google-auth-configured?
-  []
+(defn- google-auth-configured? []
   (boolean (setting/get :google-auth-client-id)))
 
-(defn- ldap-configured?
-  []
-  ((resolve 'metabase.integrations.ldap/ldap-configured?)))
+(defn- ldap-configured? []
+  (do (require 'metabase.integrations.ldap)
+      ((resolve 'metabase.integrations.ldap/ldap-configured?))))
 
 (defn- other-sso-configured?
+  "Are we using an SSO integration other than LDAP or Google Auth? These integrations use the `/auth/sso` endpoint for
+  authorization rather than the normal login form or Google Auth button."
   []
   (or
-    ((resolve 'metabase.mt.integrations.sso-settings/saml-configured?))
-    ((resolve 'metabase.mt.integrations.sso-settings/jwt-configured?))))
+   (sso-settings/saml-configured?)
+   (sso-settings/jwt-configured?)))
 
-(defn sso-configured?
+(defn- sso-configured?
   "Any SSO provider is configured"
   []
   (or (google-auth-configured?)
       (ldap-configured?)
       (other-sso-configured?)))
+
 
 (defsetting check-for-updates
   (tru "Identify when new versions of Metabase are available.")
@@ -276,14 +279,18 @@
    :available_locales       (available-locales-with-names)
    :custom_formatting       (setting/get :custom-formatting)
    :custom_geojson          (setting/get :custom-geojson)
-   :email_configured        ((resolve 'metabase.email/email-configured?))
+   :email_configured        (do
+                              (require 'metabase.email)
+                              ((resolve 'metabase.email/email-configured?)))
    :embedding               (enable-embedding)
    :embedding_app_origin    (embedding-app-origin)
    :enable_nested_queries   (enable-nested-queries)
    :enable_password_login   (enable-password-login)
    :enable_query_caching    (enable-query-caching)
    :enable_xrays            (enable-xrays)
-   :engines                 ((resolve 'metabase.driver/available-drivers-info))
+   :engines                 (do
+                              (require 'metabase.driver.util)
+                              ((resolve 'metabase.driver.util/available-drivers-info)))
    :entities                (types/types->parents :entity/*)
    :features                {:home       (setting/get :enable-home)
                              :question   (setting/get :enable-query-builder)
@@ -307,11 +314,11 @@
                              :sso        (metastore/enable-sso?)}
    :public_sharing          (enable-public-sharing)
    :report_timezone         (setting/get :report-timezone)
-   :setup_token             ((resolve 'metabase.setup/token-value))
+   :setup_token             (do
+                              (require 'metabase.setup)
+                              ((resolve 'metabase.setup/token-value)))
    :site_name               (site-name)
    :site_url                (site-url)
-   :sso_configured          (or ((resolve 'metabase.mt.integrations.sso-settings/saml-configured?))
-                                ((resolve 'metabase.mt.integrations.sso-settings/jwt-configured?)))
    :timezone_short          (short-timezone-name (setting/get :report-timezone))
    :timezones               common/timezones
    :types                   (types/types->parents :type/*)

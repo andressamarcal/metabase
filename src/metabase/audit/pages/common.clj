@@ -4,14 +4,13 @@
             [honeysql
              [core :as hsql]
              [helpers :as h]]
-            [metabase
-             [db :as mdb]
-             [driver :as driver]]
-            [metabase.driver.generic-sql :as generic-sql]
+            [metabase.db :as mdb]
+            [metabase.driver.sql.query-processor :as sql.qp]
             [metabase.query-processor.middleware.internal-queries :as internal-queries]
-            [metabase.util.honeysql-extensions :as hx]
+            [metabase.util
+             [honeysql-extensions :as hx]
+             [urls :as urls]]
             [schema.core :as s]
-            [metabase.util.urls :as urls]
             [toucan.db :as db]))
 
 (def ^:private ^:const default-limit 1000)
@@ -66,14 +65,12 @@
   (apply s/enum (keys datetime-unit-str->base-type)))
 
 (defn grouped-datetime
-  "Group a datetime expression by `unit` using the appropriate Generic SQL `date` implementation for our application
+  "Group a datetime expression by `unit` using the appropriate SQL QP `date` implementation for our application
   database.
 
     (grouped-datetime :day :timestamp) ;; -> `cast(timestamp AS date)` [honeysql equivalent]"
   [unit expr]
-  (generic-sql/date (driver/engine->driver (mdb/db-type))
-                    (keyword unit)
-                    expr))
+  (sql.qp/date (mdb/db-type) (keyword unit) expr))
 
 (defn first-non-null
   "Build a `CASE` statement that returns the first non-`NULL` of `exprs`."
