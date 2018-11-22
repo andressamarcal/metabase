@@ -3,6 +3,7 @@
             [metabase
              [config :as config]
              [types :as types]]
+            [metabase.driver.util :as driver.u]
             [metabase.models
              [common :as common]
              [setting :as setting :refer [defsetting]]]
@@ -288,9 +289,7 @@
    :enable_password_login   (enable-password-login)
    :enable_query_caching    (enable-query-caching)
    :enable_xrays            (enable-xrays)
-   :engines                 (do
-                              (require 'metabase.driver.util)
-                              ((resolve 'metabase.driver.util/available-drivers-info)))
+   :engines                 (driver.u/available-drivers-info)
    :entities                (types/types->parents :entity/*)
    :features                {:home       (setting/get :enable-home)
                              :question   (setting/get :enable-query-builder)
