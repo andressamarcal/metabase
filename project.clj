@@ -17,12 +17,12 @@
                  [org.clojure/core.match "0.3.0-alpha4"]              ; optimized pattern matching library for Clojure
                  [org.clojure/core.memoize "0.5.9"]                   ; needed by core.match; has useful FIFO, LRU, etc. caching mechanisms
                  [org.clojure/data.csv "0.1.3"]                       ; CSV parsing / generation
-                 [org.clojure/java.classpath "0.2.3"]                 ; examine the Java classpath from Clojure programs
+                 [org.clojure/java.classpath "0.3.0"]                 ; examine the Java classpath from Clojure programs
                  [org.clojure/java.jdbc "0.7.6"]                      ; basic JDBC access from Clojure
                  [org.clojure/math.combinatorics "0.1.4"]             ; combinatorics functions
                  [org.clojure/math.numeric-tower "0.0.4"]             ; math functions like `ceil`
                  [org.clojure/tools.logging "0.4.1"]                  ; logging framework
-                 [org.clojure/tools.namespace "0.2.10"]
+                 [org.clojure/tools.namespace "0.2.11"]
                  [amalloy/ring-buffer "1.2.1"
                   :exclusions [org.clojure/clojure
                                org.clojure/clojurescript]]            ; fixed length queue implementation, used in log buffering
@@ -70,7 +70,6 @@
                  [hiccup "1.0.5"]                                     ; HTML templating
                  [honeysql "0.9.2"                                    ; Transform Clojure data structures to SQL
                   :exclusions [org.clojure/clojurescript]]
-                 [io.crate/crate-jdbc "2.3.0"]                        ; Crate JDBC driver
                  [io.forward/yaml "1.0.6"                             ; Clojure wrapper for YAML library SnakeYAML (which we already use for liquidbase)
                   :exclusions [org.clojure/clojure
                                org.yaml/snakeyaml]]
@@ -110,8 +109,7 @@
                  [stencil "0.5.0"]                                    ; Mustache templates for Clojure
                  [toucan "1.1.9"                                      ; Model layer, hydration, and DB utilities
                   :exclusions [honeysql]]]
-  :repositories [["bintray" "https://dl.bintray.com/crate/crate"]     ; Repo for Crate JDBC driver
-                 ["redshift" "https://s3.amazonaws.com/redshift-driver-downloads"]]
+  :repositories [["redshift" "https://s3.amazonaws.com/redshift-driver-downloads"]]
   :plugins [[lein-environ "1.1.0"]                                    ; easy access to environment variables
             [lein-ring "0.12.3"                                       ; start the HTTP server with 'lein ring server'
              :exclusions [org.clojure/clojure]]]                      ; TODO - should this be a dev dependency ?
@@ -128,10 +126,7 @@
          :init metabase.core/init!
          :destroy metabase.core/destroy
          :reload-paths ["src"]}
-  :eastwood {:exclude-namespaces
-             [:test-paths
-              ;; SQLDriver causes Eastwood to fail. Skip this ns until issue is fixed: https://github.com/jonase/eastwood/issues/191
-              metabase.driver.generic-sql]
+  :eastwood {:exclude-namespaces [:test-paths]
              :config-files ["./test_resources/eastwood-config.clj"]
              :add-linters [:unused-private-vars
                            :unused-namespaces
@@ -148,7 +143,7 @@
   :profiles {:dev {:dependencies [[clj-http-fake "1.0.3"]             ; Library to mock clj-http responses
                                   [expectations "2.2.0-beta2"]        ; unit tests
                                   [ring/ring-mock "0.3.0"]]           ; Library to create mock Ring requests for unit tests
-                   :plugins [[docstring-checker "1.0.2"]              ; Check that all public vars have docstrings. Run with 'lein docstring-checker'
+                   :plugins [[docstring-checker "1.0.3"]              ; Check that all public vars have docstrings. Run with 'lein docstring-checker'
                              [jonase/eastwood "0.3.1"
                               :exclusions [org.clojure/clojure]]      ; Linting
                              [lein-bikeshed "0.4.1"]                  ; Linting
