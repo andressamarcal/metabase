@@ -20,7 +20,7 @@
              [add-row-count-and-status :as row-count-and-status]
              [add-settings :as add-settings]
              [annotate :as annotate]
-             [auto-bucket-datetime-breakouts :as bucket-datetime]
+             [auto-bucket-datetimes :as bucket-datetime]
              [bind-effective-timezone :as bind-timezone]
              [binning :as binning]
              [cache :as cache]
@@ -124,7 +124,7 @@
       implicit-clauses/add-implicit-clauses
       mt.column-level-perms-check/maybe-apply-column-level-perms-check
       reconcile-bucketing/reconcile-breakout-and-order-by-bucketing
-      bucket-datetime/auto-bucket-datetime-breakouts
+      bucket-datetime/auto-bucket-datetimes
       resolve-source-table/resolve-source-table
       row-count-and-status/add-row-count-and-status
       ;; ▼▼▼ RESULTS WRAPPING POINT ▼▼▼ All functions *below* will see results WRAPPED in `:data` during POST-PROCESSING
