@@ -37,7 +37,7 @@ fi
 
 
 if [ "$BUILD_TYPE" == "release" ]; then
-    DOCKERHUB_REPOSITORY=metabase
+    DOCKERHUB_REPOSITORY=metabase-enterprise
     DOCKER_IMAGE="${DOCKERHUB_NAMESPACE}/${DOCKERHUB_REPOSITORY}:${MB_TAG}"
 
     echo "Building Docker image ${DOCKER_IMAGE} from official Metabase release ${MB_TAG}"
