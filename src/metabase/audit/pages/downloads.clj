@@ -15,8 +15,8 @@
   "Pairs of count of rows downloaded and date downloaded for the 1000 largest (in terms of row count) queries over the
   past 30 days. Intended to power scatter plot."
   []
-  {:metadata [:rows_downloaded
-              :downloads]
+  {:metadata [[:date {:display_name "Day",           :base_type :type/DateTime}]
+              [:rows {:display_name "Rows in Query", :base_type :type/Integer}]]
    :results  (common/query
                {:select   [[:started_at :date]
                            [:result_rows :rows]]
@@ -111,15 +111,15 @@
   "Query download count broken out by bucketed number of rows of query. E.g. 10 downloads of queries with 0-10 rows, 15
   downloads of queries with 11-100, etc. Intended to power bar chart."
   []
-  {:metadata [:rows      {:display_name "Rows Downloaded", :base_type :type/Text}
-              :downloads {:display_name "Downloads", :base_type :type/Integer}]
+  {:metadata [[:rows      {:display_name "Rows Downloaded", :base_type :type/Text}]
+              [:downloads {:display_name "Downloads",       :base_type :type/Integer}]]
    :results  (common/query
                {:with     [[:bucketed_downloads
                             {:select [[rows->bucket-case-expression :rows_bucket_max]]
                              :from   [:query_execution]
-                             :where [:and
-                                     (common/query-execution-is-download :query_execution)
-                                     [:not= :result_rows nil]]}]]
+                             :where  [:and
+                                      (common/query-execution-is-download :query_execution)
+                                      [:not= :result_rows nil]]}]]
                 :select   [[bucket->range-str-case-expression :rows]
                            [:%count.* :downloads]]
                 :from     [:bucketed_downloads]
