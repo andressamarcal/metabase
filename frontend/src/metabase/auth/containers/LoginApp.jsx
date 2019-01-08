@@ -14,6 +14,7 @@ import FormMessage from "metabase/components/form/FormMessage.jsx";
 import LogoIcon from "metabase/components/LogoIcon.jsx";
 import Settings from "metabase/lib/settings";
 import Utils from "metabase/lib/utils";
+import { IFRAMED } from "metabase/lib/dom";
 
 import * as authActions from "../auth";
 
@@ -51,6 +52,14 @@ export default class LoginApp extends Component {
 
     if (this.state.valid !== valid) {
       this.setState({ valid });
+    }
+  }
+
+  componentWillMount() {
+    // If we're iframed and SSO is configured immediately redirect to it
+    if (IFRAMED && Settings.get("other_sso_configured")) {
+      this.onClickSSOLoginButton();
+      return;
     }
   }
 
@@ -118,6 +127,10 @@ export default class LoginApp extends Component {
   render() {
     const { loginError } = this.props;
     const { adminLogin } = this.state;
+
+    if (IFRAMED && Settings.get("other_sso_configured")) {
+      return null;
+    }
 
     return (
       <div className="full flex flex-column flex-full md-layout-centered">

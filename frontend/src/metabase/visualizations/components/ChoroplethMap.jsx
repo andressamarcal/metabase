@@ -200,6 +200,8 @@ export default class ChoroplethMap extends Component {
           column: cols[dimensionIndex],
         },
       ],
+      origin: { row, cols },
+      settings,
     });
 
     const isClickable =

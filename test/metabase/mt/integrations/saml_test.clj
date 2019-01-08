@@ -5,12 +5,16 @@
              [config :as config]
              [http-client :as http]
              [util :as u]]
-            [metabase.models.user :refer [User]]
+            [metabase.models
+             [permissions-group :as group :refer [PermissionsGroup]]
+             [permissions-group-membership :refer [PermissionsGroupMembership]]
+             [user :refer [User]]]
             [metabase.mt.integrations.saml :as saml :refer :all]
             [metabase.public-settings.metastore :as metastore]
             [metabase.test.data.users :as users :refer :all]
             [metabase.test.util :as tu]
-            [toucan.db :as db])
+            [toucan.db :as db]
+            [toucan.util.test :as tt])
   (:import java.nio.charset.StandardCharsets
            org.apache.http.client.utils.URLEncodedUtils))
 
@@ -161,11 +165,17 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
           redirect-url (get-in result [:headers "Location"])]
       (#'saml/decrypt-relay-state (:RelayState (uri->params-map redirect-url) )))))
 
-(def ^:private saml-test-response
-  (delay (u/encode-base64 (slurp "test_resources/saml-test-response.xml"))))
+(defn- saml-response-from-file [filename]
+  (u/encode-base64 (slurp filename)))
 
-(def ^:private new-user-saml-test-response
-  (delay (u/encode-base64 (slurp "test_resources/saml-test-response-new-user.xml"))))
+(defn- saml-test-response []
+  (saml-response-from-file "test_resources/saml-test-response.xml"))
+
+(defn- new-user-saml-test-response []
+  (saml-response-from-file "test_resources/saml-test-response-new-user.xml"))
+
+(defn- new-user-with-group-saml-test-response []
+  (saml-response-from-file "test_resources/saml-test-response-new-user-with-group.xml"))
 
 (defn- saml-post-request-options [saml-response relay-state]
   {:request-options {:content-type     :x-www-form-urlencoded
@@ -192,7 +202,7 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
   (with-saml-default-setup
     (users/create-users-if-needed!)
 
-    (let [req-options (saml-post-request-options @saml-test-response
+    (let [req-options (saml-post-request-options (saml-test-response)
                                                  (#'saml/encrypt-redirect-str default-redirect-uri))
           response (client-full-response :post 302 "/auth/sso" req-options)]
       {:successful-login? (successful-login? response)
@@ -205,7 +215,7 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
   (with-saml-default-setup
     (users/create-users-if-needed!)
     (client :post 500 "/auth/sso"
-            (saml-post-request-options @saml-test-response
+            (saml-post-request-options (saml-test-response)
                                        (str (#'saml/encrypt-redirect-str default-redirect-uri)
                                             "something-random")))))
 
@@ -221,7 +231,7 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
     (users/create-users-if-needed!)
     (try
       (let [new-user-exists? (boolean (seq (db/select User :email "newuser@metabase.com")))
-            req-options      (saml-post-request-options @new-user-saml-test-response
+            req-options      (saml-post-request-options (new-user-saml-test-response)
                                                         (#'saml/encrypt-redirect-str default-redirect-uri))
             response         (client-full-response :post 302 "/auth/sso" req-options)]
         {:new-user-exists-before? new-user-exists?
@@ -230,3 +240,28 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
          :login-attributes        (saml-login-attributes "newuser@metabase.com")})
       (finally
         (db/delete! User :email "newuser@metabase.com")))))
+
+;; login should sync group memberships if enabled
+(defn- group-memberships [user-or-id]
+  (when-let [group-ids (seq (db/select-field :group_id PermissionsGroupMembership :user_id (u/get-id user-or-id)))]
+    (db/select-field :name PermissionsGroup :id [:in group-ids])))
+
+(expect
+  #{"All Users" ":metabase.mt.integrations.saml-test/group-1" ":metabase.mt.integrations.saml-test/group-2"}
+  (with-saml-default-setup
+    (users/create-users-if-needed!)
+    (tt/with-temp* [PermissionsGroup [group-1 {:name (str ::group-1)}]
+                    PermissionsGroup [group-2 {:name (str ::group-2)}]]
+      (tu/with-temporary-setting-values [saml-group-sync      true
+                                         saml-group-mappings  {"group_1" [(u/get-id group-1)]
+                                                               "group_2" [(u/get-id group-2)]}
+                                         saml-attribute-group "GroupMembership"]
+        (try
+          (let [req-options (saml-post-request-options (new-user-with-group-saml-test-response)
+                                                       (#'saml/encrypt-redirect-str default-redirect-uri))
+                response    (client-full-response :post 302 "/auth/sso" req-options)
+                _           (assert (successful-login? response))
+                new-user-id (db/select-one-id User :email "newuser@metabase.com")]
+            (group-memberships new-user-id))
+          (finally
+            (db/delete! User :email "newuser@metabase.com")))))))

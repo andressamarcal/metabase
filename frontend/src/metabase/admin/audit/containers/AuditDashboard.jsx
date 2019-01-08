@@ -7,7 +7,7 @@ import DashboardData from "metabase/dashboard/hoc/DashboardData";
 
 const DashboardWithData = DashboardData(Dashboard);
 
-import { auditActionsForClick } from "../lib/util";
+import { AuditMode } from "../lib/util";
 
 import type { AuditCard } from "../types";
 
@@ -33,7 +33,7 @@ const AuditDashboards = ({ cards, ...props }: Props) => (
         ...dc,
       })),
     }}
-    actionsForClick={auditActionsForClick}
+    mode={AuditMode}
     // don't link card titles to the query builder
     noLink
     {...props}

@@ -2,6 +2,7 @@
   (:require [clojure.string :as str]
             [expectations :refer [expect]]
             [metabase
+             [driver :as driver]
              [query-processor :as qp]
              [query-processor-test :as qpt]
              [sync :as sync]
@@ -24,7 +25,7 @@
              [util :as tu]]
             [metabase.test.data
              [datasets :as datasets]
-             [generic-sql :as gsql]
+             [sql :as sql.tx]
              [users :as users]]
             [toucan.db :as db]
             [toucan.util.test :as tt]))
@@ -35,9 +36,9 @@
 
 (defn- quote-native-identifier
   ([{db-name :name :as db} table-name]
-   (gsql/qualify+quote-name datasets/*driver* (name db-name) (name table-name)))
+   (sql.tx/qualify+quote-name driver/*driver* (name db-name) (name table-name)))
   ([{db-name :name :as db} table-name field-name]
-   (gsql/qualify+quote-name datasets/*driver* (name db-name) (name table-name) (name field-name))))
+   (sql.tx/qualify+quote-name driver/*driver* (name db-name) (name table-name) (name field-name))))
 
 (defn- venues-count-mbql-query []
   {:database (data/id)
@@ -89,7 +90,7 @@
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
 ;; When querying with full permissions, no changes should be made
-(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
   [[100]]
   (tt/with-temp Card [card (venues-source-table-card (data/id))]
     (with-gtaps [group nil
@@ -106,7 +107,7 @@
 
 ;; Basic test around querying a table by a user with segmented only permissions and a GTAP question that is a native
 ;; query
-(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
   [[10]]
   (mt.tu/with-segmented-perms [db]
     (tt/with-temp Card [card {:dataset_query {:database (u/get-id db)
@@ -125,7 +126,7 @@
                 qpt/rows)))))))
 
 ;; Basic test around querying a table by a user with segmented only permissions and a GTAP question that is MBQL
-(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
   [[10]]
   (mt.tu/with-segmented-perms [db]
     (tt/with-temp Card [card (venues-source-table-card (u/get-id db))]
@@ -141,7 +142,7 @@
 
 ;; When processing a query that requires a user attribute and that user attribute isn't there, throw an exception
 ;; letting the user know it's missing
-(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
   "Query requires user attribute `cat`"
   (mt.tu/with-segmented-perms [db]
     (tt/with-temp Card [card (venues-source-table-card (u/get-id db))]
@@ -155,7 +156,7 @@
               :error))))))
 
 ;; Another basic test, same as above, but with a numeric string that needs to be coerced
-(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
   [[10]]
   (mt.tu/with-segmented-perms [db]
     (tt/with-temp Card [card (venues-source-table-card (u/get-id db))]
@@ -170,7 +171,7 @@
                 qpt/rows)))))))
 
 ;; Another basic test, this one uses a stringified float for the login attribute
-(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
   [[3]]
   (mt.tu/with-segmented-perms [db]
     (tt/with-temp Card [card (venues-source-table-card (u/get-id db))]
@@ -185,7 +186,7 @@
                 qpt/rows)))))))
 
 ;; Tests that users can have a different parameter name in their query than they have in their user attributes
-(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
   [[10]]
   (mt.tu/with-segmented-perms [db]
     (tt/with-temp Card [card {:dataset_query {:database (u/get-id db)
@@ -207,7 +208,7 @@
 ;; Make sure that you can still use a SQL-based GTAP without needing to have SQL read perms for the Database This test
 ;; is disabled on Spark as it doesn't appear to support our aliasing syntax and wants an `AS`. Removing spark from
 ;; this test, written up as https://github.com/metabase/metabase/issues/8524
-(datasets/expect-with-engines (disj (qpt/non-timeseries-engines-with-feature :nested-queries) :sparksql)
+(datasets/expect-with-drivers (disj (qpt/non-timeseries-drivers-with-feature :nested-queries) :sparksql)
   [["20th Century Cafe" 1000]]
   (tt/with-temp Database [db (select-keys (data/db) [:details :engine :name])]
     (with-group [group]
@@ -241,7 +242,7 @@
                  (qpt/format-rows-by [str int]))))))))
 
 ;; When no card_id is included in the GTAP, should default to a query against the table, with the GTAP criteria applied
-(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
   [[10]]
   (mt.tu/with-segmented-perms [db]
     (with-gtaps [group nil
@@ -255,7 +256,7 @@
               qpt/rows))))))
 
 ;; Same test as above but make sure we coerce a numeric string correctly
-(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
   [[10]]
   (mt.tu/with-segmented-perms [db]
     (with-gtaps [group {:name "Restricted Venues"}
@@ -269,7 +270,7 @@
               qpt/rows))))))
 
 ;; Users with view access to the related collection should bypass segmented permissions
-(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
   1
   (tt/with-temp* [Database   [db          (select-keys (data/db) [:details :engine :name])]
                   Collection [collection]
@@ -295,7 +296,7 @@
 ;; This test isn't covering a row level restrictions feature, but rather checking it it doesn't break querying of a
 ;; card as a nested query. Part of the row level perms check is looking at the table (or card) to see if row level
 ;; permissions apply. This was broken when it wasn't expecting a card and only expecting resolved source-tables
-(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries)
+(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
   [[100]]
   (tt/with-temp Card [card (venues-source-table-card (data/id))]
     (->> (process-query-with-rasta
@@ -318,7 +319,7 @@
 ;; 2 - Apply the `user` attribute, looking for only our user (i.e. `user_id` =  5)
 ;; 3 - Checkins are related to Venues, query for checkins, grouping by the Venue's price
 ;; 4 - Order by the Venue's price to ensure a predictably ordered response
-(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries :foreign-keys)
+(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries :foreign-keys)
   [[1 10] [2 36] [3 4] [4 5]]
   (mt.tu/with-segmented-perms [db]
     (tt/with-temp Card [card (checkins-source-table-card db)]
@@ -342,7 +343,7 @@
 ;; Test that we're able to use a GTAP for an FK related table. For this test, the user has segmented permissions on
 ;; checkins and venues, so we need to apply a GTAP to the original table (checkins) in addition to the related table
 ;; (venues). This test uses a GTAP question for both tables
-(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries :foreign-keys)
+(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries :foreign-keys)
   #{[nil 45] [1 10]}
   (mt.tu/with-segmented-perms [db]
     (tt/with-temp* [Card [card-1 {:dataset_query {:database (u/get-id db)
@@ -369,7 +370,7 @@
                  qpt/rows))))))))
 
 ;; Test that the FK related table can be a "default" GTAP, i.e. a GTAP where the `card_id` is nil
-(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries :foreign-keys)
+(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries :foreign-keys)
   #{[nil 45] [1 10]}
   (mt.tu/with-segmented-perms [db]
     (tt/with-temp Card [card (checkins-source-table-card db)]
@@ -394,7 +395,7 @@
 
 ;; Test that we have multiple FK related, segmented tables. This test has checkins with a GTAP question with venues
 ;; and users having the default GTAP and segmented permissions
-(datasets/expect-with-engines (qpt/non-timeseries-engines-with-feature :nested-queries :foreign-keys)
+(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries :foreign-keys)
   #{[nil "Quentin Sören" 45] [1 "Quentin Sören" 10]}
   (mt.tu/with-segmented-perms [db]
     (tt/with-temp Card [card (checkins-source-table-card db)]

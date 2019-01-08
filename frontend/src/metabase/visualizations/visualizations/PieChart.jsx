@@ -14,6 +14,7 @@ import {
   dimensionSetting,
 } from "metabase/visualizations/lib/settings/utils";
 import { columnSettings } from "metabase/visualizations/lib/settings/column";
+import { drillThroughSettings } from "metabase/visualizations/lib/settings/drill";
 
 import { formatValue } from "metabase/lib/formatting";
 
@@ -131,6 +132,7 @@ export default class PieChart extends Component {
       },
       readDependencies: ["pie._dimensionIndex"],
     },
+    ...drillThroughSettings(),
   };
 
   componentDidUpdate() {
@@ -314,6 +316,7 @@ export default class PieChart extends Component {
           column: cols[dimensionIndex],
         },
       ],
+      settings,
     });
 
     const isClickable =

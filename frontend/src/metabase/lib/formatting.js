@@ -18,8 +18,10 @@ import {
   isCoordinate,
   isLatitude,
   isLongitude,
+  isTime,
+  isURL,
+  isEmail,
 } from "metabase/lib/schema_metadata";
-import { isa, TYPE } from "metabase/lib/types";
 import { parseTimestamp, parseTime } from "metabase/lib/time";
 import { rangeForValue } from "metabase/lib/dataset";
 import { getFriendlyName } from "metabase/visualizations/lib/utils";
@@ -32,6 +34,10 @@ import {
   getTimeFormatFromStyle,
   hasHour,
 } from "metabase/lib/formatting/date";
+import {
+  renderLinkURLForClick,
+  renderLinkTextForClick,
+} from "metabase/lib/formatting/link";
 
 import Field from "metabase-lib/lib/metadata/Field";
 import type { Column, Value } from "metabase/meta/types/Dataset";
@@ -43,6 +49,7 @@ import type {
   TimeStyle,
   TimeEnabled,
 } from "metabase/lib/formatting/date";
+import type { ClickObject } from "metabase/meta/types/Visualization";
 
 // a one or two character string specifying the decimal and grouping separator characters
 export type NumberSeparators = ".," | ", " | ",." | ".";
@@ -56,6 +63,7 @@ export type FormattingOptions = {
   majorWidth?: number,
   type?: "axis" | "cell" | "tooltip",
   jsx?: boolean,
+  remap?: boolean,
   // render links for type/URLs, type/Email, etc
   rich?: boolean,
   compact?: boolean,
@@ -75,8 +83,10 @@ export type FormattingOptions = {
   // decimals sets both minimumFractionDigits and maximumFractionDigits
   decimals?: number,
   // STRING
-  view_as?: "link" | "email_link" | "image",
+  view_as?: null | "link" | "email_link" | "image" | "auto",
   link_text?: string,
+  link_template?: string,
+  clicked?: ClickObject,
   // DATE/TIME
   // date/timeout style string that is used to derive a date_format or time_format for different units, see metabase/lib/formatting/date
   date_style?: DateStyle,
@@ -504,6 +514,7 @@ const EMAIL_WHITELIST_REGEX = /^(?=.{1,254}$)(?=.{1,64}@)[-!#$%&'*+/0-9=?A-Z^_`a
 
 export function formatEmail(
   value: Value,
+  // $FlowFixMe: unclear problem with `view_as` default
   { jsx, rich, view_as = "auto", link_text }: FormattingOptions = {},
 ) {
   const email = String(value);
@@ -523,21 +534,37 @@ export function formatEmail(
 
 // based on https://github.com/angular/angular.js/blob/v1.6.3/src/ng/directive/input.js#L25
 const URL_WHITELIST_REGEX = /^(https?|mailto):\/*(?:[^:@]+(?::[^@]+)?@)?(?:[^\s:/?#]+|\[[a-f\d:]+])(?::\d+)?(?:\/[^?#]*)?(?:\?[^#]*)?(?:#.*)?$/i;
+const URL_BLACKLIST_REGEX = /^\s*javascript:/i;
 
-export function formatUrl(
-  value: Value,
-  { jsx, rich, view_as = "auto", link_text }: FormattingOptions = {},
-) {
-  const url = String(value);
+export function formatUrl(value: Value, options: FormattingOptions = {}) {
+  const {
+    jsx,
+    rich,
+    view_as = "auto",
+    link_text,
+    link_template,
+    clicked,
+  } = options;
+  const url =
+    link_template && clicked
+      ? renderLinkURLForClick(link_template, clicked)
+      : String(value);
+  const text =
+    link_text && clicked
+      ? renderLinkTextForClick(link_text, clicked)
+      : link_text ||
+        getRemappedValue(value, options) ||
+        formatValue(value, { ...options, view_as: null });
   if (
     jsx &&
     rich &&
-    (view_as === "link" || view_as === "auto") &&
-    URL_WHITELIST_REGEX.test(url)
+    (view_as === "link" ||
+      (view_as === "auto" && URL_WHITELIST_REGEX.test(url))) &&
+    !URL_BLACKLIST_REGEX.test(url)
   ) {
     return (
       <ExternalLink className="link link--wrappable" href={url}>
-        {link_text || url}
+        {text}
       </ExternalLink>
     );
   } else {
@@ -547,6 +574,7 @@ export function formatUrl(
 
 export function formatImage(
   value: Value,
+  // $FlowFixMe: unclear problem with `view_as` default
   { jsx, rich, view_as = "auto", link_text }: FormattingOptions = {},
 ) {
   const url = String(value);
@@ -559,12 +587,14 @@ export function formatImage(
 
 // fallback for formatting a string without a column special_type
 function formatStringFallback(value: Value, options: FormattingOptions = {}) {
-  value = formatUrl(value, options);
-  if (typeof value === "string") {
-    value = formatEmail(value, options);
-  }
-  if (typeof value === "string") {
-    value = formatImage(value, options);
+  if (options.view_as !== null) {
+    value = formatUrl(value, options);
+    if (typeof value === "string") {
+      value = formatEmail(value, options);
+    }
+    if (typeof value === "string") {
+      value = formatImage(value, options);
+    }
   }
   return value;
 }
@@ -612,16 +642,11 @@ export function formatValue(value: Value, options: FormattingOptions = {}) {
   }
 }
 
-export function formatValueRaw(value: Value, options: FormattingOptions = {}) {
-  let column = options.column;
-
-  options = {
-    jsx: false,
-    remap: true,
-    ...options,
-  };
-
-  if (options.remap && column) {
+function getRemappedValue(
+  value: Value,
+  { remap, column }: FormattingOptions = {},
+): ?string {
+  if (remap && column) {
     // $FlowFixMe: column could be Field or Column
     if (column.hasRemappedValue && column.hasRemappedValue(value)) {
       // $FlowFixMe: column could be Field or Column
@@ -633,14 +658,29 @@ export function formatValueRaw(value: Value, options: FormattingOptions = {}) {
     }
     // TODO: get rid of one of these two code paths?
   }
+}
+
+export function formatValueRaw(value: Value, options: FormattingOptions = {}) {
+  options = {
+    jsx: false,
+    remap: true,
+    ...options,
+  };
+
+  const { column } = options;
+
+  const remapped = getRemappedValue(value, options);
+  if (remapped !== undefined && options.view_as !== "link") {
+    return remapped;
+  }
 
   if (value == undefined) {
     return null;
-  } else if (column && isa(column.special_type, TYPE.URL)) {
+  } else if (isURL(column) || options.view_as === "link") {
     return formatUrl(value, options);
-  } else if (column && isa(column.special_type, TYPE.Email)) {
+  } else if (isEmail(column)) {
     return formatEmail(value, options);
-  } else if (column && isa(column.base_type, TYPE.Time)) {
+  } else if (isTime(column)) {
     return formatTime(value);
   } else if (column && column.unit != null) {
     return formatDateTimeWithUnit(value, column.unit, options);
@@ -654,14 +694,14 @@ export function formatValueRaw(value: Value, options: FormattingOptions = {}) {
   } else if (typeof value === "string") {
     return formatStringFallback(value, options);
   } else if (typeof value === "number" && isCoordinate(column)) {
-    const range = rangeForValue(value, options.column);
+    const range = rangeForValue(value, column);
     if (range && !options.noRange) {
       return formatRange(range, formatCoordinate, options);
     } else {
       return formatCoordinate(value, options);
     }
   } else if (typeof value === "number" && isNumber(column)) {
-    const range = rangeForValue(value, options.column);
+    const range = rangeForValue(value, column);
     if (range && !options.noRange) {
       return formatRange(range, formatNumber, options);
     } else {
@@ -728,6 +768,15 @@ export function titleize(...args) {
 // $FlowFixMe
 export function humanize(...args) {
   return inflection.humanize(...args);
+}
+
+export function conjunct(list: string[], conjunction: string) {
+  return (
+    list.slice(0, -1).join(`, `) +
+    (list.length > 2 ? `,` : ``) +
+    (list.length > 1 ? ` ${conjunction} ` : ``) +
+    (list[list.length - 1] || ``)
+  );
 }
 
 export function duration(milliseconds: number) {

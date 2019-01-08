@@ -5,6 +5,7 @@
             [metabase.api
              [common :as api]
              [session :as session]]
+            [metabase.integrations.common :as integrations.common]
             [metabase.mt.api.sso :as sso]
             [metabase.mt.integrations
              [sso-settings :as sso-settings]
@@ -17,10 +18,18 @@
              [shared :as saml-shared]
              [sp :as saml-sp]]))
 
+(defn- group-names->ids [group-names]
+  (set (mapcat (sso-settings/saml-group-mappings)
+               (map keyword group-names))))
+
+(defn- sync-groups! [user group-names]
+  (when (sso-settings/saml-group-sync)
+    (when group-names
+      (integrations.common/sync-group-memberships! user (group-names->ids group-names)))))
+
 (defn saml-auth-fetch-or-create-user!
   "Returns a session map for the given `email`. Will create the user if needed."
-  [first-name last-name email user-attributes]
-
+  [first-name last-name email group-names user-attributes]
   (when-not (sso-settings/saml-configured?)
     (throw (IllegalArgumentException. "Can't create new SAML user when SAML is not configured")))
 
@@ -30,7 +39,9 @@
                                                        :email            email
                                                        :sso_source       "saml"
                                                        :login_attributes user-attributes}))]
+    (sync-groups! user group-names)
     {:id (session/create-session! user)}))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
@@ -143,7 +154,8 @@
       (let [email               (get attrs (sso-settings/saml-attribute-email))
             first-name          (get attrs (sso-settings/saml-attribute-firstname) "Unknown")
             last-name           (get attrs (sso-settings/saml-attribute-lastname) "Unknown")
-            {session-token :id} (saml-auth-fetch-or-create-user! first-name last-name email attrs)]
+            groups              (get attrs (sso-settings/saml-attribute-group))
+            {session-token :id} (saml-auth-fetch-or-create-user! first-name last-name email groups attrs)]
         (resp/set-cookie (resp/redirect continue-url)
                          "metabase.SESSION_ID" session-token
                          {:path "/"}))

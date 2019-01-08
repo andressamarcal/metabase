@@ -253,6 +253,31 @@ export function moveToFront(element) {
   }
 }
 
+export function open(
+  url,
+  {
+    event = window.event,
+    // always open in new window
+    blank = false,
+    // open in new window if command-click
+    blankOnMetaKey = true,
+    // open in new window for different origin
+    blankOnDifferentOrigin = true,
+  } = {},
+) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.rel = "noopener";
+  if (
+    blank ||
+    (blankOnMetaKey && event && event.metaKey) ||
+    (blankOnDifferentOrigin && a.origin !== window.location.origin)
+  ) {
+    a.target = "_blank";
+  }
+  a.click();
+}
+
 export function removeAllChildren(element) {
   while (element.firstChild) {
     element.removeChild(element.firstChild);
@@ -286,4 +311,42 @@ export function clipPathReference(id: string): string {
   // https://stackoverflow.com/questions/18259032/using-base-tag-on-a-page-that-contains-svg-marker-elements-fails-to-render-marke
   const url = window.location.href.replace(/#.*$/, "") + "#" + id;
   return `url(${url})`;
+}
+
+export function initializeIframeResizer(readyCallback = () => {}) {
+  if (!IFRAMED) {
+    return;
+  }
+
+  // Make iFrameResizer avaliable so that embed users can
+  // have their embeds autosize to their content
+  if (window.iFrameResizer) {
+    console.error("iFrameResizer resizer already defined.");
+    readyCallback();
+  } else {
+    window.iFrameResizer = {
+      autoResize: true,
+      heightCalculationMethod: "bodyScroll",
+      readyCallback: readyCallback,
+    };
+
+    // FIXME: Crimes
+    // This is needed so the FE test framework which runs in node
+    // without the avaliability of require.ensure skips over this part
+    // which is for external purposes only.
+    //
+    // Ideally that should happen in the test config, but it doesn't
+    // seem to want to play nice when messing with require
+    if (typeof require.ensure !== "function") {
+      // $FlowFixMe: flow doesn't seem to like returning false here
+      return false;
+    }
+
+    // Make iframe-resizer avaliable to the embed
+    // We only care about contentWindow so require that minified file
+
+    require.ensure([], require => {
+      require("iframe-resizer/js/iframeResizer.contentWindow.js");
+    });
+  }
 }

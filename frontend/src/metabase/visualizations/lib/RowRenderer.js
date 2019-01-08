@@ -88,6 +88,7 @@ export default function rowRenderer(
             },
           ],
           element: this,
+          settings,
         });
       });
     }

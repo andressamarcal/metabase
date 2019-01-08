@@ -25,7 +25,7 @@ export default class AuditTableVisualization extends React.Component {
 
   render() {
     const {
-      series: [{ data: { cols, rows }, card }],
+      series: [{ data: { cols, rows } }],
       visualizationIsClickable,
       onVisualizationClick,
       settings,
@@ -35,11 +35,6 @@ export default class AuditTableVisualization extends React.Component {
     const columnIndexes = columnSettings.map(({ name, enabled }) =>
       _.findIndex(cols, col => col.name === name),
     );
-
-    console.group(card.dataset_query.fn);
-    console.log("all:", cols.map(col => col.name));
-    console.log("current:", settings["table.columns"]);
-    console.groupEnd();
 
     if (rows.length === 0) {
       return (
@@ -71,7 +66,7 @@ export default class AuditTableVisualization extends React.Component {
               {columnIndexes.map((colIndex, columnSettingsIndex) => {
                 const value = row[colIndex];
                 const column = cols[colIndex];
-                const clickObject = { column, value, row, cols };
+                const clickObject = { column, value, origin: { row, cols } };
                 const clickable = visualizationIsClickable(clickObject);
                 const settings = columnSettings[columnSettingsIndex];
                 if (settings && !settings.enabled) {

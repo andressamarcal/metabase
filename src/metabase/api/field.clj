@@ -16,6 +16,7 @@
             [metabase.util
              [i18n :refer [tru]]
              [schema :as su]]
+            [metabase.util.schema :as su]
             [schema.core :as s]
             [toucan
              [db :as db]
