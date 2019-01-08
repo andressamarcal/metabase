@@ -22,7 +22,7 @@
                   {:select    [:qe.started_at
                                [:card.id :card_id]
                                [:qe.hash :query_hash]
-                               [(hsql/call :case [:not= nil :card.name] :card.name :else (hx/literal "Ad-hoc")) :query]
+                               [(common/card-name-or-ad-hoc :card) :query]
                                [:u.id :user_id]
                                [(common/user-full-name :u) :user]
                                :t.schema

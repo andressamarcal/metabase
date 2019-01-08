@@ -11,59 +11,6 @@
             [ring.util.codec :as codec]
             [schema.core :as s]))
 
-;; WITH last_query AS (
-;;     SELECT max(started_at) AS started_at
-;;     FROM query_execution
-;;     WHERE executor_id = {{user_id}}
-;; ),
-;;
-;; groups AS (
-;;     SELECT string_agg(pg.name, ', ') AS "groups"
-;;     FROM permissions_group_membership pgm
-;;     LEFT JOIN permissions_group pg
-;;       ON pgm.group_id = pg.id
-;;     WHERE pgm.user_id = {{user_id}}
-;; ),
-;;
-;; questions_saved AS (
-;;     SELECT count(*) AS "count"
-;;     FROM report_card
-;;     WHERE creator_id = {{user_id}}
-;; ),
-;;
-;; dashboards_saved AS (
-;;     SELECT count(*) AS "count"
-;;     FROM report_dashboard
-;;     WHERE creator_id = {{user_id}}
-;; ),
-;;
-;; pulses_saved AS (
-;;     SELECT count(*) AS "count"
-;;     FROM pulse
-;;     WHERE creator_id = {{user_id}}
-;; ),
-;;
-;; users AS (
-;;     SELECT
-;;       (u.first_name || ' ' || u.last_name) AS "name",
-;;       (CASE WHEN u.is_superuser THEN 'Admin' ELSE 'User' END) AS "role",
-;;       date_joined,
-;;       (CASE WHEN u.sso_source IS NULL THEN 'Email' ELSE u.sso_source END) AS signup_method
-;;     FROM core_user u
-;;     WHERE u.id = {{user_id}}
-;; )
-;;
-;; SELECT
-;;   u."name",
-;;   u."role",
-;;   groups.groups AS groups,
-;;   u.date_joined,
-;;   last_query.started_at AS last_active,
-;;   u.signup_method,
-;;   questions_saved.count AS questions_saved,
-;;   dashboards_saved.count AS dashboards_saved,
-;;   pulses_saved.count AS pulses_saved
-;; FROM users u, groups, last_query, questions_saved, dashboards_saved, pulses_saved
 (s/defn ^:internal-query-fn table
   "Query that probides a single row of information about a given User, similar to the `users/table` query but restricted
   to a single result.
@@ -97,18 +44,18 @@
                                         :where  [:= :creator_id user-id]}]
                         [:users {:select [[(common/user-full-name :u) :name]
                                           [(hsql/call :case
-                                             [:= :u.is_superuser true]
-                                             (hx/literal "Admin")
-                                             :else
-                                             (hx/literal "User"))
+                                                      [:= :u.is_superuser true]
+                                                      (hx/literal "Admin")
+                                                      :else
+                                                      (hx/literal "User"))
                                            :role]
                                           :id
                                           :date_joined
                                           [(hsql/call :case
-                                             [:= nil :u.sso_source]
-                                             (hx/literal "Email")
-                                             :else
-                                             :u.sso_source)
+                                                      [:= nil :u.sso_source]
+                                                      (hx/literal "Email")
+                                                      :else
+                                                      :u.sso_source)
                                            :signup_method]
                                           :last_name]
                                  :from   [[:core_user :u]]
@@ -152,7 +99,7 @@
   "Return the 10 most-viewed Questions for a given User, in descending order."
   [user-id :- su/IntGreaterThanZero]
   {:metadata [[:card_id   {:display_name "Card ID", :base_type :type/Integer, :remapped_to   :card_name}]
-              [:card_name {:display_name "Card",    :base_type :type/Name,    :remapped_from :card_id}]
+              [:card_name {:display_name "Query",   :base_type :type/Name,    :remapped_from :card_id}]
               [:count     {:display_name "Views",   :base_type :type/Integer}]]
    :results  (common/query
               {:select    [[:d.id :card_id]
@@ -185,9 +132,9 @@
    :results (->> (common/query
                   {:select    [[:qe.started_at :viewed_on]
                                [:card.id :card_id]
-                               [(common/first-non-null :card.name (hx/literal "Ad-hoc")) :card_name]
+                               [(common/card-name-or-ad-hoc :card) :card_name]
                                [:qe.hash :query_hash]
-                               [(hsql/call :case [:= :qe.native true] (hx/literal "Native") :else (hx/literal "GUI")) :type]
+                               [(common/native-or-gui :qe) :type]
                                [:collection.id :collection_id]
                                [:collection.name :collection]
                                [:u.id :saved_by_id]
@@ -290,3 +237,35 @@
                            :card_views              [:= :card.id :card_views.card_id]]
                :where     [:= :card.creator_id user-id]
                :order-by  [[:%lower.card.name :asc]]})})
+
+(s/defn ^:internal-query-fn downloads
+  "Table of query downloads (i.e., queries whose results are returned as CSV/JSON/XLS) done by this user, ordered by
+  most recent."
+  [user-id :- su/IntGreaterThanZero]
+  {:metadata [[:downloaded_at   {:display_name "Downloaded At",   :base_type :type/DateTime}]
+              [:rows_downloaded {:display_name "Rows Downloaded", :base_type :type/Integer}]
+              [:card_id         {:display_name "Card ID",         :base_type :type/Integer, :remapped_to :card_name}]
+              [:card_name       {:display_name "Query",           :base_type :type/Text,    :remapped_from :card_id}]
+              [:query_type      {:display_name "Query Type",      :base_type :type/Text}]
+              [:database_id     {:display_name "Database ID",     :base_type :type/Integer, :remapped_to :database}]
+              [:database        {:display_name "Database",        :base_type :type/Text,    :remapped_from :database_id}]
+              [:source_table_id {:display_name "Source Table ID", :base_type :type/Integer, :remapped_to :source_table_id}]
+              [:source_table    {:display_name "Source Table",    :base_type :type/Text,    :remapped_from :source_table}]]
+   :results  (common/query
+               {:select    [[:qe.started_at :downloaded_at]
+                            [:qe.result_rows :rows_downloaded]
+                            [:card.id :card_id]
+                            [(common/card-name-or-ad-hoc :card) :card_name]
+                            [(common/native-or-gui :qe) :query_type]
+                            [:db.id :database_id]
+                            [:db.name :database]
+                            [:t.id :source_table_id]
+                            [:t.name :source_table]]
+                :from      [[:query_execution :qe]]
+                :left-join [[:report_card :card] [:= :card.id :qe.card_id]
+                            [:metabase_database :db] [:= :qe.database_id :db.id]
+                            [:metabase_table :t] [:= :card.table_id :t.id]]
+                :where     [:and
+                            [:= :executor_id user-id]
+                            (common/query-execution-is-download :qe)]
+                :order-by  [[:qe.started_at :desc]]})})
