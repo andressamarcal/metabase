@@ -1,9 +1,6 @@
 (ns metabase.audit.pages.database-detail
-  (:require [honeysql.core :as hsql]
-            [metabase.audit.pages.common :as common]
-            [metabase.util
-             [honeysql-extensions :as hx]
-             [schema :as su]]
+  (:require [metabase.audit.pages.common :as common]
+            [metabase.util.schema :as su]
             [ring.util.codec :as codec]
             [schema.core :as s]))
 
