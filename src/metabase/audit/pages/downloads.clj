@@ -33,8 +33,8 @@
 (s/defn ^:internal-query-fn per-user
   "Total count of query downloads broken out by user, ordered by highest total, for the top 10 users."
   []
-  {:metadata [[:user_id   {:display_name "User ID",   :base_type :type/Integer, :remapped_to :user_id}]
-              [:user      {:display_name "User",      :base_type :type/Text,    :remapped_from :user}]
+  {:metadata [[:user_id   {:display_name "User ID",   :base_type :type/Integer, :remapped_to :user_name}]
+              [:user_name {:display_name "User",      :base_type :type/Text,    :remapped_from :user_id}]
               [:downloads {:display_name "Downloads", :base_type :type/Integer}]]
    :results  (common/query
                {:with     [[:downloads_by_user
@@ -139,10 +139,10 @@
               [:query_type      {:display_name "Query Type",      :base_type :type/Text}]
               [:database_id     {:display_name "Database ID",     :base_type :type/Integer, :remapped_to :database}]
               [:database        {:display_name "Database",        :base_type :type/Text,    :remapped_from :database_id}]
-              [:source_table_id {:display_name "Source Table ID", :base_type :type/Integer, :remapped_to :source_table_id}]
-              [:source_table    {:display_name "Source Table",    :base_type :type/Text,    :remapped_from :source_table}]
-              [:user_id         {:display_name "User ID",         :base_type :type/Integer, :remapped_to :user_id}]
-              [:user            {:display_name "User",            :base_type :type/Text,    :remapped_from :user}]]
+              [:source_table_id {:display_name "Source Table ID", :base_type :type/Integer, :remapped_to :source_table}]
+              [:source_table    {:display_name "Source Table",    :base_type :type/Text,    :remapped_from :source_table_id}]
+              [:user_id         {:display_name "User ID",         :base_type :type/Integer, :remapped_to :user_name}]
+              [:user_name       {:display_name "User",            :base_type :type/Text,    :remapped_from :user_id}]]
    :results  (common/query
               {:select    [[:qe.started_at :downloaded_at]
                            [:qe.result_rows :rows_downloaded]
