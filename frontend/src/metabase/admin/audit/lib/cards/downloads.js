@@ -8,12 +8,15 @@ export const perDayBySize = () => ({
       args: [],
     },
   },
+  visualization_settings: {
+    "scatter.bubble": null,
+  },
 });
 
 export const perUser = () => ({
   card: {
     name: "Total downloads per user",
-    display: "table",
+    display: "row",
     dataset_query: {
       type: "internal",
       fn: "metabase.audit.pages.downloads/per-user",
