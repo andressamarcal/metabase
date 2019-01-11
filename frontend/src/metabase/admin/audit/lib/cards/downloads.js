@@ -1,6 +1,6 @@
 export const perDayBySize = () => ({
   card: {
-    name: "Downloads per day by size",
+    name: "Largest downloads in the last 30 days",
     display: "scatter",
     dataset_query: {
       type: "internal",
