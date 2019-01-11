@@ -7,9 +7,9 @@ export const perDayBySize = () => ({
       fn: "metabase.audit.pages.downloads/per-day-by-size",
       args: [],
     },
-  },
-  visualization_settings: {
-    "scatter.bubble": null,
+    visualization_settings: {
+      "scatter.bubble": null,
+    },
   },
 });
 
