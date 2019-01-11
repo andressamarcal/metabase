@@ -107,6 +107,10 @@ const extractRemappedColumns = data => {
     row.filter((value, colIndex) => {
       const col = cols[colIndex];
       if (col.remapped_from != null) {
+        if (!cols[col.remapped_from_index] || !cols[col.remapped_from_index].remapping) {
+          console.warn("Invalid remapped_from", col)
+          return true;
+        }
         cols[col.remapped_from_index].remapped_to_column = col;
         cols[col.remapped_from_index].remapping.set(
           row[col.remapped_from_index],
