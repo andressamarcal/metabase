@@ -8,6 +8,8 @@ export const perDayBySize = () => ({
       args: [],
     },
     visualization_settings: {
+      "graph.dimensions": ["date"],
+      "graph.metrics": ["rows"],
       "scatter.bubble": null,
     },
   },
