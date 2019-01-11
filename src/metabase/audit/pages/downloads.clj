@@ -15,16 +15,21 @@
   "Pairs of count of rows downloaded and date downloaded for the 1000 largest (in terms of row count) queries over the
   past 30 days. Intended to power scatter plot."
   []
-  {:metadata [[:date {:display_name "Day",           :base_type :type/DateTime}]
-              [:rows {:display_name "Rows in Query", :base_type :type/Integer}]]
+  {:metadata [[:date      {:display_name "Day",           :base_type :type/DateTime}]
+              [:rows      {:display_name "Rows in Query", :base_type :type/Integer}]
+              [:user_id   {:display_name "User ID",       :base_type :type/Integer, :remapped_to :user_name}]
+              [:user_name {:display_name "User",          :base_type :type/Text,    :remapped_from :user_id}]]
    :results  (common/query
-               {:select   [[:started_at :date]
-                           [:result_rows :rows]]
-                :from     [:query_execution]
+               {:select   [[:qe.started_at :date]
+                           [:qe.result_rows :rows]
+                           [:qe.executor_id :user_id]
+                           [(common/user-full-name :u) :user_name]]
+                :from     [[:query_execution :qe]]
+                :left-join [[:core_user :u] [:= :qe.executor_id :u.id]]
                 :where    [:and
-                           [:> :started_at (driver/date-interval (mdb/db-type) :day -30)]
-                           (common/query-execution-is-download :query_execution)]
-                :order-by [[:result_rows :desc]]
+                           [:> :qe.started_at (driver/date-interval (mdb/db-type) :day -30)]
+                           (common/query-execution-is-download :qe)]
+                :order-by [[:qe.result_rows :desc]]
                 :limit    1000})})
 
 
