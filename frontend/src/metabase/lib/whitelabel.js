@@ -5,12 +5,12 @@ import Color from "color";
 import colors, { syncColors } from "metabase/lib/colors";
 import { addCSSRule } from "metabase/lib/dom";
 
+import memoize from "lodash.memoize";
+
 export const originalColors = { ...colors };
 
-console.log(colors.brand);
-
 const BRAND_NORMAL_COLOR = Color(colors.brand).hsl();
-const COLOR_REGEX = /(?:#[a-fA-F0-9]{3}(?:[a-fA-F0-9]{3})?\b|(?:rgb|hsl)a?\(\s*\d+\s*(?:,\s*\d+(?:\.\d+)?%?\s*){2,3}\))/g;
+const COLOR_REGEX = /(?:#[a-fA-F0-9]{3}(?:[a-fA-F0-9]{3})?\b|(?:rgb|hsl)a?\(\s*\d+\s*(?:,\s*\d+(?:\.\d+)?%?\s*){2,3}\))/;
 
 const CSS_COLOR_UPDATORS_BY_COLOR_NAME = {};
 const JS_COLOR_UPDATORS_BY_COLOR_NAME = {};
@@ -30,8 +30,10 @@ function walkStyleSheets(sheets, fn) {
         // child sheets, e.x. media queries
         walkStyleSheets([rule], fn);
       }
-      for (const prop in rule.style || {}) {
-        fn(rule.style, prop);
+      if (rule.style) {
+        for (const prop of rule.style) {
+          fn(rule.style, prop, rule.style[prop]);
+        }
       }
     }
   }
@@ -53,6 +55,17 @@ const replaceColors = (cssValue, matchColor, replacementColor) => {
   });
 };
 
+const getColorStyleProperties = memoize(function() {
+  const properties = [];
+  walkStyleSheets(document.styleSheets, (style, cssProperty, cssValue) => {
+    // don't bother with checking if there are no colors
+    if (COLOR_REGEX.test(cssValue)) {
+      properties.push({ style, cssProperty, cssValue });
+    }
+  });
+  return properties;
+});
+
 function initColorCSS(colorName) {
   if (CSS_COLOR_UPDATORS_BY_COLOR_NAME[colorName]) {
     return;
@@ -66,20 +79,14 @@ function initColorCSS(colorName) {
 
   const originalColor = Color(originalColors[colorName]);
   // look for CSS rules which have colors matching the brand colors or very light or desaturated
-  walkStyleSheets(document.styleSheets, (style, cssProperty) => {
-    // save the original value here so we have a copy to perform the replacement on
-    const cssValue = style[cssProperty];
-    if (
-      // don't bother with checking if there are no colors
-      COLOR_REGEX.test(cssValue) &&
-      // try replacing with a random color to see if we actually need to
-      cssValue !== replaceColors(cssValue, originalColor, RANDOM_COLOR)
-    ) {
+  for (const { style, cssProperty, cssValue } of getColorStyleProperties()) {
+    // try replacing with a random color to see if we actually need to
+    if (cssValue !== replaceColors(cssValue, originalColor, RANDOM_COLOR)) {
       CSS_COLOR_UPDATORS_BY_COLOR_NAME[colorName].push(themeColor => {
         style[cssProperty] = replaceColors(cssValue, originalColor, themeColor);
       });
     }
-  });
+  }
 }
 
 function initCSSBrandHueUpdator() {
