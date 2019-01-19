@@ -11,8 +11,8 @@
              [data :as data]
              [util :as tu]]
             [metabase.test.data.users :refer :all]
-            [toucan.util.test :as tt]
-            [metabase.util :as u]))
+            [metabase.util :as u]
+            [toucan.util.test :as tt]))
 
 ;; Non-segmented users are able to send pulses to any slack channel that the configured instance can see. A segmented
 ;; user should not be able to send messages to those channels. This tests that a segmented user doesn't see any slack

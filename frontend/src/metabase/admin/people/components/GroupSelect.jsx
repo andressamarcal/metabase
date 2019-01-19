@@ -35,7 +35,7 @@ export const GroupSelect = ({ groups, selectedGroups, onGroupChange }) => {
   const adminGroup = _.find(groups, isAdminGroup);
   const defaultGroup = _.find(groups, isDefaultGroup);
   return (
-    <div className="GroupSelect py1">
+    <div className="GroupSelect scroll-y py1">
       {adminGroup && (
         <GroupOption
           group={adminGroup}

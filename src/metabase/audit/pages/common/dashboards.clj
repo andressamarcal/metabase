@@ -1,10 +1,11 @@
 (ns metabase.audit.pages.common.dashboards
-  (:require [honeysql.core :as hsql]
+  (:require [honeysql
+             [core :as hsql]
+             [helpers :as h]]
             [metabase.audit.pages.common :as common]
             [metabase.util
              [honeysql-extensions :as hx]
-             [urls :as urls]]
-            [honeysql.helpers :as h]))
+             [urls :as urls]]))
 
 (defn table
   "Dashboard table!"

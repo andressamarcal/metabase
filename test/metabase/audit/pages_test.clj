@@ -3,7 +3,9 @@
             [clojure.string :as str]
             [clojure.tools.namespace.find :as ns-find]
             [expectations :refer [expect]]
-            [metabase.db :as mdb]
+            [metabase
+             [db :as mdb]
+             [util :as u]]
             [metabase.models
              [card :refer [Card]]
              [dashboard :refer [Dashboard]]
@@ -13,7 +15,6 @@
             [metabase.public-settings.metastore-test :as metastore-test]
             [metabase.query-processor.util :as qp-util]
             [metabase.test.data.users :as test-users]
-            [metabase.util :as u]
             [toucan.util.test :as tt]))
 
 ;; test that a query will fail if not ran by an admin
