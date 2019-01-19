@@ -1,4 +1,5 @@
 (ns metabase.cmd.serialization
+  (:refer-clojure :exclude [load])
   (:require [clojure.tools.logging :as log]
             [metabase.db :as mdb]
             [metabase.models
@@ -6,7 +7,7 @@
              [collection :refer [Collection]]
              [dashboard :refer [Dashboard]]
              [database :refer [Database]]
-             [field :refer [Field] :as field]
+             [field :as field :refer [Field]]
              [metric :refer [Metric]]
              [pulse :refer [Pulse]]
              [segment :refer [Segment]]
@@ -19,8 +20,7 @@
              [i18n :refer [trs]]
              [schema :as su]]
             [schema.core :as s]
-            [toucan.db :as db])
-  (:refer-clojure :exclude [load]))
+            [toucan.db :as db]))
 
 (def ^:private Mode
   (su/with-api-error-message (s/enum :skip :update)

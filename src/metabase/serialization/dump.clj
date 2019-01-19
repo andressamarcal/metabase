@@ -16,7 +16,7 @@
              [user :refer [User]]]
             [metabase.serialization
              [names :refer [fully-qualified-name safe-name]]
-             [serialize :refer [serialize] :as serialize]]
+             [serialize :as serialize :refer [serialize]]]
             [yaml.core :as yaml]))
 
 (defn- spit-yaml

@@ -10,7 +10,7 @@
              [dashboard :refer [Dashboard]]
              [dashboard-card :refer [DashboardCard]]
              [dashboard-card-series :refer [DashboardCardSeries]]
-             [database :refer [Database] :as database]
+             [database :as database :refer [Database]]
              [dependency :refer [Dependency]]
              [dimension :refer [Dimension]]
              [field :refer [Field]]
@@ -20,11 +20,11 @@
              [pulse-card :refer [PulseCard]]
              [pulse-channel :refer [PulseChannel]]
              [segment :refer [Segment]]
-             [setting :refer [Setting] :as setting]
+             [setting :as setting :refer [Setting]]
              [table :refer [Table]]
              [user :refer [User]]]
             [metabase.util :as u]
-            [metabase.util.i18n :refer [trs] :as i18n]
+            [metabase.util.i18n :as i18n :refer [trs]]
             [toucan.db :as db]))
 
 (def ^:private identity-condition

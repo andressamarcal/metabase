@@ -15,14 +15,14 @@
 
   You can see what commands are available by running the command `help`. This command uses the docstrings and arglists
   associated with each command's entrypoint function to generate descriptions for each command."
+  (:refer-clojure :exclude [load])
   (:require [clojure.string :as str]
             [metabase
              [config :as config]
              [db :as mdb]
              [util :as u]]
             [metabase.query-processor.util :as qp.util]
-            [metabase.util.date :as du])
-  (:refer-clojure :exclude [load]))
+            [metabase.util.date :as du]))
 
 (defn ^:command migrate
   "Run database migrations. Valid options for DIRECTION are `up`, `force`, `down-one`, `print`, or `release-locks`."
