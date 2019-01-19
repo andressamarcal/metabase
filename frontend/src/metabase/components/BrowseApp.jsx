@@ -68,6 +68,7 @@ const TableListLoader = ({ dbId, schemaName, ...props }) => (
   />
 );
 
+// TODO: use EntityName component
 const DatabaseName = ({ dbId }) => (
   <EntityObjectLoader
     entityType="databases"

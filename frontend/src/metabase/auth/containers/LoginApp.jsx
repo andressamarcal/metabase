@@ -14,6 +14,7 @@ import FormMessage from "metabase/components/form/FormMessage.jsx";
 import LogoIcon from "metabase/components/LogoIcon.jsx";
 import Settings from "metabase/lib/settings";
 import Utils from "metabase/lib/utils";
+import { IFRAMED } from "metabase/lib/dom";
 
 import * as authActions from "../auth";
 
@@ -36,6 +37,7 @@ export default class LoginApp extends Component {
       credentials: {},
       valid: false,
       rememberMe: true,
+      adminLogin: false,
     };
   }
 
@@ -50,6 +52,14 @@ export default class LoginApp extends Component {
 
     if (this.state.valid !== valid) {
       this.setState({ valid });
+    }
+  }
+
+  componentWillMount() {
+    // If we're iframed and SSO is configured immediately redirect to it
+    if (IFRAMED && Settings.get("other_sso_configured")) {
+      this.onClickSSOLoginButton();
+      return;
     }
   }
 
@@ -109,15 +119,24 @@ export default class LoginApp extends Component {
     login(credentials, location.query.redirect);
   }
 
+  onClickSSOLoginButton() {
+    const { location, loginSSO } = this.props;
+    loginSSO(location.query.redirect);
+  }
+
   render() {
     const { loginError } = this.props;
-    const ldapEnabled = Settings.ldapEnabled();
+    const { adminLogin } = this.state;
+
+    if (IFRAMED && Settings.get("other_sso_configured")) {
+      return null;
+    }
 
     return (
-      <div className="full bg-white flex flex-column flex-full md-layout-centered">
+      <div className="full flex flex-column flex-full md-layout-centered">
         <div className="Login-wrapper wrapper Grid Grid--full md-Grid--1of2 relative z2">
           <div className="Grid-cell flex layout-centered text-brand">
-            <LogoIcon className="Logo my4 sm-my0" width={66} height={85} />
+            <LogoIcon className="Logo my4 sm-my0" height={65} />
           </div>
           <div className="Login-content Grid-cell">
             <form
@@ -127,109 +146,138 @@ export default class LoginApp extends Component {
             >
               <h3 className="Login-header Form-offset">{t`Sign in to Metabase`}</h3>
 
-              {Settings.ssoEnabled() && (
+              {Settings.googleAuthEnabled() && (
                 <div className="mx4 mb4 py3 border-bottom relative">
                   <SSOLoginButton provider="google" ref="ssoLoginButton" />
                   {/*<div className="g-signin2 ml1 relative z2" id="g-signin2"></div>*/}
-                  <div
-                    className="mx1 absolute text-centered left right"
-                    style={{ bottom: -8 }}
-                  >
-                    <span className="text-bold px3 py2 text-medium bg-white">{t`OR`}</span>
-                  </div>
+                  {Settings.passwordEnabled() && (
+                    <div
+                      className="mx1 absolute text-centered left right"
+                      style={{ bottom: -8 }}
+                    >
+                      <span className="text-bold px3 py2 text-medium bg-white">{t`OR`}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
-              <FormMessage
-                formError={
-                  loginError && loginError.data.message ? loginError : null
-                }
-              />
-
-              <FormField
-                key="username"
-                fieldName="username"
-                formError={loginError}
-              >
-                <FormLabel
-                  title={
-                    Settings.ldapEnabled()
-                      ? t`Username or email address`
-                      : t`Email address`
-                  }
-                  fieldName={"username"}
-                  formError={loginError}
-                />
-                <input
-                  className="Form-input Form-offset full py1"
-                  name="username"
-                  placeholder="youlooknicetoday@email.com"
-                  type={
-                    /*
-                     * if a user has ldap enabled, use a text input to allow for
-                     * ldap username && schemes. if not and they're using built
-                     * in auth, set the input type to email so we get built in
-                     * validation in modern browsers
-                     * */
-                    ldapEnabled ? "text" : "email"
-                  }
-                  onChange={e => this.onChange("username", e.target.value)}
-                  autoFocus
-                />
-                <span className="Form-charm" />
-              </FormField>
-
-              <FormField
-                key="password"
-                fieldName="password"
-                formError={loginError}
-              >
-                <FormLabel
-                  title={t`Password`}
-                  fieldName={"password"}
-                  formError={loginError}
-                />
-                <input
-                  className="Form-input Form-offset full py1"
-                  name="password"
-                  placeholder="Shh..."
-                  type="password"
-                  onChange={e => this.onChange("password", e.target.value)}
-                />
-                <span className="Form-charm" />
-              </FormField>
-
-              <div className="Form-field">
-                <div className="Form-offset flex align-center">
-                  <CheckBox
-                    name="remember"
-                    checked={this.state.rememberMe}
-                    onChange={() =>
-                      this.setState({ rememberMe: !this.state.rememberMe })
+              {Settings.get("other_sso_configured") && !adminLogin ? (
+                <div className="mx4 mb1 py3 border-bottom relative">
+                  <Button
+                    type="button"
+                    primary
+                    onClick={this.onClickSSOLoginButton.bind(this)}
+                  >
+                    {t`Sign in`}
+                  </Button>
+                </div>
+              ) : Settings.passwordEnabled() || Settings.ldapEnabled() ? (
+                <div>
+                  <FormMessage
+                    formError={
+                      loginError && loginError.data.message ? loginError : null
                     }
                   />
-                  <span className="ml1">{t`Remember Me`}</span>
-                </div>
-              </div>
 
-              <div className="Form-actions p4">
-                <Button primary={this.state.valid} disabled={!this.state.valid}>
-                  {t`Sign in`}
-                </Button>
-                <Link
-                  to={
-                    "/auth/forgot_password" +
-                    (Utils.validEmail(this.state.credentials.username)
-                      ? "?email=" + this.state.credentials.username
-                      : "")
-                  }
-                  className="Grid-cell py2 sm-py0 md-text-right text-centered flex-full link"
-                  onClick={e => {
-                    window.OSX ? window.OSX.resetPassword() : null;
-                  }}
-                >{t`I seem to have forgotten my password`}</Link>
-              </div>
+                  <FormField
+                    key="username"
+                    fieldName="username"
+                    formError={loginError}
+                  >
+                    <FormLabel
+                      title={
+                        Settings.ldapEnabled()
+                          ? t`Username or email address`
+                          : t`Email address`
+                      }
+                      fieldName={"username"}
+                      formError={loginError}
+                    />
+                    <input
+                      className="Form-input Form-offset full py1"
+                      name="username"
+                      placeholder="youlooknicetoday@email.com"
+                      type={
+                        /*
+                         * if a user has ldap enabled, use a text input to allow for
+                         * ldap username && schemes. if not and they're using built
+                         * in auth, set the input type to email so we get built in
+                         * validation in modern browsers
+                         * */
+                        Settings.ldapEnabled() ? "text" : "email"
+                      }
+                      onChange={e => this.onChange("username", e.target.value)}
+                      autoFocus
+                    />
+                    <span className="Form-charm" />
+                  </FormField>
+
+                  <FormField
+                    key="password"
+                    fieldName="password"
+                    formError={loginError}
+                  >
+                    <FormLabel
+                      title={t`Password`}
+                      fieldName={"password"}
+                      formError={loginError}
+                    />
+                    <input
+                      className="Form-input Form-offset full py1"
+                      name="password"
+                      placeholder="Shh..."
+                      type="password"
+                      onChange={e => this.onChange("password", e.target.value)}
+                    />
+                    <span className="Form-charm" />
+                  </FormField>
+
+                  <div className="Form-field">
+                    <div className="Form-offset flex align-center">
+                      <CheckBox
+                        name="remember"
+                        checked={this.state.rememberMe}
+                        onChange={() =>
+                          this.setState({ rememberMe: !this.state.rememberMe })
+                        }
+                      />
+                      <span className="ml1">{t`Remember Me`}</span>
+                    </div>
+                  </div>
+
+                  <div className="Form-actions p4">
+                    <Button
+                      primary={this.state.valid}
+                      disabled={!this.state.valid}
+                    >
+                      {t`Sign in`}
+                    </Button>
+                    <Link
+                      to={
+                        "/auth/forgot_password" +
+                        (Utils.validEmail(this.state.credentials.username)
+                          ? "?email=" + this.state.credentials.username
+                          : "")
+                      }
+                      className="Grid-cell py2 sm-py0 md-text-right text-centered flex-full link"
+                      onClick={e => {
+                        window.OSX ? window.OSX.resetPassword() : null;
+                      }}
+                    >{t`I seem to have forgotten my password`}</Link>
+                  </div>
+                </div>
+              ) : null}
             </form>
+            {Settings.get("other_sso_configured") &&
+              Settings.passwordEnabled() &&
+              !adminLogin && (
+                <div
+                  className="mt2 px2 cursor-pointer text-grey-1 text-right"
+                  onClick={() => this.setState({ adminLogin: true })}
+                >
+                  Admin backup login
+                </div>
+              )}
           </div>
         </div>
         <AuthScene />

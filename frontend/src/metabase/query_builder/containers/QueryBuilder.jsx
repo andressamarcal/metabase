@@ -255,6 +255,7 @@ class LegacyQueryBuilder extends Component {
             {query instanceof NativeQuery ? (
               <NativeQueryEditor
                 {...this.props}
+                className="wrapper"
                 isOpen={!card.dataset_query.native.query || isDirty}
                 datasetQuery={card && card.dataset_query}
               />

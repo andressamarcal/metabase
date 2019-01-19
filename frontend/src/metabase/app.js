@@ -18,6 +18,8 @@ import "metabase/lib/i18n";
 // NOTE: why do we need to load this here?
 import "metabase/lib/colors";
 
+import { updateColors } from "metabase/lib/whitelabel";
+
 import React from "react";
 import ReactDOM from "react-dom";
 import { Provider } from "react-redux";
@@ -29,6 +31,7 @@ import MetabaseAnalytics, {
 import MetabaseSettings from "metabase/lib/settings";
 
 import api from "metabase/lib/api";
+import { initializeEmbedding } from "metabase/lib/embed";
 
 import { getStore } from "./store";
 
@@ -61,8 +64,9 @@ function _init(reducers, getRoutes, callback) {
   const routes = getRoutes(store);
   const history = syncHistoryWithStore(browserHistory, store);
 
+  let root;
   ReactDOM.render(
-    <Provider store={store}>
+    <Provider store={store} ref={ref => (root = ref)}>
       <DragDropContextProvider backend={HTML5Backend} context={{ window }}>
         <ThemeProvider theme={theme}>
           <Router history={history}>{routes}</Router>
@@ -77,6 +81,8 @@ function _init(reducers, getRoutes, callback) {
     MetabaseAnalytics.trackPageView(location.pathname);
   });
 
+  initializeEmbedding(store);
+
   registerAnalyticsClickListener();
 
   store.dispatch(refreshSiteSettings());
@@ -87,6 +93,12 @@ function _init(reducers, getRoutes, callback) {
       "ga-disable-" + MetabaseSettings.get("ga_code")
     ] = MetabaseSettings.isTrackingEnabled() ? null : true;
   });
+
+  MetabaseSettings.on("application-colors", updateColors);
+  MetabaseSettings.on("application-colors", () => {
+    root.forceUpdate();
+  });
+  updateColors();
 
   window.Metabase = window.Metabase || {};
   window.Metabase.store = store;

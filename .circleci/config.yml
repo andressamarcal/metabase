@@ -292,7 +292,7 @@ jobs:
           command: >
             /home/circleci/metabase/metabase/.circleci/skip-driver-tests.sh snowflake ||
             lein with-profile +ci test
-          no_output_timeout: 10m
+          no_output_timeout: 15m
 
   be-tests-sqlserver:
     <<: *defaults
@@ -576,18 +576,6 @@ jobs:
 
 
 ########################################################################################################################
-#                                                   DEPLOYMENT, ETC.                                                   #
-########################################################################################################################
-
-  deploy-master:
-    <<: *defaults
-    steps:
-      - attach_workspace:
-          at: /home/circleci/
-      - run: ./bin/deploy-webhook $DEPLOY_WEBHOOK
-
-
-########################################################################################################################
 #                                                      WORKFLOWS                                                       #
 ########################################################################################################################
 
@@ -687,36 +675,3 @@ workflows:
           requires:
             - build-uberjar
             - fe-deps
-      - deploy-master:
-          requires:
-            - be-linter-eastwood
-            - be-linter-docstring-checker
-            - be-linter-namespace-decls
-            - be-linter-bikeshed
-            - be-linter-reflection-warnings
-
-            - be-tests
-            - be-tests-mysql
-            - be-tests-postgres
-            - be-tests-sparksql
-            - be-tests-mongo
-            - be-tests-sqlserver
-            - be-tests-bigquery
-            - be-tests-googleanalytics
-            - be-tests-sqlite
-            - be-tests-presto
-            - be-tests-oracle
-            - be-tests-druid
-            - be-tests-redshift
-            - be-tests-vertica
-            - be-tests-snowflake
-
-            - fe-linter-eslint
-            - fe-linter-prettier
-            - fe-linter-flow
-            - fe-tests-karma
-            - fe-tests-unit
-            - fe-tests-integrated
-          filters:
-            branches:
-              only: master

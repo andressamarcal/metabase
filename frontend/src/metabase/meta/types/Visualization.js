@@ -1,6 +1,6 @@
 /* @flow */
 
-import type { DatasetData, Column } from "metabase/meta/types/Dataset";
+import type { DatasetData, Column, Row } from "metabase/meta/types/Dataset";
 import type { Card, VisualizationSettings } from "metabase/meta/types/Card";
 import type { TableMetadata } from "metabase/meta/types/Metadata";
 import type { Field, FieldId } from "metabase/meta/types/Field";
@@ -37,6 +37,11 @@ export type ClickObject = {
   event?: MouseEvent,
   element?: HTMLElement,
   seriesIndex?: number,
+  settings?: { [key: string]: any },
+  origin?: {
+    row: Row,
+    cols: Column[],
+  },
 };
 
 export type ClickAction = {

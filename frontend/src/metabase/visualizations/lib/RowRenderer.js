@@ -10,6 +10,9 @@ import { initChart, forceSortedGroup, makeIndexMap } from "./renderer_utils";
 import { getFriendlyName } from "./utils";
 import { checkXAxisLabelOverlap } from "./LineAreaBarPostRender";
 
+const ROW_GAP = 5;
+const ROW_MAX_HEIGHT = 30;
+
 export default function rowRenderer(
   element,
   { settings, series, onHoverChange, onVisualizationClick, height },
@@ -85,6 +88,7 @@ export default function rowRenderer(
             },
           ],
           element: this,
+          settings,
         });
       });
     }
@@ -123,6 +127,8 @@ export default function rowRenderer(
     });
   }
 
+  chart.gap(ROW_GAP);
+
   // inital render
   chart.render();
 
@@ -146,9 +152,15 @@ export default function rowRenderer(
       .selectAll("g.row text")[0]
       .map(e => e.getBoundingClientRect().height),
   );
-  let rowHeight = maxTextHeight + chart.gap() + labelPadVertical * 2;
-  let cap = Math.max(1, Math.floor(containerHeight / rowHeight));
+  const newRowHeight = maxTextHeight + chart.gap() + labelPadVertical * 2;
+  const cap = Math.max(1, Math.floor(containerHeight / newRowHeight));
   chart.cap(cap);
+
+  // assume all bars are same height?
+  const barHeight = chart.select("g.row")[0][0].getBoundingClientRect().height;
+  if (barHeight > ROW_MAX_HEIGHT) {
+    chart.fixedBarHeight(ROW_MAX_HEIGHT);
+  }
 
   chart.render();
 
@@ -170,8 +182,14 @@ export default function rowRenderer(
 
   // hide overlapping x-axis labels
   if (checkXAxisLabelOverlap(chart, ".axis text")) {
-    chart.selectAll(".axis").remove();
+    chart
+      .selectAll(".tick text")[0]
+      .slice(1, -1)
+      .forEach(e => e.remove());
   }
+
+  // add a class our CSS can target
+  chart.svg().classed("rowChart", true);
 
   return () => {
     dc.chartRegistry.deregister(chart);

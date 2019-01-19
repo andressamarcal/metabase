@@ -1,6 +1,8 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 
+import Link from "metabase/components/Link";
+
 import colors from "metabase/lib/colors";
 
 import cx from "classnames";
@@ -17,6 +19,8 @@ export default class Radio extends Component {
     vertical: PropTypes.bool,
     underlined: PropTypes.bool,
     showButtons: PropTypes.bool,
+    // use <Link> tags instead of `onChange`
+    links: PropTypes.bool,
     py: PropTypes.number,
   };
 
@@ -26,6 +30,7 @@ export default class Radio extends Component {
     optionKeyFn: option => option.value,
     vertical: false,
     underlined: false,
+    links: false,
   };
 
   constructor(props, context) {
@@ -59,21 +64,22 @@ export default class Radio extends Component {
         {options.map(option => {
           const selected = value === optionValueFn(option);
 
-          return (
-            <li
-              key={optionKeyFn(option)}
-              className={cx(
-                "flex align-center cursor-pointer mr3",
-                { "text-brand-hover": !showButtons },
-                py != undefined ? `py${py}` : underlined ? "py2" : "pt1",
-              )}
-              style={{
-                borderBottom: underlined ? `3px solid transparent` : undefined,
-                borderColor:
-                  selected && underlined ? colors["brand"] : "transparent",
-              }}
-              onClick={e => onChange(optionValueFn(option))}
-            >
+          const itemClassName = cx(
+            "flex align-center cursor-pointer mr3",
+            { "text-brand-hover": !showButtons },
+            py != undefined ? `py${py}` : underlined ? "py2" : "pt1",
+          );
+          const itemActiveClassName = "text-brand";
+          const itemStyle = {
+            borderBottom: underlined ? `3px solid transparent` : undefined,
+            borderColor: "transparent",
+          };
+          const itemActiveStyle = {
+            borderColor: underlined ? colors["brand"] : "transparent",
+          };
+
+          const itemContent = (
+            <span>
               <input
                 className="Form-radio"
                 type="radio"
@@ -85,11 +91,38 @@ export default class Radio extends Component {
               {showButtons && (
                 <label htmlFor={this._id + "-" + optionKeyFn(option)} />
               )}
-              <span className={cx({ "text-brand": selected })}>
-                {optionNameFn(option)}
-              </span>
-            </li>
+              {optionNameFn(option)}
+            </span>
           );
+
+          if (this.props.links) {
+            return (
+              <li key={optionKeyFn(option)}>
+                <Link
+                  to={optionValueFn(option)}
+                  className={itemClassName}
+                  activeClassName={itemActiveClassName}
+                  style={itemStyle}
+                  activeStyle={itemActiveStyle}
+                >
+                  {itemContent}
+                </Link>
+              </li>
+            );
+          } else {
+            return (
+              <li
+                key={optionKeyFn(option)}
+                className={cx(itemClassName, {
+                  [itemActiveClassName]: selected,
+                })}
+                style={{ ...itemStyle, ...(selected ? itemActiveStyle : {}) }}
+                onClick={e => onChange(optionValueFn(option))}
+              >
+                {itemContent}
+              </li>
+            );
+          }
         })}
       </ul>
     );

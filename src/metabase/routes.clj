@@ -8,6 +8,7 @@
             [compojure
              [core :refer [context defroutes GET]]
              [route :as route]]
+            [hiccup.util :refer [escape-html]]
             [metabase
              [public-settings :as public-settings]
              [util :as u]]
@@ -15,6 +16,7 @@
              [dataset :as dataset-api]
              [routes :as api]]
             [metabase.core.initialization-status :as init-status]
+            [metabase.mt.api.routes :as mt-routes]
             [metabase.util.embed :as embed]
             [puppetlabs.i18n.core :refer [*locale*]]
             [ring.util.response :as resp]
@@ -57,6 +59,8 @@
   (-> (if (init-status/complete?)
         (load-template (str "frontend_client/" entry ".html")
                        {:bootstrap_json    (escape-script (json/generate-string (public-settings/public-settings)))
+                        :favicon           (escape-html (public-settings/application-favicon-url))
+                        :application_name  (escape-html (public-settings/application-name))
                         :localization_json (escape-script (load-localization))
                         :uri               (escape-script (json/generate-string uri))
                         :base_href         (escape-script (json/generate-string (base-href)))
@@ -92,9 +96,10 @@
 
 ;; Redirect naughty users who try to visit a page other than setup if setup is not yet complete
 (defroutes ^{:doc "Top-level ring routes for Metabase."} routes
+  mt-routes/auth-routes
   ;; ^/$ -> index.html
   (GET "/" [] index)
-  (GET "/favicon.ico" [] (resp/resource-response "frontend_client/favicon.ico"))
+  (GET "/favicon.ico" [] (resp/resource-response public-settings/application-favicon-url))
   ;; ^/api/health -> Health Check Endpoint
   (GET "/api/health" [] (if (init-status/complete?)
                           {:status 200, :body {:status "ok"}}

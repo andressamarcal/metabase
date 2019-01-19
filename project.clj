@@ -29,7 +29,7 @@
   ;; !!                                   AND ADD A COMMENT EXPLAINING THEIR PURPOSE                                  !!
   ;; !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   :dependencies
-  [[org.clojure/clojure "1.10.0"]
+  [[org.clojure/clojure "1.9.0"]
    [org.clojure/core.async "0.4.490"
     :exclusions [org.clojure/tools.reader]]
    [org.clojure/core.match "0.3.0-alpha4"]                            ; optimized pattern matching library for Clojure
@@ -82,6 +82,7 @@
     :exclusions [org.clojure/clojure
                  org.flatland/ordered
                  org.yaml/snakeyaml]]
+   [k2n/saml20-clj "0.1.9"]
    [kixi/stats "0.4.4" :exclusions [org.clojure/data.avl]]            ; Various statistic measures implemented as transducers
    [log4j/log4j "1.2.17"                                              ; logging framework. TODO - consider upgrading to Log4j 2 -- see https://logging.apache.org/log4j/log4j-2.6.1/manual/migration.html
     :exclusions [javax.mail/mail
@@ -91,6 +92,8 @@
    [medley "1.0.0"]                                                   ; lightweight lib of useful functions
    [metabase/throttle "1.0.1"]                                        ; Tools for throttling access to API endpoints and other code pathways
    [javax.xml.bind/jaxb-api "2.4.0-b180830.0359"]                     ; add the `javax.xml.bind` classes which we're still using but were removed in Java 11
+   [net.redhogs.cronparser/cron-parser-core "3.4"                     ; describe Cron schedule in human-readable language
+    :exclusions [org.slf4j/slf4j-api]]
    [net.sf.cssbox/cssbox "4.12" :exclusions [org.slf4j/slf4j-api]]    ; HTML / CSS rendering
    [org.clojars.pntblnk/clj-ldap "0.0.16"]                            ; LDAP client
    [org.flatland/ordered "1.5.7"]                                     ; ordered maps & sets

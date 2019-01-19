@@ -1,10 +1,8 @@
 (ns metabase.integrations.ldap
   (:require [clj-ldap.client :as ldap]
-            [clojure
-             [set :as set]
-             [string :as str]]
+            [clojure.string :as str]
+            [metabase.integrations.common :as integrations.common]
             [metabase.models
-             [permissions-group :as group :refer [PermissionsGroup]]
              [setting :as setting :refer [defsetting]]
              [user :as user :refer [User]]]
             [metabase.util :as u]
@@ -214,13 +212,5 @@
                                                    :email      email}))]
     (u/prog1 user
       (when (ldap-group-sync)
-        (let [special-ids #{(:id (group/admin)) (:id (group/all-users))}
-              current-ids (set (map :group_id (db/select ['PermissionsGroupMembership :group_id] :user_id (:id user))))
-              ldap-ids    (when-let [ids (seq (ldap-groups->mb-group-ids groups))]
-                            (set (map :id (db/select [PermissionsGroup :id] :id [:in ids]))))
-              to-remove   (set/difference current-ids ldap-ids special-ids)
-              to-add      (set/difference ldap-ids current-ids)]
-          (when (seq to-remove)
-            (db/delete! 'PermissionsGroupMembership :group_id [:in to-remove], :user_id (:id user)))
-          (doseq [id to-add]
-            (db/insert! 'PermissionsGroupMembership :group_id id, :user_id (:id user))))))))
+        (let [group-ids (ldap-groups->mb-group-ids groups)]
+          (integrations.common/sync-group-memberships! user group-ids))))))

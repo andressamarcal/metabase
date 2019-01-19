@@ -4,13 +4,17 @@ import _ from "underscore";
 import d3 from "d3";
 
 import { formatValue } from "metabase/lib/formatting";
+
 import type { ClickObject } from "metabase/meta/types/Visualization";
 
 import { isNormalized, isStacked } from "./renderer_utils";
 import { determineSeriesIndexFromElement } from "./tooltip";
 import { getFriendlyName } from "./utils";
 
-function clickObjectFromEvent(d, { series, isStacked, isScalarSeries }) {
+function clickObjectFromEvent(
+  d,
+  { settings, series, isStacked, isScalarSeries },
+) {
   let [{ data: { cols } }] = series;
   const seriesIndex = determineSeriesIndexFromElement(this, isStacked);
   const card = series[seriesIndex].card;
@@ -77,6 +81,7 @@ function clickObjectFromEvent(d, { series, isStacked, isScalarSeries }) {
       index: isSingleSeriesBar ? -1 : seriesIndex,
       element: isLine ? this : null,
       event: isLine ? null : d3.event,
+      settings: settings,
       ...clicked,
     };
   }
@@ -102,6 +107,7 @@ function applyChartTooltips(
         .selectAll(".bar, .dot, .area, .line, .bubble")
         .on("mousemove", function(d, i) {
           // const clicked = clickObjectFromEvent.call(this, d, {
+          //   chart,
           //   series,
           //   isScalarSeries,
           //   isStacked,
@@ -244,6 +250,7 @@ function applyChartTooltips(
     if (onVisualizationClick) {
       const onClick = function(d) {
         const clicked = clickObjectFromEvent.call(this, d, {
+          settings: chart.settings,
           series,
           isScalarSeries,
         });

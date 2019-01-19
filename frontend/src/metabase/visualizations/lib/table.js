@@ -36,9 +36,10 @@ export function getTableCellClickedObject(
       dimensions: cols
         .map((column, index) => ({ value: row[index], column }))
         .filter(dimension => dimension.column.source === "breakout"),
+      origin: { rowIndex, row, cols },
     };
   } else {
-    return { value, column };
+    return { value, column, origin: { rowIndex, row, cols } };
   }
 }
 
@@ -47,5 +48,10 @@ export function getTableCellClickedObject(
  * Includes numbers and lat/lon coordinates, but not zip codes, IDs, etc.
  */
 export function isColumnRightAligned(column: Column) {
+  // handle remapped columns
+  if (column && column.remapped_to_column) {
+    // $FlowFixMe: remapped_to_column
+    column = column.remapped_to_column;
+  }
   return isNumber(column) || isCoordinate(column);
 }

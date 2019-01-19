@@ -196,6 +196,12 @@ export const MetabaseApi = {
   field_remapping: GET("/api/field/:fieldId/remapping/:remappedFieldId"),
   dataset: POST("/api/dataset"),
   dataset_duration: POST("/api/dataset/duration"),
+
+  // to support audit app  allow the endpoint to be provided in the query
+  datasetEndpoint: POST("/api/:endpoint", {
+    // this prevents the `endpoint` parameter from being URL encoded
+    raw: { endpoint: true },
+  }),
 };
 
 export const PulseApi = {
@@ -247,6 +253,7 @@ export const RevisionsApi = {
 export const SessionApi = {
   create: POST("/api/session"),
   createWithGoogleAuth: POST("/api/session/google_auth"),
+  createWithSAML: POST("/api/mt/saml/"),
   delete: DELETE("/api/session"),
   properties: GET("/api/session/properties"),
   forgot_password: POST("/api/session/forgot_password"),

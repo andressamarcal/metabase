@@ -10,6 +10,9 @@
             [metabase.models
              [query :as query]
              [query-execution :as query-execution :refer [QueryExecution]]]
+            [metabase.mt.query-processor.middleware
+             [column-level-perms-check :as mt.column-level-perms-check]
+             [row-level-restrictions :as mt.row-level-restrictions]]
             [metabase.query-processor.middleware
              [add-dimension-projections :as add-dim]
              [add-implicit-clauses :as implicit-clauses]
@@ -30,6 +33,7 @@
              [expand-macros :as expand-macros]
              [fetch-source-query :as fetch-source-query]
              [format-rows :as format-rows]
+             [internal-queries :as internal-queries]
              [limit :as limit]
              [log :as log-query]
              [mbql-to-native :as mbql-to-native]
@@ -107,6 +111,7 @@
       annotate/add-column-info
       perms/check-query-permissions
       cumulative-ags/handle-cumulative-aggregations
+      mt.row-level-restrictions/apply-row-level-permissions-for-joins
       resolve-joined-tables/resolve-joined-tables
       dev/check-results-format
       limit/limit
@@ -117,6 +122,7 @@
       resolve-fields/resolve-fields
       add-dim/add-remapping
       implicit-clauses/add-implicit-clauses
+      mt.column-level-perms-check/maybe-apply-column-level-perms-check
       reconcile-bucketing/reconcile-breakout-and-order-by-bucketing
       bucket-datetime/auto-bucket-datetimes
       resolve-source-table/resolve-source-table
@@ -139,12 +145,14 @@
       fetch-source-query/fetch-source-query
       store/initialize-store
       query-throttle/maybe-add-query-throttle
+      mt.row-level-restrictions/apply-row-level-permissions
       log-query/log-initial-query
       ;; TODO - bind `*query*` here ?
       cache/maybe-return-cached-results
       log-query/log-results-metadata
       validate/validate-query
       normalize/normalize
+      internal-queries/handle-internal-queries
       catch-exceptions/catch-exceptions))
 ;; ▲▲▲ PRE-PROCESSING ▲▲▲ happens from BOTTOM-TO-TOP, e.g. the results of `expand-macros` are passed to
 ;; `substitute-parameters`

@@ -2,6 +2,7 @@
   "Convenience functions for sending templated email messages.  Each function here should represent a single email.
    NOTE: we want to keep this about email formatting, so don't put heavy logic here RE: building data for emails."
   (:require [clojure.core.cache :as cache]
+            [clojure.string :as str]
             [clojure.tools.logging :as log]
             [hiccup.core :refer [html]]
             [medley.core :as m]
@@ -29,8 +30,50 @@
 (when config/is-dev?
   (stencil-loader/set-cache (cache/ttl-cache-factory {} :ttl 0)))
 
+(def ^:private ^:const data-uri-svg-regex #"^data:image/svg\+xml;base64,(.*)$")
+
+(defn- data-uri-svg?
+  [url]
+  (re-matches data-uri-svg-regex url))
+
+(defn- themed-image-url
+  [url color]
+  (try
+    (let [base64 (second (re-matches data-uri-svg-regex url))
+          svg    (u/decode-base64 base64)
+          themed (str/replace svg #"<svg\b([^>]*)( fill=\"[^\"]*\")([^>]*)>" (str "<svg$1$3 fill=\"" color "\">"))]
+      (str "data:image/svg+xml;base64," (u/encode-base64 themed)))
+  (catch Throwable e
+    url)))
+
+(defn- logo-url []
+  (let [url   (public-settings/application-logo-url)
+        color (public-settings/application-color)]
+    (cond
+      (= url "app/assets/img/logo.svg") "http://static.metabase.com/email_logo.png"
+      (data-uri-svg? url)               (themed-image-url url color)
+      :else                             url)))
+
+(defn- button-style [color]
+  (str "display: inline-block; "
+       "box-sizing: border-box; "
+       "padding: 0.5rem 1.375rem; "
+       "font-size: 1.063rem; "
+       "font-weight: bold; "
+       "text-decoration: none; "
+       "cursor: pointer; "
+       "color: #fff; "
+       "border: 1px solid " color "; "
+       "background-color: " color "; "
+       "border-radius: 4px;"))
 
 ;;; Various Context Helper Fns. Used to build Stencil template context
+
+(defn- common-context []
+  {:applicationName    (public-settings/application-name)
+   :applicationColor   (public-settings/application-color)
+   :applicationLogoUrl (logo-url)
+   :buttonStyle        (button-style (public-settings/application-color))})
 
 (defn- random-quote-context []
   (let [data-quote (quotation/random-quote)]
@@ -61,7 +104,8 @@
   [invited invitor join-url]
   (let [company      (or (public-settings/site-name) "Unknown")
         message-body (stencil/render-file "metabase/email/new_user_invite"
-                       (merge {:emailType    "new_user_invite"
+                       (merge (common-context)
+                              {:emailType    "new_user_invite"
                                :invitedName  (:first_name invited)
                                :invitorName  (:first_name invitor)
                                :invitorEmail (:email invitor)
@@ -71,7 +115,7 @@
                                :logoHeader   true}
                               (random-quote-context)))]
     (email/send-message!
-      :subject      (str "You're invited to join " company "'s Metabase")
+      :subject      (str (trs "You''re invited to join {0}''s {1}" company (u/app-name-trs)))
       :recipients   [(:email invited)]
       :message-type :html
       :message      message-body)))
@@ -93,12 +137,13 @@
   (let [recipients (all-admin-recipients)]
     (email/send-message!
       :subject      (str (if google-auth?
-                           (trs "{0} created a Metabase account"     (:common_name new-user))
-                           (trs "{0} accepted their Metabase invite" (:common_name new-user))))
+                           (trs "{0} created a {1} account" (:common_name new-user) (u/app-name-trs))
+                           (trs "{0} accepted their {1} invite" (:common_name new-user) (u/app-name-trs))))
       :recipients   recipients
       :message-type :html
       :message      (stencil/render-file "metabase/email/user_joined_notification"
-                      (merge {:logoHeader        true
+                      (merge (common-context)
+                             {:logoHeader        true
                               :joinedUserName    (:first_name new-user)
                               :joinedViaSSO      google-auth?
                               :joinedUserEmail   (:email new-user)
@@ -116,13 +161,14 @@
          (string? hostname)
          (string? password-reset-url)]}
   (let [message-body (stencil/render-file "metabase/email/password_reset"
-                       {:emailType        "password_reset"
-                        :hostname         hostname
-                        :sso              google-auth?
-                        :passwordResetUrl password-reset-url
-                        :logoHeader       true})]
+                       (merge (common-context)
+                              {:emailType        "password_reset"
+                               :hostname         hostname
+                               :sso              google-auth?
+                               :passwordResetUrl password-reset-url
+                               :logoHeader       true}))]
     (email/send-message!
-      :subject      (str (trs "[Metabase] Password Reset Request"))
+      :subject      (str (trs "[{0}] Password Reset Request" (u/app-name-trs)))
       :recipients   [email]
       :message-type :html
       :message      message-body)))
@@ -159,9 +205,10 @@
   (let [context      (merge (update context :dependencies build-dependencies)
                             notification-context
                             (random-quote-context))
-        message-body (stencil/render-file "metabase/email/notification" context)]
+        message-body (stencil/render-file "metabase/email/notification"
+                                          (merge (common-context) context))]
     (email/send-message!
-      :subject      (str (trs "[Metabase] Notification"))
+      :subject      (str (trs "[{0}] Notification" (u/app-name-trs)))
       :recipients   [email]
       :message-type :html
       :message      message-body)))
@@ -171,14 +218,15 @@
   [email msg-type]
   {:pre [(u/email? email) (contains? #{"abandon" "follow-up"} msg-type)]}
   (let [subject      (str (if (= "abandon" msg-type)
-                            (trs "[Metabase] Help make Metabase better.")
-                            (trs "[Metabase] Tell us how things are going.")))
+                            (trs "[{0}] Help make [{0}] better." (u/app-name-trs))
+                            (trs "[{0}] Tell us how things are going." (u/app-name-trs))))
         context      (merge notification-context
                             (random-quote-context)
                             (if (= "abandon" msg-type)
                               (abandonment-context)
                               (follow-up-context)))
-        message-body (stencil/render-file "metabase/email/follow_up_email" context)]
+        message-body (stencil/render-file "metabase/email/follow_up_email"
+                                          (merge (common-context) context))]
     (email/send-message!
       :subject      subject
       :recipients   [email]

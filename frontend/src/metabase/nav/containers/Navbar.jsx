@@ -5,8 +5,9 @@ import { t } from "c-3po";
 import { Box, Flex } from "grid-styled";
 import styled from "styled-components";
 import { space, width } from "styled-system";
-import colors from "metabase/lib/colors";
+import colors, { getNavBarColor } from "metabase/lib/colors";
 import color from "color";
+import MetabaseSettings from "metabase/lib/settings";
 
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
@@ -27,13 +28,14 @@ import CreateDashboardModal from "metabase/components/CreateDashboardModal";
 
 import ProfileLink from "metabase/nav/components/ProfileLink.jsx";
 
-import { getPath, getContext, getUser } from "../selectors";
+import { getPath, getContext, getUser, getFeatures } from "../selectors";
 import { entityListLoader } from "metabase/entities/containers/EntityListLoader";
 
 const mapStateToProps = (state, props) => ({
   path: getPath(state, props),
   context: getContext(state, props),
   user: getUser(state),
+  features: getFeatures(state) || {},
 });
 
 const mapDispatchToProps = {
@@ -54,22 +56,25 @@ const AdminNavItem = ({ name, path, currentPath }) => (
   </li>
 );
 
-const DefaultSearchColor = color(colors.brand)
-  .lighten(0.07)
-  .string();
-const ActiveSearchColor = color(colors.brand)
-  .lighten(0.1)
-  .string();
+const getDefaultSearchColor = () =>
+  color(getNavBarColor())
+    .lighten(0.07)
+    .string();
+
+const getActiveSearchColor = () =>
+  color(getNavBarColor())
+    .lighten(0.1)
+    .string();
 
 const SearchWrapper = Flex.extend`
   ${width} background-color: ${props =>
-      props.active ? ActiveSearchColor : DefaultSearchColor};
+      props.active ? getActiveSearchColor() : getDefaultSearchColor()};
   border-radius: 6px;
   align-items: center;
   color: white;
   transition: background 300ms ease-in;
   &:hover {
-    background-color: ${ActiveSearchColor};
+    background-color: ${props => getActiveSearchColor()};
   }
 `;
 
@@ -221,6 +226,18 @@ export default class Navbar extends Component {
               path="/admin/permissions"
               currentPath={this.props.path}
             />
+            {MetabaseSettings.hasPremiumFeature("audit_app") && (
+              <AdminNavItem
+                name={t`Audit`}
+                path="/admin/audit"
+                currentPath={this.props.path}
+              />
+            )}
+            <AdminNavItem
+              name={t`Enterprise`}
+              path="/admin/store"
+              currentPath={this.props.path}
+            />
             <AdminNavItem
               name={t`Troubleshooting`}
               path="/admin/troubleshooting"
@@ -263,27 +280,32 @@ export default class Navbar extends Component {
       <Flex
         // NOTE: DO NOT REMOVE `Nav` CLASS FOR NOW, USED BY MODALS, FULLSCREEN DASHBOARD, ETC
         // TODO: hide nav using state in redux instead?
-        className="Nav relative bg-brand text-white z3"
+        className="Nav relative text-white z3"
         align="center"
+        style={{ backgroundColor: getNavBarColor() }}
         py={1}
         pr={2}
       >
-        <Link
-          to="/"
-          data-metabase-event={"Navbar;Logo"}
-          className="relative cursor-pointer z2 rounded flex justify-center transition-background"
-          p={1}
-          mx={1}
-          hover={{ backgroundColor: DefaultSearchColor }}
-        >
-          <LogoIcon dark />
-        </Link>
-        <Flex
-          className="absolute top left right bottom z1"
-          px={4}
-          align="center"
-        >
-          <Box w={2 / 3}>
+        <Flex style={{ minWidth: 64 }} align="center" justify="center">
+          <Link
+            to="/"
+            data-metabase-event={"Navbar;Logo"}
+            className="relative cursor-pointer z2 rounded flex justify-center transition-background"
+            p={1}
+            mx={1}
+            hover={{ backgroundColor: getDefaultSearchColor() }}
+          >
+            <Flex
+              style={{ minWidth: 32, height: 32 }}
+              align="center"
+              justify="center"
+            >
+              <LogoIcon dark height={32} />
+            </Flex>
+          </Link>
+        </Flex>
+        <Flex className="flex-full z1" pr={2} align="center">
+          <Box w={1} style={{ maxWidth: 500 }}>
             <SearchBar
               location={this.props.location}
               onChangeLocation={this.props.onChangeLocation}

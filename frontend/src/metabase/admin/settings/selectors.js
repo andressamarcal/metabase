@@ -12,8 +12,12 @@ import {
 import SecretKeyWidget from "./components/widgets/SecretKeyWidget.jsx";
 import EmbeddingLegalese from "./components/widgets/EmbeddingLegalese";
 import EmbeddingLevel from "./components/widgets/EmbeddingLevel";
-import LdapGroupMappingsWidget from "./components/widgets/LdapGroupMappingsWidget";
+import GroupMappingsWidget from "./components/widgets/GroupMappingsWidget";
 import FormattingWidget from "./components/widgets/FormattingWidget";
+
+import LogoUpload from "./components/widgets/LogoUpload";
+import ColorSchemeWidget from "./components/widgets/ColorSchemeWidget";
+import AuthenticationOption from "./components/widgets/AuthenticationOption";
 
 import { UtilApi } from "metabase/services";
 
@@ -201,7 +205,49 @@ const SECTIONS = [
   {
     name: t`Authentication`,
     slug: "authentication",
-    settings: [],
+    settings: [
+      {
+        authName: t`Sign in with Google`,
+        authDescription: t`Allows users with existing Metabase accounts to login with a Google account that matches their email address in addition to their Metabase username and password.`,
+        authType: "google",
+        authEnabled: settings => !!settings["google-auth-client-id"],
+        widget: AuthenticationOption,
+      },
+      {
+        authName: t`LDAP`,
+        authDescription: t`Allows users within your LDAP directory to log in to Metabase with their LDAP credentials, and allows automatic mapping of LDAP groups to Metabase groups.`,
+        authType: "ldap",
+        authEnabled: settings => settings["ldap-enabled"],
+        widget: AuthenticationOption,
+      },
+      {
+        authName: t`SAML`,
+        authDescription: t`Allows users to login via a SAML Identity Provider.`,
+        authType: "saml",
+        authEnabled: settings => settings["saml-enabled"],
+        widget: AuthenticationOption,
+        getHidden: () => !MetabaseSettings.hasPremiumFeature("sso"),
+      },
+      {
+        authName: t`JWT`,
+        authDescription: t`Allows users to login via a JWT Identity Provider.`,
+        authType: "jwt",
+        authEnabled: settings => settings["jwt-enabled"],
+        widget: AuthenticationOption,
+        getHidden: () => !MetabaseSettings.hasPremiumFeature("sso"),
+      },
+      {
+        key: "enable-password-login",
+        display_name: t`Enable Password Authentication`,
+        description: t`Turn this off to force users to log in with your auth system instead of email and password.`,
+        type: "boolean",
+        getHidden: settings =>
+          !settings["google-auth-client-id"] &&
+          !settings["ldap-enabled"] &&
+          !settings["saml-enabled"] &&
+          !settings["jwt-enabled"],
+      },
+    ],
   },
   {
     name: t`LDAP`,
@@ -284,7 +330,12 @@ const SECTIONS = [
         key: "ldap-group-sync",
         display_name: t`Synchronize group memberships`,
         description: null,
-        widget: LdapGroupMappingsWidget,
+        widget: GroupMappingsWidget,
+        props: {
+          mappingSetting: "ldap-group-mappings",
+          groupHeading: t`Distinguished Name`,
+          groupPlaceholder: "cn=People,ou=Groups,dc=metabase,dc=com",
+        },
       },
       {
         key: "ldap-group-base",
@@ -293,6 +344,165 @@ const SECTIONS = [
       },
       {
         key: "ldap-group-mappings",
+      },
+    ],
+  },
+
+  {
+    name: t`SAML`,
+    slug: "saml",
+    sidebar: false,
+    settings: [
+      {
+        key: "saml-enabled",
+        display_name: t`SAML Authentication`,
+        description: null,
+        type: "boolean",
+      },
+      {
+        key: "saml-identity-provider-uri",
+        display_name: t`SAML Identity Provider URI`,
+        placeholder: "https://saml.yourdomain.org",
+        type: "string",
+        required: true,
+        autoFocus: true,
+      },
+      {
+        key: "saml-identity-provider-certificate",
+        display_name: t`SAML Identity Provider Certificate`,
+        type: "text",
+        required: true,
+      },
+      {
+        key: "saml-application-name",
+        display_name: t`SAML Application Name`,
+        type: "string",
+      },
+      {
+        key: "saml-keystore-path",
+        display_name: t`SAML Keystore Path`,
+        type: "string",
+      },
+      {
+        key: "saml-keystore-password",
+        display_name: t`SAML Keystore Password`,
+        placeholder: "Shh...",
+        type: "password",
+      },
+      {
+        key: "saml-keystore-alias",
+        display_name: t`SAML Keystore Alias`,
+        type: "string",
+      },
+      {
+        key: "saml-attribute-email",
+        display_name: t`Email attribute`,
+        type: "string",
+      },
+      {
+        key: "saml-attribute-firstname",
+        display_name: t`First name attribute`,
+        type: "string",
+      },
+      {
+        key: "saml-attribute-lastname",
+        display_name: t`Last name attribute`,
+        type: "string",
+      },
+      {
+        key: "saml-group-sync",
+        display_name: t`Synchronize group memberships`,
+        description: null,
+        widget: GroupMappingsWidget,
+        props: {
+          mappingSetting: "saml-group-mappings",
+          groupHeading: t`Group Name`,
+          groupPlaceholder: "Group Name",
+        },
+      },
+      {
+        key: "saml-attribute-group",
+        display_name: t`Group attribute name`,
+        type: "string",
+      },
+      {
+        key: "saml-group-mappings",
+      },
+    ],
+  },
+  {
+    name: t`JWT`,
+    slug: "jwt",
+    sidebar: false,
+    settings: [
+      {
+        key: "jwt-enabled",
+        description: null,
+        getHidden: settings => settings["jwt-enabled"],
+        onChanged: async (
+          oldValue,
+          newValue,
+          settingsValues,
+          onChangeSetting,
+        ) => {
+          // Generate a secret key if none already exists
+          if (!oldValue && newValue && !settingsValues["jwt-shared-secret"]) {
+            let result = await UtilApi.random_token();
+            await onChangeSetting("jwt-shared-secret", result.token);
+          }
+        },
+      },
+      {
+        key: "jwt-enabled",
+        display_name: t`JWT Authentication`,
+        type: "boolean",
+        getHidden: settings => !settings["jwt-enabled"],
+      },
+      {
+        key: "jwt-identity-provider-uri",
+        display_name: t`JWT Identity Provider URI`,
+        placeholder: "https://jwt.yourdomain.org",
+        type: "string",
+        required: true,
+        autoFocus: true,
+        getHidden: settings => !settings["jwt-enabled"],
+      },
+      {
+        key: "jwt-shared-secret",
+        display_name: t`String used by the JWT signing key`,
+        type: "text",
+        required: true,
+        widget: SecretKeyWidget,
+        getHidden: settings => !settings["jwt-enabled"],
+      },
+      {
+        key: "jwt-attribute-email",
+        display_name: t`Email attribute`,
+        type: "string",
+      },
+      {
+        key: "jwt-attribute-firstname",
+        display_name: t`First name attribute`,
+        type: "string",
+      },
+      {
+        key: "jwt-attribute-lastname",
+        display_name: t`Last name attribute`,
+        type: "string",
+      },
+      {
+        key: "jwt-group-sync",
+        display_name: t`Synchronize group memberships`,
+        description: null,
+        widget: GroupMappingsWidget,
+        props: {
+          mappingSetting: "jwt-group-mappings",
+          groupHeading: t`Group Name`,
+          groupPlaceholder: "Group Name",
+        },
+      },
+      {
+        key: "jwt-group-mappings",
       },
     ],
   },
@@ -384,12 +594,21 @@ const SECTIONS = [
       },
       {
         widget: EmbeddingLevel,
-        getHidden: settings => !settings["enable-embedding"],
+        // WHITELABEL: always hide this setting
+        getHidden: () => true,
       },
       {
         key: "embedding-secret-key",
         display_name: t`Embedding secret key`,
         widget: SecretKeyWidget,
+        getHidden: settings => !settings["enable-embedding"],
+      },
+      {
+        key: "embedding-app-origin",
+        display_name: t`Embedding the entire Metabase app`,
+        description: t`If you want to embed all of Metabase, enter the origin (protocol and host only) of the website where you want to allow embedding in an iFrame.`,
+        placeholder: "https://example.com",
+        type: "string",
         getHidden: settings => !settings["enable-embedding"],
       },
       {
@@ -451,6 +670,77 @@ const SECTIONS = [
     }
     */
 ];
+
+if (MetabaseSettings.hasPremiumFeature("whitelabel")) {
+  SECTIONS.push({
+    name: "Whitelabel",
+    slug: "whitelabel",
+    settings: [
+      {
+        key: "application-name",
+        display_name: "Application Name",
+        type: "string",
+      },
+      {
+        key: "application-colors",
+        display_name: "Color Palette",
+        widget: ColorSchemeWidget,
+      },
+      {
+        key: "application-logo-url",
+        display_name: "Logo",
+        type: "string",
+        widget: LogoUpload,
+      },
+      {
+        key: "application-favicon-url",
+        display_name: "Favicon",
+        type: "string",
+      },
+      // {
+      //     key: "landing-page",
+      //     display_name: "Landing Page",
+      //     type: "select",
+      //     options: [
+      //         { name: "Home Page", value: "" },
+      //         { name: "Query Builder", value: "question" },
+      //         { name: "Questions", value: "questions" },
+      //         { name: "Dashboards", value: "dashboards" }
+      //     ]
+      // },
+      // {
+      //     key: "enable-home",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-query-builder",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-saved-questions",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-dashboards",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-pulses",
+      //     type: "boolean"
+      // },
+      // {
+      //     key: "enable-dataref",
+      //     type: "boolean"
+      // },
+    ],
+  });
+}
+
+for (const section of SECTIONS) {
+  if (section.slug == null) {
+    console.warn("Warning: settings section missing slug:", section.name);
+  }
+}
 
 export const getSettings = createSelector(
   state => state.settings.settings,

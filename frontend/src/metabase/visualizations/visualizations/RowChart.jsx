@@ -8,6 +8,7 @@ import {
   GRAPH_DATA_SETTINGS,
   GRAPH_COLORS_SETTINGS,
 } from "metabase/visualizations/lib/settings/graph";
+import { drillThroughSettings } from "../lib/settings/drill";
 
 export default class RowChart extends LineAreaBarChart {
   static uiName = t`Row Chart`;
@@ -22,6 +23,7 @@ export default class RowChart extends LineAreaBarChart {
   static settings = {
     ...GRAPH_DATA_SETTINGS,
     ...GRAPH_COLORS_SETTINGS,
+    ...drillThroughSettings(),
   };
 }
 

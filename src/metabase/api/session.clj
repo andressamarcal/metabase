@@ -25,7 +25,7 @@
             [throttle.core :as throttle]
             [toucan.db :as db]))
 
-(defn- create-session!
+(defn create-session!
   "Generate a new `Session` for a given `User`. Returns the newly generated session ID."
   [user]
   {:pre  [(map? user) (integer? (:id user)) (contains? user :last_login)]
@@ -70,9 +70,10 @@
 (defn- email-login
   "Find a matching `User` if one exists and return a new Session for them, or `nil` if they couldn't be authenticated."
   [username password]
-  (when-let [user (db/select-one [User :id :password_salt :password :last_login], :email username, :is_active true)]
-    (when (pass/verify-password password (:password_salt user) (:password user))
-      {:id (create-session! user)})))
+  (when (public-settings/enable-password-login)
+    (when-let [user (db/select-one [User :id :password_salt :password :last_login], :email username, :is_active true)]
+      (when (pass/verify-password password (:password_salt user) (:password user))
+        {:id (create-session! user)}))))
 
 (def ^:private throttling-disabled? (config/config-bool :mb-disable-session-throttle))
 
@@ -215,7 +216,9 @@
   (when-let [domain (google-auth-auto-create-accounts-domain)]
     (email-in-domain? email domain)))
 
-(defn- check-autocreate-user-allowed-for-email [email]
+(defn check-autocreate-user-allowed-for-email
+  "Throws if an admin needs to intervene in the account creation"
+  [email]
   (when-not (autocreate-user-allowed-for-email? email)
     ;; Use some wacky status code (428 - Precondition Required) so we will know when to so the error screen specific
     ;; to this situation

@@ -216,6 +216,17 @@
                                             "localhost:8080 ws://localhost:8080")]}]
                 (format "%s %s; " (name k) (apply str (interpose " " vs)))))})
 
+(defn- embedding-app-origin
+  []
+  (when (and (public-settings/enable-embedding) (public-settings/embedding-app-origin))
+    (public-settings/embedding-app-origin)))
+
+(defn- content-security-policy-header-with-frame-ancestors
+  [allow-iframes?]
+  (update content-security-policy-header
+          "Content-Security-Policy"
+          #(format "%s frame-ancestors %s;" % (if allow-iframes? "*" (or (embedding-app-origin) "'none'")))))
+
 (defsetting ssl-certificate-public-key
   (str (tru "Base-64 encoded public key for this site's SSL certificate.")
        (tru "Specify this to enable HTTP Public Key Pinning.")
@@ -233,11 +244,13 @@
      (cache-far-future-headers)
      (cache-prevention-headers))
    strict-transport-security-header
-   content-security-policy-header
+   (content-security-policy-header-with-frame-ancestors allow-iframes?)
    #_(public-key-pins-header)
    (when-not allow-iframes?
      ;; Tell browsers not to render our site as an iframe (prevent clickjacking)
-     {"X-Frame-Options"                 "DENY"})
+     {"X-Frame-Options"                 (if (embedding-app-origin)
+                                            (format "ALLOW-FROM %s" (embedding-app-origin))
+                                            "DENY")})
    { ;; Tell browser to block suspected XSS attacks
     "X-XSS-Protection"                  "1; mode=block"
     ;; Prevent Flash / PDF files from including content from site.

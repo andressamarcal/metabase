@@ -39,6 +39,7 @@ const colors = {
   "bg-white": "#FFFFFF",
   shadow: "rgba(0,0,0,0.08)",
   border: "#D7DBDE",
+  nav: undefined,
 };
 /* eslint-enable no-color-literals */
 export default colors;
@@ -115,6 +116,8 @@ export const getRandomColor = (family: ColorFamily): ColorString => {
   const colors: ColorString[] = Object.values(family);
   return colors[Math.floor(Math.random() * colors.length)];
 };
+
+export const getNavBarColor = () => colors["nav"] || colors["brand"];
 
 type ColorScale = (input: number) => ColorString;
 

@@ -70,9 +70,11 @@
                    (trs "FieldValues are NOT allowed for this Field."))))))
 
 
-(defn- distinct-values
+(defn distinct-values
   "Fetch a sequence of distinct values for `field` that are below the `total-max-length` threshold. If the values are
-  past the threshold, this returns `nil`."
+  past the threshold, this returns `nil`. (This function provides the values that normally get saved as a Field's
+  FieldValues. You most likely should not be using this directly in code outside of this namespace, unless it's for a
+  very specific reason, such as certain cases where we fetch ad-hoc FieldValues for GTAP-filtered Fields.)"
   [field]
   (require 'metabase.db.metadata-queries)
   (let [values ((resolve 'metabase.db.metadata-queries/field-distinct-values) field)]

@@ -2,6 +2,8 @@ import React, { Component } from "react";
 import { Link } from "react-router";
 import { t } from "c-3po";
 
+import MetabaseSettings from "metabase/lib/settings";
+
 class SettingsAuthenticationOptions extends Component {
   render() {
     return (
@@ -29,6 +31,31 @@ class SettingsAuthenticationOptions extends Component {
             >{t`Configure`}</Link>
           </div>
         </li>
+
+        {MetabaseSettings.hasPremiumFeature("sso") && (
+          <li className="mt2">
+            <div className="bordered rounded shadowed bg-white p4">
+              <h2>{t`SAML`}</h2>
+              <p>{t`Allows users to login via a SAML Identity Provider.`}</p>
+              <Link
+                className="Button"
+                to="/admin/settings/authentication/saml"
+              >{t`Configure`}</Link>
+            </div>
+          </li>
+        )}
+        {MetabaseSettings.hasPremiumFeature("sso") && (
+          <li className="mt2">
+            <div className="bordered rounded shadowed bg-white p4">
+              <h2>{t`JWT`}</h2>
+              <p>{t`Allows users to login via a JWT Identity Provider.`}</p>
+              <Link
+                className="Button"
+                to="/admin/settings/authentication/jwt"
+              >{t`Configure`}</Link>
+            </div>
+          </li>
+        )}
       </ul>
     );
   }

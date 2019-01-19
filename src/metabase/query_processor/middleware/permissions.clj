@@ -1,6 +1,7 @@
 (ns metabase.query-processor.middleware.permissions
   "Middleware for checking that the current user has permissions to run the current query."
-  (:require [metabase.api.common :refer [*current-user-id* *current-user-permissions-set*]]
+  (:require [clojure.set :as set]
+            [metabase.api.common :refer [*current-user-id* *current-user-permissions-set*]]
             [metabase.models
              [card :refer [Card]]
              [interface :as mi]
@@ -20,9 +21,13 @@
     (throw (Exception. (str (tru "You do not have permissions to view Card {0}." card-id))))))
 
 (s/defn ^:private check-ad-hoc-query-perms
-  [outer-query]
+  [{:keys [gtap-perms], :as outer-query}]
   (when-not (perms/set-has-full-permissions-for-set? @*current-user-permissions-set*
-              (query-perms/perms-set outer-query, :throw-exceptions? true, :already-preprocessed? true))
+              ;; *If* we're using a GTAP, the User is obviously allowed to run its source query. So subtract the set of
+              ;; perms required to run the source query. (See further discussion in
+              ;; metabase.mt.query-processor.middleware.row-level-restrictions)
+              (set/difference (query-perms/perms-set outer-query, :throw-exceptions? true, :already-preprocessed? true)
+                              gtap-perms))
     (throw (Exception. (str (tru "You do not have permissions to run this query."))))))
 
 (s/defn ^:private check-query-permissions*
