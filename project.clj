@@ -50,7 +50,7 @@
    [buddy/buddy-core "1.5.0"]                                         ; various cryptograhpic functions
    [buddy/buddy-sign "3.0.0"]                                         ; JSON Web Tokens; High-Level message signing library
    [cheshire "5.8.1"]                                                 ; fast JSON encoding (used by Ring JSON middleware)
-   [clj-http "3.9.1"                                                  ; HTTP client
+   [clj-http "3.4.1"                                                  ; HTTP client
     :exclusions [commons-codec
                  commons-io
                  slingshot]]
