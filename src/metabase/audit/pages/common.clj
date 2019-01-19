@@ -104,3 +104,19 @@
   (hsql/call :case
     [:not= field nil]
     (hx/concat (urls/public-card-prefix) field)))
+
+(defn native-or-gui
+  "Return HoneySQL for a `CASE` statement to format the QueryExecution `:native` column as either `Native` or `GUI`."
+  [query-execution-table]
+  (hsql/call :case [:= (hsql/qualify query-execution-table :native) true] (hx/literal "Native") :else (hx/literal "GUI")))
+
+(defn card-name-or-ad-hoc
+  "HoneySQL for a `CASE` statement to return the name of a Card, or `Ad-hoc` if Card name is `NULL`."
+  [card-table]
+  (first-non-null (hsql/qualify card-table :name) (hx/literal "Ad-hoc")))
+
+(defn query-execution-is-download
+  "HoneySQL for a `WHERE` clause to restrict QueryExecution rows to downloads (i.e. executions returned in CSV/JSON/XLS
+  format)."
+  [query-execution-table]
+  [:in (hsql/qualify query-execution-table :context) #{"csv-download" "xlsx-download" "json-download"}])

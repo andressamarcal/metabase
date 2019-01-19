@@ -11,6 +11,8 @@ import { AuditMode } from "../lib/util";
 
 import type { AuditCard } from "../types";
 
+import { harmony } from "metabase/lib/colors";
+
 type Props = {
   cards: AuditCard[],
 };
@@ -26,6 +28,8 @@ const AuditDashboards = ({ cards, ...props }: Props) => (
         sizeX: w,
         sizeY: h,
         visualization_settings: {
+          // use the legacy "graph.colors" settings with color harmony to force brand color, etc
+          "graph.colors": harmony,
           // we want to hide the background to help make the charts feel
           // like they're part of the page, so turn off the background
           "dashcard.background": false,

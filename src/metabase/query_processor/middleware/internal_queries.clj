@@ -46,11 +46,13 @@
     (when (and (seq results-keys)
                (not= results-keys metadata-keys))
       (let [[only-in-results only-in-metadata] (data/diff results-keys metadata-keys)]
-        (println "Warning: results-keys and metadata-keys differ.\n"
-                 "results-keys:" results-keys "\n"
-                 "metadata-keys:" metadata-keys "\n"
-                 "in results, but not metadata:" only-in-results "\n"
-                 "in metadata, but not results:" only-in-metadata)))))
+        (throw
+         (Exception.
+          (str "results-keys and metadata-keys differ.\n"
+               "results-keys:" results-keys "\n"
+               "metadata-keys:" metadata-keys "\n"
+               "in results, but not metadata:" only-in-results "\n"
+               "in metadata, but not results:" only-in-metadata)))))))
 
 (s/defn ^:private format-results [{:keys [results metadata]} :- {:results  [su/Map]
                                                                  :metadata ResultsMetadata}]

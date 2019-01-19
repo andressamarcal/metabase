@@ -244,9 +244,9 @@
    :results (->> (common/query
                   {:select    [[:qe.started_at :viewed_on]
                                [:card.id :card_id]
-                               [(common/first-non-null :card.name (hx/literal "Ad-hoc")) :card_name]
+                               [(common/card-name-or-ad-hoc :card) :card_name]
                                [:qe.hash :query_hash]
-                               [(hsql/call :case [:= :qe.native true] (hx/literal "Native") :else (hx/literal "GUI")) :type]
+                               [(common/native-or-gui :qe) :type]
                                [:collection.id :collection_id]
                                [:collection.name :collection]
                                [:viewer.id :viewed_by_id]

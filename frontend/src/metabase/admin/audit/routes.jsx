@@ -27,6 +27,8 @@ import AuditQueryDetail from "metabase/admin/audit/pages/AuditQueryDetail";
 import AuditUsers from "metabase/admin/audit/pages/AuditUsers";
 import AuditUserDetail from "metabase/admin/audit/pages/AuditUserDetail";
 
+import AuditDownloads from "metabase/admin/audit/pages/AuditDownloads";
+
 type Page = {
   tabs?: Tab[],
 };
@@ -89,6 +91,7 @@ const getRoutes = (store: any) => (
     {getPageRoutes("questions", AuditQuestions)}
     {getPageRoutes("question/:questionId", AuditQuestionDetail)}
     {getPageRoutes("query/:queryHash", AuditQueryDetail)}
+    {getPageRoutes("downloads", AuditDownloads)}
     {getPageRoutes("members", AuditUsers)}
     {getPageRoutes("member/:userId", AuditUserDetail)}
   </Route>

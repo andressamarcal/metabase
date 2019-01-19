@@ -1,9 +1,6 @@
 (ns metabase.audit.pages.table-detail
-  (:require [honeysql.core :as hsql]
-            [metabase.audit.pages.common :as common]
-            [metabase.util
-             [honeysql-extensions :as hx]
-             [schema :as su]]
+  (:require [metabase.audit.pages.common :as common]
+            [metabase.util.schema :as su]
             [ring.util.codec :as codec]
             [schema.core :as s]))
 
@@ -18,7 +15,7 @@
    :results (->> (common/query
                   {:select    [:qe.started_at
                                [:card.id :card_id]
-                               [(hsql/call :case [:not= nil :card.name] :card.name :else (hx/literal "Ad-hoc")) :query]
+                               [(common/card-name-or-ad-hoc :card) :query]
                                [:qe.hash :query_hash]
                                [:u.id :user_id]
                                [(common/user-full-name :u) :user]]

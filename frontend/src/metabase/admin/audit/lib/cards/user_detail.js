@@ -123,3 +123,15 @@ export const createdQuestions = (userId: number) => ({
     },
   },
 });
+
+export const downloads = (userId: number) => ({
+  card: {
+    name: "Downloads",
+    display: "table",
+    dataset_query: {
+      type: "internal",
+      fn: "metabase.audit.pages.user-detail/downloads",
+      args: [userId],
+    },
+  },
+});

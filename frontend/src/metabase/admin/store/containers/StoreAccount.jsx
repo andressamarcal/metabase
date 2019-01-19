@@ -41,7 +41,10 @@ export default class StoreAccount extends React.Component {
   render() {
     const { status, error } = this.state;
 
-    const features = status && _.object(status.features.map(f => [f, true]));
+    const features =
+      status &&
+      status.features &&
+      _.object(status.features.map(f => [f, true]));
     const expires = status && status.valid_thru && moment(status.valid_thru);
 
     return (
