@@ -15,11 +15,13 @@
 
   You can see what commands are available by running the command `help`. This command uses the docstrings and arglists
   associated with each command's entrypoint function to generate descriptions for each command."
+  (:refer-clojure :exclude [load])
   (:require [clojure.string :as str]
             [metabase
              [config :as config]
              [db :as mdb]
              [util :as u]]
+            [metabase.query-processor.util :as qp.util]
             [metabase.util.date :as du]))
 
 (defn ^:command migrate
@@ -120,6 +122,22 @@
   (println "Ok.")
   (println "Starting normally with swapped i18n strings...")
   ((resolve 'metabase.core/start-normally)))
+
+(defn ^:command load
+  "Load serialized metabase instance as created by `dump` command from directory `path`.
+
+   `mode` can be one of `:update` (default) or `:skip`."
+  ([path] (load path :update))
+  ([path mode]
+   (require 'metabase.cmd.serialization)
+   ((resolve 'metabase.cmd.serialization/load) path (qp.util/normalize-token mode))))
+
+(defn ^:command dump
+  "Serialized metabase instance into directory `path`."
+  [path user]
+  (require 'metabase.cmd.serialization)
+  ((resolve 'metabase.cmd.serialization/dump) path user))
+
 
 
 ;;; ------------------------------------------------ Running Commands ------------------------------------------------

@@ -136,7 +136,7 @@
   (do-with-temporary-setting-value setting db-value
     (fn []
       (with-redefs [environ.core/env {(keyword (str "mb-" (name setting))) env-var-value}]
-        (dissoc (#'setting/user-facing-info (#'setting/resolve-setting setting))
+        (dissoc (#'setting/user-facing-info setting/get (#'setting/resolve-setting setting))
                 :key :description)))))
 
 ;; #'setting/user-facing-info w/ no db value, no env var value, no default value
@@ -194,6 +194,20 @@
               (when (re-find #"^test-setting-2$" (name (:key setting)))
                 setting))
             (setting/all))))
+
+;; all with custom getter
+(expect
+  {:key            :test-setting-2
+   :value          7
+   :description    "Test setting - this only shows up in dev (2)"
+   :is_env_setting false
+   :env_name       "MB_TEST_SETTING_2"
+   :default        "[Default Value]"}
+  (do (set-settings! nil "TOUCANS")
+      (some (fn [setting]
+              (when (re-find #"^test-setting-2$" (name (:key setting)))
+                setting))
+            (setting/all (comp count setting/get-string)))))
 
 ;; all
 (expect
