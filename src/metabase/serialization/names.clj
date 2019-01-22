@@ -5,7 +5,7 @@
              [card :refer [Card]]
              [collection :refer [Collection]]
              [dashboard :refer [Dashboard]]
-             [database :as database :refer [Database]]
+             [database :refer [Database] :as database]
              [field :refer [Field]]
              [metric :refer [Metric]]
              [pulse :refer [Pulse]]
@@ -42,10 +42,14 @@
 
 (defmethod fully-qualified-name* (type Table)
   [table]
-  (format "%s/schemas/%s/tables/%s"
-          (->> table :db_id (fully-qualified-name Database))
-          (:schema table)
-          (safe-name table)))
+  (if (:schema table)
+    (format "%s/schemas/%s/tables/%s"
+            (->> table :db_id (fully-qualified-name Database))
+            (:schema table)
+            (safe-name table))
+    (format "%s/tables/%s"
+            (->> table :db_id (fully-qualified-name Database))
+            (safe-name table))))
 
 (defmethod fully-qualified-name* (type Field)
   [field]
@@ -185,9 +189,10 @@
 (defn fully-qualified-name->context
   "Parse a logcial path into a context map."
   [fully-qualified-name]
-  (->> (str/split fully-qualified-name #"/")
-       rest ; we start with a /
-       (partition 2)
-       (reduce (fn [context [model entity-name]]
-                 (path->context context model (unescape-name entity-name)))
-               {})))
+  (when fully-qualified-name
+    (->> (str/split fully-qualified-name #"/")
+         rest ; we start with a /
+         (partition 2)
+         (reduce (fn [context [model entity-name]]
+                   (path->context context model (unescape-name entity-name)))
+                 {}))))

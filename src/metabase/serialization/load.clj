@@ -1,19 +1,18 @@
 (ns metabase.serialization.load
   "Load entities serialized by `metabase.serialization.dump`."
-  (:refer-clojure :exclude [load])
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [metabase
-             [config :as config]
-             [util :as u]]
-            [metabase.mbql.util :as mbql.util]
+            [metabase.config :as config]
+            [metabase.mbql
+             [normalize :as mbql.normalize]
+             [util :as mbql.util]]
             [metabase.models
              [card :refer [Card]]
              [collection :refer [Collection]]
              [dashboard :refer [Dashboard]]
              [dashboard-card :refer [DashboardCard]]
              [dashboard-card-series :refer [DashboardCardSeries]]
-             [database :as database :refer [Database]]
+             [database :refer [Database] :as database]
              [dependency :refer [Dependency]]
              [dimension :refer [Dimension]]
              [field :refer [Field]]
@@ -23,15 +22,17 @@
              [pulse-card :refer [PulseCard]]
              [pulse-channel :refer [PulseChannel]]
              [segment :refer [Segment]]
-             [setting :as setting]
+             [setting :refer [Setting] :as setting]
              [table :refer [Table]]
              [user :refer [User]]]
             [metabase.query-processor.util :as qp.util]
             [metabase.serialization
              [names :refer [fully-qualified-name->context]]
              [upsert :refer [maybe-upsert-many!]]]
+            [metabase.util :as u]
             [toucan.db :as db]
-            [yaml.core :as yaml]))
+            [yaml.core :as yaml])
+  (:refer-clojure :exclude [load]))
 
 (defn- slurp-dir
   [path]
@@ -50,9 +51,9 @@
         :when (.isDirectory file)]
     (.getPath file)))
 
-(defn- humanized-field-references->ids
+(defn- mbql-fully-qualified-names->ids
   [entity]
-  (mbql.util/replace entity
+  (mbql.util/replace (mbql.normalize/normalize entity)
     [:field-id (fully-qualified-name :guard string?)]
     [:field-id (:field (fully-qualified-name->context fully-qualified-name))]
 
@@ -82,19 +83,27 @@
 
 (defmethod load Database
   [path context _]
-  (doseq [path (list-dirs (str path "/databases"))]
-    (maybe-upsert-many! (:mode context) Database (slurp-dir path))
-    (doseq [path (list-dirs (str path "/schemas"))]
-      (load path context Table)
-      (load-dimensions path context))))
+  (let [context (assoc context :prefix path)]
+    (doseq [path (list-dirs (str path "/databases"))]
+      (maybe-upsert-many! (:mode context) Database (slurp-dir path))
+      (doseq [path (conj (list-dirs (str path "/schemas")) path)]
+        (load path context Table)
+        (load-dimensions path context)))))
+
+(defn- path->fully-qualified-name
+  [prefix path]
+  (subs path (count prefix) (count path)))
 
 (defmethod load Table
   [path context _]
-  (let [context   (merge context (fully-qualified-name->context path))
+  (let [context   (->> path
+                       (path->fully-qualified-name (:prefix context))
+                       fully-qualified-name->context
+                       (merge context))
         paths     (list-dirs (str path "/tables"))
         table-ids (maybe-upsert-many! (:mode context) Table
-                                    (for [table (slurp-many paths)]
-                                      (assoc table :db_id (:database context))))]
+                    (for [table (slurp-many paths)]
+                      (assoc table :db_id (:database context))))]
     (doseq [[path table-id] (map vector paths table-ids)]
       (let [context (assoc context :table table-id)]
         (load path context Field)
@@ -110,10 +119,12 @@
   (let [fields       (slurp-dir (str path "/fields"))
         field-values (map :values fields)
         field-ids    (maybe-upsert-many! (:mode context) Field
-                                         (for [field fields]
-                                           (-> field
-                                               (dissoc :values)
-                                               (assoc :table_id (:table context)))))]
+                       (for [field fields]
+                         (-> field
+                             (update :parent_id (comp :field fully-qualified-name->context))
+                             (update :fk_target_field_id (comp :field fully-qualified-name->context))
+                             (dissoc :values)
+                             (assoc :table_id (:table context)))))]
     (maybe-upsert-many! (:mode context) FieldValues
       (for [[field-value field-id] (map vector field-values field-ids)]
         (assoc field-value :field_id field-id)))))
@@ -126,7 +137,7 @@
           (assoc :table_id   (:table context)
                  :creator_id @default-user)
           (assoc-in [:definition :source-table] (:table context))
-          humanized-field-references->ids))))
+          (update :definition mbql-fully-qualified-names->ids)))))
 
 (defmethod load Segment
   [path context _]
@@ -136,35 +147,38 @@
           (assoc :table_id   (:table context)
                  :creator_id @default-user)
           (assoc-in [:definition :source-table] (:table context))
-          humanized-field-references->ids))))
+          (update :definition mbql-fully-qualified-names->ids)))))
 
 (defn- update-parameter-mappings
   [parameter-mappings]
-  (map #(update % :card_id fully-qualified-name->card-id) parameter-mappings))
+  (for [parameter-mapping parameter-mappings]
+    (-> parameter-mapping
+        (update :card_id fully-qualified-name->card-id)
+        (update :target mbql-fully-qualified-names->ids))))
 
 (defmethod load Dashboard
   [path context _]
-  (let [dashboards         (slurp-dir "/dashboards")
+  (let [dashboards         (slurp-dir (str path "/dashboards"))
         dashboard-ids      (maybe-upsert-many! (:mode context) Dashboard
                              (for [dashboard dashboards]
                                (-> dashboard
                                    (dissoc :dashboard_cards)
                                    (assoc :collection_id (:collection context)
-                                          :creator_id    @default-user)
-                                   humanized-field-references->ids)))
+                                          :creator_id    @default-user))))
         dashboard-cards    (map :dashboard_cards dashboards)
         dashboard-card-ids (maybe-upsert-many! (:mode context) DashboardCard
-                             (for [[dashboard-card dashboard-id] (map vector dashboard-cards
-                                                                      dashboard-ids)]
+                             (for [[dashboard-cards dashboard-id] (map vector dashboard-cards dashboard-ids)
+                                   dashboard-card dashboard-cards]
                                (-> dashboard-card
                                    (dissoc :series)
                                    (update :card_id fully-qualified-name->card-id)
                                    (assoc :dashboard_id dashboard-id)
-                                   (update :parameter_mappings update-parameter-mappings)
-                                   humanized-field-references->ids)))]
+                                   (update :parameter_mappings update-parameter-mappings))))]
     (maybe-upsert-many! (:mode context) DashboardCardSeries
-      (for [[dashboard-card-series dashboard-card-id] (map vector (map :series dashboard-cards)
-                                                           dashboard-card-ids)]
+      (for [[series dashboard-card-id] (map vector (mapcat (partial map :series) dashboard-cards)
+                                                   dashboard-card-ids)
+            dashboard-card-series series
+            :when dashboard-card-series]
         (-> dashboard-card-series
             (assoc :dashboardcard_id dashboard-card-id)
             (update :card_id fully-qualified-name->card-id))))))
@@ -203,33 +217,29 @@
   (let [paths    (list-dirs (str path "/cards"))
         card-ids (maybe-upsert-many! (:mode context) Card
                    (for [card (slurp-many paths)]
-                     (let [table (->> card
-                                      :table_id
-                                      fully-qualified-name->context
-                                      :table
-                                      Table)
-                           db    (:db_id table)]
-                       (-> card
-                           (assoc :table_id      (u/get-id table)
-                                  :creator_id    @default-user
-                                  :collection_id (:collection context)
-                                  :database_id   db)
-                           (assoc-in [:dataset_query :database] db)
-                           (cond->
+                     (-> card
+                         (update :table_id (comp :table fully-qualified-name->context))
+                         (update :database_id (comp :database fully-qualified-name->context))
+                         (update :dataset_query mbql-fully-qualified-names->ids)
+                         (assoc :creator_id    @default-user
+                                :collection_id (:collection context))
+                         (update-in [:dataset_query :database]
+                                    (comp :database fully-qualified-name->context))
+                         (cond->
                              (-> card
                                  :dataset_query
                                  :type
                                  qp.util/normalize-token
                                  (= :query))
-                             (update-in [:dataset_query :query :source-table] source-table))
-                           humanized-field-references->ids))))]
+                           (update-in [:dataset_query :query :source-table] source-table)))))]
     ;; Nested cards
-    (doseq [[path card-id] (map vector paths card-ids)]
-      (load path (assoc context :card card-id) Card))))
+    (doseq [path paths]
+      (load path context Card))))
 
 (defmethod load User
   [path context _]
-  (maybe-upsert-many! (:mode context) User
+  ;; Currently we only serialize the new owner user, so it's fine to ignore mode setting
+  (maybe-upsert-many! :skip User
     (for [user (slurp-dir (str path "/users"))]
       (assoc user :password "changeme"))))
 
@@ -241,21 +251,17 @@
 
 (defmethod load Collection
   [path context _]
-  (let [nested? (contains? context :collection)
-        context (assoc context
-                  :collection (when nested?
-                                (->> (slurp-dir path)
+  (doseq [path (list-dirs (str path "/collections"))]
+    (let [context (assoc context
+                    :collection (->> (slurp-dir path)
                                      (map (fn [collection]
                                             (assoc collection :location (derive-location context))))
                                      (maybe-upsert-many! (:mode context) Collection)
-                                     first)))]
-    (doseq [path (list-dirs (if nested?
-                              (str path "/collections")
-                              (str path "/collections/collections")))]
-      (load path context Collection))
-    (load path context Card)
-    (load path context Pulse)
-    (load path context Dashboard)))
+                                     first))]
+      (load path context Collection)
+      (load path context Card)
+      (load path context Pulse)
+      (load path context Dashboard))))
 
 (defn load-settings
   "Load a dump of settings."
