@@ -13,7 +13,7 @@
              [database :as database :refer [Database]]
              [dependency :refer [Dependency]]
              [dimension :refer [Dimension]]
-             [field :as database :as field :refer [Field]]
+             [field :as field :refer [Field]]
              [metric :refer [Metric]]
              [pulse :refer [Pulse]]
              [pulse-card :refer [PulseCard]]

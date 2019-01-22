@@ -1,5 +1,6 @@
 (ns metabase.serialization.load
   "Load entities serialized by `metabase.serialization.dump`."
+  (:refer-clojure :exclude [load])
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
             [metabase
@@ -32,8 +33,7 @@
              [names :refer [fully-qualified-name->context]]
              [upsert :refer [maybe-upsert-many!]]]
             [toucan.db :as db]
-            [yaml.core :as yaml])
-  (:refer-clojure :exclude [load]))
+            [yaml.core :as yaml]))
 
 (defn- slurp-dir
   [path]
