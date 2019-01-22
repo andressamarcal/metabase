@@ -5,7 +5,7 @@
              [card :refer [Card]]
              [collection :refer [Collection]]
              [dashboard :refer [Dashboard]]
-             [database :refer [Database] :as database]
+             [database :as database :refer [Database]]
              [field :refer [Field]]
              [metric :refer [Metric]]
              [pulse :refer [Pulse]]

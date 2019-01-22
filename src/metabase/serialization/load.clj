@@ -2,7 +2,9 @@
   "Load entities serialized by `metabase.serialization.dump`."
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
-            [metabase.config :as config]
+            [metabase
+             [config :as config]
+             [util :as u]]
             [metabase.mbql
              [normalize :as mbql.normalize]
              [util :as mbql.util]]
@@ -12,7 +14,7 @@
              [dashboard :refer [Dashboard]]
              [dashboard-card :refer [DashboardCard]]
              [dashboard-card-series :refer [DashboardCardSeries]]
-             [database :refer [Database] :as database]
+             [database :as database :refer [Database]]
              [dependency :refer [Dependency]]
              [dimension :refer [Dimension]]
              [field :refer [Field]]
@@ -22,14 +24,13 @@
              [pulse-card :refer [PulseCard]]
              [pulse-channel :refer [PulseChannel]]
              [segment :refer [Segment]]
-             [setting :refer [Setting] :as setting]
+             [setting :as setting :refer [Setting]]
              [table :refer [Table]]
              [user :refer [User]]]
             [metabase.query-processor.util :as qp.util]
             [metabase.serialization
              [names :refer [fully-qualified-name->context]]
              [upsert :refer [maybe-upsert-many!]]]
-            [metabase.util :as u]
             [toucan.db :as db]
             [yaml.core :as yaml])
   (:refer-clojure :exclude [load]))
