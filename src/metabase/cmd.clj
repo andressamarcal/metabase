@@ -17,6 +17,7 @@
   associated with each command's entrypoint function to generate descriptions for each command."
   (:refer-clojure :exclude [load])
   (:require [clojure.string :as str]
+            [medley.core :as m]
             [metabase
              [config :as config]
              [db :as mdb]
@@ -123,20 +124,30 @@
   (println "Starting normally with swapped i18n strings...")
   ((resolve 'metabase.core/start-normally)))
 
+(defn- cmd-args->map
+  [args]
+  (into {}
+        (for [[k v] (partition 2 args)]
+          [(qp.util/normalize-token (subs k 2)) v])))
+
 (defn ^:command load
   "Load serialized metabase instance as created by `dump` command from directory `path`.
 
    `mode` can be one of `:update` (default) or `:skip`."
   ([path] (load path :update))
-  ([path mode]
+  ([path & args]
    (require 'metabase.cmd.serialization)
-   ((resolve 'metabase.cmd.serialization/load) path (qp.util/normalize-token mode))))
+   ((resolve 'metabase.cmd.serialization/load) path
+    (->> args
+         cmd-args->map
+         (m/map-vals qp.util/normalize-token)))))
 
 (defn ^:command dump
   "Serialized metabase instance into directory `path`."
-  [path user]
+  [path & args]
   (require 'metabase.cmd.serialization)
-  ((resolve 'metabase.cmd.serialization/dump) path user))
+  (let [{:keys [user]} (cmd-args->map args)]
+    ((resolve 'metabase.cmd.serialization/dump) path user)))
 
 
 

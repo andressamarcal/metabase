@@ -1,7 +1,9 @@
 (ns metabase.cmd.serialization
   (:refer-clojure :exclude [load])
   (:require [clojure.tools.logging :as log]
-            [metabase.db :as mdb]
+            [metabase
+             [db :as mdb]
+             [util :as u]]
             [metabase.models
              [card :refer [Card]]
              [collection :refer [Collection]]
@@ -16,7 +18,6 @@
             [metabase.serialization
              [dump :as dump]
              [load :as load]]
-            [metabase.util :as u]
             [metabase.util
              [i18n :refer [trs]]
              [schema :as su]]
@@ -25,29 +26,41 @@
 
 (def ^:private Mode
   (su/with-api-error-message (s/enum :skip :update)
-    (trs "invalid mode value")))
+    (trs "invalid --mode value")))
+
+(def ^:private OnError
+  (su/with-api-error-message (s/enum :continue :abort)
+    (trs "invalid --on-error value")))
+
+(def ^:private Context
+  (su/with-api-error-message
+    {:on-error OnError
+     :mode     Mode}
+    (trs "invalid context seed value")))
 
 (s/defn load
   "Load serialized metabase instance as created by `dump` command from directory `path`."
-  [path mode :- Mode]
+  [path context :- Context]
   (mdb/setup-db-if-needed!)
   (when-not (load/compatible? path)
     (log/warn (trs "Dump was produced using a different version of Metabase. Things may break!")))
-  (let [context {:mode mode}]
-    (load/load path context User)
-    (load/load path context Database)
-    (load/load path context Collection)
-    (load/load-settings path context)
-    (load/load-dependencies path context)))
+  (load/load path context User)
+  (load/load path context Database)
+  (load/load path context Collection)
+  (load/load-settings path context)
+  (load/load-dependencies path context))
 
 (defn dump
   "Serialized metabase instance into directory `path`."
   [path user]
   (mdb/setup-db-if-needed!)
-  (let [user (db/select-one User
-               :email        user
-               :is_superuser true)]
-    (assert user (trs "{0} is not a valid user" user))
+  (let [users (if user
+                (let [user (db/select-one User
+                                          :email        user
+                                          :is_superuser true)]
+                  (assert user (trs "{0} is not a valid user" user))
+                  [user])
+                [])]
     (dump/dump path
                (Database)
                (Table)
@@ -55,11 +68,11 @@
                (Metric)
                (Segment)
                (db/select Collection
-                 :personal_owner_id [:or nil (u/get-id user)])
+                 :personal_owner_id [:or nil (some-> users first u/get-id)])
                (Card)
                (Dashboard)
                (Pulse)
-               [user]))
+               users))
   (dump/dump-settings path)
   (dump/dump-dependencies path)
   (dump/dump-dimensions path))

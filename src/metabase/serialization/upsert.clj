@@ -23,6 +23,7 @@
              [setting :as setting :refer [Setting]]
              [table :refer [Table]]
              [user :refer [User]]]
+            [metabase.sync.util :refer [with-error-handling]]
             [metabase.util :as u]
             [metabase.util.i18n :as i18n :refer [trs]]
             [toucan
@@ -72,15 +73,32 @@
   [model]
   (not= (find-protocol-method models/IModel :post-insert model) identity))
 
+(defn- insert-many-individually!
+  [model on-error entities]
+  (for [entity entities]
+    (let [entity (if (= :abort on-error)
+                   (db/insert! model entity)
+                   (with-error-handling
+                     (trs "Error inserting entity {0}" (name-for-logging entity))
+                     (db/insert! model entity)))]
+      (when-not (instance? Throwable entity)
+        (u/get-id entity)))))
+
 (defn- maybe-insert-many!
-  [model entities]
+  [model on-error entities]
   (if (has-post-insert? model)
-    (map (comp u/get-id (partial db/insert! model)) entities)
-    (db/insert-many! model entities)))
+    (insert-many-individually! model on-error entities)
+    (if (= :abort on-error)
+      (db/insert-many! model entities)
+      (try
+        (db/insert-many! model entities)
+        ;; Retry each individually so we can do as much as we can
+        (catch Throwable _
+          (insert-many-individually! model on-error entities))))))
 
 (defn maybe-upsert-many!
   "Batch upsert-or-skip"
-  [mode model entities]
+  [{:keys [mode on-error]} model entities]
   (let [same?                        (comp nil? second diff/diff)
         {:keys [update insert skip]} (->> entities
                                           (map-indexed (fn [position entity]
@@ -110,10 +128,15 @@
 
     (->> (concat (for [[position _ existing] skip]
                    [(u/get-id existing) position])
-                 (map vector (maybe-insert-many! model (map second insert)) (map first insert))
+                 (map vector (maybe-insert-many! model on-error (map second insert))
+                      (map first insert))
                  (for [[position entity existing] update]
                    (let [id (u/get-id existing)]
-                     (db/update! model id entity)
+                     (if (= on-error :abort)
+                       (db/update! model id entity)
+                       (with-error-handling
+                         (trs "Error updating entity {0}" (name-for-logging entity))
+                         (db/update! model id entity)))
                      [id position])))
          (sort-by second)
          (map first))))
