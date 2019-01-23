@@ -34,8 +34,8 @@
 
 (def ^:private Context
   (su/with-api-error-message
-    {:on-error OnError
-     :mode     Mode}
+    {(s/optional-key :on-error) OnError
+     (s/optional-key :mode)     Mode}
     (trs "invalid context seed value")))
 
 (s/defn load
@@ -44,11 +44,18 @@
   (mdb/setup-db-if-needed!)
   (when-not (load/compatible? path)
     (log/warn (trs "Dump was produced using a different version of Metabase. Things may break!")))
-  (load/load path context User)
-  (load/load path context Database)
-  (load/load path context Collection)
-  (load/load-settings path context)
-  (load/load-dependencies path context))
+  (let [context (merge {:mode     :skip
+                        :on-error :continue}
+                       context)]
+    (try
+      (do
+        (load/load path context User)
+        (load/load path context Database)
+        (load/load path context Collection)
+        (load/load-settings path context)
+        (load/load-dependencies path context))
+      (catch Throwable e
+        (log/error (trs "Error loading dump: {0}" (.getMessage e)))))))
 
 (defn dump
   "Serialized metabase instance into directory `path`."

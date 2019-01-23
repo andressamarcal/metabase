@@ -23,7 +23,7 @@
              [setting :as setting :refer [Setting]]
              [table :refer [Table]]
              [user :refer [User]]]
-            [metabase.sync.util :refer [with-error-handling]]
+            [metabase.serialization.names :refer [name-for-logging]]
             [metabase.util :as u]
             [metabase.util.i18n :as i18n :refer [trs]]
             [toucan
@@ -62,27 +62,26 @@
                        v)))
        (m/mapply db/select-one model)))
 
-(defn- name-for-logging
-  [{:keys [name id]}]
-  (cond
-    (and name id) (format "\"%s\" (ID %s)" name id)
-    name          (format "\"%s\"" name)
-    :else         (str "ID " id)))
-
 (defn- has-post-insert?
   [model]
   (not= (find-protocol-method models/IModel :post-insert model) identity))
 
+(defmacro ^:private with-error-handling
+  [message & body]
+  `(try (do ~@body)
+        (catch Throwable _#
+          (log/error ~message)
+          nil)))
+
 (defn- insert-many-individually!
   [model on-error entities]
   (for [entity entities]
-    (let [entity (if (= :abort on-error)
-                   (db/insert! model entity)
-                   (with-error-handling
-                     (trs "Error inserting entity {0}" (name-for-logging entity))
-                     (db/insert! model entity)))]
-      (when-not (instance? Throwable entity)
-        (u/get-id entity)))))
+    (when-let [entity (if (= :abort on-error)
+                        (db/insert! model entity)
+                        (with-error-handling
+                          (trs "Error inserting {0}" (name-for-logging model entity))
+                          (db/insert! model entity)))]
+      (u/get-id entity))))
 
 (defn- maybe-insert-many!
   [model on-error entities]
@@ -116,15 +115,13 @@
                                                                   :insert)))))]
 
     (doseq [[_ entity _] insert]
-      (log/info (trs "Inserting {0} {1}" (:name model) (name-for-logging entity))))
+      (log/info (trs "Inserting {0}" (name-for-logging (name model) entity))))
     (doseq [[_ _ existing] skip]
       (if (= mode :skip)
-        (log/info (trs "{0} {1} already exists -- skipping"
-                       (:name model) (name-for-logging existing)))
-        (log/info (trs "Skipping {0} {1} (nothing to update)"
-                       (:name model) (name-for-logging existing)))))
+        (log/info (trs "{0} already exists -- skipping"  (name-for-logging (name model) existing)))
+        (log/info (trs "Skipping {0} (nothing to update)" (name-for-logging (name model) existing)))))
     (doseq [[_ _ existing] update]
-      (log/info (trs "Updating {0} {1}" (:name model) (name-for-logging existing))))
+      (log/info (trs "Updating {0}" (name-for-logging (name model) existing))))
 
     (->> (concat (for [[position _ existing] skip]
                    [(u/get-id existing) position])
@@ -135,7 +132,7 @@
                      (if (= on-error :abort)
                        (db/update! model id entity)
                        (with-error-handling
-                         (trs "Error updating entity {0}" (name-for-logging entity))
+                         (trs "Error updating {0}" (name-for-logging (name model) entity))
                          (db/update! model id entity)))
                      [id position])))
          (sort-by second)

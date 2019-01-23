@@ -196,3 +196,12 @@
          (reduce (fn [context [model entity-name]]
                    (path->context context model (unescape-name entity-name)))
                  {}))))
+
+(defn name-for-logging
+  "Return a string representation of entity suitable for logs"
+  ([entity] (name-for-logging (name entity) entity))
+  ([model {:keys [name id]}]
+   (cond
+     (and name id) (format "%s \"%s\" (ID %s)" model name id)
+     name          (format "%s \"%s\"" model name)
+     :else         (format "%s %s" model id))))

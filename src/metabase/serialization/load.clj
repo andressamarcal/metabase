@@ -3,6 +3,7 @@
   (:refer-clojure :exclude [load])
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
+            [clojure.tools.logging :as log]
             [metabase
              [config :as config]
              [util :as u]]
@@ -32,6 +33,7 @@
             [metabase.serialization
              [names :refer [fully-qualified-name->context]]
              [upsert :refer [maybe-upsert-many!]]]
+            [metabase.util.i18n :refer [trs]]
             [toucan.db :as db]
             [yaml.core :as yaml]))
 
@@ -64,7 +66,10 @@
     [:segment (fully-qualified-name :guard string?)]
     [:segment (:segment (fully-qualified-name->context fully-qualified-name))]))
 
-(def ^:private default-user (delay (db/select-one-id User :is_superuser true)))
+(def ^:private default-user (delay
+                             (let [user (db/select-one-id User :is_superuser true)]
+                               (assert user (trs "No admin users found! At least one admin user is needed to act as the owner for all the loaded entities."))
+                               user)))
 
 (defmulti load
   "Load an entity of type `model` stored at `path` in the context `context`.
@@ -276,6 +281,12 @@
                     (nil? (setting/get-string k)))]
     (setting/set-string! k v)))
 
+(defn- log-or-die
+  [on-error message]
+  (if (= on-error :abort)
+    (throw (Exception. message))
+    (log/error message)))
+
 (defn load-dependencies
   "Load a dump of dependencies."
   [path context]
@@ -288,11 +299,19 @@
       (for [{:keys [model_id dependent_on_id]} (yaml/from-file (str path "/dependencies.yaml") true)]
         (let [model        (fully-qualified-name->entity model_id)
               dependent-on (fully-qualified-name->entity dependent_on_id)]
-          {:model              (name model)
-           :model_id           (u/get-id model)
-           :dependent_on_model (name dependent-on)
-           :dependent_on_id    (u/get-id dependent-on)
-           :created_at         (java.util.Date.)})))))
+          (cond
+            (and model dependent-on)
+            {:model              (name model)
+             :model_id           (u/get-id model)
+             :dependent_on_model (name dependent-on)
+             :dependent_on_id    (u/get-id dependent-on)
+             :created_at         (java.util.Date.)}
+
+            (nil? model)
+            (log-or-die (:on-error model) (trs "Error loading dependencies: reference to an unknown entitiy {0}" model_id))
+
+            (nil? dependent-on)
+            (log-or-die (:on-error model) (trs "Error loading dependencies: reference to an unknown entitiy {0}" dependent_on_id))))))))
 
 (defn compatible?
   "Is dump at path `path` compatible with the currently running version of Metabase?"
