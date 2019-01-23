@@ -284,7 +284,7 @@
 (defn- log-or-die
   [on-error message]
   (if (= on-error :abort)
-    (throw (Exception. message))
+    (throw (Exception. (str message)))
     (log/error message)))
 
 (defn load-dependencies

@@ -16,7 +16,7 @@
              [table :refer [Table]]
              [user :refer [User]]]
             [metabase.serialization
-             [names :refer [fully-qualified-name safe-name name-for-logging]]
+             [names :refer [fully-qualified-name name-for-logging safe-name]]
              [serialize :as serialize :refer [serialize]]]
             [metabase.util.i18n :as i18n :refer [trs]]
             [yaml.core :as yaml]))
