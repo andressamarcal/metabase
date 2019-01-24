@@ -57,28 +57,37 @@
       (catch Throwable e
         (log/error (trs "Error loading dump: {0}" (.getMessage e)))))))
 
+(defn- select-entities-in-collections
+  [model collections]
+  (db/select model {:where [:or [:= :collection_id nil]
+                                (if (not-empty collections)
+                                  [:in :collection_id (map u/get-id collections)]
+                                  false)]}))
+
 (defn dump
   "Serialized metabase instance into directory `path`."
   [path user]
   (mdb/setup-db-if-needed!)
-  (let [users (if user
-                (let [user (db/select-one User
-                                          :email        user
-                                          :is_superuser true)]
-                  (assert user (trs "{0} is not a valid user" user))
-                  [user])
-                [])]
+  (let [users       (if user
+                      (let [user (db/select-one User
+                                   :email        user
+                                   :is_superuser true)]
+                        (assert user (trs "{0} is not a valid user" user))
+                        [user])
+                      [])
+        collections (db/select Collection
+                      {:where [:or [:= :personal_owner_id nil]
+                                   [:= :personal_owner_id (some-> users first u/get-id)]]})]
     (dump/dump path
                (Database)
                (Table)
                (field/with-values (Field))
                (Metric)
                (Segment)
-               (db/select Collection
-                 :personal_owner_id [:or nil (some-> users first u/get-id)])
-               (Card)
-               (Dashboard)
-               (Pulse)
+               collections
+               (select-entities-in-collections Card collections)
+               (select-entities-in-collections Dashboard collections)
+               (select-entities-in-collections Pulse collections)
                users))
   (dump/dump-settings path)
   (dump/dump-dependencies path)

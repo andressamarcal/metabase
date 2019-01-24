@@ -204,4 +204,5 @@
    (cond
      (and name id) (format "%s \"%s\" (ID %s)" model name id)
      name          (format "%s \"%s\"" model name)
-     :else         (format "%s %s" model id))))
+     id            (format "%s %s" model id)
+     :else         model)))
