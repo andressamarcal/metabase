@@ -38,7 +38,7 @@
 (defn- mbql-id->fully-qualified-name
   [mbql]
   (-> mbql
-      mbql.normalize/normalize
+      mbql.normalize/normalize-tokens
       (mbql.util/replace
         ;; `integer?` guard is here to make the operation idempotent
         [:field-id (id :guard integer?)]

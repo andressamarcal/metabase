@@ -56,7 +56,7 @@
 
 (defn- mbql-fully-qualified-names->ids
   [entity]
-  (mbql.util/replace (mbql.normalize/normalize entity)
+  (mbql.util/replace (mbql.normalize/normalize-tokens entity)
     [:field-id (fully-qualified-name :guard string?)]
     [:field-id (:field (fully-qualified-name->context fully-qualified-name))]
 
