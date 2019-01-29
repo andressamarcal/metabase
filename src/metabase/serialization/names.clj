@@ -13,6 +13,10 @@
              [table :refer [Table]]
              [user :refer [User]]]
             [metabase.query-processor.util :as qp.util]
+            [metabase.util
+             [i18n :refer [trs]]
+             [schema :as su]]
+            [schema.core :as s]
             [toucan.db :as db]))
 
 (defn safe-name
@@ -108,6 +112,24 @@
   [_]
   nil)
 
+;; All the references in the dumps should resolved to entities already loaded.
+(def ^:private Context
+  (su/with-api-error-message
+    {(s/optional-key :database)   s/Int
+     (s/optional-key :table)      s/Int
+     (s/optional-key :schema)     s/Str
+     (s/optional-key :field)      s/Int
+     (s/optional-key :metric)     s/Int
+     (s/optional-key :segment)    s/Int
+     (s/optional-key :card)       s/Int
+     (s/optional-key :dashboard)  s/Int
+     (s/optional-key :collection) s/Int
+     (s/optional-key :pulse)      s/Int
+     (s/optional-key :user)       s/Int}
+    (trs "Invalid context.
+
+Some of the path components did not map to existing entities.")))
+
 (defmulti ^:private path->context* (fn [_ model _]
                                      model))
 
@@ -186,9 +208,9 @@
   (assoc context :user (db/select-one-id User
                          :email email)))
 
-(defn fully-qualified-name->context
+(s/defn fully-qualified-name->context :- (s/maybe Context)
   "Parse a logcial path into a context map."
-  [fully-qualified-name]
+  [fully-qualified-name :- (s/maybe s/Str)]
   (when fully-qualified-name
     (->> (str/split fully-qualified-name #"/")
          rest ; we start with a /
