@@ -10,7 +10,7 @@
              [metric :refer [Metric]]
              [segment :refer [Segment]]
              [table :refer [Table]]]
-            [metabase.serialization.serialize :refer :all :as serialize]
+            [metabase.serialization.serialize :as serialize :refer :all]
             [metabase.test
              [data :as data]
              [serialization :as ts]]))

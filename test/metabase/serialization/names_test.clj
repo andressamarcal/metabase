@@ -8,7 +8,7 @@
              [metric :refer [Metric]]
              [segment :refer [Segment]]
              [table :refer [Table]]]
-            [metabase.serialization.names :refer :all :as names]
+            [metabase.serialization.names :as names :refer :all]
             [metabase.test
              [data :as data]
              [serialization :as ts]]

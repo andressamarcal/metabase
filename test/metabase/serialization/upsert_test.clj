@@ -13,7 +13,7 @@
              [setting :refer [Setting]]
              [table :refer [Table]]
              [user :refer [User]]]
-            [metabase.serialization.upsert :refer :all :as upsert]
+            [metabase.serialization.upsert :as upsert :refer :all]
             [metabase.test
              [data :as data]
              [util :as tu]]

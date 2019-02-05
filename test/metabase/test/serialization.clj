@@ -5,7 +5,7 @@
              [dashboard :refer [Dashboard]]
              [dashboard-card :refer [DashboardCard]]
              [dashboard-card-series :refer [DashboardCardSeries]]
-             [database :refer [Database] :as database]
+             [database :as database :refer [Database]]
              [field :refer [Field]]
              [metric :refer [Metric]]
              [pulse :refer [Pulse]]
