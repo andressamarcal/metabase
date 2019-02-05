@@ -321,6 +321,7 @@ export const I18NApi = {
 
 export const TaskApi = {
   get: GET("api/task"),
+  getJobsInfo: GET("api/task/info"),
 };
 
 export function setPublicQuestionEndpoints(uuid: string) {
