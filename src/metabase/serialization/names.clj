@@ -208,11 +208,13 @@ Some of the path components did not map to existing entities.")))
   (assoc context :user (db/select-one-id User
                          :email email)))
 
-(s/defn fully-qualified-name->context :- (s/maybe Context)
+(def ^:private separator-pattern (re-pattern java.io.File/separator))
+
+(s/defn fully-qualified-name->context ;:- (s/maybe Context)
   "Parse a logcial path into a context map."
   [fully-qualified-name :- (s/maybe s/Str)]
   (when fully-qualified-name
-    (->> (str/split fully-qualified-name #"/")
+    (->> (str/split fully-qualified-name separator-pattern)
          rest ; we start with a /
          (partition 2)
          (reduce (fn [context [model entity-name]]
