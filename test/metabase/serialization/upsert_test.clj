@@ -10,7 +10,6 @@
              [metric :refer [Metric]]
              [pulse :refer [Pulse]]
              [segment :refer [Segment]]
-             [setting :refer [Setting]]
              [table :refer [Table]]
              [user :refer [User]]]
             [metabase.serialization.upsert :as upsert :refer :all]
@@ -70,7 +69,7 @@
     (let [[e1 e2]           @cards
           id1               (u/get-id (db/insert! Card e1))
           e1-mutated        (mutate Card e1)
-          [id1-mutated id2] (maybe-upsert-many! :update Card [e1-mutated e2])]
+          [id1-mutated id2] (maybe-upsert-many! {:mode :update} Card [e1-mutated e2])]
       (and (= id1 id1-mutated)
            (same? (Card id1-mutated) e1-mutated)
            (same? (Card id2) e2)))))

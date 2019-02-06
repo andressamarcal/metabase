@@ -210,7 +210,7 @@ Some of the path components did not map to existing entities.")))
 
 (def ^:private separator-pattern (re-pattern java.io.File/separator))
 
-(s/defn fully-qualified-name->context ;:- (s/maybe Context)
+(s/defn fully-qualified-name->context :- (s/maybe Context)
   "Parse a logcial path into a context map."
   [fully-qualified-name :- (s/maybe s/Str)]
   (when fully-qualified-name

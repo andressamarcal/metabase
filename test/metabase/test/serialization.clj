@@ -8,10 +8,7 @@
              [database :as database :refer [Database]]
              [field :refer [Field]]
              [metric :refer [Metric]]
-             [pulse :refer [Pulse]]
-             [segment :refer [Segment]]
-             [table :refer [Table]]
-             [user :refer [User]]]
+             [segment :refer [Segment]]]
             [metabase.serialization.names :as names]
             [metabase.test.data :as data]
             [toucan.util.test :as tt]))
@@ -23,9 +20,9 @@
                    Collection [{~'collection-id-nested :id} {:name "My Nested Collection"
                                                              :location (format "/%s/" ~'collection-id)}]
                    Metric     [{~'metric-id :id} {:name "My Metric"
-                                                    :table_id (data/id :venues)
-                                                          :definition {:source-table (data/id :venues)
-                                                                       :aggregation [:sum [:field-id (data/id :venues :price)]]}}]
+                                                  :table_id (data/id :venues)
+                                                  :definition {:source-table (data/id :venues)
+                                                               :aggregation [:sum [:field-id (data/id :venues :price)]]}}]
 
                    Segment    [{~'segment-id :id} {:name "My Segment"
                                                    :table_id (data/id :venues)
