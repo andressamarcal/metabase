@@ -5,8 +5,6 @@
              [dashboard :refer [Dashboard]]
              [dashboard-card :refer [DashboardCard]]
              [dashboard-card-series :refer [DashboardCardSeries]]
-             [database :as database :refer [Database]]
-             [field :refer [Field]]
              [metric :refer [Metric]]
              [segment :refer [Segment]]]
             [metabase.serialization.names :as names]
