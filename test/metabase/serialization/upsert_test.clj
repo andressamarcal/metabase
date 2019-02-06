@@ -54,14 +54,14 @@
 (expect
   (tu/with-model-cleanup [Card]
     (let [existing-ids (mapv (comp u/get-id (partial db/insert! Card)) @cards)
-          inserted-ids (vec (maybe-upsert-many! :skip Card @cards))]
+          inserted-ids (vec (maybe-upsert-many! {:mode :skip} Card @cards))]
       (= existing-ids inserted-ids))))
 
 (expect
   (tu/with-model-cleanup [Card]
     (every? (fn [mode]
               (let [[e1 e2]   @cards
-                    [id1 id2] (maybe-upsert-many! mode Card @cards)]
+                    [id1 id2] (maybe-upsert-many! {:mode mode} Card @cards)]
                 (every? (partial apply same?) [[(Card id1) e1] [(Card id2) e2]])))
             [:skip :update])))
 
