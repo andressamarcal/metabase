@@ -35,10 +35,10 @@
   "Is given form an MBQL entity reference?"
   (partial mbql.normalize/is-clause? #{:field-id :fk-> :metric :segment}))
 
-(defn- mbql-entity-id->fully-qualified-name
+(defn- mbql-id->fully-qualified-name
   [mbql]
   (-> mbql
-      mbql.normalize/normalize
+      mbql.normalize/normalize-tokens
       (mbql.util/replace
         ;; `integer?` guard is here to make the operation idempotent
         [:field-id (id :guard integer?)]
@@ -59,7 +59,7 @@
   [entity]
   (mbql.util/replace entity
     mbql-entity-reference?
-    (mbql-entity-id->fully-qualified-name &match)
+    (mbql-id->fully-qualified-name &match)
 
     map?
     (as-> &match entity
@@ -82,7 +82,7 @@
   "Removes unneeded fields that can either be reconstructed from context or are meaningless
    (eg. :created_at)."
   [entity]
-  (cond-> (dissoc entity :id :creator_id :created_at :updated_at :db_id :database_id :location
+  (cond-> (dissoc entity :id :creator_id :created_at :updated_at :db_id :location
                   :dashboard_id :fields_hash :personal_owner_id :made_public_by_id :collection_id
                   :pulse_id)
     (some #(instance? % entity) (map type [Metric Field Segment])) (dissoc :table_id)))
@@ -104,17 +104,21 @@
 
 (defmethod serialize-one (type Field)
   [field]
-  (if (contains? field :values)
-    (update field :values u/select-non-nil-keys [:values :human_readable_values])
-    (assoc field :values (-> field
-                             field/values
-                             (u/select-non-nil-keys [:values :human_readable_values])))))
+  (let [field (-> field
+                  (update :parent_id (partial fully-qualified-name Field))
+                  (update :fk_target_field_id (partial fully-qualified-name Field)))]
+    (if (contains? field :values)
+      (update field :values u/select-non-nil-keys [:values :human_readable_values])
+      (assoc field :values (-> field
+                               field/values
+                               (u/select-non-nil-keys [:values :human_readable_values]))))))
 
 (defn- dashboard-cards-for-dashboard
   [dashboard]
   (let [dashboard-cards (db/select DashboardCard :dashboard_id (u/get-id dashboard))
-        series          (db/select DashboardCardSeries
-                          :dashboardcard_id [:in (map u/get-id dashboard-cards)])]
+        series          (when (not-empty dashboard-cards)
+                          (db/select DashboardCardSeries
+                            :dashboardcard_id [:in (map u/get-id dashboard-cards)]))]
     (for [dashboard-card dashboard-cards]
       (-> dashboard-card
           (assoc :series (for [series series
@@ -122,7 +126,7 @@
                            (-> series
                                (update :card_id (partial fully-qualified-name Card))
                                (dissoc :id :dashboardcard_id))))
-           strip-crud))))
+          strip-crud))))
 
 (defmethod serialize-one (type Dashboard)
   [dashboard]
@@ -130,7 +134,9 @@
 
 (defmethod serialize-one (type Card)
   [card]
-  (u/update-when card :table_id (partial fully-qualified-name Table)))
+  (-> card
+      (u/update-when :table_id (partial fully-qualified-name Table))
+      (update :database_id (partial fully-qualified-name Database))))
 
 (defmethod serialize-one (type Pulse)
   [pulse]

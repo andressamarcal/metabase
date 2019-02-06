@@ -13,6 +13,10 @@
              [table :refer [Table]]
              [user :refer [User]]]
             [metabase.query-processor.util :as qp.util]
+            [metabase.util
+             [i18n :refer [trs]]
+             [schema :as su]]
+            [schema.core :as s]
             [toucan.db :as db]))
 
 (defn safe-name
@@ -42,10 +46,14 @@
 
 (defmethod fully-qualified-name* (type Table)
   [table]
-  (format "%s/schemas/%s/tables/%s"
-          (->> table :db_id (fully-qualified-name Database))
-          (:schema table)
-          (safe-name table)))
+  (if (:schema table)
+    (format "%s/schemas/%s/tables/%s"
+            (->> table :db_id (fully-qualified-name Database))
+            (:schema table)
+            (safe-name table))
+    (format "%s/tables/%s"
+            (->> table :db_id (fully-qualified-name Database))
+            (safe-name table))))
 
 (defmethod fully-qualified-name* (type Field)
   [field]
@@ -103,6 +111,24 @@
 (defmethod fully-qualified-name* nil
   [_]
   nil)
+
+;; All the references in the dumps should resolved to entities already loaded.
+(def ^:private Context
+  (su/with-api-error-message
+    {(s/optional-key :database)   s/Int
+     (s/optional-key :table)      s/Int
+     (s/optional-key :schema)     s/Str
+     (s/optional-key :field)      s/Int
+     (s/optional-key :metric)     s/Int
+     (s/optional-key :segment)    s/Int
+     (s/optional-key :card)       s/Int
+     (s/optional-key :dashboard)  s/Int
+     (s/optional-key :collection) (s/maybe s/Int) ; root collection
+     (s/optional-key :pulse)      s/Int
+     (s/optional-key :user)       s/Int}
+    (trs "Invalid context.
+
+Some of the path components did not map to existing entities.")))
 
 (defmulti ^:private path->context* (fn [_ model _]
                                      model))
@@ -182,12 +208,25 @@
   (assoc context :user (db/select-one-id User
                          :email email)))
 
-(defn fully-qualified-name->context
+(def ^:private separator-pattern (re-pattern java.io.File/separator))
+
+(s/defn fully-qualified-name->context :- (s/maybe Context)
   "Parse a logcial path into a context map."
-  [fully-qualified-name]
-  (->> (str/split fully-qualified-name #"/")
-       rest ; we start with a /
-       (partition 2)
-       (reduce (fn [context [model entity-name]]
-                 (path->context context model (unescape-name entity-name)))
-               {})))
+  [fully-qualified-name :- (s/maybe s/Str)]
+  (when fully-qualified-name
+    (->> (str/split fully-qualified-name separator-pattern)
+         rest ; we start with a /
+         (partition 2)
+         (reduce (fn [context [model entity-name]]
+                   (path->context context model (unescape-name entity-name)))
+                 {}))))
+
+(defn name-for-logging
+  "Return a string representation of entity suitable for logs"
+  ([entity] (name-for-logging (name entity) entity))
+  ([model {:keys [name id]}]
+   (cond
+     (and name id) (format "%s \"%s\" (ID %s)" model name id)
+     name          (format "%s \"%s\"" model name)
+     id            (format "%s %s" model id)
+     :else         model)))

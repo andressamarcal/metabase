@@ -1,6 +1,7 @@
 (ns metabase.serialization.dump
   "Serialize entities into a directory structure of YAMLs."
   (:require [clojure.java.io :as io]
+            [clojure.tools.logging :as log]
             [metabase.config :as config]
             [metabase.models
              [dashboard :refer [Dashboard]]
@@ -15,8 +16,9 @@
              [table :refer [Table]]
              [user :refer [User]]]
             [metabase.serialization
-             [names :refer [fully-qualified-name safe-name]]
+             [names :refer [fully-qualified-name name-for-logging safe-name]]
              [serialize :as serialize :refer [serialize]]]
+            [metabase.util.i18n :as i18n :refer [trs]]
             [yaml.core :as yaml]))
 
 (defn- spit-yaml
@@ -31,10 +33,13 @@
   "Serialize entities into a directory structure of YAMLs at `path`."
   [path & entities]
   (doseq [entity (flatten entities)]
-    (spit-yaml (if (as-file? entity)
-                 (format "%s/%s.yaml" path (fully-qualified-name entity))
-                 (format "%s/%s/%s.yaml" path (fully-qualified-name entity) (safe-name entity)))
-               (serialize entity)))
+    (try
+      (spit-yaml (if (as-file? entity)
+                   (format "%s%s.yaml" path (fully-qualified-name entity))
+                   (format "%s%s/%s.yaml" path (fully-qualified-name entity) (safe-name entity)))
+                 (serialize entity))
+      (catch Throwable _
+        (log/error (trs "Error dumping {0}" (name-for-logging entity))))))
   (spit-yaml (str path "/manifest.yaml")
              {:serialization-version serialize/serialization-protocol-version
               :metabase-version      config/mb-version-info}))
@@ -57,8 +62,12 @@
   [path]
   (doseq [[table-id dimensions] (group-by (comp :table_id Field :field_id) (Dimension))
           :let [table (Table table-id)]]
-    (spit-yaml (format "%s/%s/schemas/%s/dimensions.yaml"
-                       path
-                       (->> table :db_id (fully-qualified-name Database))
-                       (:schema table))
+    (spit-yaml (if (:schema table)
+                 (format "%s%s/schemas/%s/dimensions.yaml"
+                         path
+                         (->> table :db_id (fully-qualified-name Database))
+                         (:schema table))
+                 (format "%s%s/dimensions.yaml"
+                         path
+                         (->> table :db_id (fully-qualified-name Database))))
                (map serialize dimensions))))

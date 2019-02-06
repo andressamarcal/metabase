@@ -23,9 +23,12 @@
              [setting :as setting :refer [Setting]]
              [table :refer [Table]]
              [user :refer [User]]]
+            [metabase.serialization.names :refer [name-for-logging]]
             [metabase.util :as u]
             [metabase.util.i18n :as i18n :refer [trs]]
-            [toucan.db :as db]))
+            [toucan
+             [db :as db]
+             [models :as models]]))
 
 (def ^:private identity-condition
   {Database            [:name]
@@ -59,15 +62,44 @@
                        v)))
        (m/mapply db/select-one model)))
 
-(defn- name-for-logging
-  [{:keys [name id]}]
-  (if name
-    (format "\"%s\" (ID %s)" name id)
-    (str "ID " id)))
+(defn- has-post-insert?
+  [model]
+  (not= (find-protocol-method models/IModel :post-insert model) identity))
+
+(defmacro with-error-handling
+  "Execute body and catch and log any exceptions doing so throws."
+  [message & body]
+  `(try
+     (do ~@body)
+     (catch Throwable e#
+       (log/error (u/format-color 'red "%s: %s" ~message (.getMessage e#)))
+       nil)))
+
+(defn- insert-many-individually!
+  [model on-error entities]
+  (for [entity entities]
+    (when-let [entity (if (= :abort on-error)
+                        (db/insert! model entity)
+                        (with-error-handling
+                          (trs "Error inserting {0}" (name-for-logging model entity))
+                          (db/insert! model entity)))]
+      (u/get-id entity))))
+
+(defn- maybe-insert-many!
+  [model on-error entities]
+  (if (has-post-insert? model)
+    (insert-many-individually! model on-error entities)
+    (if (= :abort on-error)
+      (db/insert-many! model entities)
+      (try
+        (db/insert-many! model entities)
+        ;; Retry each individually so we can do as much as we can
+        (catch Throwable _
+          (insert-many-individually! model on-error entities))))))
 
 (defn maybe-upsert-many!
   "Batch upsert-or-skip"
-  [mode model entities]
+  [{:keys [mode on-error]} model entities]
   (let [same?                        (comp nil? second diff/diff)
         {:keys [update insert skip]} (->> entities
                                           (map-indexed (fn [position entity]
@@ -85,22 +117,25 @@
                                                                   :insert)))))]
 
     (doseq [[_ entity _] insert]
-      (log/info (trs "Inserting {0} {1}" (:name model) (name-for-logging entity))))
+      (log/info (trs "Inserting {0}" (name-for-logging (name model) entity))))
     (doseq [[_ _ existing] skip]
       (if (= mode :skip)
-        (log/info (trs "{0} {1} already exists -- skipping"
-                       (:name model) (name-for-logging existing)))
-        (log/info (trs "Skipping {0} {1} (nothing to update)"
-                       (:name model) (name-for-logging existing)))))
+        (log/info (trs "{0} already exists -- skipping"  (name-for-logging (name model) existing)))
+        (log/info (trs "Skipping {0} (nothing to update)" (name-for-logging (name model) existing)))))
     (doseq [[_ _ existing] update]
-      (log/info (trs "Updating {0} {1}" (:name model) (name-for-logging existing))))
+      (log/info (trs "Updating {0}" (name-for-logging (name model) existing))))
 
     (->> (concat (for [[position _ existing] skip]
                    [(u/get-id existing) position])
-                 (map vector (db/insert-many! model (map second insert)) (map first insert))
+                 (map vector (maybe-insert-many! model on-error (map second insert))
+                      (map first insert))
                  (for [[position entity existing] update]
                    (let [id (u/get-id existing)]
-                     (db/update! model id entity)
+                     (if (= on-error :abort)
+                       (db/update! model id entity)
+                       (with-error-handling
+                         (trs "Error updating {0}" (name-for-logging (name model) entity))
+                         (db/update! model id entity)))
                      [id position])))
          (sort-by second)
          (map first))))
