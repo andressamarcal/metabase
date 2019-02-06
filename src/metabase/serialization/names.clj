@@ -123,7 +123,7 @@
      (s/optional-key :segment)    s/Int
      (s/optional-key :card)       s/Int
      (s/optional-key :dashboard)  s/Int
-     (s/optional-key :collection) s/Int
+     (s/optional-key :collection) (s/maybe s/Int) ; root collection
      (s/optional-key :pulse)      s/Int
      (s/optional-key :user)       s/Int}
     (trs "Invalid context.

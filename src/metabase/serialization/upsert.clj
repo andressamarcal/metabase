@@ -66,12 +66,14 @@
   [model]
   (not= (find-protocol-method models/IModel :post-insert model) identity))
 
-(defmacro ^:private with-error-handling
+(defmacro with-error-handling
+  "Execute body and catch and log any exceptions doing so throws."
   [message & body]
-  `(try (do ~@body)
-        (catch Throwable _#
-          (log/error ~message)
-          nil)))
+  `(try
+     (do ~@body)
+     (catch Throwable e#
+       (log/error (u/format-color 'red "%s: %s" ~message (.getMessage e#)))
+       nil)))
 
 (defn- insert-many-individually!
   [model on-error entities]

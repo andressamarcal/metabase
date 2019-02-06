@@ -32,7 +32,7 @@
 (defn- test-fully-qualified-name-roundtrip
   [entity]
   (let [context (fully-qualified-name->context (fully-qualified-name entity))]
-    (= (u/get-id entity) ((some-fn :field :metric :segment :card :collection :table) context))))
+    (= (u/get-id entity) ((some-fn :field :metric :segment :card :dashboard :collection :table) context))))
 
 (expect
   (ts/with-world

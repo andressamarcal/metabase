@@ -33,7 +33,9 @@
             [metabase.serialization
              [names :refer [fully-qualified-name->context]]
              [upsert :refer [maybe-upsert-many!]]]
-            [metabase.util.i18n :refer [trs]]
+            [metabase.util
+             [date :as du]
+             [i18n :refer [trs]]]
             [toucan.db :as db]
             [yaml.core :as yaml]))
 
@@ -118,9 +120,8 @@
         (load path context Metric)
         (load path context Segment)))))
 
-(defn- fully-qualified-name->card-id
-  [fully-qualified-name]
-  (some->> fully-qualified-name fully-qualified-name->context :card))
+(def ^:private fully-qualified-name->card-id
+  (comp :card fully-qualified-name->context))
 
 (defmethod load Field
   [path context _]
@@ -130,6 +131,7 @@
                        (for [field fields]
                          (-> field
                              (update :parent_id (comp :field fully-qualified-name->context))
+                             (update :last_analyzed du/->Timestamp)
                              (update :fk_target_field_id (comp :field fully-qualified-name->context))
                              (dissoc :values)
                              (assoc :table_id (:table context)))))]
