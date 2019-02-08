@@ -96,6 +96,7 @@ type Props = {
   refreshElapsed: number,
   isFullscreen: boolean,
   isNightMode: boolean,
+  hideParameters: ?string,
 
   onRefreshPeriodChange: (?number) => void,
   onNightModeChange: boolean => void,
@@ -224,6 +225,7 @@ export default class Dashboard extends Component {
       location,
       isFullscreen,
       isNightMode,
+      hideParameters,
     } = this.props;
     let { error } = this.state;
     isNightMode = isNightMode && isFullscreen;
@@ -236,6 +238,7 @@ export default class Dashboard extends Component {
           isEditing={isEditing}
           isFullscreen={isFullscreen}
           isNightMode={isNightMode}
+          hideParameters={hideParameters}
           parameters={parameters.map(p => ({
             ...p,
             value: parameterValues[p.id],

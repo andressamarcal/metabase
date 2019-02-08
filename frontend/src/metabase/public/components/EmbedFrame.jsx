@@ -65,7 +65,7 @@ export default class EmbedFrame extends Component {
       !MetabaseSettings.hasPremiumFeature("embedding") ||
       (actionButtons && actionButtons.length !== 0);
 
-    const { bordered, titled, theme } = {
+    const { bordered, titled, theme, hide_parameters } = {
       ...DEFAULT_OPTIONS,
       ...parseHashOptions(location.hash),
     };
@@ -98,6 +98,7 @@ export default class EmbedFrame extends Component {
                     query={location.query}
                     setParameterValue={setParameterValue}
                     syncQueryString
+                    hideParameters={hide_parameters}
                     isQB
                   />
                 </div>
