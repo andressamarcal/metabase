@@ -290,7 +290,7 @@ const QuestionTargetPicker = ({ value, onChange, questionId }) => (
 const rawDataQuestionForTable = tableId => ({
   dataset_query: {
     type: "query",
-    query: { source_table: tableId },
+    query: { "source-table": tableId },
   },
 });
 
