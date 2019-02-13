@@ -115,17 +115,17 @@
 ;; All the references in the dumps should resolved to entities already loaded.
 (def ^:private Context
   (su/with-api-error-message
-    {(s/optional-key :database)   s/Int
-     (s/optional-key :table)      s/Int
+    {(s/optional-key :database)   su/IntGreaterThanZero
+     (s/optional-key :table)      su/IntGreaterThanZero
      (s/optional-key :schema)     s/Str
-     (s/optional-key :field)      s/Int
-     (s/optional-key :metric)     s/Int
-     (s/optional-key :segment)    s/Int
-     (s/optional-key :card)       s/Int
-     (s/optional-key :dashboard)  s/Int
-     (s/optional-key :collection) (s/maybe s/Int) ; root collection
-     (s/optional-key :pulse)      s/Int
-     (s/optional-key :user)       s/Int}
+     (s/optional-key :field)      su/IntGreaterThanZero
+     (s/optional-key :metric)     su/IntGreaterThanZero
+     (s/optional-key :segment)    su/IntGreaterThanZero
+     (s/optional-key :card)       su/IntGreaterThanZero
+     (s/optional-key :dashboard)  su/IntGreaterThanZero
+     (s/optional-key :collection) (s/maybe su/IntGreaterThanZero) ; root collection
+     (s/optional-key :pulse)      su/IntGreaterThanZero
+     (s/optional-key :user)       su/IntGreaterThanZero}
     (trs "Invalid context.
 
 Some of the path components did not map to existing entities.")))

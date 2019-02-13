@@ -11,9 +11,7 @@
              [segment :refer [Segment]]
              [table :refer [Table]]]
             [metabase.serialization.serialize :as serialize :refer :all]
-            [metabase.test
-             [data :as data]
-             [serialization :as ts]]))
+            [metabase.test.serialization :as ts]))
 
 (defn- all-ids-are-fully-qualified-names?
   [m]
@@ -58,10 +56,13 @@
     (test-serialization (Dashboard dashboard-id))))
 
 (expect
-  (test-serialization (Table (data/id :venues))))
+  (ts/with-world
+    (test-serialization (Table table-id))))
 
 (expect
-  (test-serialization (Field (data/id :venues :category_id))))
+  (ts/with-world
+    (test-serialization (Field numeric-field-id))))
 
 (expect
-  (test-serialization (Database (data/id))))
+  (ts/with-world
+    (test-serialization (Database db-id))))
