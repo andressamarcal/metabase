@@ -9,9 +9,7 @@
              [segment :refer [Segment]]
              [table :refer [Table]]]
             [metabase.serialization.names :as names :refer :all]
-            [metabase.test
-             [data :as data]
-             [serialization :as ts]]
+            [metabase.test.serialization :as ts]
             [metabase.util :as u]))
 
 (expect
@@ -27,7 +25,6 @@
 (expect
   (let [n "foo/bar"]
     (= (-> {:name n} safe-name unescape-name (= n)))))
-
 
 (defn- test-fully-qualified-name-roundtrip
   [entity]
@@ -45,13 +42,12 @@
     (test-fully-qualified-name-roundtrip (Card card-id-nested))))
 
 (expect
-  (test-fully-qualified-name-roundtrip (Table (data/id :venues))))
+  (ts/with-world
+    (test-fully-qualified-name-roundtrip (Table table-id))))
 
 (expect
-  (test-fully-qualified-name-roundtrip (Field (data/id :venues :category_id))))
-
-(expect
-  (test-fully-qualified-name-roundtrip (Table (data/id :venues))))
+  (ts/with-world
+    (test-fully-qualified-name-roundtrip (Field category-field-id))))
 
 (expect
   (ts/with-world
