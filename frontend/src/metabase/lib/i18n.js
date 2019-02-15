@@ -1,5 +1,6 @@
 import { addLocale, useLocale } from "c-3po";
 import MetabaseSettings from "metabase/lib/settings";
+import moment from "moment";
 
 // NOTE: loadLocalization not currently used, and we need to be sure to set the
 // initial localization before loading any files, so don't load metabase/services
@@ -29,6 +30,8 @@ export function setLocalization(translationsObject) {
   // add and set locale with C-3PO
   addLocale(locale, translationsObject);
   useLocale(locale);
+
+  moment.locale(locale);
 }
 
 // we delete msgid property since it's redundant, but have to add it back in to
