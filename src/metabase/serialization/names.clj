@@ -14,7 +14,7 @@
              [user :refer [User]]]
             [metabase.query-processor.util :as qp.util]
             [metabase.util
-             [i18n :refer [trs]]
+             [i18n :as i18n :refer [trs]]
              [schema :as su]]
             [schema.core :as s]
             [toucan.db :as db]))
@@ -57,7 +57,9 @@
 
 (defmethod fully-qualified-name* (type Field)
   [field]
-  (str (->> field :table_id (fully-qualified-name Table)) "/fields/" (safe-name field)))
+  (if (:fk_target_field_id field)
+    (str (->> field :table_id (fully-qualified-name Table)) "/fks/" (safe-name field))
+    (str (->> field :table_id (fully-qualified-name Table)) "/fields/" (safe-name field))))
 
 (defmethod fully-qualified-name* (type Metric)
   [metric]
@@ -114,21 +116,17 @@
 
 ;; All the references in the dumps should resolved to entities already loaded.
 (def ^:private Context
-  (su/with-api-error-message
-    {(s/optional-key :database)   su/IntGreaterThanZero
-     (s/optional-key :table)      su/IntGreaterThanZero
-     (s/optional-key :schema)     s/Str
-     (s/optional-key :field)      su/IntGreaterThanZero
-     (s/optional-key :metric)     su/IntGreaterThanZero
-     (s/optional-key :segment)    su/IntGreaterThanZero
-     (s/optional-key :card)       su/IntGreaterThanZero
-     (s/optional-key :dashboard)  su/IntGreaterThanZero
-     (s/optional-key :collection) (s/maybe su/IntGreaterThanZero) ; root collection
-     (s/optional-key :pulse)      su/IntGreaterThanZero
-     (s/optional-key :user)       su/IntGreaterThanZero}
-    (trs "Invalid context.
-
-Some of the path components did not map to existing entities.")))
+  {(s/optional-key :database)   su/IntGreaterThanZero
+   (s/optional-key :table)      su/IntGreaterThanZero
+   (s/optional-key :schema)     s/Str
+   (s/optional-key :field)      su/IntGreaterThanZero
+   (s/optional-key :metric)     su/IntGreaterThanZero
+   (s/optional-key :segment)    su/IntGreaterThanZero
+   (s/optional-key :card)       su/IntGreaterThanZero
+   (s/optional-key :dashboard)  su/IntGreaterThanZero
+   (s/optional-key :collection) (s/maybe su/IntGreaterThanZero) ; root collection
+   (s/optional-key :pulse)      su/IntGreaterThanZero
+   (s/optional-key :user)       su/IntGreaterThanZero})
 
 (defmulti ^:private path->context* (fn [_ model _]
                                      model))
@@ -159,6 +157,10 @@ Some of the path components did not map to existing entities.")))
   (assoc context :field (db/select-one-id Field
                           :table_id (:table context)
                           :name     field-name)))
+
+(defmethod path->context* "fks"
+  [context _ field-name]
+  (path->context* context "fields" field-name))
 
 (defmethod path->context* "metrics"
   [context _ metric-name]
@@ -210,16 +212,29 @@ Some of the path components did not map to existing entities.")))
 
 (def ^:private separator-pattern (re-pattern java.io.File/separator))
 
-(s/defn fully-qualified-name->context :- (s/maybe Context)
+(defn fully-qualified-name->context
   "Parse a logcial path into a context map."
-  [fully-qualified-name :- (s/maybe s/Str)]
+  [fully-qualified-name]
   (when fully-qualified-name
-    (->> (str/split fully-qualified-name separator-pattern)
-         rest ; we start with a /
-         (partition 2)
-         (reduce (fn [context [model entity-name]]
-                   (path->context context model (unescape-name entity-name)))
-                 {}))))
+    (let [context (->> (str/split fully-qualified-name separator-pattern)
+                       rest ; we start with a /
+                       (partition 2)
+                       (reduce (fn [context [model entity-name]]
+                                 (path->context context model (unescape-name entity-name)))
+                               {}))]
+      (try
+        (s/validate (s/maybe Context) context)
+        (catch Exception e
+          (i18n/ex-info (trs "Can''t resolve {0} in fully qualified name {1}"
+                             (str/join ", " (map name (keys (:value (ex-data e)))))
+                             fully-qualified-name)
+            {:fully-qualified-name fully-qualified-name
+             :context              context}))))))
+
+(defn terminal-dir
+  "Return the last path component (presumably a dir)"
+  [path]
+  (last (str/split path separator-pattern)))
 
 (defn name-for-logging
   "Return a string representation of entity suitable for logs"

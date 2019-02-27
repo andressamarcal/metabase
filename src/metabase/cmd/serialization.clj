@@ -49,9 +49,9 @@
                        context)]
     (try
       (do
-        (load/load path context User)
-        (load/load path context Database)
-        (load/load path context Collection)
+        (load/load (str path "/users") context)
+        (load/load (str path "/databases") context)
+        (load/load (str path "/collections") context)
         (load/load-settings path context)
         (load/load-dependencies path context))
       (catch Throwable e
