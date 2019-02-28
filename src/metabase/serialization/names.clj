@@ -118,7 +118,7 @@
 (def ^:private Context
   {(s/optional-key :database)   su/IntGreaterThanZero
    (s/optional-key :table)      su/IntGreaterThanZero
-   (s/optional-key :schema)     s/Str
+   (s/optional-key :schema)     (s/maybe s/Str)
    (s/optional-key :field)      su/IntGreaterThanZero
    (s/optional-key :metric)     su/IntGreaterThanZero
    (s/optional-key :segment)    su/IntGreaterThanZero
