@@ -19,8 +19,7 @@
   [& body]
   `(tt/with-temp* [Database   [{~'db-id :id} (into {} (-> (data/id)
                                                           Database
-                                                          (dissoc :id :features)
-                                                          (assoc :name (str (gensym "test-data-")))))]
+                                                          (dissoc :id :features :name)))]
                    Table      [{~'table-id :id} (-> (data/id :venues)
                                                     Table
                                                     (dissoc :id)

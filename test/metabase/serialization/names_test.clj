@@ -4,6 +4,7 @@
              [card :refer [Card]]
              [collection :refer [Collection]]
              [dashboard :refer [Dashboard]]
+             [database :refer [Database]]
              [field :refer [Field]]
              [metric :refer [Metric]]
              [segment :refer [Segment]]
@@ -29,7 +30,7 @@
 (defn- test-fully-qualified-name-roundtrip
   [entity]
   (let [context (fully-qualified-name->context (fully-qualified-name entity))]
-    (= (u/get-id entity) ((some-fn :field :metric :segment :card :dashboard :collection :table) context))))
+    (= (u/get-id entity) ((some-fn :field :metric :segment :card :dashboard :collection :table :database) context))))
 
 (expect
   (ts/with-world
@@ -67,3 +68,7 @@
 (expect
   (ts/with-world
     (test-fully-qualified-name-roundtrip (Dashboard dashboard-id))))
+
+(expect
+  (ts/with-world
+    (test-fully-qualified-name-roundtrip (Database db-id))))

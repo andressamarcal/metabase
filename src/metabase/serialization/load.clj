@@ -73,13 +73,18 @@
                                (assert user (trs "No admin users found! At least one admin user is needed to act as the owner for all the loaded entities."))
                                user)))
 
+(defn- terminal-dir
+  "Return the last path component (presumably a dir)"
+  [path]
+  (.getName (clojure.java.io/file path)))
+
 (defmulti load
   "Load an entity of type `model` stored at `path` in the context `context`.
 
    Passing in parent entities as context instead of decoding them from the path each time,
    saves a lot of queriying."
-  (fn [_ _ model]
-    model))
+  (fn [path _]
+    (terminal-dir path)))
 
 (defn- load-dimensions
   [path context]
@@ -89,43 +94,43 @@
           (update :human_readable_field_id (comp :field fully-qualified-name->context))
           (update :field_id (comp :field fully-qualified-name->context))))))
 
-(defmethod load Database
-  [path context _]
-  (let [context (assoc context :prefix path)]
-    (doseq [path (list-dirs (str path "/databases"))]
-      ;; If we failed to load the DB no use in trying to load its tables
-      (when (first (maybe-upsert-many! context Database (slurp-dir path)))
-        (doseq [path (conj (list-dirs (str path "/schemas")) path)]
-          (load path context Table)
-          (load-dimensions path context))))))
+(defmethod load "databases"
+  [path context]
+  (doseq [path (list-dirs path)]
+    ;; If we failed to load the DB no use in trying to load its tables
+    (when-let [db (first (maybe-upsert-many! context Database (slurp-dir path)))]
+      (doseq [inner-path (conj (list-dirs (str path "/schemas")) path)
+              :let [context (merge context {:database db
+                                            :schema   (when (not= inner-path path)
+                                                        (terminal-dir path))})]]
+        (load (str inner-path "/tables") context)
+        (load-dimensions inner-path context)))))
 
-(defn- path->fully-qualified-name
-  [prefix path]
-  (subs path (count prefix) (count path)))
-
-(defmethod load Table
-  [path context _]
-  (let [context   (->> path
-                       (path->fully-qualified-name (:prefix context))
-                       fully-qualified-name->context
-                       (merge context))
-        paths     (list-dirs (str path "/tables"))
+(defmethod load "tables"
+  [path context]
+  (let [paths     (list-dirs path)
         table-ids (maybe-upsert-many! context Table
                     (for [table (slurp-many paths)]
                       (assoc table :db_id (:database context))))]
+    ;; First load fields ...
     (doseq [[path table-id] (map vector paths table-ids)
             :when table-id]
       (let [context (assoc context :table table-id)]
-        (load path context Field)
-        (load path context Metric)
-        (load path context Segment)))))
+        (load (str path "/fields") context)))
+    ;; ... then everything else so we don't have issues with cross-table referencess
+    (doseq [[path table-id] (map vector paths table-ids)
+            :when table-id]
+      (let [context (assoc context :table table-id)]
+        (load (str path "/fks") context)
+        (load (str path "/metrics") context)
+        (load (str path "/segments") context)))))
 
 (def ^:private fully-qualified-name->card-id
   (comp :card fully-qualified-name->context))
 
-(defmethod load Field
-  [path context _]
-  (let [fields       (slurp-dir (str path "/fields"))
+(defn- load-fields
+  [path context]
+  (let [fields       (slurp-dir path)
         field-values (map :values fields)
         field-ids    (maybe-upsert-many! context Field
                        (for [field fields]
@@ -140,20 +145,28 @@
             :when field-id]
         (assoc field-value :field_id field-id)))))
 
-(defmethod load Metric
-  [path context _]
+(defmethod load "fields"
+  [path context]
+  (load-fields path context))
+
+(defmethod load "fks"
+  [path context]
+  (load-fields path context))
+
+(defmethod load "metrics"
+  [path context]
   (maybe-upsert-many! context Metric
-    (for [metric (slurp-dir (str path "/metrics"))]
+    (for [metric (slurp-dir path)]
       (-> metric
           (assoc :table_id   (:table context)
                  :creator_id @default-user)
           (assoc-in [:definition :source-table] (:table context))
           (update :definition mbql-fully-qualified-names->ids)))))
 
-(defmethod load Segment
-  [path context _]
+(defmethod load "segments"
+  [path context]
   (maybe-upsert-many! context Segment
-    (for [metric (slurp-dir (str path "/segments"))]
+    (for [metric (slurp-dir path)]
       (-> metric
           (assoc :table_id   (:table context)
                  :creator_id @default-user)
@@ -167,9 +180,9 @@
         (update :card_id fully-qualified-name->card-id)
         (update :target mbql-fully-qualified-names->ids))))
 
-(defmethod load Dashboard
-  [path context _]
-  (let [dashboards         (slurp-dir (str path "/dashboards"))
+(defmethod load "dashboards"
+  [path context]
+  (let [dashboards         (slurp-dir path)
         dashboard-ids      (maybe-upsert-many! context Dashboard
                              (for [dashboard dashboards]
                                (-> dashboard
@@ -195,9 +208,9 @@
             (assoc :dashboardcard_id dashboard-card-id)
             (update :card_id fully-qualified-name->card-id))))))
 
-(defmethod load Pulse
-  [path context _]
-  (let [pulses    (slurp-dir (str path "/pulses"))
+(defmethod load "pulses"
+  [path context]
+  (let [pulses    (slurp-dir path)
         cards     (map :cards pulses)
         channels  (map :channels pulses)
         pulse-ids (maybe-upsert-many! context Pulse
@@ -226,9 +239,9 @@
       (str "card__" card)
       table)))
 
-(defmethod load Card
-  [path context _]
-  (let [paths    (list-dirs (str path "/cards"))]
+(defmethod load "cards"
+  [path context]
+  (let [paths (list-dirs path)]
     (maybe-upsert-many! context Card
       (for [card (slurp-many paths)]
         (-> card
@@ -246,13 +259,13 @@
                     (= :query)) (update-in [:dataset_query :query :source-table] source-table)))))
     ;; Nested cards
     (doseq [path paths]
-      (load path context Card))))
+      (load (str path "/cards") context))))
 
-(defmethod load User
-  [path context _]
+(defmethod load "users"
+  [path context]
   ;; Currently we only serialize the new owner user, so it's fine to ignore mode setting
   (maybe-upsert-many! context User
-    (for [user (slurp-dir (str path "/users"))]
+    (for [user (slurp-dir path)]
       (assoc user :password "changeme"))))
 
 (defn- derive-location
@@ -261,19 +274,19 @@
     (str (-> parent-id Collection :location) parent-id "/")
     "/"))
 
-(defmethod load Collection
-  [path context _]
-  (doseq [path (list-dirs (str path "/collections"))]
+(defmethod load "collections"
+  [path context]
+  (doseq [path (list-dirs path)]
     (let [context (assoc context
                     :collection (->> (slurp-dir path)
                                      (map (fn [collection]
                                             (assoc collection :location (derive-location context))))
                                      (maybe-upsert-many! context Collection)
                                      first))]
-      (load path context Collection)
-      (load path context Card)
-      (load path context Pulse)
-      (load path context Dashboard))))
+      (load (str path "/collections") context)
+      (load (str path "/cards") context)
+      (load (str path "/pulses") context)
+      (load (str path "/dashboards") context))))
 
 (defn load-settings
   "Load a dump of settings."
