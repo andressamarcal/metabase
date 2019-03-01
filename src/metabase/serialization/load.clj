@@ -260,7 +260,7 @@
   [path context]
   ;; Currently we only serialize the new owner user, so it's fine to ignore mode setting
   (maybe-upsert-many! context User
-    (for [user (slurp-dir (str path "/users"))]
+    (for [user (slurp-dir path)]
       (assoc user :password "changeme"))))
 
 (defn- derive-location
