@@ -63,7 +63,7 @@
                          [Collection (Collection collection-id)]
                          [Collection (Collection collection-id-nested)]
                          [Metric (Metric metric-id)]
-                         [Segment (Metric segment-id)]
+                         [Segment (Segment segment-id)]
                          [Dashboard (Dashboard dashboard-id)]
                          [Card (Card card-id)]
                          [Card (Card card-id-root)]
@@ -71,11 +71,6 @@
                          [DashboardCard (DashboardCard dashcard-id)]])]
       (with-world-cleanup
         (load dump-dir {:on-error :abort :mode :skip})
-        (println (remove (fn [[model entity]]
-                           (and entity
-                                (or (-> entity :name nil?)
-                                    (db/select model :name (:name entity)))))
-                         fingerprint))
         (every? (fn [[model entity]]
                   (and entity
                        (or (-> entity :name nil?)
