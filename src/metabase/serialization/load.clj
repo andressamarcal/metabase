@@ -31,7 +31,7 @@
              [user :refer [User]]]
             [metabase.query-processor.util :as qp.util]
             [metabase.serialization
-             [names :refer [fully-qualified-name->context terminal-dir]]
+             [names :refer [fully-qualified-name->context]]
              [upsert :refer [maybe-upsert-many!]]]
             [metabase.util
              [date :as du]
@@ -72,6 +72,11 @@
                              (let [user (db/select-one-id User :is_superuser true)]
                                (assert user (trs "No admin users found! At least one admin user is needed to act as the owner for all the loaded entities."))
                                user)))
+
+(defn- terminal-dir
+  "Return the last path component (presumably a dir)"
+  [path]
+  (.getName (clojure.java.io/file path)))
 
 (defmulti load
   "Load an entity of type `model` stored at `path` in the context `context`.

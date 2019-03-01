@@ -210,7 +210,7 @@
   (assoc context :user (db/select-one-id User
                          :email email)))
 
-(def ^:private separator-pattern (re-pattern java.io.File/separator))
+(def ^:private separator-pattern #"\/")
 
 (defn fully-qualified-name->context
   "Parse a logcial path into a context map."
@@ -230,11 +230,6 @@
                              fully-qualified-name)
             {:fully-qualified-name fully-qualified-name
              :context              context}))))))
-
-(defn terminal-dir
-  "Return the last path component (presumably a dir)"
-  [path]
-  (last (str/split path separator-pattern)))
 
 (defn name-for-logging
   "Return a string representation of entity suitable for logs"
