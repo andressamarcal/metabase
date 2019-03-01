@@ -320,12 +320,25 @@ export function shouldOpenInBlankWindow(
     (event && event.metaKey != null ? event.metaKey : metaKey)
   ) {
     return true;
-  } else if (blankOnDifferentOrigin) {
-    const a = document.createElement("a");
-    a.href = url;
-    return a.origin !== window.location.origin;
+  } else if (blankOnDifferentOrigin && !isSameOrigin(url)) {
+    return true;
   }
   return false;
+}
+
+const a = document.createElement("a"); // reuse the same tag for performance
+export function isSameOrigin(url) {
+  a.href = url;
+  return a.origin === window.location.origin;
+}
+
+export function getUrlTarget(url) {
+  if (IFRAMED) {
+    return isSameOrigin(url) ? "_self" : "_top";
+  } else {
+    // if not iframed then _top and _self are equivalent so don't bother checking origin
+    return "_top";
+  }
 }
 
 export function removeAllChildren(element) {
