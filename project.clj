@@ -188,7 +188,7 @@
 
    :with-include-drivers-middleware
    {:plugins
-    [[metabase/lein-include-drivers "1.0.4"]]
+    [[metabase/lein-include-drivers "1.0.5"]]
 
     :middleware
     [leiningen.include-drivers/middleware]}
