@@ -36,8 +36,8 @@
 
 (defn- world-snapshot
   []
-  (into {} (for [model [Database Table Field Metric Segment Collection Dashboard DashboardCard
-                        Card DashboardCardSeries FieldValues Dimension Dependency PulseCard PulseChannel]]
+  (into {} (for [model [Database Table Field Metric Segment Collection Dashboard DashboardCard Pulse
+                        Card DashboardCardSeries FieldValues Dimension Dependency PulseCard PulseChannel User]]
              [model (db/select-field :id model)])))
 
 (defmacro with-world-cleanup
@@ -71,10 +71,15 @@
                          [DashboardCard (DashboardCard dashcard-id)]])]
       (with-world-cleanup
         (load dump-dir {:on-error :abort :mode :skip})
+        (println (remove (fn [[model entity]]
+                           (and entity
+                                (or (-> entity :name nil?)
+                                    (db/select model :name (:name entity)))))
+                         fingerprint))
         (every? (fn [[model entity]]
-                        (and entity
-                             (or (-> entity :name nil?)
-                                 (db/select model :name (:name entity)))))
-                      fingerprint)))
+                  (and entity
+                       (or (-> entity :name nil?)
+                           (db/select model :name (:name entity)))))
+                fingerprint)))
     (finally
       (delete-directory dump-dir))))

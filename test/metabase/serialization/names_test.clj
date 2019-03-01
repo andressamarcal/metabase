@@ -4,6 +4,7 @@
              [card :refer [Card]]
              [collection :refer [Collection]]
              [dashboard :refer [Dashboard]]
+             [database :refer [Database]]
              [field :refer [Field]]
              [metric :refer [Metric]]
              [segment :refer [Segment]]
@@ -67,3 +68,7 @@
 (expect
   (ts/with-world
     (test-fully-qualified-name-roundtrip (Dashboard dashboard-id))))
+
+(expect
+  (ts/with-world
+    (test-fully-qualified-name-roundtrip (Database db-id))))
