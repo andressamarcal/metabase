@@ -72,9 +72,8 @@
       (with-world-cleanup
         (load dump-dir {:on-error :abort :mode :skip})
         (every? (fn [[model entity]]
-                  (and entity
-                       (or (-> entity :name nil?)
-                           (db/select model :name (:name entity)))))
+                  (or (-> entity :name nil?)
+                      (db/select-one model :name (:name entity))))
                 fingerprint)))
     (finally
       (delete-directory dump-dir))))
