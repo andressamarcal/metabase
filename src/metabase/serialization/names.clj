@@ -16,18 +16,18 @@
             [metabase.util
              [i18n :as i18n :refer [trs]]
              [schema :as su]]
+            [ring.util.codec :as codec]
             [schema.core :as s]
             [toucan.db :as db]))
 
 (defn safe-name
-  "Return entity name with forward slashes replaced by unicode char `FRACTION SLASH`."
+  "Return entity name URL encoded except that spaces are retained."
   [entity]
-  (-> entity ((some-fn :email :name)) (str/escape {\/ "⁄"})))
+  (some-> entity ((some-fn :email :name)) codec/url-encode (str/replace "%20" " ")))
 
-(defn unescape-name
-  "Inverse of `safe-name`. Replaces `FRACTION SLASH` back to forward slash."
-  [entity-name]
-  (str/replace entity-name \⁄ \/))
+(def unescape-name
+  "Inverse of `safe-name`."
+  codec/url-decode)
 
 (defmulti ^:private fully-qualified-name* type)
 

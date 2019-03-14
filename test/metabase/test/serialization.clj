@@ -57,7 +57,8 @@
                                                         :breakout [[:field-id ~'category-field-id]]}}}]
                    Card       [{~'card-id-root :id}
                                {:table_id ~'table-id
-                                :name "My Root Card"
+                                ;; https://en.wikipedia.org/wiki/Filename#Reserved_characters_and_words
+                                :name "My Root Card \\ with a/nasty: (*) //n`me ' * ? \" < > | ŠĐž"
                                 :dataset_query {:type :query
                                                 :database ~'db-id
                                                 :query {:source-table ~'table-id}}}]

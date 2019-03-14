@@ -16,15 +16,15 @@
 (expect
   (= (safe-name {:name "foo"}) "foo"))
 (expect
-  (= (safe-name {:name "foo/bar"}) "foo⁄bar"))
+  (= (safe-name {:name "foo/bar baz"}) "foo%2Fbar baz"))
 
 (expect
   (= (unescape-name "foo") "foo"))
 (expect
-  (= (unescape-name "foo⁄bar") "foo/bar"))
+  (= (unescape-name "foo%2Fbar baz") "foo/bar baz"))
 
 (expect
-  (let [n "foo/bar"]
+  (let [n "foo/bar baz"]
     (= (-> {:name n} safe-name unescape-name (= n)))))
 
 (defn- test-fully-qualified-name-roundtrip
