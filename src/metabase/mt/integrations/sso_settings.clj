@@ -2,11 +2,14 @@
   "Namesapce for defining settings used by the SSO backends. This is separate as both the functions needed to support
   the SSO backends and the generic routing code used to determine which SSO backend to use need this
   information. Separating out this information creates a better dependency graph and avoids circular dependencies."
-  (:require [metabase.models.setting :as setting :refer [defsetting]]
+  (:require [clojure.string :as str]
+            [clojure.tools.logging :as log]
+            [metabase.models.setting :as setting :refer [defsetting]]
             [metabase.util :as u]
             [metabase.util
-             [i18n :refer [tru]]
+             [i18n :refer [trs tru]]
              [schema :as su]]
+            [saml20-clj.shared :as saml20.shared]
             [schema.core :as s]))
 
 (def ^:private GroupMappings
@@ -23,8 +26,27 @@
 (defsetting saml-identity-provider-uri
   (tru "This is a URI if of the SAML Identity Provider (where the user would login)"))
 
+(defn- validate-saml-idp-cert
+  "Validate that an encoded identity provider certificate is valid, or throw an Exception."
+  [idp-cert-str]
+  (assert (string? idp-cert-str))
+  (try
+    (-> idp-cert-str saml20.shared/certificate-x509 saml20.shared/jcert->public-key)
+    (catch Throwable e
+      (log/error e (trs "Error parsing SAML identity provider certificate"))
+      (throw
+       (Exception. (str/join
+                    " "
+                    [(tru "Invalid identity provider certificate. Certificate should be a base-64 encoded string.")
+                     (tru "Do NOT include ASCII armor lines like `-----BEGIN CERTIFICATE-----`.")]))))))
+
 (defsetting saml-identity-provider-certificate
-  (tru "Encoded certificate for the identity provider"))
+  (tru "Encoded certificate for the identity provider")
+  :setter (fn [new-value]
+            ;; when setting the idp cert validate that it's something we
+            (when new-value
+              (validate-saml-idp-cert new-value))
+            (setting/set-string! :saml-identity-provider-certificate new-value)))
 
 (defsetting saml-application-name
   (tru "This application name will be used for requests to the Identity Provider")
