@@ -1,7 +1,12 @@
 (ns metabase.mt.integrations.saml
   "Implementation of the SAML backend for SSO"
   (:require [clojure.string :as str]
+            [clojure.tools.logging :as log]
             [medley.core :as m]
+            [metabase
+             [middleware :as middleware]
+             [public-settings :as public-settings]
+             [util :as u]]
             [metabase.api
              [common :as api]
              [session :as session]]
@@ -10,8 +15,7 @@
             [metabase.mt.integrations
              [sso-settings :as sso-settings]
              [sso-utils :as sso-utils]]
-            [metabase.public-settings :as public-settings]
-            [puppetlabs.i18n.core :refer [tru]]
+            [puppetlabs.i18n.core :refer [trs tru]]
             [ring.util.response :as resp]
             [saml20-clj
              [routes :as saml-routes]
@@ -96,7 +100,7 @@
           "?")
         (let [saml-request (saml-shared/str->deflate->base64 saml-request)]
           (saml-shared/uri-query-str
-           {:SAMLRequest saml-request :RelayState relay-state})))))
+           {:SAMLRequest saml-request, :RelayState relay-state})))))
 
 (defn- check-saml-enabled []
   (api/check (sso-settings/saml-configured?)
@@ -119,6 +123,27 @@
         hmac-relay-state            (encrypt-redirect-str redirect)]
     (get-idp-redirect idp-uri saml-request hmac-relay-state)))
 
+(defn- decrypt-relay-state
+  "Decrypt `:RelayState` parameter if possible. Returns continue URL."
+  [relay-state]
+  (let [secret-key-spec                   (get-in @saml-state [:mutables :secret-key-spec])
+        [valid-relay-state? continue-url] (saml-routes/valid-hmac-relay-state? secret-key-spec relay-state)]
+    (when-not valid-relay-state?
+      (log/error (trs "Unable to log in: RelayState is invalid. RelayState: {0}" (u/pprint-to-str 'red relay-state)))
+      (throw (ex-info (str (tru "Unable to log in: RelayState is invalid."))
+               {:status-code 500})))
+    continue-url))
+
+(defn- validate-signature [saml-response]
+  (when-let [idp-cert (sso-settings/saml-identity-provider-certificate)]
+    (when-not (saml-sp/validate-saml-response-signature saml-response idp-cert)
+      (throw (ex-info (str (tru "Unable to log in: SAML response signature is invalid."))
+               {:status-code 500})))))
+
+(defn- xml-string->saml-response [xml-string]
+  (u/prog1 (saml-sp/xml-string->saml-resp xml-string)
+    (validate-signature <>)))
+
 (defn- unwrap-user-attributes
   "For some reason all of the user attributes coming back from the saml library are wrapped in a list, instead of 'Ryan',
   it's ('Ryan'). This function discards the list if there's just a single item in it."
@@ -130,34 +155,32 @@
                   maybe-coll))
               m))
 
-(defn- decrypt-relay-state [relay-state]
-  (-> @saml-state
-      (get-in [:mutables :secret-key-spec])
-      (saml-routes/valid-hmac-relay-state? relay-state)))
+(defn- saml-response->attributes [saml-response]
+  (let [{:keys [decrypter]} @saml-state
+        saml-info           (saml-sp/saml-resp->assertions saml-response decrypter)
+        attrs               (-> saml-info :assertions first :attrs unwrap-user-attributes)]
+    (when-not attrs
+      (throw (ex-info (str (tru "Unable to log in: SAML info does not contain user attributes."))
+               {:status-code 500})))
+    attrs))
 
 (defmethod sso/sso-post :saml
   ;; Does the verification of the IDP's response and 'logs the user in'. The attributes are available in the response:
   ;; `(get-in saml-info [:assertions :attrs])
-  [{params :params session :session}]
+  [{:keys [params], :as request}]
   (check-saml-enabled)
-  (let [{:keys [decrypter]}               @saml-state
-        idp-cert                          (sso-settings/saml-identity-provider-certificate)
-        xml-string                        (saml-shared/base64->inflate->str (:SAMLResponse params))
-        [valid-relay-state? continue-url] (decrypt-relay-state (:RelayState params))
-        saml-resp                         (saml-sp/xml-string->saml-resp xml-string)
-        valid-signature?                  (if idp-cert
-                                            (saml-sp/validate-saml-response-signature saml-resp idp-cert)
-                                            false)
-        valid?                            (and valid-relay-state? valid-signature?)
-        saml-info                         (when valid? (saml-sp/saml-resp->assertions saml-resp decrypter))]
-    (if-let [attrs (and valid? (-> saml-info :assertions first :attrs unwrap-user-attributes))]
-      (let [email               (get attrs (sso-settings/saml-attribute-email))
-            first-name          (get attrs (sso-settings/saml-attribute-firstname) "Unknown")
-            last-name           (get attrs (sso-settings/saml-attribute-lastname) "Unknown")
-            groups              (get attrs (sso-settings/saml-attribute-group))
-            {session-token :id} (saml-auth-fetch-or-create-user! first-name last-name email groups attrs)]
-        (resp/set-cookie (resp/redirect continue-url)
-                         "metabase.SESSION_ID" session-token
-                         {:path "/"}))
-      {:status 500
-       :body   "The SAML response from IdP does not validate!"})))
+  (let [continue-url        (u/ignore-exceptions (decrypt-relay-state (:RelayState params)))
+        xml-string          (saml-shared/base64->inflate->str (:SAMLResponse params))
+        saml-response       (xml-string->saml-response xml-string)
+        attrs               (saml-response->attributes saml-response)
+        email               (get attrs (sso-settings/saml-attribute-email))
+        first-name          (get attrs (sso-settings/saml-attribute-firstname) "Unknown")
+        last-name           (get attrs (sso-settings/saml-attribute-lastname) "Unknown")
+        groups              (get attrs (sso-settings/saml-attribute-group))
+        {session-token :id} (saml-auth-fetch-or-create-user! first-name last-name email groups attrs)]
+    ;; TODO - use the new cookie response stuff in the session middleware once 32.0+ is merged in
+    (resp/set-cookie
+     (resp/redirect (or continue-url "http://localhost:3000/"))
+     @#'middleware/metabase-session-cookie
+     session-token
+     {:path "/"})))
