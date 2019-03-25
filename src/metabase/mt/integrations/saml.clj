@@ -20,7 +20,8 @@
             [saml20-clj
              [routes :as saml-routes]
              [shared :as saml-shared]
-             [sp :as saml-sp]]))
+             [sp :as saml-sp]]
+            [schema.core :as s]))
 
 (defn- group-names->ids [group-names]
   (set (mapcat (sso-settings/saml-group-mappings)
@@ -123,19 +124,23 @@
         hmac-relay-state            (encrypt-redirect-str redirect)]
     (get-idp-redirect idp-uri saml-request hmac-relay-state)))
 
-(defn- decrypt-relay-state
-  "Decrypt `:RelayState` parameter if possible. Returns continue URL."
+(s/defn ^:private decrypt-relay-state :- (s/maybe s/Str)
+  "Decrypt `:RelayState` parameter if possible. RelayState is the redirect URL set by the Metabase application if the
+  user started the login process via Metabase. This will return `nil` for cases where its not set, such as clicking a
+  3rd-party login link."
   [relay-state]
-  (let [secret-key-spec                   (get-in @saml-state [:mutables :secret-key-spec])
-        [valid-relay-state? continue-url] (saml-routes/valid-hmac-relay-state? secret-key-spec relay-state)]
-    (when-not valid-relay-state?
-      (log/error (trs "Unable to log in: RelayState is invalid. RelayState: {0}" (u/pprint-to-str 'red relay-state)))
-      (throw (ex-info (str (tru "Unable to log in: RelayState is invalid."))
-               {:status-code 500})))
-    continue-url))
+  (when relay-state
+    (let [secret-key-spec                   (get-in @saml-state [:mutables :secret-key-spec])
+          [valid-relay-state? continue-url] (saml-routes/valid-hmac-relay-state? secret-key-spec relay-state)]
+      (if valid-relay-state?
+        continue-url
+        (log/warn (trs "RelayState is invalid. Don't know where to redirect to after log in. RelayState: {0}"
+                       (u/pprint-to-str 'red relay-state)))))))
 
 (defn- validate-signature [saml-response]
-  (when-let [idp-cert (sso-settings/saml-identity-provider-certificate)]
+  (let [idp-cert (or (sso-settings/saml-identity-provider-certificate)
+                     (throw (ex-info (str (tru "Unable to log in: SAML IdP certificate is not set."))
+                              {:status-code 500})))]
     (when-not (saml-sp/validate-saml-response-signature saml-response idp-cert)
       (throw (ex-info (str (tru "Unable to log in: SAML response signature is invalid."))
                {:status-code 500})))))
@@ -169,7 +174,7 @@
   ;; `(get-in saml-info [:assertions :attrs])
   [{:keys [params], :as request}]
   (check-saml-enabled)
-  (let [continue-url        (u/ignore-exceptions (decrypt-relay-state (:RelayState params)))
+  (let [continue-url        (decrypt-relay-state (:RelayState params))
         xml-string          (saml-shared/base64->inflate->str (:SAMLResponse params))
         saml-response       (xml-string->saml-response xml-string)
         attrs               (saml-response->attributes saml-response)
