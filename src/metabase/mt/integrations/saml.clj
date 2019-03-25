@@ -180,7 +180,7 @@
         {session-token :id} (saml-auth-fetch-or-create-user! first-name last-name email groups attrs)]
     ;; TODO - use the new cookie response stuff in the session middleware once 32.0+ is merged in
     (resp/set-cookie
-     (resp/redirect (or continue-url "http://localhost:3000/"))
+     (resp/redirect (or continue-url (public-settings/site-url)))
      @#'middleware/metabase-session-cookie
      session-token
      {:path "/"})))
