@@ -117,11 +117,13 @@
   ;; and redirect them back to us
   [req]
   (check-saml-enabled)
-  (let [redirect                    (get-in req [:params :redirect])
+  (let [redirect-url                (or (get-in req [:params :redirect])
+                                        (log/warn (trs "Warning: expected `redirect` param, but none is present"))
+                                        (public-settings/site-url))
         idp-uri                     (sso-settings/saml-identity-provider-uri)
         {:keys [saml-req-factory!]} @saml-state
         saml-request                (saml-req-factory!)
-        hmac-relay-state            (encrypt-redirect-str redirect)]
+        hmac-relay-state            (encrypt-redirect-str redirect-url)]
     (get-idp-redirect idp-uri saml-request hmac-relay-state)))
 
 (s/defn ^:private decrypt-relay-state :- (s/maybe s/Str)
