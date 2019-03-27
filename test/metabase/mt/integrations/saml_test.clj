@@ -4,12 +4,15 @@
             [metabase
              [config :as config]
              [http-client :as http]
+             [public-settings :as public-settings]
              [util :as u]]
             [metabase.models
              [permissions-group :as group :refer [PermissionsGroup]]
              [permissions-group-membership :refer [PermissionsGroupMembership]]
              [user :refer [User]]]
-            [metabase.mt.integrations.saml :as saml :refer :all]
+            [metabase.mt.integrations
+             [saml :as saml :refer :all]
+             [sso-settings :as sso-settings]]
             [metabase.public-settings.metastore :as metastore]
             [metabase.test.data.users :as users :refer :all]
             [metabase.test.util :as tu]
@@ -48,23 +51,27 @@
 
 (def ^:private default-idp-cert
   "Public certificate from Auth0, used to validate mock SAML responses from Auth0"
-  "MIIDEzCCAfugAwIBAgIJYpjQiNMYxf1GMA0GCSqGSIb3DQEBCwUAMCcxJTAjBgNV+
-BAMTHHNhbWwtbWV0YWJhc2UtdGVzdC5hdXRoMC5jb20wHhcNMTgwNTI5MjEwMDIz+
-WhcNMzIwMjA1MjEwMDIzWjAnMSUwIwYDVQQDExxzYW1sLW1ldGFiYXNlLXRlc3Qu+
-YXV0aDAuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzNcrpju4+
-sILZQNe1adwg3beXtAMFGB+Buuc414+FDv2OG7X7b9OSYar/nsYfWwiazZRxEGri+
-agd0Sj5mJ4Qqx+zmB/r4UgX3q/KgocRLlShvvz5gTD99hR7LonDPSWET1E9PD4XE+
-1fRaq+BwftFBl45pKTcCR9QrUAFZJ2R/3g06NPZdhe4bg/lTssY5emCxaZpQEku/+
-v+zzpV2nLF4by0vSj7AHsubrsLgsCfV3JvJyTxCyo1aIOlv4Vrx7h9rOgl9eEmoU+
-5XJAl3D7DuvSTEOy7MyDnKF17m7l5nOPZCVOSzmCWvxSCyysijgsM5DSgAE8DPJy+
-oYezV3gTX2OO2QIDAQABo0IwQDAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBSp+
-B3lvrtbSDuXkB6fhbjeUpFmL2DAOBgNVHQ8BAf8EBAMCAoQwDQYJKoZIhvcNAQEL+
-BQADggEBAAEHGIAhR5GPD2JxgLtpNtZMCYiAM4Gr7hoTQMaKiXgVtdQu4iMFfbpE+
-wIr6UVaDU2HKhvSRFIilOjRGmCGrIzvJgR2l+RL1Z3KrZypI1AXKJT5pF5g5FitB+
-sZq+kiUpdRILl2hICzw9Q1M2Le+JSUcHcbHTVgF24xuzOZonxeE56Oc26Ju4CorL+
-pM3Nb5iYaGOlQ+48/GP82cLxlVyi02va8tp7KP03ePSaZeBEKGpFtBtEN/dC3NKO+
-1mmrT9284H0tvete6KLUH+dsS6bDEYGHZM5KGoSLWRr3qYlCB3AmAw+KvuiuSczL+
+  "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
 g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
+
+;; make sure our test certificate is actually valid
+(expect
+  (#'sso-settings/validate-saml-idp-cert default-idp-cert))
 
 ;; SSO requests fail if SAML hasn't been enabled
 (expect
@@ -157,7 +164,7 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
 ;; This tests to ensure that we are including the redirect in the params, but it's encrypted, so we need to decrypt it
 ;; to validate we are including the right thing
 (expect
-  [true default-redirect-uri]
+  default-redirect-uri
   (with-saml-default-setup
     (let [result       (client-full-response :get 302 "/auth/sso"
                                              {:request-options {:follow-redirects false}}
@@ -194,7 +201,9 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
         (select-keys attribute-keys))))
 
 ;; After a successful login with the identity provider, the SAML provider will POST to the `/auth/sso` route.
-;; Part of accepting the POST is validating the response and the relay state so we can redirect the user to their original destination
+;;
+;; Part of accepting the POST is validating the response and the relay state so we can redirect the user to their
+;; original destination
 (expect
   {:successful-login? true
    :redirect-uri      default-redirect-uri
@@ -209,15 +218,21 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
        :redirect-uri      (get-in response [:headers "Location"])
        :login-attributes  (saml-login-attributes "rasta@metabase.com")})))
 
-;; Test that if the RelayState is tampered with, validation fails and we return a failure error message
+;; Test that if the RelayState is not set or is invalid, you are redirected back to the home page rather than failing
+;; the entire login
 (expect
-  "The SAML response from IdP does not validate!"
+  {:successful-login? true
+   :redirect-uri      (public-settings/site-url)
+   :login-attributes  (some-saml-attributes "rasta")}
   (with-saml-default-setup
     (users/create-users-if-needed!)
-    (client :post 500 "/auth/sso"
-            (saml-post-request-options (saml-test-response)
-                                       (str (#'saml/encrypt-redirect-str default-redirect-uri)
-                                            "something-random")))))
+    (let [req-options (saml-post-request-options (saml-test-response)
+                                                 (str (#'saml/encrypt-redirect-str default-redirect-uri)
+                                                      "something-random"))
+          response (client-full-response :post 302 "/auth/sso" req-options)]
+      {:successful-login? (successful-login? response)
+       :redirect-uri      (get-in response [:headers "Location"])
+       :login-attributes  (saml-login-attributes "rasta@metabase.com")})))
 
 ;; A new account will be created for a SAML user we haven't seen before
 (expect

@@ -26,10 +26,9 @@
 (defsetting saml-identity-provider-uri
   (tru "This is a URI if of the SAML Identity Provider (where the user would login)"))
 
-(defn- validate-saml-idp-cert
+(s/defn ^:private validate-saml-idp-cert
   "Validate that an encoded identity provider certificate is valid, or throw an Exception."
-  [idp-cert-str]
-  (assert (string? idp-cert-str))
+  [idp-cert-str :- s/Str]
   (try
     (-> idp-cert-str saml20.shared/certificate-x509 saml20.shared/jcert->public-key)
     (catch Throwable e
