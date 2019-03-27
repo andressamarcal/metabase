@@ -1,11 +1,14 @@
 (ns metabase.mt.api.sso
-  "Implements the SSO routes needed for SAML and JWT. This namespace primarily provides hooks for those two backends
-  so we can have a uniform interface both via the API and code"
-  (:require [compojure.core :refer [GET POST]]
+  "`/api/auth/sso` Routes.
+
+  Implements the SSO routes needed for SAML and JWT. This namespace primarily provides hooks for those two backends so
+  we can have a uniform interface both via the API and code"
+  (:require [clojure.tools.logging :as log]
+            [compojure.core :refer [GET POST]]
             [metabase.api.common :as api]
             [metabase.mt.integrations.sso-settings :as sso-settings]
             [metabase.public-settings.metastore :as metastore]
-            [metabase.util.i18n :refer [tru]]))
+            [metabase.util.i18n :refer [trs tru]]))
 
 (defn- sso-backend
   "Function that powers the defmulti in figuring out which SSO backend to use. It might be that we need to have more
@@ -16,12 +19,9 @@
   ;; (`cljr-clean-namespace` would remove them)
   (require '[metabase.mt.integrations jwt saml])
   (cond
-    (sso-settings/saml-configured?)
-    :saml
-    (sso-settings/jwt-enabled)
-    :jwt
-    :else
-    nil))
+    (sso-settings/saml-configured?) :saml
+    (sso-settings/jwt-enabled)      :jwt
+    :else                           nil))
 
 (defmulti sso-get
   "Multi-method for supporting the first part of an SSO signin request. An implementation of this method will usually
@@ -54,13 +54,22 @@
   "SSO entry-point for an SSO user that has not logged in yet"
   {:as req}
   (throw-if-no-metastore-token)
-  (sso-get req))
+  (try
+    (sso-get req)
+    (catch Throwable e
+      (log/error e (trs "Error returning SSO entry point"))
+      (throw e))))
 
 (api/defendpoint POST "/"
   "Route the SSO backends call with successful login details"
   {:as req}
   (throw-if-no-metastore-token)
-  (sso-post req))
+  (try
+    (sso-post req)
+    (catch Throwable e
+      (log/error e (trs "Error logging in"))
+      (let [status-code (get (ex-data e) :status-code 500)]
+        {:status status-code, :type (class e), :message (.getMessage e), :stacktrace (vec (.getStackTrace e))}))))
 
 
 (api/define-routes)
