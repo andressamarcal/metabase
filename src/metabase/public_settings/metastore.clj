@@ -73,10 +73,12 @@
               (or
                body
                {:valid         false
-                :status        (tru "Unable to validate token")
+                :status        (str (tru "Unable to validate token"))
                 :error-details (.getMessage e)})))))
    fetch-token-status-timeout-ms
-   {:valid false, :status (tru "Unable to validate token"), :error-details (tru "Token validation timed out.")}))
+   {:valid         false
+    :status        (str (tru "Unable to validate token"))
+    :error-details (str (tru "Token validation timed out."))}))
 
 (def ^{:arglists '([token])} fetch-token-status
   "TTL-memoized version of `fetch-token-status*`. Caches API responses for 5 minutes. This is important to avoid making
