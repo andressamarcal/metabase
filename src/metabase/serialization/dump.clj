@@ -22,9 +22,9 @@
             [yaml.core :as yaml]))
 
 (defn- spit-yaml
-  [fname obj]
-  (io/make-parents fname)
-  (spit fname (yaml/generate-string obj :dumper-options {:flow-style :block})))
+  [filename obj]
+  (io/make-parents filename)
+  (spit filename (yaml/generate-string obj :dumper-options {:flow-style :block})))
 
 (def ^:private as-file?
   (comp (set (map type [Pulse Dashboard Metric Segment Field User])) type))
