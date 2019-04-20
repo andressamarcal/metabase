@@ -1,7 +1,7 @@
 (ns metabase.mt.api.routes
   "Multi-tenant API routes."
   (:require [compojure.core :refer [context defroutes routes]]
-            [metabase.middleware :as middleware]
+            [metabase.middleware.auth :as middleware.auth]
             [metabase.mt.api
              [gtap :as gtap]
              [sso :as sso]
@@ -12,9 +12,9 @@
 ;; ring server`
 (def ^:private +auth
   "Wrap ROUTES so they may only be accessed with proper authentiaction credentials."
-  middleware/enforce-authentication)
+  middleware.auth/enforce-authentication)
 
-(defroutes ^{:doc "Ring routes for mt API endpoints."} mt-routes
+(defroutes ^{:doc "Ring routes for mt API endpoints."} mt-api-routes
   (context
    "/mt"
    []
@@ -23,6 +23,7 @@
     (context "/user" [] (+auth user/routes))))
   (context "/table" [] (+auth table/routes)))
 
+;; This needs to be installed in the `metabase.routes/routes` -- not `metabase.api.routes/routes` !!!
 (defroutes ^{:doc "Ring routes for auth (SAML) API endpoints."} auth-routes
   (context
    "/auth"

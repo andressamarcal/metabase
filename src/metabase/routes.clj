@@ -101,6 +101,7 @@
 
 ;; Redirect naughty users who try to visit a page other than setup if setup is not yet complete
 (defroutes ^{:doc "Top-level ring routes for Metabase."} routes
+  mt-routes/auth-routes
   ;; ^/$ -> index.html
   (GET "/" [] index)
   (GET "/favicon.ico" [] (resp/resource-response public-settings/application-favicon-url))

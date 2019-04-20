@@ -1,7 +1,9 @@
 (ns metabase.middleware.security
   "Ring middleware for adding security-related headers to API responses."
   (:require [clojure.string :as str]
-            [metabase.config :as config]
+            [metabase
+             [config :as config]
+             [public-settings :as public-settings]]
             [metabase.middleware.util :as middleware.u]
             [metabase.models.setting :refer [defsetting]]
             [metabase.util

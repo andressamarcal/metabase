@@ -41,7 +41,12 @@
 
 ;;; --------------------------------------------------- Validation ---------------------------------------------------
 
-(def ^:private ^:const valid-object-path-patterns
+
+(def segmented-perm-regex
+  "Regex that matches a segmented permission"
+  #"^/db/(\d+)/schema/([^\\/]*)/table/(\d+)/query/segmented/$")
+
+(def ^:private valid-object-path-patterns
   [#"^/db/(\d+)/$"                                              ; permissions for the entire DB -- native and all schemas
    #"^/db/(\d+)/native/$"                                       ; permissions to create new native queries for the DB
    #"^/db/(\d+)/schema/$"                                       ; permissions for all schemas in the DB
@@ -49,7 +54,7 @@
    #"^/db/(\d+)/schema/([^/]*)/table/(\d+)/$"                   ; FULL permissions for a specific table
    #"^/db/(\d+)/schema/([^/]*)/table/(\d+)/read/$"              ; Permissions to fetch the Metadata for a specific Table
    #"^/db/(\d+)/schema/([^/]*)/table/(\d+)/query/$"             ; Permissions to run any sort of query against a Table
-   #"^/db/(\d+)/schema/([^\\/]*)/table/(\d+)/query/segmented/$" ; Permissions to run a query against a Table using GTAP
+   segmented-perm-regex                                         ; Permissions to run a query against a Table using GTAP
    #"^/collection/(\d+)/$"                                      ; readwrite permissions for a collection
    #"^/collection/(\d+)/read/$"                                 ; read permissions for a collection
    #"^/collection/root/$"                                       ; readwrite permissions for the 'Root' Collection (things with `nil` collection_id)

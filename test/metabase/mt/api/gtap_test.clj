@@ -1,8 +1,7 @@
 (ns metabase.mt.api.gtap-test
   (:require [expectations :refer :all]
-            [metabase
-             [http-client :as http]
-             [middleware :as middleware]]
+            [metabase.http-client :as http]
+            [metabase.middleware.util :as middleware.u]
             [metabase.models
              [card :refer [Card]]
              [permissions-group :refer [PermissionsGroup]]
@@ -18,7 +17,7 @@
      ~@body))
 
 ;; Must be authenticated to query for gtaps
-(expect (get middleware/response-unauthentic :body)
+(expect (get middleware.u/response-unauthentic :body)
         (with-sandboxes-enabled
           (http/client :get 401 "mt/gtap")))
 

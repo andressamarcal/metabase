@@ -1,6 +1,8 @@
 (ns metabase.serialization.load-test
+  (:refer-clojure :exclude [load])
   (:require [clojure.data :as diff]
-            [expectations :refer :all]
+            [clojure.java.io :as io]
+            [expectations :refer [expect]]
             [metabase.cmd.serialization :refer :all]
             [metabase.models
              [card :refer [Card]]
@@ -27,10 +29,10 @@
 (defn- delete-directory
   [path]
   (doseq [file (->> path
-                    clojure.java.io/file
+                    io/file
                     file-seq
                     reverse)]
-    (clojure.java.io/delete-file (.getPath file))))
+    (io/delete-file (.getPath file))))
 
 (def ^:private dump-dir "test-dump")
 

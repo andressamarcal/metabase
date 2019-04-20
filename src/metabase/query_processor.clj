@@ -5,6 +5,9 @@
             [metabase.driver :as driver]
             [metabase.driver.util :as driver.u]
             [metabase.mbql.schema :as mbql.s]
+            [metabase.mt.query-processor.middleware
+             [column-level-perms-check :as mt.column-level-perms-check]
+             [row-level-restrictions :as mt.row-level-restrictions]]
             [metabase.query-processor.middleware
              [add-dimension-projections :as add-dim]
              [add-implicit-clauses :as implicit-clauses]
@@ -27,6 +30,7 @@
              [expand-macros :as expand-macros]
              [fetch-source-query :as fetch-source-query]
              [format-rows :as format-rows]
+             [internal-queries :as internal-queries]
              [limit :as limit]
              [log :as log-query]
              [mbql-to-native :as mbql-to-native]
@@ -136,6 +140,7 @@
       resolve-database/resolve-database
       fetch-source-query/fetch-source-query
       store/initialize-store
+      mt.row-level-restrictions/apply-row-level-permissions
       log-query/log-query
       ;; ▲▲▲ SYNC MIDDLEWARE ▲▲▲
       ;;

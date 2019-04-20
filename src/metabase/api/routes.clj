@@ -60,7 +60,7 @@
   middleware.auth/enforce-authentication)
 
 (defroutes ^{:doc "Ring routes for API endpoints."} routes
-  mt-routes/mt-routes
+  mt-routes/mt-api-routes
   (context "/activity"             [] (+auth activity/routes))
   (context "/alert"                [] (+auth alert/routes))
   (context "/automagic-dashboards" [] (+auth magic/routes))

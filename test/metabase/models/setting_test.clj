@@ -133,7 +133,7 @@
   (do-with-temporary-setting-value setting db-value
     (fn []
       (with-redefs [environ.core/env {(keyword (str "mb-" (name setting))) env-var-value}]
-        (dissoc (#'setting/user-facing-info setting/get (#'setting/resolve-setting setting))
+        (dissoc (#'setting/user-facing-info (#'setting/resolve-setting setting))
                 :key :description)))))
 
 ;; #'setting/user-facing-info w/ no db value, no env var value, no default value
@@ -204,7 +204,7 @@
       (some (fn [setting]
               (when (re-find #"^test-setting-2$" (name (:key setting)))
                 setting))
-            (setting/all (comp count setting/get-string)))))
+            (setting/all :getter (comp count setting/get-string)))))
 
 ;; all
 (expect

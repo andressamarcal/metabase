@@ -121,7 +121,8 @@
 (defn handle-internal-queries
   "Middleware that handles `internal` type queries."
   [qp]
-  (fn [{query-type :type, :as query}] respond raise
+  (fn [{query-type :type, :as query} respond raise canceled-chan]
     (if (= :internal (keyword query-type))
+      ;; TODO - consider whether we should make these audit queries async or at least respect query cancelation messages
       (respond (do-internal-query query))
-      (qp query respond raise))))
+      (qp query respond raise canceled-chan))))

@@ -35,6 +35,7 @@
              [string :as str]]
             [clojure.tools.logging :as log]
             [environ.core :as env]
+            [medley.core :as m]
             [metabase
              [events :as events]
              [util :as u]]
@@ -505,10 +506,16 @@
 (defn user-facing-value
   "Get the value of a Setting that should be displayed to a User (i.e. via `/api/setting/` endpoints): for Settings set
   via env vars, or Settings whose value has not been set (i.e., Settings whose value is the same as the default value)
-  no value is displayed; for sensitive Settings, the value is obfuscated."
-  [setting-or-name]
+  no value is displayed; for sensitive Settings, the value is obfuscated.
+
+  Accepts options:
+
+  * `:getter` -- the getter function to use to fetch the Setting value. By default, uses `setting/get`, which will
+    convert the setting to the appropriate type; you can use `get-string` to get all string values of Settings, for
+    example."
+  [setting-or-name & {:keys [getter], :or {getter get}}]
   (let [{:keys [sensitive? default], k :name, :as setting} (resolve-setting setting-or-name)
-        v                                                  (get k)
+        v                                                  (getter k)
         value-is-default?                                  (= v default)
         value-is-from-env-var?                             (= v (env-var-value setting))]
     (cond
@@ -524,10 +531,11 @@
       :else
       v)))
 
-(defn- user-facing-info [{:keys [sensitive? default description], k :name, :as setting}]
+(defn- user-facing-info
+  [{:keys [sensitive? default description], k :name, :as setting} & {:as options}]
   (let [set-via-env-var? (boolean (env-var-value setting))]
     {:key            k
-     :value          (user-facing-value setting)
+     :value          (m/mapply user-facing-value setting options)
      :is_env_setting set-via-env-var?
      :env_name       (env-var-name setting)
      :description    (str description)
@@ -537,7 +545,9 @@
 
 (defn all
   "Return a sequence of Settings maps in a format suitable for consumption by the frontend.
-   (For security purposes, this doesn't return the value of a setting if it was set via env var)."
-  []
+   (For security purposes, this doesn't return the value of a setting if it was set via env var).
+
+   `options` are passed to `user-facing-value`."
+  [& {:as options}]
   (for [setting (sort-by :name (vals @registered-settings))]
-    (user-facing-info setting)))
+    (m/mapply user-facing-info setting options)))
