@@ -324,6 +324,7 @@ export default class Visualization extends Component {
   };
 
   onRenderError = error => {
+    console.error(error);
     this.setState({ error });
   };
 

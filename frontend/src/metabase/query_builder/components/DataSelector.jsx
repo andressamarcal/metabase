@@ -426,6 +426,15 @@ export default class DataSelector extends Component {
     );
   }
 
+  getTriggerClasses() {
+    if (this.props.triggerClasses) {
+      return this.props.triggerClasses;
+    }
+    return this.props.renderAsSelect
+      ? "border-med bg-white block no-decoration"
+      : "flex align-center";
+  }
+
   renderActiveStep() {
     const {
       segments,
@@ -543,17 +552,16 @@ export default class DataSelector extends Component {
   }
 
   render() {
-    const triggerClasses = this.props.renderAsSelect
-      ? "border-med bg-white block no-decoration"
-      : "flex align-center";
     return (
       <PopoverWithTrigger
         id="DataPopover"
         ref="popover"
         isInitiallyOpen={this.props.isInitiallyOpen}
         triggerElement={this.getTriggerElement()}
-        triggerClasses={triggerClasses}
+        triggerClasses={this.getTriggerClasses()}
         horizontalAttachments={["center", "left", "right"]}
+        hasArrow={this.props.hasArrow}
+        tetherOptions={this.props.tetherOptions}
         sizeToFit
       >
         {this.renderActiveStep()}
@@ -827,7 +835,7 @@ export const TablePicker = ({
           <div className="bg-light p2 text-centered border-top">
             {t`Is a question missing?`}
             <a
-              href="http://metabase.com/docs/latest/users-guide/04-asking-questions.html#source-data"
+              href="https://metabase.com/docs/latest/users-guide/04-asking-questions.html#source-data"
               className="block link"
             >{t`Learn more about nested queries`}</a>
           </div>

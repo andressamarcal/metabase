@@ -17,7 +17,7 @@ import { fetchDatabaseMetadata } from "metabase/redux/metadata";
 import { setErrorPage } from "metabase/redux/app";
 import { getMetadata } from "metabase/selectors/metadata";
 
-import PublicMode from "metabase/qb/components/modes/PublicMode";
+import PublicMode from "metabase/modes/components/modes/PublicMode";
 
 import {
   getDashboardComplete,
@@ -79,12 +79,14 @@ type Props = {
     reload: boolean,
     clear: boolean,
   }) => Promise<void>,
+  cancelFetchDashboardCardData: () => Promise<void>,
   setParameterValue: (id: string, value: string) => void,
   setErrorPage: (error: { status: number }) => void,
 };
 
 @connect(mapStateToProps, mapDispatchToProps)
 @DashboardControls
+// NOTE: this should use DashboardData HoC
 export default class PublicDashboard extends Component {
   props: Props;
 
@@ -114,6 +116,10 @@ export default class PublicDashboard extends Component {
       console.error(error);
       setErrorPage(error);
     }
+  }
+
+  componentWillUnmount() {
+    this.props.cancelFetchDashboardCardData();
   }
 
   componentWillReceiveProps(nextProps: Props) {
