@@ -121,7 +121,7 @@
 (defn handle-internal-queries
   "Middleware that handles `internal` type queries."
   [qp]
-  (fn [{query-type :type, :as query}]
+  (fn [{query-type :type, :as query}] respond raise
     (if (= :internal (keyword query-type))
-      (do-internal-query query)
-      (qp query))))
+      (respond (do-internal-query query))
+      (qp query respond raise))))
