@@ -13,6 +13,8 @@ import { UserApi, SessionApi } from "metabase/services";
 
 import FormGroupsWidget from "metabase/components/form/widgets/FormGroupsWidget";
 
+import { PLUGIN_USER_FORM_FIELDS } from "metabase/plugins";
+
 export const DEACTIVATE = "metabase/entities/users/DEACTIVATE";
 export const REACTIVATE = "metabase/entities/users/REACTIVATE";
 export const PASSWORD_RESET_EMAIL =
@@ -137,6 +139,7 @@ const Users = createEntity({
         title: "Groups",
         type: FormGroupsWidget,
       },
+      ...PLUGIN_USER_FORM_FIELDS,
     ],
   },
 });

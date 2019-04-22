@@ -1,5 +1,9 @@
-import UserAttributeEditor from "metabase/plugins/mt/components/UserAttributeEditor";
+import LoginAttributesWidget from "./components/LoginAttributesWidget";
 
 export default register => {
-  register.editUserForm(UserAttributeEditor);
+  register.userFormField({
+    name: "login_attributes",
+    title: "Attributes",
+    type: LoginAttributesWidget,
+  });
 };

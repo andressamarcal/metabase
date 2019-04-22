@@ -1,7 +1,7 @@
-export const EDIT_USER_FORM_PLUGINS = [];
+export const PLUGIN_USER_FORM_FIELDS = [];
 
 const register = {
-  editUserForm: plugin => EDIT_USER_FORM_PLUGINS.push(plugin),
+  userFormField: plugin => PLUGIN_USER_FORM_FIELDS.push(plugin),
 };
 
 import mt from "./mt";
