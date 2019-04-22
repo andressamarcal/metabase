@@ -53,7 +53,7 @@ describe("admin/people", () => {
       await store.waitForActions([BROWSER_HISTORY_PUSH]);
 
       const addUserModal = app.find(ModalContent);
-      const addButton = addUserModal.find(Button);
+      const addButton = addUserModal.find(".Button[type='submit']");
       expect(addButton.props().disabled).toBe(true);
 
       setInputValue(addUserModal.find("input[name='first_name']"), firstName);
