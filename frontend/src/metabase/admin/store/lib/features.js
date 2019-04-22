@@ -8,7 +8,7 @@ const FEATURES = {
     docs: [
       {
         link:
-          "http://www.metabase.com/docs/latest/administration-guide/17-data-sandboxes.html",
+          "http://www.metabase.com/docs/latest/enterprise-guide/data-sandboxes.html",
       },
     ],
   },
@@ -19,7 +19,7 @@ const FEATURES = {
     docs: [
       {
         link:
-          "http://metabase.com/docs/latest/administration-guide/15-whitelabeling.html",
+          "http://metabase.com/docs/latest/enterprise-guide/whitelabeling.html",
       },
     ],
   },
@@ -27,7 +27,7 @@ const FEATURES = {
     name: t`Auditing`,
     description: t`Keep an eye on performance and behavior with robust auditing tools.`,
     icon: "clipboard",
-    info: [{ link: "https://metabase.com/offerings/auditing_info/" }],
+    info: [{ link: "https://metabase.com/enterprise/" }],
   },
   sso: {
     name: t`Single sign-on`,
@@ -37,12 +37,12 @@ const FEATURES = {
       {
         title: "SAML",
         link:
-          "http://metabase.com/docs/latest/administration-guide/16-authenticating-with-saml.html",
+          "http://metabase.com/docs/latest/enterprise-guide/authenticating-with-saml.html",
       },
       {
         title: "JWT",
         link:
-          "http://metabase.com/docs/latest/administration-guide/18-authenticating-with-jwt.html",
+          "http://metabase.com/docs/latest/enterprise-guide/authenticating-with-jwt.html",
       },
     ],
   },
