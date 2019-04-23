@@ -11,11 +11,6 @@ import MetabaseSettings from "metabase/lib/settings";
 import colors, { alpha } from "metabase/lib/colors";
 
 import { t } from "c-3po";
-import {
-  isDefaultGroup,
-  isAdminGroup,
-  isMetaBotGroup,
-} from "metabase/lib/groups";
 
 import _ from "underscore";
 import { getIn, assocIn } from "icepick";
@@ -32,13 +27,24 @@ import {
   diffPermissions,
   inferAndUpdateEntityPermissions,
 } from "metabase/lib/permissions";
+import {
+  isDefaultGroup,
+  isAdminGroup,
+  isMetaBotGroup,
+  canEditPermissions,
+} from "metabase/lib/groups";
+
+import Group from "metabase/entities/groups";
 
 import { getMetadata } from "metabase/selectors/metadata";
 
 import Metadata from "metabase-lib/lib/metadata/Metadata";
 import type { DatabaseId } from "metabase/meta/types/Database";
 import type { SchemaName } from "metabase/meta/types/Table";
-import type { Group, GroupsPermissions } from "metabase/meta/types/Permissions";
+import type {
+  Group as GroupType,
+  GroupsPermissions,
+} from "metabase/meta/types/Permissions";
 
 const getPermissions = state => state.admin.permissions.permissions;
 const getOriginalPermissions = state =>
@@ -66,22 +72,20 @@ function getTooltipForGroup(group) {
   return null;
 }
 
-export const getGroups = createSelector(
-  state => state.admin.permissions.groups,
-  groups => {
-    let orderedGroups = groups ? [...groups] : [];
-    for (let groupFilter of SPECIAL_GROUP_FILTERS) {
-      let index = _.findIndex(orderedGroups, groupFilter);
-      if (index >= 0) {
-        orderedGroups.unshift(...orderedGroups.splice(index, 1));
-      }
+export const getGroups = createSelector([Group.selectors.getList], groups => {
+  let orderedGroups = groups ? [...groups] : [];
+  for (let groupFilter of SPECIAL_GROUP_FILTERS) {
+    let index = _.findIndex(orderedGroups, groupFilter);
+    if (index >= 0) {
+      orderedGroups.unshift(...orderedGroups.splice(index, 1));
     }
-    return orderedGroups.map(group => ({
-      ...group,
-      tooltip: getTooltipForGroup(group),
-    }));
-  },
-);
+  }
+  return orderedGroups.map(group => ({
+    ...group,
+    editable: canEditPermissions(group),
+    tooltip: getTooltipForGroup(group),
+  }));
+});
 
 export const getIsDirty = createSelector(
   getPermissions,
@@ -322,7 +326,7 @@ export const getTablesPermissionsGrid = createSelector(
   getSchemaName,
   (
     metadata: Metadata,
-    groups: Array<Group>,
+    groups: Array<GroupType>,
     permissions: GroupsPermissions,
     databaseId: DatabaseId,
     schemaName: SchemaName,
@@ -444,7 +448,7 @@ export const getSchemasPermissionsGrid = createSelector(
   getDatabaseId,
   (
     metadata: Metadata,
-    groups: Array<Group>,
+    groups: Array<GroupType>,
     permissions: GroupsPermissions,
     databaseId: DatabaseId,
   ) => {
@@ -545,7 +549,7 @@ export const getDatabasesPermissionsGrid = createSelector(
   getPermissions,
   (
     metadata: Metadata,
-    groups: Array<Group>,
+    groups: Array<GroupType>,
     permissions: GroupsPermissions,
   ) => {
     if (!groups || !permissions || !metadata) {
@@ -752,7 +756,7 @@ export const getCollectionsPermissionsGrid = createSelector(
   getPropagatePermissions,
   (
     collections,
-    groups: Array<Group>,
+    groups: Array<GroupType>,
     permissions: GroupsPermissions,
     propagatePermissions: boolean,
   ) => {
@@ -912,7 +916,7 @@ export const getDiff = createSelector(
   getOriginalPermissions,
   (
     metadata: Metadata,
-    groups: Array<Group>,
+    groups: Array<GroupType>,
     permissions: GroupsPermissions,
     originalPermissions: GroupsPermissions,
   ) => diffPermissions(permissions, originalPermissions, groups, metadata),

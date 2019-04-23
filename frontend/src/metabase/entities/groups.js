@@ -21,6 +21,9 @@ const Groups = createEntity({
       }
     },
   },
+  form: {
+    fields: [{ name: "name" }],
+  },
 });
 
 export default Groups;

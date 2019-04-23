@@ -4,13 +4,13 @@
             [clojure.tools.logging :as log]
             [medley.core :as m]
             [metabase
-             [middleware :as middleware]
              [public-settings :as public-settings]
              [util :as u]]
             [metabase.api
              [common :as api]
              [session :as session]]
             [metabase.integrations.common :as integrations.common]
+            [metabase.middleware.session :as mw.session]
             [metabase.mt.api.sso :as sso]
             [metabase.mt.integrations
              [sso-settings :as sso-settings]
@@ -45,7 +45,7 @@
                                                        :sso_source       "saml"
                                                        :login_attributes user-attributes}))]
     (sync-groups! user group-names)
-    {:id (session/create-session! user)}))
+    {:id (session/create-session! :sso user)}))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -185,9 +185,7 @@
         last-name           (get attrs (sso-settings/saml-attribute-lastname) "Unknown")
         groups              (get attrs (sso-settings/saml-attribute-group))
         {session-token :id} (saml-auth-fetch-or-create-user! first-name last-name email groups attrs)]
-    ;; TODO - use the new cookie response stuff in the session middleware once 32.0+ is merged in
-    (resp/set-cookie
+    (mw.session/set-session-cookie
+     request
      (resp/redirect (or continue-url (public-settings/site-url)))
-     @#'middleware/metabase-session-cookie
-     session-token
-     {:path "/"})))
+     session-token)))

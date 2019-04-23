@@ -67,13 +67,13 @@
 (defn- +check-sandboxes-enabled
   "Wrap the Ring handler to make sure sandboxes are enabled before allowing access to the API endpoints."
   [handler]
-  (fn [request]
-    (when-not (metastore/enable-sandboxes?)
-      (throw (ex-info (str (tru "Error: sandboxing is not enabled for this instance.")
+  (fn [request respond raise]
+    (if-not (metastore/enable-sandboxes?)
+      (raise (ex-info (str (tru "Error: sandboxing is not enabled for this instance.")
                            " "
                            (tru "Please check you have set a valid Entrprise token and try again."))
-               {:status-code 403})))
-    (handler request)))
+               {:status-code 403}))
+      (handler request respond raise))))
 
 ;; All endpoints in this namespace require superuser perms to view
 ;;

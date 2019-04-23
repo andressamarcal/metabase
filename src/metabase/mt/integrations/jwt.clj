@@ -5,6 +5,7 @@
              [common :as api]
              [session :as session]]
             [metabase.integrations.common :as integrations.common]
+            [metabase.middleware.session :as mw.session]
             [metabase.mt.api.sso :as sso]
             [metabase.mt.integrations
              [sso-settings :as sso-settings]
@@ -53,7 +54,7 @@
         (integrations.common/sync-group-memberships! user (group-names->ids group-names))))))
 
 (defn- login-jwt-user
-  [jwt redirect]
+  [jwt {{redirect :return_to} :params, :as request}]
   (let [jwt-data      (jwt/unsign jwt (sso-settings/jwt-shared-secret)
                                   {:max-age three-minutes-in-seconds})
         login-attrs   (jwt-data->login-attributes jwt-data)
@@ -61,23 +62,24 @@
         first-name    (get jwt-data (jwt-attribute-firstname) "Unknown")
         last-name     (get jwt-data (jwt-attribute-lastname) "Unknown")
         user          (fetch-or-create-user! first-name last-name email login-attrs)
-        session-token (session/create-session! user)]
+        session-token (session/create-session! :sso user)]
     (sync-groups! user jwt-data)
-    (resp/set-cookie (resp/redirect (or redirect (URLEncoder/encode "/")))
-                     "metabase.SESSION_ID" session-token
-                     {:path "/"})))
+    (mw.session/set-session-cookie
+     request
+     (resp/redirect (or redirect (URLEncoder/encode "/")))
+     session-token)))
 
 (defn- check-jwt-enabled []
   (api/check (sso-settings/jwt-configured?)
     [400 (tru "JWT SSO has not been enabled and/or configured")]))
 
 (defmethod sso/sso-get :jwt
-  [req]
+  [{{:keys [jwt redirect]} :params, :as request}]
   (check-jwt-enabled)
-  (if-let [jwt (get-in req [:params :jwt])]
-    (login-jwt-user jwt (get-in req [:params :return_to]))
+  (if jwt
+    (login-jwt-user jwt request)
     (resp/redirect (str (sso-settings/jwt-identity-provider-uri)
-                        (when-let [redirect (get-in req [:params :redirect])]
+                        (when redirect
                           (str "?return_to=" redirect))))))
 
 (defmethod sso/sso-post :jwt

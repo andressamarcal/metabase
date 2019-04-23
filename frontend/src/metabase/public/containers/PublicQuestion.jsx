@@ -31,7 +31,7 @@ import { setErrorPage } from "metabase/redux/app";
 import { addParamValues, addFields } from "metabase/redux/metadata";
 import { getMetadata } from "metabase/selectors/metadata";
 
-import PublicMode from "metabase/qb/components/modes/PublicMode";
+import PublicMode from "metabase/modes/components/modes/PublicMode";
 
 import { updateIn } from "icepick";
 
@@ -143,6 +143,8 @@ export default class PublicQuestion extends Component {
     const parameters = getParameters(card);
 
     try {
+      this.setState({ result: null });
+
       let newResult;
       if (token) {
         // embeds apply parameter values server-side

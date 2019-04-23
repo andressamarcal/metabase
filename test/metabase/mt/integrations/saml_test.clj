@@ -6,6 +6,7 @@
              [http-client :as http]
              [public-settings :as public-settings]
              [util :as u]]
+            [metabase.middleware.session :as mw.session]
             [metabase.models
              [permissions-group :as group :refer [PermissionsGroup]]
              [permissions-group-membership :refer [PermissionsGroupMembership]]
@@ -18,8 +19,10 @@
             [metabase.test.util :as tu]
             [toucan.db :as db]
             [toucan.util.test :as tt])
-  (:import java.nio.charset.StandardCharsets
-           org.apache.http.client.utils.URLEncodedUtils))
+  (:import java.net.URL
+           java.nio.charset.StandardCharsets
+           org.apache.http.client.utils.URLEncodedUtils
+           org.apache.http.message.BasicNameValuePair))
 
 (defmacro with-valid-metastore-token
   "Stubs the `metastore/enable-sso?` function to simulate a valid token. This needs to be included to test any of the
@@ -43,7 +46,7 @@
 (defn successful-login?
   "Return true if the response indicates a successful user login"
   [resp]
-  (string? (get-in resp [:cookies "metabase.SESSION_ID" :value])))
+  (string? (get-in resp [:cookies @#'mw.session/metabase-session-cookie :value])))
 
 (def ^:private default-idp-uri            "http://test.idp.metabase.com")
 (def ^:private default-redirect-uri       "http://localhost:3000/test")
@@ -134,16 +137,24 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
 ; With SAML configured, a GET request should result in a redirect to the IDP
 (expect
   (with-saml-default-setup
-    (let [result       (client-full-response :get 302 "/auth/sso" {:request-options {:follow-redirects false}} :redirect default-redirect-uri)
+    (let [result       (client-full-response :get 302 "/auth/sso"
+                                             {:request-options {:follow-redirects false}}
+                                             :redirect default-redirect-uri)
           redirect-url (get-in result [:headers "Location"])]
       (str/starts-with? redirect-url default-idp-uri))))
 
+;; TODO - maybe this belongs in a util namespace?
 (defn- uri->params-map
   "Parse the URI string, creating a map from the key/value pairs in the query string"
   [uri-str]
-  (let [params-list (-> uri-str java.net.URL. .getQuery (URLEncodedUtils/parse StandardCharsets/UTF_8))]
-    (zipmap (map (comp keyword #(.getName %)) params-list)
-            (map #(.getValue %) params-list))))
+  (into
+   {}
+   (for [^BasicNameValuePair pair (-> (URL. uri-str) .getQuery (URLEncodedUtils/parse StandardCharsets/UTF_8))]
+     [(keyword (.getName pair)) (.getValue pair)])))
+
+(expect
+  {:a "b", :c "d"}
+  (uri->params-map "http://localhost?a=b&c=d"))
 
 ;; When the identity provider already includes a query parameter, the SAML code should spot that and append more
 ;; parameters onto the query string (rather than always include a `?newparam=here`).

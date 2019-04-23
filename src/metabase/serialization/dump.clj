@@ -22,9 +22,9 @@
             [yaml.core :as yaml]))
 
 (defn- spit-yaml
-  [fname obj]
-  (io/make-parents fname)
-  (spit fname (yaml/generate-string obj :dumper-options {:flow-style :block})))
+  [filename obj]
+  (io/make-parents filename)
+  (spit filename (yaml/generate-string obj :dumper-options {:flow-style :block})))
 
 (def ^:private as-file?
   (comp (set (map type [Pulse Dashboard Metric Segment Field User])) type))
@@ -53,7 +53,7 @@
   "Combine all settings into a map and dump it into YAML at `path`."
   [path]
   (spit-yaml (str path "/settings.yaml")
-             (into {} (for [{:keys [key value]} (setting/all setting/get-string)]
+             (into {} (for [{:keys [key value]} (setting/all :getter setting/get-string)]
                         [key value]))))
 
 (defn dump-dimensions

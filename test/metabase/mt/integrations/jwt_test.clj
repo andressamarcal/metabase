@@ -62,11 +62,14 @@
 ; With JWT configured, a GET request should result in a redirect to the IDP
 (expect
   (with-jwt-default-setup
-    (let [result       (saml-test/client-full-response :get 302 "/auth/sso" {:request-options {:follow-redirects false}} :redirect default-redirect-uri)
+    (let [result       (saml-test/client-full-response :get 302 "/auth/sso"
+                                                       {:request-options {:follow-redirects false}}
+                                                       :redirect default-redirect-uri)
           redirect-url (get-in result [:headers "Location"])]
       (str/starts-with? redirect-url default-idp-uri))))
 
-;; Happy path login, valid JWT, checks to ensure the user was logged in successfully and the redirect to the right location
+;; Happy path login, valid JWT, checks to ensure the user was logged in successfully and the redirect to the right
+;; location
 (expect
   {:successful-login? true
    :redirect-uri      default-redirect-uri

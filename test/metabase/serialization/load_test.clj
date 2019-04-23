@@ -1,7 +1,9 @@
 (ns metabase.serialization.load-test
+  (:refer-clojure :exclude [load])
   (:require [clojure.data :as diff]
-            [expectations :refer :all]
-            [metabase.cmd.serialization :refer :all]
+            [clojure.java.io :as io]
+            [expectations :refer [expect]]
+            [metabase.cmd.serialization :refer [dump load]]
             [metabase.models
              [card :refer [Card]]
              [collection :refer [Collection]]
@@ -22,15 +24,13 @@
              [user :refer [User]]]
             [metabase.test.data.users :as test-users]
             [metabase.test.serialization :as ts]
-            [toucan.db :as db]))
+            [metabase.util :as u]
+            [toucan.db :as db])
+  (:import org.apache.commons.io.FileUtils))
 
-(defn- delete-directory
-  [path]
-  (doseq [file (->> path
-                    clojure.java.io/file
-                    file-seq
-                    reverse)]
-    (clojure.java.io/delete-file (.getPath file))))
+(defn- delete-directory!
+  [file-or-filename]
+  (FileUtils/deleteDirectory (io/file file-or-filename)))
 
 (def ^:private dump-dir "test-dump")
 
@@ -54,6 +54,9 @@
 
 (expect
   (try
+    ;; in case it already exists
+    (u/ignore-exceptions
+      (delete-directory! dump-dir))
     (let [fingerprint (ts/with-world
                         (dump dump-dir (:email (test-users/fetch-user :crowberto)))
                         [[Database (Database db-id)]
@@ -76,4 +79,4 @@
                       (db/select-one model :name (:name entity))))
                 fingerprint)))
     (finally
-      (delete-directory dump-dir))))
+      (delete-directory! dump-dir))))

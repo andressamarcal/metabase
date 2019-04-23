@@ -110,7 +110,7 @@ export default class SettingsUpdatesForm extends Component {
                 versionInfo.latest_enterprise.version
               }
               className="Button Button--white Button--medium borderless"
-              href="http://www.metabase.com/start"
+              href="https://metabase.com/start/"
               target="_blank"
             >{t`Update`}</a>
           </div>

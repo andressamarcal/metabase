@@ -29,7 +29,7 @@ import CreateDashboardModal from "metabase/components/CreateDashboardModal";
 import ProfileLink from "metabase/nav/components/ProfileLink.jsx";
 
 import { getPath, getContext, getUser, getFeatures } from "../selectors";
-import { entityListLoader } from "metabase/entities/containers/EntityListLoader";
+import Database from "metabase/entities/databases";
 
 const mapStateToProps = (state, props) => ({
   path: getPath(state, props),
@@ -152,8 +152,7 @@ class SearchBar extends React.Component {
 
 const MODAL_NEW_DASHBOARD = "MODAL_NEW_DASHBOARD";
 
-@entityListLoader({
-  entityType: "databases",
+@Database.loadList({
   // set this to false to prevent a potential spinner on the main nav
   loadingAndErrorWrapper: false,
 })
@@ -280,7 +279,7 @@ export default class Navbar extends Component {
       <Flex
         // NOTE: DO NOT REMOVE `Nav` CLASS FOR NOW, USED BY MODALS, FULLSCREEN DASHBOARD, ETC
         // TODO: hide nav using state in redux instead?
-        className="Nav relative text-white z3"
+        className="Nav relative bg-brand text-white z3 flex-no-shrink"
         align="center"
         style={{ backgroundColor: getNavBarColor() }}
         py={1}
