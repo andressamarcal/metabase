@@ -1,4 +1,5 @@
 import { t } from "c-3po";
+import MetabaseSettings from "metabase/lib/settings";
 
 const FEATURES = {
   sandboxes: {
@@ -7,8 +8,7 @@ const FEATURES = {
     icon: "lock",
     docs: [
       {
-        link:
-          "http://www.metabase.com/docs/latest/enterprise-guide/data-sandboxes.html",
+        link: MetabaseSettings.docsUrl("enterprise-guide/data-sandboxes"),
       },
     ],
   },
@@ -18,8 +18,7 @@ const FEATURES = {
     icon: "star",
     docs: [
       {
-        link:
-          "http://metabase.com/docs/latest/enterprise-guide/whitelabeling.html",
+        link: MetabaseSettings.docsUrl("enterprise-guide/whitelabeling"),
       },
     ],
   },
@@ -36,13 +35,15 @@ const FEATURES = {
     docs: [
       {
         title: "SAML",
-        link:
-          "http://metabase.com/docs/latest/enterprise-guide/authenticating-with-saml.html",
+        link: MetabaseSettings.docsUrl(
+          "enterprise-guide/authenticating-with-saml",
+        ),
       },
       {
         title: "JWT",
-        link:
-          "http://metabase.com/docs/latest/enterprise-guide/authenticating-with-jwt.html",
+        link: MetabaseSettings.docsUrl(
+          "enterprise-guide/authenticating-with-jwt",
+        ),
       },
     ],
   },
