@@ -22,7 +22,7 @@ executors:
   build:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: metabase/ci-build:lein-2.8.1
+      - image: metabase/ci-build:latest
 
   java-11:
     working_directory: /home/circleci/metabase/metabase/
@@ -606,6 +606,31 @@ jobs:
           name: Upload Elastic Beanstalk config file to s3://downloads.metabase.com/<< parameters.path >>
           command: aws s3 cp eb.zip "s3://downloads.metabase.com/<< parameters.path >>"
 
+  trigger-eb-redeployment:
+    parameters:
+      region:
+        type: string
+        default: us-east-1
+      application:
+        type: string
+      env:
+        type: string
+      version:
+        type: string
+    executor: build
+    steps:
+      - run:
+          name: Generate Elastic Beanstalk config file
+          command: >
+            mkdir .elasticbeanstalk;
+            echo 'global:' > .elasticbeanstalk/config.yml;
+            echo "  application_name: << parameters.application >>" >> .elasticbeanstalk/config.yml;
+            echo "  default_region: << parameters.region >>" >> .elasticbeanstalk/config.yml;
+      - run:
+          name: Redeploy version << parameters.version >> to << parameters.env >>
+          command: eb deploy --verbose --nohang --version "<< parameters.version >>" "<< parameters.env >>"
+
+
   todo:
     executor: default
     steps:
@@ -855,7 +880,9 @@ workflows:
             - fe-tests-unit
           filters:
             branches:
-              only: enterprise-release
+              only:
+                - enterprise-release
+                - improved-bin-version-file
 
       - build-release-version-file:
           requires:
@@ -998,15 +1025,12 @@ workflows:
             - build-release-uberjar
           path: "enterprise/HEAD/metabase.jar"
 
-      # Need to trigger EB redeployment for internal stats instance
-      # after the new EB config is up
-      #
-      # (Or should this be done by a lambda function that triggers
-      # when the file changes?)
-      - todo:
-          name: trigger-eb-redeployment
+      - trigger-eb-redeployment:
           requires:
             - build-and-publish-docker-image
+          application: '$ELASTICBEANSTALK_APPLICATION_NAME'
+          env: '$ELASTICBEANSTALK_ENV'
+          version: HEAD
 
 ##### tagged-release-only steps
 
