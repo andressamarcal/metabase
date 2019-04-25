@@ -167,7 +167,7 @@ jobs:
             for file in `find ./src -type f -name '*.clj' | sort`;
               do echo `md5sum $file` >> backend-checksums.txt;
             done;
-            echo `md5sum $project.clj` >> backend-checksums.txt
+            echo `md5sum project.clj` >> backend-checksums.txt
       - persist_to_workspace:
           root: /home/circleci/
           paths:
