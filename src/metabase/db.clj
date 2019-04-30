@@ -29,14 +29,12 @@
 
 (def db-file
   "Path to our H2 DB file from env var or app config."
-  ;; see http://h2database.com/html/features.html for explanation of options
+  ;; see https://h2database.com/html/features.html for explanation of options
   (delay
    (if (config/config-bool :mb-db-in-memory)
      ;; In-memory (i.e. test) DB
      ;; DB_CLOSE_DELAY=-1 = don't close the Database until the JVM shuts down
-     ;; LOCK_TIMEOUT=5000 = wait up to 5 seconds to acquire lock for INSERT operations. Default is 1 second. I have seen
-     ;; `org.h2.jdbc.JdbcSQLException - Timeout trying to lock table "SYS"` errors with default of 1 second
-     "mem:metabase;DB_CLOSE_DELAY=-1;LOCK_TIMEOUT=5000"
+     "mem:metabase;DB_CLOSE_DELAY=-1"
      ;; File-based DB
      (let [db-file-name (config/config-str :mb-db-file)
            ;; we need to enable MVCC for Quartz JDBC backend to work! Quartz depends on row-level locking, which
@@ -44,7 +42,7 @@
            ;; MVStore engine anyway so this only affects people still with legacy PageStore databases
            ;;
            ;; Tell H2 to defrag when Metabase is shut down -- can reduce DB size by multiple GIGABYTES -- see #6510
-           options      ";DB_CLOSE_DELAY=-1;MVCC=TRUE;DEFRAG_ALWAYS=TRUE;LOCK_TIMEOUT=5000"]
+           options      ";DB_CLOSE_DELAY=-1;MVCC=TRUE;DEFRAG_ALWAYS=TRUE"]
        ;; H2 wants file path to always be absolute
        (str "file:"
             (.getAbsolutePath (io/file db-file-name))
