@@ -14,6 +14,7 @@
              [table :refer [Table]]]
             [metabase.public-settings.metastore-test :as metastore-test]
             [metabase.query-processor.util :as qp-util]
+            [metabase.test.data :as data]
             [metabase.test.data.users :as test-users]
             [toucan.util.test :as tt]))
 
@@ -45,11 +46,10 @@
         (select-keys [:status :error]))))
 
 
-;; ok, now test that all of the queries work and return successfully
-(defn- arglist->args [arglist]
-  [])
-
 (defn- test-query-fn [fn-str arglist]
+  ;; make sure sample DB is already loaded before running these tests, otherwise we get some weird behavior where
+  ;; queries randomly fail because it cannot lock SYS table (?)
+  (data/db)
   (tt/with-temp* [Database      [database]
                   Table         [table {:db_id (u/get-id database)}]
                   Card          [card {:table_id (u/get-id table), :database_id (u/get-id database)}]
