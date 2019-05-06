@@ -40,8 +40,7 @@
    :last_login s/Any
    s/Keyword   s/Any})
 
-(s/defmethod create-session!
-  :sso
+(s/defmethod create-session! :sso
   [_, user :- CreateSessionUserInfo]
   (u/prog1 (UUID/randomUUID)
     (db/insert! Session
@@ -50,8 +49,7 @@
     (events/publish-event! :user-login
       {:user_id (:id user), :session_id (str <>), :first_login (nil? (:last_login user))})))
 
-(s/defmethod create-session!
-  :password
+(s/defmethod create-session! :password
   [session-type, user :- CreateSessionUserInfo]
   ;; this is actually the same as `create-session!` for `:sso` but we check whether password login is enabled.
   (when-not (public-settings/enable-password-login)
@@ -83,7 +81,7 @@
                    {:status-code 400
                     :errors      {:password password-fail-snippet}})))
         ;; password is ok, return new session
-        (create-session! :sso (ldap/fetch-or-create-user! user-info password)))
+        (create-session! :sso (ldap/fetch-or-create-user! user-info)))
       (catch LDAPSDKException e
         (log/error e (trs "Problem connecting to LDAP server, will fall back to local authentication"))))))
 
