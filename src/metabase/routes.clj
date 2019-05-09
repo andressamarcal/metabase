@@ -44,7 +44,7 @@
   mt-routes/auth-routes
   ;; ^/$ -> index.html
   (GET "/" [] index/index)
-  (GET "/favicon.ico" [] (resp/resource-response public-settings/application-favicon-url))
+  (GET "/favicon.ico" [] (resp/resource-response (public-settings/application-favicon-url)))
   ;; ^/api/health -> Health Check Endpoint
   (GET "/api/health" [] (if (init-status/complete?)
                           {:status 200, :body {:status "ok"}}
