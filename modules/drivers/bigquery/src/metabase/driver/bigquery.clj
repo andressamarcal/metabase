@@ -398,13 +398,13 @@
   (sql.qp/date driver unit (sql.qp/->honeysql driver field)))
 
 (defmethod sql.qp/->honeysql [:bigquery (class Field)]
-  [driver field]
-  (let [{table-name :name, :as table} (qp.store/table (:table_id field))
-        field-identifier              (map->BigQueryIdentifier
-                                       {:table-name table-name
-                                        :field-name (:name field)
-                                        :alias?     (:alias? table)})]
-    (sql.qp/cast-unix-timestamp-field-if-needed driver field field-identifier)))
+  [driver {field-name :name, table-id :table_id, :as field}]
+  (let [identifier (map->BigQueryIdentifier
+                    (if sql.qp/*table-alias*
+                      {:table-name (name sql.qp/*table-alias*), :field-name field-name, :alias? true}
+                      (let [{table-name :name, :keys [alias?]} (qp.store/table table-id)]
+                        {:table-name table-name, :field-name field-name, :alias? alias?})))]
+    (sql.qp/cast-unix-timestamp-field-if-needed driver field identifier)))
 
 (defmethod sql.qp/field->identifier :bigquery [_ {table-id :table_id, :as field}]
   ;; TODO - Making a DB call for each field to fetch its Table is inefficient and makes me cry, but this method is
@@ -434,25 +434,31 @@
   (let [{table-name :name} (qp.store/table source-table-id)]
     (h/from honeysql-form (map->BigQueryIdentifier {:table-name table-name}))))
 
-;; Copy of the SQL implementation, but prepends the current dataset ID to join-alias.
-(defmethod sql.qp/apply-top-level-clause [:bigquery :join-tables]
-  [_ _ honeysql-form {join-tables :join-tables, source-table-id :source-table}]
-  (let [{source-table-name :name} (qp.store/table source-table-id)]
-    (loop [honeysql-form honeysql-form, [{:keys [table-id pk-field-id fk-field-id join-alias]} & more] join-tables]
-      (let [{table-name :name} (qp.store/table table-id)
-            source-field       (qp.store/field fk-field-id)
-            pk-field           (qp.store/field pk-field-id)
 
-            honeysql-form
-            (h/merge-left-join honeysql-form
-              [(map->BigQueryIdentifier {:table-name table-name})
-               (map->BigQueryIdentifier {:table-name join-alias, :alias? true})]
-              [:=
-               (map->BigQueryIdentifier {:table-name source-table-name, :field-name (:name source-field)})
-               (map->BigQueryIdentifier {:table-name join-alias, :field-name (:name pk-field), :alias? true})])]
-        (if (seq more)
-          (recur honeysql-form more)
-          honeysql-form)))))
+;; Copy of the SQL implementation, but prepends the current dataset ID to join-alias.
+(defn- make-honeysql-join-clauses
+  "Create a single HoneySQL join clause against, joining against `table-or-query-expr` using join info."
+  [driver table-or-query-expr {:keys [join-alias fk-field-id pk-field-id]}]
+  (let [source-field          (qp.store/field fk-field-id)
+        {pk-field-name :name} (qp.store/field pk-field-id)]
+    [[table-or-query-expr
+      (map->BigQueryIdentifier {:table-name join-alias, :alias? true})]
+     [:=
+      (sql.qp/->honeysql driver source-field)
+      (map->BigQueryIdentifier {:table-name join-alias, :field-name pk-field-name, :alias? true})]]))
+
+(s/defn ^:private join-info->honeysql
+  [driver , {:keys [query table-id], :as info} :- mbql.s/JoinInfo]
+  (binding [sql.qp/*table-alias* nil]
+    (if query
+      (make-honeysql-join-clauses driver (sql.qp/build-honeysql-form driver query) info)
+      (let [{table-name :name} (qp.store/table table-id)]
+        (make-honeysql-join-clauses driver (map->BigQueryIdentifier {:table-name table-name}) info)))))
+
+(defmethod sql.qp/apply-top-level-clause [:bigquery :join-tables]
+  [driver _ honeysql-form {:keys [join-tables]}]
+  (reduce (partial apply h/merge-left-join) honeysql-form (map (partial join-info->honeysql driver) join-tables)))
+
 
 (defn- ag-ref->alias [[_ index]]
   (let [{{aggregations :aggregation} :query} sql.qp/*query*

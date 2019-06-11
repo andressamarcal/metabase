@@ -1,23 +1,21 @@
 (ns metabase.mt.query-processor.middleware.row-level-restrictions-test
   (:require [clojure.string :as str]
             [expectations :refer [expect]]
+            [honeysql
+             [core :as hsql]
+             [format :as hformat]]
             [metabase
              [driver :as driver]
              [query-processor :as qp]
-             [query-processor-test :as qpt]
-             [sync :as sync]
+             [query-processor-test :as qp.test]
              [util :as u]]
-            [metabase.api.common :refer [*current-user-id* *current-user-permissions-set*]]
             [metabase.models
              [card :refer [Card]]
              [collection :refer [Collection]]
-             [database :refer [Database]]
-             [permissions :as perms :refer [Permissions]]
-             [permissions-group :as perms-group :refer [PermissionsGroup]]
-             [permissions-group-membership :refer [PermissionsGroupMembership]]
-             [table :refer [Table]]
-             [user :refer [User]]]
-            [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
+             [field :refer [Field]]
+             [permissions :as perms]
+             [permissions-group :as perms-group]
+             [table :refer [Table]]]
             [metabase.mt.test-util :as mt.tu]
             [metabase.query-processor.util :as qputil]
             [metabase.test
@@ -25,64 +23,100 @@
              [util :as tu]]
             [metabase.test.data
              [datasets :as datasets]
+             [env :as tx.env]
              [sql :as sql.tx]
              [users :as users]]
-            [toucan.db :as db]
             [toucan.util.test :as tt]))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
-;;; |                                                      UTIL                                                      |
+;;; |                                      SHARED GTAP DEFINITIONS & HELPER FNS                                      |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
 (defn- quote-native-identifier
-  ([{db-name :name :as db} table-name]
-   (sql.tx/qualify+quote-name driver/*driver* (name db-name) (name table-name)))
-  ([{db-name :name :as db} table-name field-name]
-   (sql.tx/qualify+quote-name driver/*driver* (name db-name) (name table-name) (name field-name))))
+  ([{db-name :name, driver :engine, :as db} table-name]
+   (sql.tx/qualify+quote-name driver (name db-name) (name table-name)))
 
-(defn- venues-count-mbql-query []
-  {:database (data/id)
-   :type     :query
-   :query    {:source-table (data/id :venues)
-              :aggregation  [[:count]]}})
+  ([{db-name :name, driver :engine, :as db} table-name field-name]
+   (sql.tx/qualify+quote-name driver (name db-name) (name table-name) (name field-name))))
 
-(defn- venues-source-table-card [db-or-id]
-  {:dataset_query {:database (u/get-id db-or-id)
-                   :type     :query
-                   :query    {:source_table (data/id :venues)}}})
 
-(defn- checkins-source-table-card [db-or-id]
-  {:dataset_query {:database (u/get-id db-or-id)
-                   :type     :query
-                   :query    {:source_table (data/id :checkins)
-                              :filter       [">" (data/id :checkins :date) "2014-01-01"]}}})
+(defn- venues-category-mbql-gtap-def []
+  {:query      (data/mbql-query venues)
+   :remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]}})
 
-(defn- do-with-group [group f]
-  (tt/with-temp* [PermissionsGroup           [group (merge {:name "Restricted Venues"} group)]
-                  PermissionsGroupMembership [_     {:group_id (u/get-id group)
-                                                     :user_id  (users/user->id :rasta)}]]
-    (f group)))
+(defn- venues-price-mbql-gtap-def []
+  {:query      (data/mbql-query venues)
+   :remappings {:price ["variable" [:field-id (data/id :venues :price)]]}})
 
-(defmacro with-group [[group-binding group] & body]
-  `(do-with-group ~group (fn [~group-binding] ~@body)))
+(defn- checkins-user-mbql-gtap-def []
+  {:query      (data/mbql-query checkins {:filter [:> $date "2014-01-01"]})
+   :remappings {:user ["variable" [:field-id (data/id :checkins :user_id)]]}})
 
-(defmacro with-gtaps [[group-binding group, & gtap-bindings-and-definitions] & body]
-  `(with-group [~group-binding ~group]
-     (tt/with-temp* [~@(reduce concat (for [[gtap-binding gtap] (partition 2 gtap-bindings-and-definitions)]
-                                        [GroupTableAccessPolicy [gtap-binding gtap]]))]
-       ~@body)))
+(defn- venues-category-native-gtap-def []
+  {:query      {:database (data/id)
+                :type     :native
+                :native   {:query         (format "SELECT %s FROM %s WHERE %s = {{cat}} ORDER BY %s ASC"
+                                                  (str (when (= driver/*driver* :sqlserver)
+                                                         "TOP 1000 ")
+                                                       "*")
+                                                  (quote-native-identifier (data/db) :venues)
+                                                  (quote-native-identifier (data/db) :venues :category_id)
+                                                  (quote-native-identifier (data/db) :venues :id))
+                           :template_tags {:cat {:name "cat" :display_name "cat" :type "number" :required true}}}}
+   :remappings {:cat ["variable" ["template-tag" "cat"]]}})
 
-(defn- process-query-with-rasta [query]
-  (users/with-test-user :rasta
-    (qp/process-query query)))
+(defn- parameterized-sql-with-join-gtap-def []
+  {:query     {:database (data/id)
+               :type     :native
+               :native   {:query
+                          (first
+                           (let [identifier (fn [& args]
+                                              (hsql/raw (apply quote-native-identifier (data/db) args)))]
+                             (hsql/format {:select    [(identifier :checkins :id)
+                                                       (identifier :checkins :user_id)
+                                                       (identifier :venues :name)
+                                                       (identifier :venues :category_id)]
+                                           :modifiers (when (= driver/*driver* :sqlserver)
+                                                        ["TOP 1000"])
+                                           :from      [(identifier :checkins)]
+                                           :left-join [(identifier :venues)
+                                                       [:= (identifier :checkins :venue_id) (identifier :venues :id)]]
+                                           :where     (reify hformat/ToSql
+                                                        (to-sql [_]
+                                                          (format "[[%s = {{user}}]]" (quote-native-identifier (data/db) :checkins :user_id))))
+                                           :order-by  [[(identifier :checkins :id) :asc]]})))
 
-(defn- gtap {:style/indent 3} [group-or-id table-or-kw-or-id-or-nil card-or-id-or-nil & {:as kvs}]
-  (merge {:group_id (u/get-id group-or-id)
-          :table_id (if (keyword? table-or-kw-or-id-or-nil)
-                      (data/id table-or-kw-or-id-or-nil)
-                      (some-> table-or-kw-or-id-or-nil u/get-id))
-          :card_id  (some-> card-or-id-or-nil u/get-id)}
-         kvs))
+                          :template_tags
+                          {"user" {:name         "user"
+                                   :display-name "User ID"
+                                   :type         :number
+                                   :required     true}}}}
+   :remappings {:user ["variable" ["template-tag" "user"]]}})
+
+(defn- venue-names-native-gtap-def []
+  {:query {:database (data/id)
+           :type     :native
+           :native   {:query (format "SELECT %s FROM %s ORDER BY %s ASC"
+                                     (str (when (= driver/*driver* :sqlserver)
+                                            "TOP 1000 ")
+                                          (quote-native-identifier (data/db) :venues :name))
+                                     (quote-native-identifier (data/db) :venues)
+                                     (quote-native-identifier (data/db) :venues :id))}}})
+
+
+
+(defn- run-venues-count-query []
+  (qp.test/format-rows-by [int]
+    (qp.test/rows
+      (data/run-mbql-query venues {:aggregation [[:count]]}))))
+
+(defn- run-checkins-count-broken-out-by-price-query []
+  (qp.test/format-rows-by [#(some-> % int) int]
+    (qp.test/rows
+      (data/run-mbql-query checkins
+        {:aggregation [[:count]]
+         :order-by    [[:asc $venue_id->venues.price]]
+         :breakout    [$venue_id->venues.price]}))))
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -90,335 +124,203 @@
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
 ;; When querying with full permissions, no changes should be made
-(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
+(datasets/expect-with-drivers (qp.test/non-timeseries-drivers-with-feature :nested-queries)
   [[100]]
-  (tt/with-temp Card [card (venues-source-table-card (data/id))]
-    (with-gtaps [group nil
-                 _     (gtap group :venues card
-                         :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]})]
-      (mt.tu/with-user-attributes :rasta {:cat 50}
-        (qpt/format-rows-by [int]
-          (-> {:database (data/id)
-               :type     :query
-               :query    {:source-table (data/id :venues)
-                          :aggregation  [[:count]]}}
-              process-query-with-rasta
-              qpt/rows))))))
+  (mt.tu/with-gtaps {:gtaps      {:venues (venues-category-mbql-gtap-def)}
+                     :attributes {"cat" 50}}
+    (perms/grant-permissions! &group (perms/table-query-path (Table (data/id :venues))))
+    (run-venues-count-query)))
 
 ;; Basic test around querying a table by a user with segmented only permissions and a GTAP question that is a native
 ;; query
-(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
+(datasets/expect-with-drivers (qp.test/non-timeseries-drivers-with-feature :nested-queries)
   [[10]]
-  (mt.tu/with-segmented-perms [db]
-    (tt/with-temp Card [card {:dataset_query {:database (u/get-id db)
-                                              :type     :native
-                                              :native   {:query         (format "SELECT * FROM %s WHERE %s = {{cat}}"
-                                                                                (quote-native-identifier db :venues)
-                                                                                (quote-native-identifier db :venues :category_id))
-                                                         :template_tags {:cat {:name "cat" :display_name "cat" :type "number" :required true}}}}}]
-      (with-gtaps [group nil
-                   _     (gtap group :venues card, :attribute_remappings {:cat ["variable" ["template-tag" "cat"]]})]
-        (mt.tu/add-segmented-perms! db)
-        (mt.tu/with-user-attributes :rasta {"cat" 50}
-          (qpt/format-rows-by [int]
-            (-> (venues-count-mbql-query)
-                process-query-with-rasta
-                qpt/rows)))))))
+  (mt.tu/with-gtaps {:gtaps      {:venues (venues-category-native-gtap-def)}
+                     :attributes {"cat" 50}}
+    (run-venues-count-query)))
 
 ;; Basic test around querying a table by a user with segmented only permissions and a GTAP question that is MBQL
-(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
+(datasets/expect-with-drivers (qp.test/non-timeseries-drivers-with-feature :nested-queries)
   [[10]]
-  (mt.tu/with-segmented-perms [db]
-    (tt/with-temp Card [card (venues-source-table-card (u/get-id db))]
-      (with-gtaps [group nil
-                   _     (gtap group :venues card
-                           :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]})]
-        (mt.tu/add-segmented-perms! db)
-        (mt.tu/with-user-attributes :rasta {"cat" 50}
-          (qpt/format-rows-by [int]
-            (-> (venues-count-mbql-query)
-                process-query-with-rasta
-                qpt/rows)))))))
+  (mt.tu/with-gtaps {:gtaps      {:venues (venues-category-mbql-gtap-def)}
+                     :attributes {"cat" 50}}
+    (run-venues-count-query)))
 
 ;; When processing a query that requires a user attribute and that user attribute isn't there, throw an exception
 ;; letting the user know it's missing
-(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
+(datasets/expect-with-drivers (qp.test/non-timeseries-drivers-with-feature :nested-queries)
   "Query requires user attribute `cat`"
-  (mt.tu/with-segmented-perms [db]
-    (tt/with-temp Card [card (venues-source-table-card (u/get-id db))]
-      (with-gtaps [group nil
-                   _     (gtap group :venues card
-                           :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]})]
-        (mt.tu/add-segmented-perms! db)
-        (mt.tu/with-user-attributes :rasta {"something_random" 50}
-          (-> (venues-count-mbql-query)
-              process-query-with-rasta
-              :error))))))
+  (:error
+   (mt.tu/with-gtaps {:gtaps      {:venues (venues-category-mbql-gtap-def)}
+                      :attributes {"something_random" 50}}
+     (data/run-mbql-query venues {:aggregation [[:count]]}))))
 
 ;; Another basic test, same as above, but with a numeric string that needs to be coerced
-(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
+(datasets/expect-with-drivers (qp.test/non-timeseries-drivers-with-feature :nested-queries)
   [[10]]
-  (mt.tu/with-segmented-perms [db]
-    (tt/with-temp Card [card (venues-source-table-card (u/get-id db))]
-      (with-gtaps [group nil
-                   _     (gtap group :venues card
-                           :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]})]
-        (mt.tu/add-segmented-perms! db)
-        (qpt/format-rows-by [int]
-          (mt.tu/with-user-attributes :rasta {"cat" "50"}
-            (-> (venues-count-mbql-query)
-                process-query-with-rasta
-                qpt/rows)))))))
+  (mt.tu/with-gtaps {:gtaps      {:venues (venues-category-mbql-gtap-def)}
+                     :attributes {"cat" "50"}}
+    (run-venues-count-query)))
 
 ;; Another basic test, this one uses a stringified float for the login attribute
-(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
+(datasets/expect-with-drivers (qp.test/non-timeseries-drivers-with-feature :nested-queries)
   [[3]]
-  (mt.tu/with-segmented-perms [db]
-    (tt/with-temp Card [card (venues-source-table-card (u/get-id db))]
-      (with-gtaps [group nil
-                   _     (gtap group :venues card
-                           :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :latitude)]]})]
-        (mt.tu/add-segmented-perms! db)
-        (qpt/format-rows-by [int]
-          (mt.tu/with-user-attributes :rasta {"cat" "34.1018"}
-            (-> (venues-count-mbql-query)
-                process-query-with-rasta
-                qpt/rows)))))))
+  (mt.tu/with-gtaps {:gtaps      {:venues {:query      (data/mbql-query venues)
+                                           :remappings {:cat ["variable" [:field-id (data/id :venues :latitude)]]}}}
+                     :attributes {"cat" "34.1018"}}
+    (run-venues-count-query)))
 
 ;; Tests that users can have a different parameter name in their query than they have in their user attributes
-(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
+(datasets/expect-with-drivers (qp.test/non-timeseries-drivers-with-feature :nested-queries)
   [[10]]
-  (mt.tu/with-segmented-perms [db]
-    (tt/with-temp Card [card {:dataset_query {:database (u/get-id db)
-                                              :type     :native
-                                              :native   {:query         (format "SELECT * FROM %s WHERE %s = {{cat}}"
-                                                                                (quote-native-identifier db :venues)
-                                                                                (quote-native-identifier db :venues :category_id))
-                                                         :template_tags {:cat {:name "cat" :display_name "cat" :type "number" :required true}}}}}]
-      (with-gtaps [group nil
-                   _     (gtap group :venues card
-                           :attribute_remappings {:something.different ["variable" ["template-tag" "cat"]]})]
-        (mt.tu/add-segmented-perms! db)
-        (mt.tu/with-user-attributes :rasta {"something.different" 50}
-          (qpt/format-rows-by [int]
-            (-> (venues-count-mbql-query)
-                process-query-with-rasta
-                qpt/rows)))))))
+  (mt.tu/with-gtaps {:gtaps      {:venues {:query      (:query (venues-category-native-gtap-def))
+                                           :remappings {:something.different ["variable" ["template-tag" "cat"]]}}}
+                     :attributes {"something.different" 50}}
+    (run-venues-count-query)))
 
-;; Make sure that you can still use a SQL-based GTAP without needing to have SQL read perms for the Database This test
-;; is disabled on Spark as it doesn't appear to support our aliasing syntax and wants an `AS`. Removing spark from
-;; this test, written up as https://github.com/metabase/metabase/issues/8524
-(datasets/expect-with-drivers (disj (qpt/non-timeseries-drivers-with-feature :nested-queries) :sparksql)
-  [["20th Century Cafe" 1000]]
-  (tt/with-temp Database [db (select-keys (data/db) [:details :engine :name])]
-    (with-group [group]
-      (sync/sync-database! db)
-      (data/with-db db
-        (tt/with-temp* [Card [card {:dataset_query
-                                    {:database (u/get-id db)
-                                     :type     :native
-                                     :native   (-> (qp/query->native
-                                                     {:database (data/id)
-                                                      :type     :query
-                                                      :query    (data/$ids venues
-                                                                  {:source-table $$table
-                                                                   :fields       [[:field-id $name]
-                                                                                  [:expression "one_thousand"]]
-                                                                   :order-by     [[:asc [:field-id $name]]]
-                                                                   :expressions  {"one_thousand" [:+ 500 500]}})})
-                                                   (select-keys [:query]))}}]
-                        GroupTableAccessPolicy [_ (gtap group :venues card)]]
-          (perms/revoke-permissions! (perms-group/all-users) (u/get-id db))
-          (perms/grant-permissions! group (perms/table-segmented-query-path (Table (data/id :venues))))
-          (binding [*current-user-id*              (users/user->id :rasta)
-                    *current-user-permissions-set* (let [perms (db/select-field :object Permissions :group_id (u/get-id group))]
-                                                     (atom perms))]
-            (->> (qp/process-query {:database (u/get-id db)
-                                    :type     :query
-                                    :query    {:source-table (data/id :venues)
-                                               :limit        1}
-                                    :user     (users/fetch-user :rasta)})
-                 qpt/rows
-                 (qpt/format-rows-by [str int]))))))))
+;; Make sure that you can still use a SQL-based GTAP without needing to have SQL read perms for the Database
+(datasets/expect-with-drivers (qp.test/non-timeseries-drivers-with-feature :nested-queries)
+  [["Red Medicine"] ["Stout Burgers & Beers"]]
+  (qp.test/rows
+    (mt.tu/with-gtaps {:gtaps {:venues (venue-names-native-gtap-def)}}
+      (data/run-mbql-query venues {:limit 2}))))
 
 ;; When no card_id is included in the GTAP, should default to a query against the table, with the GTAP criteria applied
-(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
+(datasets/expect-with-drivers (qp.test/non-timeseries-drivers-with-feature :nested-queries)
   [[10]]
-  (mt.tu/with-segmented-perms [db]
-    (with-gtaps [group nil
-                 _     (gtap group :venues nil
-                         :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]})]
-      (mt.tu/add-segmented-perms! db)
-      (mt.tu/with-user-attributes :rasta {"cat" 50}
-        (qpt/format-rows-by [int]
-          (-> (venues-count-mbql-query)
-              process-query-with-rasta
-              qpt/rows))))))
+  (mt.tu/with-gtaps {:gtaps      {:venues (dissoc (venues-category-mbql-gtap-def) :query)}
+                     :attributes {"cat" 50}}
+    (run-venues-count-query)))
 
 ;; Same test as above but make sure we coerce a numeric string correctly
-(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
+(datasets/expect-with-drivers (qp.test/non-timeseries-drivers-with-feature :nested-queries)
   [[10]]
-  (mt.tu/with-segmented-perms [db]
-    (with-gtaps [group {:name "Restricted Venues"}
-                 _     (gtap group :venues nil
-                         :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]})]
-      (mt.tu/add-segmented-perms! db)
-      (mt.tu/with-user-attributes :rasta {"cat" "50"}
-        (qpt/format-rows-by [int]
-          (-> (venues-count-mbql-query)
-              process-query-with-rasta
-              qpt/rows))))))
+  (mt.tu/with-gtaps {:gtaps      {:venues (dissoc (venues-category-mbql-gtap-def) :query)}
+                     :attributes {"cat" "50"}}
+    (run-venues-count-query)))
 
 ;; Users with view access to the related collection should bypass segmented permissions
-(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
+(datasets/expect-with-drivers (qp.test/non-timeseries-drivers-with-feature :nested-queries)
   1
-  (tt/with-temp* [Database   [db          (select-keys (data/db) [:details :engine :name])]
-                  Collection [collection]
-                  Card       [card        {:collection_id (u/get-id collection)}]]
-    (with-group [group]
-      (sync/sync-database! db)
-      (data/with-db db
+  (mt.tu/with-copy-of-test-db [db]
+    (tt/with-temp* [Collection [collection]
+                    Card       [card        {:collection_id (u/get-id collection)}]]
+      (mt.tu/with-group [group]
         (perms/revoke-permissions! (perms-group/all-users) (u/get-id db))
         (perms/grant-collection-read-permissions! group collection)
-        (binding [*current-user-id*              (users/user->id :rasta)
-                  *current-user-permissions-set* (let [perms (db/select-field :object Permissions :group_id (u/get-id group))]
-                                                   (atom perms))]
-          (-> (qp/process-query {:database (u/get-id db)
-                                 :type     :query
-                                 :query    {:source-table (data/id :venues)
-                                            :limit        1}
-                                 :user     (users/fetch-user :rasta)
-                                 :info     {:card-id    (u/get-id card)
-                                            :query-hash (byte-array 0)}})
-              qpt/rows
-              count))))))
+        (users/with-test-user :rasta
+          (count
+           (qp.test/rows
+             (qp/process-query
+               {:database (u/get-id db)
+                :type     :query
+                :query    {:source-table (data/id :venues)
+                           :limit        1}
+                :info     {:card-id    (u/get-id card)
+                           :query-hash (byte-array 0)}}))))))))
 
 ;; This test isn't covering a row level restrictions feature, but rather checking it it doesn't break querying of a
 ;; card as a nested query. Part of the row level perms check is looking at the table (or card) to see if row level
 ;; permissions apply. This was broken when it wasn't expecting a card and only expecting resolved source-tables
-(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries)
+(datasets/expect-with-drivers (qp.test/non-timeseries-drivers-with-feature :nested-queries)
   [[100]]
-  (tt/with-temp Card [card (venues-source-table-card (data/id))]
-    (->> (process-query-with-rasta
-           {:database (data/id)
-            :type     :query
-            :query    {:source-table (format "card__%s" (u/get-id card))
-                       :aggregation  [["count"]]}})
-         qpt/rows
-         (qpt/format-rows-by [int]))))
-
-(defn- grant-all-segmented! [db-or-id & table-kwds]
-  (perms/revoke-permissions! (perms-group/all-users) (u/get-id db-or-id))
-  (doseq [table-kwd table-kwds]
-    (perms/grant-permissions! (perms-group/all-users) (perms/table-segmented-query-path (Table (data/id table-kwd))))))
+  (tt/with-temp Card [card {:dataset_query (data/mbql-query venues)}]
+    (qp.test/format-rows-by [int]
+      (qp.test/rows
+        (users/with-test-user :rasta
+          (qp/process-query
+            {:database (data/id)
+             :type     :query
+             :query    {:source-table (format "card__%s" (u/get-id card))
+                        :aggregation  [["count"]]}}))))))
 
 ;; Test that we can follow FKs to related tables and breakout by columns on those related tables. This test has
 ;; several things wrapped up which are detailed below
+
+(defn- row-level-restrictions-fk-drivers
+  "Drivers to test row-level restrictions against foreign keys with. Includes BigQuery, which for whatever reason does
+  not normally have FK tests ran for it."
+  []
+  (cond-> (qp.test/non-timeseries-drivers-with-feature :nested-queries :foreign-keys)
+    (tx.env/test-drivers :bigquery) (conj :bigquery)))
+
+;; HACK - Since BigQuery doesn't formally support foreign keys (meaning we can't sync them automatically), FK tests
+;; are disabled by default for BigQuery. We really want to test them here! The macros below let us "fake" FK support
+;; for BigQuery.
+(defn- do-enable-bigquery-fks [f]
+  (let [supports? driver/supports?]
+    (with-redefs [driver/supports? (fn [driver feature]
+                                     (if (= [driver feature] [:bigquery :foreign-keys])
+                                       true
+                                       (supports? driver feature)))]
+      (f))))
+
+(defmacro ^:private enable-bigquery-fks [& body]
+  `(do-enable-bigquery-fks (fn [] ~@body)))
+
+(defn- do-with-bigquery-fks [f]
+  (if-not (= driver/*driver* :bigquery)
+    (f)
+    (tu/with-temp-vals-in-db Field (data/id :checkins :user_id) {:fk_target_field_id (data/id :users :id)
+                                                                 :special_type       "type/FK"}
+      (tu/with-temp-vals-in-db Field (data/id :checkins :venue_id) {:fk_target_field_id (data/id :venues :id)
+                                                                    :special_type       "type/FK"}
+        (f)))))
+
+(defmacro ^:private with-bigquery-fks [& body]
+  `(do-with-bigquery-fks (fn [] ~@body)))
 ;;
 ;; 1 - Creates a GTAP filtering question, looking for any checkins happening on or after 2014
 ;; 2 - Apply the `user` attribute, looking for only our user (i.e. `user_id` =  5)
 ;; 3 - Checkins are related to Venues, query for checkins, grouping by the Venue's price
 ;; 4 - Order by the Venue's price to ensure a predictably ordered response
-(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries :foreign-keys)
+(datasets/expect-with-drivers (row-level-restrictions-fk-drivers)
   [[1 10] [2 36] [3 4] [4 5]]
-  (mt.tu/with-segmented-perms [db]
-    (tt/with-temp Card [card (checkins-source-table-card db)]
-      (with-gtaps [group nil
-                   _     (gtap group :checkins card
-                           :attribute_remappings {:user ["variable" [:field-id (data/id :checkins :user_id)]]})]
-        (grant-all-segmented! db :checkins)
-        (perms/grant-permissions! (perms-group/all-users) (perms/table-query-path (Table (data/id :venues))))
-        (perms/grant-permissions! (perms-group/all-users) (perms/table-query-path (Table (data/id :users))))
-        (mt.tu/with-user-attributes :rasta {"user" 5}
-          (qpt/format-rows-by [int int]
-            (-> {:database (data/id)
-                 :type     :query
-                 :query    {:source-table (data/id :checkins)
-                            :aggregation  [[:count]]
-                            :order-by     [[:asc [:fk-> (data/id :checkins :venue_id) (data/id :venues :price)]]]
-                            :breakout     [[:fk-> (data/id :checkins :venue_id) (data/id :venues :price)]]}}
-                process-query-with-rasta
-                qpt/rows)))))))
+  (enable-bigquery-fks
+   (mt.tu/with-gtaps {:gtaps      {:checkins (checkins-user-mbql-gtap-def)}
+                      :attributes {"user" 5}}
+     (with-bigquery-fks
+       (run-checkins-count-broken-out-by-price-query)))))
 
 ;; Test that we're able to use a GTAP for an FK related table. For this test, the user has segmented permissions on
 ;; checkins and venues, so we need to apply a GTAP to the original table (checkins) in addition to the related table
 ;; (venues). This test uses a GTAP question for both tables
-(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries :foreign-keys)
+(datasets/expect-with-drivers (row-level-restrictions-fk-drivers)
   #{[nil 45] [1 10]}
-  (mt.tu/with-segmented-perms [db]
-    (tt/with-temp* [Card [card-1 {:dataset_query {:database (u/get-id db)
-                                                  :type     :query
-                                                  :query    {:source_table (data/id :checkins)
-                                                             :filter       [">" (data/id :checkins :date) "2014-01-01"]}}}]
-                    Card [card-2 (venues-source-table-card (u/get-id db))]]
-      (with-gtaps [group nil
-                   _     (gtap group :checkins card-1
-                           :attribute_remappings {:user ["variable" [:field-id (data/id :checkins :user_id)]]})
-                   _     (gtap group :venues card-2
-                           :attribute_remappings {:price ["variable" [:field-id (data/id :venues :price)]]})]
-        (grant-all-segmented! db :checkins :venues)
-        (set
-         (mt.tu/with-user-attributes :rasta {"user" 5, "price" 1}
-           (qpt/format-rows-by [#(when % (int %)) int]
-             (-> {:database (data/id)
-                  :type     :query
-                  :query    {:source-table (data/id :checkins)
-                             :aggregation  [[:count]]
-                             :order-by     [[:asc [:fk-> (data/id :checkins :venue_id) (data/id :venues :price)]]]
-                             :breakout     [[:fk-> (data/id :checkins :venue_id) (data/id :venues :price)]]}}
-                 process-query-with-rasta
-                 qpt/rows))))))))
+  (enable-bigquery-fks
+   (mt.tu/with-gtaps {:gtaps      {:checkins (checkins-user-mbql-gtap-def)
+                                   :venues   (venues-price-mbql-gtap-def)}
+                      :attributes {"user" 5, "price" 1}}
+     (with-bigquery-fks
+       (set (run-checkins-count-broken-out-by-price-query))))))
 
 ;; Test that the FK related table can be a "default" GTAP, i.e. a GTAP where the `card_id` is nil
-(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries :foreign-keys)
+(datasets/expect-with-drivers (row-level-restrictions-fk-drivers)
   #{[nil 45] [1 10]}
-  (mt.tu/with-segmented-perms [db]
-    (tt/with-temp Card [card (checkins-source-table-card db)]
-      (with-gtaps [group nil
-                   _     (gtap group :checkins card
-                           :attribute_remappings {:user ["variable" [:field-id (data/id :checkins :user_id)]]})
-                   _     (gtap group :venues nil
-                           :attribute_remappings {:price ["variable" [:field-id (data/id :venues :price)]]})]
-        (grant-all-segmented! db :checkins :venues)
-        (set
-         (mt.tu/with-user-attributes :rasta {"user"  5
-                                             "price" 1}
-           (qpt/format-rows-by [#(when % (int %)) int]
-             (-> {:database (data/id)
-                  :type     :query
-                  :query    {:source-table (data/id :checkins)
-                             :aggregation  [[:count]]
-                             :order-by     [[:asc [:fk-> (data/id :checkins :venue_id) (data/id :venues :price)]]]
-                             :breakout     [[:fk-> (data/id :checkins :venue_id) (data/id :venues :price)]]}}
-                 process-query-with-rasta
-                 qpt/rows))))))))
+  (enable-bigquery-fks
+   (mt.tu/with-gtaps {:gtaps      {:checkins (checkins-user-mbql-gtap-def)
+                                   :venues   (dissoc (venues-price-mbql-gtap-def) :query)}
+                      :attributes {"user" 5, "price" 1}}
+     (with-bigquery-fks
+       (set (run-checkins-count-broken-out-by-price-query))))))
 
 ;; Test that we have multiple FK related, segmented tables. This test has checkins with a GTAP question with venues
 ;; and users having the default GTAP and segmented permissions
-(datasets/expect-with-drivers (qpt/non-timeseries-drivers-with-feature :nested-queries :foreign-keys)
+(datasets/expect-with-drivers (row-level-restrictions-fk-drivers)
   #{[nil "Quentin Sören" 45] [1 "Quentin Sören" 10]}
-  (mt.tu/with-segmented-perms [db]
-    (tt/with-temp Card [card (checkins-source-table-card db)]
-      (with-gtaps [group nil
-                   _     (gtap group :checkins card
-                           :attribute_remappings {:user ["variable" [:field-id (data/id :checkins :user_id)]]})
-                   _     (gtap group :venues nil
-                           :attribute_remappings {:price ["variable" [:field-id (data/id :venues :price)]]})
-                   _     (gtap group :users nil
-                           :attribute_remappings {:user ["variable" [:field-id (data/id :users :id)]]})]
-        (grant-all-segmented! db :checkins :venues :users)
-        (set
-         (mt.tu/with-user-attributes :rasta {"user" 5, "price" 1}
-           (qpt/format-rows-by [#(when % (int %)) str int]
-             (-> {:database (data/id)
-                  :type     :query
-                  :query    {:source-table (data/id :checkins)
-                             :aggregation  [[:count]]
-                             :order-by     [[:asc [:fk-> (data/id :checkins :venue_id) (data/id :venues :price)]]]
-                             :breakout     [[:fk-> (data/id :checkins :venue_id) (data/id :venues :price)]
-                                            [:fk-> (data/id :checkins :user_id) (data/id :users :name)]]}}
-                 process-query-with-rasta
-                 qpt/rows))))))))
+  (enable-bigquery-fks
+   (mt.tu/with-gtaps {:gtaps      {:checkins (checkins-user-mbql-gtap-def)
+                                   :venues   (dissoc (venues-price-mbql-gtap-def) :query)
+                                   :users    {:remappings {:user ["variable" [:field-id (data/id :users :id)]]}}}
+                      :attributes {"user" 5, "price" 1}}
+     (with-bigquery-fks
+       (set
+        (qp.test/format-rows-by [#(when % (int %)) str int]
+          (qp.test/rows
+            (data/run-mbql-query checkins
+              {:aggregation [[:count]]
+               :order-by    [[:asc $venue_id->venues.price]]
+               :breakout    [$venue_id->venues.price $user_id->users.name]}))))))))
 
 ;; make sure GTAP queries still include ID of user who ran them in the remark
 (defn- run-query-returning-remark [run-query-fn]
@@ -434,13 +336,43 @@
 
 (expect
   (format "Metabase:: userID: %d queryType: MBQL queryHash: <hash>" (users/user->id :rasta))
-  (mt.tu/with-segmented-perms [db]
-    (tt/with-temp Card [card (venues-source-table-card (u/get-id db))]
-      (with-gtaps [group nil
-                   _     (gtap group :venues card
-                           :attribute_remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]})]
-        (mt.tu/add-segmented-perms! db)
-        (tu/with-temp-vals-in-db User (users/user->id :rasta) {:login_attributes {"cat" 50}}
-          (run-query-returning-remark
-           (fn []
-             ((users/user->client :rasta) :post "dataset" (venues-count-mbql-query)))))))))
+  (mt.tu/with-gtaps {:gtaps      {:venues (venues-category-mbql-gtap-def)}
+                     :attributes {"cat" 50}}
+    (run-query-returning-remark
+     (fn []
+       ((users/user->client :rasta) :post "dataset" (data/mbql-query venues {:aggregation [[:count]]}))))))
+
+;; Make sure that if a GTAP is in effect we can still do stuff like breakouts (#229)
+(datasets/expect-with-drivers (row-level-restrictions-fk-drivers)
+  [[1 6] [2 4]]
+  (mt.tu/with-gtaps {:gtaps      {:venues (venues-category-native-gtap-def)}
+                     :attributes {"cat" 50}}
+    (qp.test/format-rows-by [int int]
+      (qp.test/rows
+        (data/run-mbql-query venues
+          {:aggregation [[:count]]
+           :breakout    [$price]})))))
+
+;; If we use a parameterized SQL GTAP that joins a Table the user doesn't have access to, does it still work? (EE #230)
+;; If we pass the query in directly without anything that would require nesting it, it should work
+(datasets/expect-with-drivers (row-level-restrictions-fk-drivers)
+  [[2  1 "Bludso's BBQ" 5]
+   [72 1 "Red Medicine" 4]]
+  (qp.test/format-rows-by [int int identity int]
+    (qp.test/rows
+      (mt.tu/with-gtaps {:gtaps      {:checkins (parameterized-sql-with-join-gtap-def)}
+                         :attributes {"user" 1}}
+        (data/run-mbql-query checkins
+          {:limit 2})))))
+
+
+;; #230: If we modify the query in a way that would cause the original to get nested as a source query, do things work?
+(datasets/expect-with-drivers (row-level-restrictions-fk-drivers)
+  [[5 69]]
+  (qp.test/format-rows-by [int int]
+    (qp.test/rows
+      (mt.tu/with-gtaps {:gtaps      {:checkins (parameterized-sql-with-join-gtap-def)}
+                         :attributes {"user" 5}}
+        (data/run-mbql-query checkins
+          {:aggregation [[:count]]
+           :breakout    [$user_id]})))))

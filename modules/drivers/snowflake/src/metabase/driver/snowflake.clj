@@ -141,13 +141,13 @@
       (throw (Exception. "Missing DB name"))))
 
 (defmethod sql.qp/->honeysql [:snowflake (class Field)]
-  [driver field]
-  (let [table            (qp.store/table (:table_id field))
-        db-name          (when-not (:alias? table)
-                           (query-db-name))
-        field-identifier (keyword
-                          (hx/qualify-and-escape-dots db-name (:schema table) (:name table) (:name field)))]
-    (sql.qp/cast-unix-timestamp-field-if-needed driver field field-identifier)))
+  [driver {field-name :name, table-id :table_id, :as field}]
+  (let [qualifiers (if sql.qp/*table-alias*
+                     [sql.qp/*table-alias*]
+                     (let [{:keys [alias? schema], table-name :name} (qp.store/table table-id)]
+                       [(when-not alias? (query-db-name)) schema table-name]))
+        identifier (keyword (apply hx/qualify-and-escape-dots (concat qualifiers [field-name])))]
+    (sql.qp/cast-unix-timestamp-field-if-needed driver field identifier)))
 
 (defmethod sql.qp/->honeysql [:snowflake (class Table)]
   [_ table]

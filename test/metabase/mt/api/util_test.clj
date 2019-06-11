@@ -6,8 +6,8 @@
 
 ;; admins should not be classified as segmented users -- enterprise #147
 (defn- has-segmented-perms-when-segmented-db-exists? [user-kw]
-  (mt.tu/with-segmented-perms [db]
-    (mt.tu/add-segmented-perms! db)
+  (mt.tu/with-copy-of-test-db [db]
+    (mt.tu/add-segmented-perms-for-venues-for-all-users-group! db)
     (test.users/with-test-user user-kw
       (mt.api.u/segmented-user?))))
 

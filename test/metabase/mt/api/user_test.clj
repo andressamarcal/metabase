@@ -20,7 +20,7 @@
 ;; themselves. This test checks that GET /api/user for a segmented user only returns themselves
 (expect
   [{:common_name "Rasta Toucan", :last_name "Toucan", :first_name "Rasta", :email "rasta@metabase.com", :id true}]
-  (mt.tu/with-segmented-perms [db]
+  (mt.tu/with-copy-of-test-db [db]
     (tt/with-temp* [Card [{card-id :id :as card} {:name          "magic"
                                                   :dataset_query {:database (u/get-id db)
                                                                   :type     :native
@@ -34,7 +34,7 @@
                                                   :card_id card-id
                                                   :attribute_remappings {:cat ["variable" ["template-tag" "cat"]]}}]]
 
-      (mt.tu/add-segmented-perms! db)
+      (mt.tu/add-segmented-perms-for-venues-for-all-users-group! db)
       ;; Make sure personal Collections have been created
       (collection-test/force-create-personal-collections!)
       ;; Now do the request

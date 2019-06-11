@@ -161,11 +161,20 @@
     :type/UNIXTimestampMilliseconds (unix-timestamp->timestamp driver :milliseconds field-identifier)
     field-identifier))
 
+(def ^:dynamic *table-alias*
+  "The alias, if any, that should be used to qualify Fields when building the HoneySQL form, instead of defaulting to
+  schema + Table name. Used to implement things like `:joined-field`s."
+  nil)
+
 (defmethod ->honeysql [:sql (class Field)]
-  [driver field]
-  (let [table            (qp.store/table (:table_id field))
-        field-identifier (keyword (hx/qualify-and-escape-dots (:schema table) (:name table) (:name field)))]
-    (cast-unix-timestamp-field-if-needed driver field field-identifier)))
+  [driver {field-name :name, table-id :table_id, :as field}]
+  ;; `indentifer` will automatically unnest nested calls to `identifier`
+  (let [qualifiers (if *table-alias*
+                     [*table-alias*]
+                     (let [{schema :schema, table-name :name} (qp.store/table table-id)]
+                       [schema table-name]))
+        identifier (keyword (apply hx/qualify-and-escape-dots (concat qualifiers [field-name])))]
+    (cast-unix-timestamp-field-if-needed driver field identifier)))
 
 (defmethod ->honeysql [:sql :field-id]
   [driver [_ field-id]]
@@ -186,7 +195,8 @@
                                  :name   join-alias
                                  ;; for drivers that need to know these things, like Snowflake
                                  :alias? true))))
-    (->honeysql driver dest-field-clause)))
+    (binding [*table-alias* nil]
+      (->honeysql driver dest-field-clause))))
 
 (defmethod ->honeysql [:sql :field-literal]
   [driver [_ field-name]]
@@ -443,10 +453,11 @@
 
 (s/defn ^:private join-info->honeysql
   [driver , {:keys [query table-id], :as info} :- mbql.s/JoinInfo]
-  (if query
-    (make-honeysql-join-clauses driver (build-honeysql-form driver query) info)
-    (let [table (qp.store/table table-id)]
-      (make-honeysql-join-clauses driver (->honeysql driver table) info))))
+  (binding [*table-alias* nil]
+    (if query
+      (make-honeysql-join-clauses driver (build-honeysql-form driver query) info)
+      (let [table (qp.store/table table-id)]
+        (make-honeysql-join-clauses driver (->honeysql driver table) info)))))
 
 (defmethod apply-top-level-clause [:sql :join-tables]
   [driver _ honeysql-form {:keys [join-tables]}]
@@ -556,7 +567,8 @@
                                :name   (name source-query-alias)
                                ;; some drivers like Snowflake need to know this so they don't include Database name
                                :alias? true)))
-    (apply-top-level-clauses driver honeysql-form (dissoc inner-query :source-query))))
+    (binding [*table-alias* source-query-alias]
+      (apply-top-level-clauses driver honeysql-form (dissoc inner-query :source-query)))))
 
 
 ;;; -------------------------------------------- putting it all togetrher --------------------------------------------

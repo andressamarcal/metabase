@@ -19,7 +19,7 @@
 ;; channels.
 (expect
   nil
-  (mt.tu/with-segmented-perms [db]
+  (mt.tu/with-copy-of-test-db [db]
     (tt/with-temp* [Card [{card-id :id :as card} {:name          "magic"
                                                   :dataset_query {:database (u/get-id db)
                                                                   :type     :native
@@ -33,7 +33,7 @@
                                                   :card_id              card-id
                                                   :attribute_remappings {:cat ["variable" ["template-tag" "cat"]]}}]]
 
-      (mt.tu/add-segmented-perms! db)
+      (mt.tu/add-segmented-perms-for-venues-for-all-users-group! db)
       (tu/with-temporary-setting-values [slack-token nil]
         (-> ((user->client :rasta) :get 200 "pulse/form_input")
             (get-in [:channels :slack]))))))
