@@ -400,24 +400,7 @@ export default class TableInteractive extends Component {
             : undefined
         }
       >
-        {this.props.renderTableCellWrapper(
-          columnSettings["show_mini_bar"] ? (
-            <MiniBar
-              value={value}
-              options={columnSettings}
-              extent={getColumnExtent(data.cols, data.rows, columnIndex)}
-              cellHeight={ROW_HEIGHT}
-            />
-          ) : (
-            /* using formatValue instead of <Value> here for performance. The later wraps in an extra <span> */
-            formatValue(value, {
-              ...columnSettings,
-              type: "cell",
-              jsx: true,
-              rich: true,
-            })
-          ),
-        )}
+        {this.props.renderTableCellWrapper(cellData)}
       </div>
     );
   };
