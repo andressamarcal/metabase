@@ -34,6 +34,7 @@ type State = {
   showAddRow: boolean,
   groups: ?(Object[]),
   mappings: { [string]: number[] },
+  saveError: ?Object,
 };
 
 const groupIsMappable = group => !isSpecialGroup(group);
@@ -49,6 +50,7 @@ export default class GroupMappingsWidget extends React.Component {
       showAddRow: false,
       groups: null,
       mappings: {},
+      saveError: null,
     };
   }
 
@@ -122,13 +124,24 @@ export default class GroupMappingsWidget extends React.Component {
     SettingsApi.put({ key: this.props.mappingSetting, value: mappings }).then(
       () => {
         onChangeSetting(this.props.mappingSetting, mappings);
-        this.setState({ showEditModal: false, showAddRow: false });
+        this.setState({
+          showEditModal: false,
+          showAddRow: false,
+          saveError: null,
+        });
       },
+      e => this.setState({ saveError: e }),
     );
   };
 
   render() {
-    const { showEditModal, showAddRow, groups, mappings } = this.state;
+    const {
+      showEditModal,
+      showAddRow,
+      groups,
+      mappings,
+      saveError,
+    } = this.state;
 
     return (
       <div className="flex align-center">
@@ -184,6 +197,11 @@ export default class GroupMappingsWidget extends React.Component {
                 </AdminContentTable>
               </div>
               <ModalFooter>
+                {saveError && saveError.data && saveError.data.message ? (
+                  <span className="text-error text-bold">
+                    {saveError.data.message}
+                  </span>
+                ) : null}
                 <Button
                   type="button"
                   onClick={this._cancelClick}
