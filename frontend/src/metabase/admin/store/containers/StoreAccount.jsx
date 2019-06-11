@@ -120,7 +120,7 @@ const Unlicensed = () => (
 const TrialActive = ({ features, expires }) => (
   <AccountStatus
     title={t`Your trial is active with these features`}
-    subtitle={expires && <h3>{t`Trial expires in ${expires.fromNow()}`}</h3>}
+    subtitle={expires && <h3>{t`Trial expires ${expires.fromNow()}`}</h3>}
     features={features}
   >
     <CallToAction
