@@ -23,7 +23,7 @@ fi
 drivers=`ls modules/drivers/ | sed 's|/$||'`
 
 for driver in $drivers; do
-    echo "Build: $driver"
+    echo -e "\n\033[1;34mBuild: $driver\033[0m"
 
     build_failed=''
     ./bin/build-driver.sh "$driver" || build_failed=true
