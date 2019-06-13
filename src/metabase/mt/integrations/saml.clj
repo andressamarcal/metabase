@@ -1,6 +1,7 @@
 (ns metabase.mt.integrations.saml
   "Implementation of the SAML backend for SSO"
-  (:require [clojure.string :as str]
+  (:require [buddy.core.codecs :as codecs]
+            [clojure.string :as str]
             [clojure.tools.logging :as log]
             [medley.core :as m]
             [metabase
@@ -16,7 +17,9 @@
              [sso-settings :as sso-settings]
              [sso-utils :as sso-utils]]
             [puppetlabs.i18n.core :refer [trs tru]]
-            [ring.util.response :as resp]
+            [ring.util
+             [codec :as codec]
+             [response :as resp]]
             [saml20-clj
              [routes :as saml-routes]
              [shared :as saml-shared]
@@ -37,7 +40,10 @@
   [first-name last-name email group-names user-attributes]
   (when-not (sso-settings/saml-configured?)
     (throw (IllegalArgumentException. "Can't create new SAML user when SAML is not configured")))
-
+  (when-not email
+    (throw (ex-info (format "Invalid SAML configuration: could not find user email. We tried looking for %s, but couldn't find the attribute. Please make sure your SAML IdP is properly configured."
+                            (sso-settings/saml-attribute-email))
+             {:status-code 400, :user-attributes (keys user-attributes)})))
   (when-let [user (or (sso-utils/fetch-and-update-login-attributes! email user-attributes)
                       (sso-utils/create-new-sso-user! {:first_name       first-name
                                                        :last_name        last-name
@@ -87,7 +93,7 @@
       ;; Uses `sp-cert` to decrypt valid responses from the SAML IDP
       :decrypter          decrypter})))
 
-(defn get-idp-redirect
+(defn get-idp-redirect-response
   "This is similar to `saml/get-idp-redirect` but allows existing parameters on the `idp-url`. The original version
   assumed no paramters and always included a `?` before the SAML parameters. This version will check for a `?` and if
   present just append the parameters.
@@ -124,7 +130,7 @@
         {:keys [saml-req-factory!]} @saml-state
         saml-request                (saml-req-factory!)
         hmac-relay-state            (encrypt-redirect-str redirect-url)]
-    (get-idp-redirect idp-uri saml-request hmac-relay-state)))
+    (get-idp-redirect-response idp-uri saml-request hmac-relay-state)))
 
 (s/defn ^:private decrypt-relay-state :- (s/maybe s/Str)
   "Decrypt `:RelayState` parameter if possible. RelayState is the redirect URL set by the Metabase application if the
@@ -171,13 +177,16 @@
                {:status-code 500})))
     attrs))
 
+(defn- base64-decode [s]
+  (codecs/bytes->str (codec/base64-decode s)))
+
 (defmethod sso/sso-post :saml
   ;; Does the verification of the IDP's response and 'logs the user in'. The attributes are available in the response:
   ;; `(get-in saml-info [:assertions :attrs])
   [{:keys [params], :as request}]
   (check-saml-enabled)
   (let [continue-url        (decrypt-relay-state (:RelayState params))
-        xml-string          (saml-shared/base64->inflate->str (:SAMLResponse params))
+        xml-string          (base64-decode (:SAMLResponse params))
         saml-response       (xml-string->saml-response xml-string)
         attrs               (saml-response->attributes saml-response)
         email               (get attrs (sso-settings/saml-attribute-email))
