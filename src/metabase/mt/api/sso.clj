@@ -89,7 +89,6 @@
   (throw-if-no-metastore-token)
   (try
     (sso-post req)
-    (throw (ex-info "This is an error message. Hopefully we can provide useful help here." {:is-it-broken? true}))
     (catch Throwable e
       (log/error e (trs "Error logging in"))
       (sso-error-page e))))
