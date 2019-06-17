@@ -106,7 +106,7 @@ const Unlicensed = () => (
     <Box m={4}>
       <ExternalLink
         className="Button Button--primary"
-        href={"http://metabase.com/offerings/enterprise/"}
+        href={"http://metabase.com/enterprise/"}
       >
         {t`Learn more`}
       </ExternalLink>

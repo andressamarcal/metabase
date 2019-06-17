@@ -141,7 +141,7 @@ class ChartSettings extends Component {
 
     const sectionNames = Object.keys(sections);
     const currentSection =
-      this.state.currentSection && widgetsById[this.state.currentSection]
+      this.state.currentSection && sections[this.state.currentSection]
         ? this.state.currentSection
         : _.find(DEFAULT_TAB_PRIORITY, name => name in sections) ||
           sectionNames[0];
