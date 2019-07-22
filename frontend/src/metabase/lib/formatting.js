@@ -655,7 +655,10 @@ export function formatValueRaw(value: Value, options: FormattingOptions = {}) {
 
   if (value == undefined) {
     return null;
-  } else if (isURL(column) || options.view_as === "link") {
+  } else if (
+    (isURL(column) && options.view_as !== null) ||
+    options.view_as === "link"
+  ) {
     return formatUrl(value, options);
   } else if (isEmail(column)) {
     return formatEmail(value, options);

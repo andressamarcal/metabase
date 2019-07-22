@@ -197,5 +197,14 @@ describe("formatting", () => {
         }),
       ).toEqual("data:text/plain;charset=utf-8,hello%20world");
     });
+    it("should return link component for type/URL and  view_as = link", () => {
+      const formatted = formatUrl("whatever", {
+        jsx: true,
+        rich: true,
+        column: { special_type: TYPE.URL },
+        view_as: "link",
+      });
+      expect(isElementOfType(formatted, ExternalLink)).toEqual(true);
+    });
   });
 });
