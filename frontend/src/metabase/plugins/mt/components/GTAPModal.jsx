@@ -101,7 +101,7 @@ export default class GTAPModal extends React.Component {
   };
 
   _getCanonicalGTAP() {
-    let { gtap, simple } = this.state;
+    const { gtap, simple } = this.state;
     if (!gtap) {
       return null;
     }

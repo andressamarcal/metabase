@@ -182,9 +182,7 @@ export class TableBrowser extends React.Component {
                                 )}
                                 <Tooltip tooltip={t`Learn about this table`}>
                                   <Link
-                                    to={`reference/databases/${dbId}/tables/${
-                                      table.id
-                                    }`}
+                                    to={`reference/databases/${dbId}/tables/${table.id}`}
                                     data-metabase-event={`${ANALYTICS_CONTEXT};Table Item;Reference Click`}
                                   >
                                     <Icon

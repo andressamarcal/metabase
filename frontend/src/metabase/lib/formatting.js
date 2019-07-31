@@ -578,65 +578,40 @@ function isDefaultLinkProtocol(protocol) {
   );
 }
 
-// // based on https://github.com/angular/angular.js/blob/v1.6.3/src/ng/directive/input.js#L25
-// const URL_WHITELIST_REGEX = /^(https?|mailto):\/*(?:[^:@]+(?::[^@]+)?@)?(?:[^\s:/?#]+|\[[a-f\d:]+])(?::\d+)?(?:\/[^?#]*)?(?:\?[^#]*)?(?:#.*)?$/i;
-// const URL_BLACKLIST_REGEX = /^\s*javascript:/i;
-
-// export function formatUrl(value: Value, options: FormattingOptions = {}) {
-//   const {
-//     jsx,
-//     rich,
-//     view_as = "auto",
-//     link_text,
-//     link_template,
-//     clicked,
-//   } = options;
-//   const url =
-//     link_template && clicked
-//       ? renderLinkURLForClick(link_template, clicked)
-//       : String(value);
-//   const text =
-//     link_text && clicked
-//       ? renderLinkTextForClick(link_text, clicked)
-//       : link_text ||
-//         getRemappedValue(value, options) ||
-//         formatValue(value, { ...options, view_as: null });
-//   if (
-//     jsx &&
-//     rich &&
-//     (view_as === "link" ||
-//       (view_as === "auto" && URL_WHITELIST_REGEX.test(url))) &&
-//     !URL_BLACKLIST_REGEX.test(url)
-
-export function formatUrl(
-  value: Value,
-  { jsx, rich, view_as = "auto", link_text, column }: FormattingOptions = {},
-) {
+export function formatUrl(value: Value, options: FormattingOptions = {}) {
+  const {
+    jsx,
+    rich,
+    view_as,
+    link_text,
+    link_template,
+    column,
+    clicked,
+  } = options;
   const url =
     link_template && clicked
       ? renderLinkURLForClick(link_template, clicked)
       : String(value);
-  const text =
-    link_text && clicked
-      ? renderLinkTextForClick(link_text, clicked)
-      : link_text ||
-        getRemappedValue(value, options) ||
-        formatValue(value, { ...options, view_as: null });
-
-  const urlSpecialType = column && isa(column.special_type, TYPE.URL);
   const protocol = getUrlProtocol(url);
   if (
     jsx &&
     rich &&
-    (view_as === "link" || view_as === "auto") &&
-    // undefined protocol means url didn't parse
     protocol &&
-    // if the column type is URL, we show any safe url as a link
-    // otherwise, we just show the most common protocols
-    (urlSpecialType
-      ? isSafeProtocol(protocol)
-      : isDefaultLinkProtocol(protocol))
+    isSafeProtocol(protocol) &&
+    (view_as === undefined
+      ? isURL(column) || isDefaultLinkProtocol(protocol)
+      : view_as === "link"
+      ? true
+      : view_as === "auto"
+      ? isDefaultLinkProtocol(protocol)
+      : false)
   ) {
+    const text =
+      link_text && clicked
+        ? renderLinkTextForClick(link_text, clicked)
+        : link_text ||
+          getRemappedValue(value, options) ||
+          formatValue(value, { ...options, view_as: null });
     return (
       <ExternalLink className="link link--wrappable" href={url}>
         {text}

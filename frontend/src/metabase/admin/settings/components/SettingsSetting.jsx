@@ -60,7 +60,7 @@ export default class SettingsSetting extends Component {
         {!setting.noHeader && <SettingHeader setting={setting} />}
         <div className="flex">
           <Widget
-            {...setting.props || {}}
+            {...(setting.props || {})}
             {...updatePlaceholderForEnvironmentVars(this.props)}
           />
         </div>
