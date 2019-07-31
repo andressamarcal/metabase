@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Flex } from "grid-styled";
-import { t } from "c-3po";
+import { t } from "ttag";
 
 import colors from "metabase/lib/colors";
 

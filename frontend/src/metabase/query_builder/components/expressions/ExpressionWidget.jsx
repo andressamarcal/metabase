@@ -2,7 +2,7 @@ import React, { Component } from "react";
 import PropTypes from "prop-types";
 import cx from "classnames";
 import _ from "underscore";
-import { t } from "c-3po";
+import { t } from "ttag";
 import ExpressionEditorTextfield from "./ExpressionEditorTextfield.jsx";
 import { isExpression } from "metabase/lib/expressions";
 import MetabaseSettings from "metabase/lib/settings";
@@ -56,7 +56,8 @@ export default class ExpressionWidget extends Component {
             />
             <p className="h5 text-medium">
               {t`Think of this as being kind of like writing a formula in a spreadsheet program: you can use numbers, fields in this table, mathematical symbols like +, and some functions. So you could type something like Subtotal - Cost.`}
-              &nbsp;<a
+              &nbsp;
+              <a
                 className="link"
                 target="_blank"
                 href={MetabaseSettings.docsUrl(

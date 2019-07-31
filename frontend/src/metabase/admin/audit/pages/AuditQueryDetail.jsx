@@ -76,7 +76,10 @@ const mapDispatchToProps = {
   fetchDatabases,
 };
 
-@connect(mapStateToProps, mapDispatchToProps)
+@connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)
 class QueryBuilderReadOnly extends React.Component {
   componentDidMount() {
     const { card, fetchDatabases, loadMetadataForCard } = this.props;

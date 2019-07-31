@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Flex } from "grid-styled";
-import { t } from "c-3po";
+import { t } from "ttag";
 
 import _ from "underscore";
 
@@ -252,7 +252,9 @@ const Feature = ({ feature, included, expired, preview }) => (
         color={
           preview
             ? colors["brand"]
-            : included ? colors["success"] : colors["text-medium"]
+            : included
+            ? colors["success"]
+            : colors["text-medium"]
         }
       />
 
@@ -271,10 +273,9 @@ const Feature = ({ feature, included, expired, preview }) => (
         <FeatureLinks links={feature.info} defaultTitle={t`Learn more`} />
       )}
 
-      {!included &&
-        !preview && (
-          <div className="spread text-centered pt2 pointer-events-none">{t`Not included in your current plan`}</div>
-        )}
+      {!included && !preview && (
+        <div className="spread text-centered pt2 pointer-events-none">{t`Not included in your current plan`}</div>
+      )}
     </Card>
   </Box>
 );

@@ -14,7 +14,10 @@ const mapStateToProps = (state, props) => ({
   metadata: getMetadata(state),
 });
 
-@connect(mapStateToProps, null)
+@connect(
+  mapStateToProps,
+  null,
+)
 export default class AuditTable extends React.Component {
   render() {
     const { metadata, card } = this.props;

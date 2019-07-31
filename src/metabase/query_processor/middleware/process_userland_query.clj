@@ -7,7 +7,9 @@
             [metabase.models
              [query :as query]
              [query-execution :as query-execution :refer [QueryExecution]]]
-            [metabase.query-processor.util :as qputil]
+            [metabase.query-processor
+             [interface :as qp.i]
+             [util :as qputil]]
             [metabase.util :as u]
             [metabase.util
              [date :as du]
@@ -62,9 +64,8 @@
    {:status    :failed
     :error     message
     :row_count 0
-    :data      {:rows    []
-                :cols    []
-                :columns []}}
+    :data      {:rows []
+                :cols []}}
    ;; include stacktrace and preprocessed/native stages of the query if available in the response which should
    ;; make debugging queries a bit easier
    (-> (select-keys result [:stacktrace :preprocessed :native])
@@ -103,14 +104,16 @@
     (and (= status :failed)
          (instance? InterruptedException (:class result)))
     (do
-      (log/info (trs "Query canceled"))
+      (when-not qp.i/*disable-qp-logging*
+        (log/info (trs "Query canceled")))
       (respond {:status :interrupted}))
 
     ;; 'Normal' query failures are usually caused by invalid queries -- equivalent of a HTTP 400. Save QueryExecution
     ;; & return a "status = failed" response
     (= status :failed)
     (do
-      (log/warn (trs "Query failure") (u/pprint-to-str 'red result))
+      (when-not qp.i/*disable-qp-logging*
+        (log/warn (trs "Query failure") (u/pprint-to-str 'red result)))
       (respond (fail query-execution result)))
 
     ;; Successful query (~= HTTP 200): save QueryExecution & return "status = completed" response

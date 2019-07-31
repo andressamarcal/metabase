@@ -34,10 +34,10 @@
 
 (defn- quote-native-identifier
   ([{db-name :name, driver :engine, :as db} table-name]
-   (sql.tx/qualify+quote-name driver (name db-name) (name table-name)))
+   (sql.tx/qualify-and-quote driver (name db-name) (name table-name)))
 
   ([{db-name :name, driver :engine, :as db} table-name field-name]
-   (sql.tx/qualify+quote-name driver (name db-name) (name table-name) (name field-name))))
+   (sql.tx/qualify-and-quote driver (name db-name) (name table-name) (name field-name))))
 
 
 (defn- venues-category-mbql-gtap-def []

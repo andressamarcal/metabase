@@ -40,6 +40,8 @@
 ;;; |                                             metabase.driver impls                                              |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
+(defmethod driver/supports? [:mysql :full-join] [_ _] false)
+
 (defmethod driver/connection-properties :mysql [_]
   (ssh/with-tunnel-config
     [driver.common/default-host-details
@@ -52,10 +54,8 @@
        :placeholder  "tinyInt1isBit=false")]))
 
 
-(defmethod driver/date-interval :mysql [_ unit amount]
-  (hsql/call :date_add
-    :%now
-    (hsql/raw (format "INTERVAL %d %s" (int amount) (name unit)))))
+(defmethod driver/date-add :mysql [_ dt amount unit]
+  (hsql/call :date_add dt (hsql/raw (format "INTERVAL %d %s" (int amount) (name unit)))))
 
 
 (defmethod driver/humanize-connection-error-message :mysql [_ message]

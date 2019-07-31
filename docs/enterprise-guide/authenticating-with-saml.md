@@ -6,9 +6,24 @@ The open source edition of Metabase includes the option to [set up SSO with Goog
 
 There are slightly different steps to take depending on whether your SSO solution uses SAML or JWT. We'll cover SAML first.
 
-### Enabling SAML authentication
+> **Tip!** Before beginning your SAML set-up, make sure you know the password for your admin account. If anything becomes misconfigured during the set-up process, an "Admin backup login" option on the sign-in screen is available.
 
-First, head over to the Settings section of the Admin Panel, then click on the Authentication tab. Click the `Configure` button in the SAML section of the Authentication page, and you'll see this form:
+### Setting Up Your SAML Provider
+
+Before you get started, you'll need to make sure things are configured correctly with your SAML provider. Each provider handles this differently, so here are some links that may help:
+
+[Click here if you use OKTA!](https://developer.okta.com/docs/guides/saml-application-setup/overview/)
+
+[Click here if you use Auth0!](https://auth0.com/docs/protocols/saml/saml-idp-generic)
+
+[Click here if you use OneLogin!](https://onelogin.service-now.com/support?id=kb_article&sys_id=83f71bc3db1e9f0024c780c74b961970)
+
+Once you've configured your SAML provider, leave it open - we're going to need some information for the next step.
+
+
+### Enabling SAML authentication in Metabase
+
+Head over to the Settings section of the Admin Panel, then click on the Authentication tab. Click the `Configure` button in the SAML section of the Authentication page, and you'll see this form:
 
 ![SAML form](images/saml-form.png)
 
@@ -16,9 +31,22 @@ Click the toggle at the top of the form to enable SAML authentication, then fill
 
 Here's a breakdown of each of the settings:
 
-**Identity Provider (IDP) URI:** This is where Metabase will redirect login requests. That is, it's where your users go to log in to your SSO.
+**Identity Provider (IDP) URI:** This is where Metabase will redirect login requests. That is, it's where your users go to log in to your SSO. Your SAML provider may label it a little differently. Here are some of the names we've found:
 
-**Identity Provider Certificate:** This is a an encoded certificate that we will use when connecting to the IDP provider URI. This will look like a big blob of text that you'll want to copy and paste carefully — the spacing is important!
+| Provider      | Name |
+| ----------- | ----------- |
+|   Auth0   | Identity Provider Login URL      |
+| Okta | Identity Provider Single-Sign On URL |
+| OneLogin   | Issuer URL       |
+
+**Identity Provider Certificate:** This is an encoded certificate that we will use when connecting to the IDP provider URI. This will look like a big blob of text that you'll want to copy and paste carefully — the spacing is important! Again, different providers may have slightly different labels:
+
+| Provider      | Name |
+| ----------- | ----------- |
+|   Auth0   | Signing Certificate      |
+| Okta | X.509 Certificate |
+| OneLogin   | X.509 Certificate    |
+
 
 #### Configuring your SAML identity provider
 
@@ -79,6 +107,14 @@ name), last name (surname), and email address are included as
 attributes of the first assertion returned in the identity provider's
 SAML response.
 
+We've pulled the attributes out of the XML above for easy copy/pasting into your SAML identity provider. We've found that generally, you need to paste this into a field labelled "Name" but the location of the field may vary depending on the provider. Look for it in a section labelled "Attributes" or "Parameters."
+
+| Name      | Value |
+| ----------- | ----------- |
+| ```http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname```      | user.firstName       |
+| ```http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress``` | user.email |
+| ```http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname```   | user.lastName        |
+
 ##### IMPORTANT NOTE!
 
 The email address *attribute* is used to log in an end user into a
@@ -103,6 +139,40 @@ These settings allow Metabase to automatically get each user's email address and
 The settings that Metabase defaults to here might work for you out of the box, but you can override them if you know that your settings are different.
 
 Each of these input boxes needs a URI that points to the location of a SAML attribute.
+
+### Group Schema
+
+The group schema setting allows you to set Metabase groups based on an attribute of your user in your SAML provider. Please note that this may not correlate to group functionality provided by your SAML provider - you may need to create a separate attribute on your users to set their Metabse group, like `metabaseGroups`.
+
+#### Configuring the group schema in your SAML provider
+
+First, you will need to create a user attribute that you will use to indicate which Metabase groups the user should be a part of. Different SAML providers have different ways of handling this, but you will likely need to edit your user profiles. For the rest of this example, let's say that you named your attribute `metabaseGroups`.
+
+Once you've created your `metabaseGroups` attribute, you will need to update it for each user you would like to be automatically added to a Metabase group. For ease of use, we recommend using the same name for the groups you would use in Metabase.
+
+After that, you will need to add an additional SAML attribute to the ones we added above. The screenshot below is for Okta, but may vary dependng on your SAML provider.
+
+![Group attribute](images/saml-group-attribute.png)
+
+
+#### Configuring the group schema in Metabase
+
+Once you've gotten everything set up in your SAML provider, it's just a few simple steps on the Metabase side!
+
+![Group schema](images/saml-group-schema.png)
+
+To start, make sure the toggle is set to "Enabled." Then, click Edit Mappings -> Create a Mapping. This will allow you to enter the group name(s) you entered as your metabaseGroup attribute values and the Metabase group it should correlate to.
+
+After that, add the name of the user attribute you added in your SAML provider. In this case, we told Okta that the `metabaseGroups` attribute should be named `MetabaseGroupName`, so that's what we'll enter in the Group Attribute Name field in Metabase.
+
+### Troubleshooting Tips
+
+Here are a few things to double check if you're experiencing issues setting up your SAML connection:
+
+* Verify that the application you created with your SAML provider supports SAML - sometimes other options are presented during the app creation process.
+* Read all field labels and tooltips carefully - since SAML providers each use different labeling for their fields, it's important to make sure the correct information is being placed into the correct fields.
+* Set your attributes and check your assertions! Many SAML providers make this pretty easy to do - just look for a button marked "Preview the SAML assertion."
+* Verify that the Single Sign On URL (or equivalent) that you enter on your SAML provider's website has "/auth/sso" appended to it. For instance, if you want your users to end up at ``https://metabase.mycompany.com``, the full url should be ``https://metabase.mycompany.com/auth/sso``
 
 ---
 

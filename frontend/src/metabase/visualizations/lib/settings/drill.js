@@ -1,6 +1,6 @@
 import React from "react";
 
-import { t } from "c-3po";
+import { t } from "ttag";
 
 import ChartSettingInputWithInfo from "metabase/visualizations/components/settings/ChartSettingInputWithInfo";
 
@@ -34,7 +34,14 @@ export const drillThroughSettings = ({
       </span>
     ),
     widget: ChartSettingInputWithInfo,
-    getProps: ([{ data: { cols } }], settings) => ({
+    getProps: (
+      [
+        {
+          data: { cols },
+        },
+      ],
+      settings,
+    ) => ({
       placeholder: t`e.g. http://acme.cool-crm.com/client/{{column}}`,
       infoName: t`Columns`,
       infos: cols.map(col => col.name),

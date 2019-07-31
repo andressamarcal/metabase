@@ -102,8 +102,8 @@ export default function rowRenderer(
     .group(group)
     .ordering(d => d.index);
 
-  let labelPadHorizontal = 5;
-  let labelPadVertical = 1;
+  const labelPadHorizontal = 5;
+  const labelPadVertical = 1;
   let labelsOutside = false;
 
   chart.on("renderlet.bar-labels", chart => {
@@ -143,17 +143,17 @@ export default function rowRenderer(
   }
 
   // cap number of rows to fit
-  let rects = chart.selectAll(".row rect")[0];
-  let containerHeight =
+  const rects = chart.selectAll(".row rect")[0];
+  const containerHeight =
     rects[rects.length - 1].getBoundingClientRect().bottom -
     rects[0].getBoundingClientRect().top;
-  let maxTextHeight = Math.max(
+  const maxTextHeight = Math.max(
     ...chart
       .selectAll("g.row text")[0]
       .map(e => e.getBoundingClientRect().height),
   );
-  const newRowHeight = maxTextHeight + chart.gap() + labelPadVertical * 2;
-  const cap = Math.max(1, Math.floor(containerHeight / newRowHeight));
+  const rowHeight = maxTextHeight + chart.gap() + labelPadVertical * 2;
+  const cap = Math.max(1, Math.floor(containerHeight / rowHeight));
   chart.cap(cap);
 
   // assume all bars are same height?
@@ -167,8 +167,8 @@ export default function rowRenderer(
   // check if labels overflow after rendering correct number of rows
   let maxTextWidth = 0;
   for (const elem of chart.selectAll("g.row")[0]) {
-    let rect = elem.querySelector("rect").getBoundingClientRect();
-    let text = elem.querySelector("text").getBoundingClientRect();
+    const rect = elem.querySelector("rect").getBoundingClientRect();
+    const text = elem.querySelector("text").getBoundingClientRect();
     maxTextWidth = Math.max(maxTextWidth, text.width);
     if (rect.width < text.width + labelPadHorizontal * 2) {
       labelsOutside = true;

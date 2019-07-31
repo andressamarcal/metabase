@@ -11,7 +11,7 @@ import Table from "metabase/visualizations/visualizations/Table";
 
 import EmptyState from "metabase/components/EmptyState";
 
-import { t } from "c-3po";
+import { t } from "ttag";
 
 import _ from "underscore";
 import cx from "classnames";
@@ -25,7 +25,11 @@ export default class AuditTableVisualization extends React.Component {
 
   render() {
     const {
-      series: [{ data: { cols, rows } }],
+      series: [
+        {
+          data: { cols, rows },
+        },
+      ],
       visualizationIsClickable,
       onVisualizationClick,
       settings,

@@ -30,6 +30,7 @@ For more information check out [metabase.com](https://metabase.com/)
 - Vertica
 - Presto
 - Snowflake
+- SparkSQL
 
 Don't see your favorite database? File an issue to let us know.
 

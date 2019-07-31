@@ -219,6 +219,10 @@
   margin-left: 0;
 }
 
+.MetadataTable {
+  min-width: 800px;
+}
+
 .MetadataTable-title {
   background-color: var(--color-bg-white);
 }
@@ -290,8 +294,6 @@
 .AdminTable {
   border-collapse: collapse;
   border-spacing: 0;
-
-  white-space: nowrap;
   text-align: left;
 }
 

@@ -16,7 +16,7 @@ import { AuditMode } from "../lib/util";
 
 import { chain } from "icepick";
 import cx from "classnames";
-import { t } from "c-3po";
+import { t } from "ttag";
 
 import type { AuditDashCard } from "../types";
 
@@ -39,7 +39,10 @@ const mapDispatchToProps = {
 
 const DEFAULT_PAGE_SIZE = 100;
 
-@connect(mapStateToProps, mapDispatchToProps)
+@connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)
 export default class AuditTable extends React.Component {
   props: Props;
   state: State = {

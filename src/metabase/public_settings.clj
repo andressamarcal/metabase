@@ -10,6 +10,7 @@
              [common :as common]
              [setting :as setting :refer [defsetting]]]
             [metabase.mt.integrations.sso-settings :as sso-settings]
+            [metabase.plugins.classloader :as classloader]
             [metabase.public-settings.metastore :as metastore]
             [metabase.util
              [i18n :refer [available-locales-with-names set-locale trs tru]]
@@ -21,7 +22,7 @@
   (boolean (setting/get :google-auth-client-id)))
 
 (defn- ldap-configured? []
-  (do (require 'metabase.integrations.ldap)
+  (do (classloader/require 'metabase.integrations.ldap)
       ((resolve 'metabase.integrations.ldap/ldap-configured?))))
 
 (defn- other-sso-configured?
@@ -302,7 +303,7 @@
    :custom_formatting       (setting/get :custom-formatting)
    :custom_geojson          (setting/get :custom-geojson)
    :email_configured        (do
-                              (require 'metabase.email)
+                              (classloader/require 'metabase.email)
                               ((resolve 'metabase.email/email-configured?)))
    :embedding               (enable-embedding)
    :embedding_app_origin    (embedding-app-origin)
@@ -335,7 +336,7 @@
    :public_sharing          (enable-public-sharing)
    :report_timezone         (setting/get :report-timezone)
    :setup_token             (do
-                              (require 'metabase.setup)
+                              (classloader/require 'metabase.setup)
                               ((resolve 'metabase.setup/token-value)))
    :site_name               (site-name)
    :site_url                (site-url)

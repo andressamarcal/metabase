@@ -153,7 +153,7 @@ function replaceApplicationName(string) {
 }
 
 export function enabledApplicationNameReplacement() {
-  const c3po = require("c-3po");
+  const c3po = require("ttag");
   const _t = c3po.t;
   const _jt = c3po.jt;
   const _ngettext = c3po.ngettext;
@@ -164,9 +164,8 @@ export function enabledApplicationNameReplacement() {
     return replaceApplicationName(_ngettext(...args));
   };
   c3po.jt = (...args) => {
-    return _jt(...args).map(
-      element =>
-        typeof element === "string" ? replaceApplicationName(element) : element,
+    return _jt(...args).map(element =>
+      typeof element === "string" ? replaceApplicationName(element) : element,
     );
   };
 }

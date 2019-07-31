@@ -4,6 +4,7 @@
             [medley.core :as m]
             [metabase.mbql
              [normalize :as mbql.normalize]
+             [schema :as mbql.s]
              [util :as mbql.util]]
             [metabase.models
              [card :refer [Card]]
@@ -64,7 +65,7 @@
     map?
     (as-> &match entity
       (u/update-when entity :database (fn [db-id]
-                                        (if (= db-id database/virtual-id)
+                                        (if (= db-id mbql.s/saved-questions-virtual-database-id)
                                           "database/__virtual"
                                           (fully-qualified-name Database db-id))))
       (u/update-when entity :card_id (partial fully-qualified-name Card))

@@ -5,7 +5,6 @@
              [util :as mbql.u]]
             [metabase.models
              [card :refer [Card]]
-             [database :as database]
              [field :refer [Field]]
              [params :as params]
              [permissions :as perms]
@@ -72,7 +71,7 @@
 
 (defn- gtap->database-id [{:keys [card_id table_id] :as gtap}]
   (if card_id
-    database/virtual-id
+    mbql.s/saved-questions-virtual-database-id
     (db/select-one-field :db_id Table :id table_id)))
 
 (defn- gtap->source-table [{:keys [card_id table_id] :as gtap}]
@@ -165,35 +164,34 @@
     ;; after the middleware step that normally resolves Fields
     ((resolve-fields/resolve-fields identity) <>)))
 
-(s/defn create-join-query :- mbql.s/JoinQueryInfo
+(s/defn create-join-query :- mbql.s/Join
   "Create a join query with a new GTAP query used for the join and using the original join Table data from `join-table`"
-  [join-table :- mbql.s/JoinTableInfo, gtap, {:keys [database] :as orig-query}]
+  [join-table :- mbql.s/Join, gtap, {:keys [database] :as orig-query}]
   (merge
-   (select-keys join-table [:table-id :join-alias :fk-field-id :pk-field-id])
-   {:join-alias (:join-alias join-table)
-    :query      (preprocess-and-resolve-fields
-                 {:database   (u/get-id database)
-                  :type       :query
-                  :query      {:source-table (gtap->source-table gtap)}
-                  :parameters (mapv (partial attr-remapping->parameter (:login_attributes @*current-user*))
-                                    (:attribute_remappings gtap))})}))
+   (select-keys join-table [:table-id :alias :fk-field-id])
+   {:source-query (preprocess-and-resolve-fields
+                   {:database   (u/get-id database)
+                    :type       :query
+                    :query      {:source-table (gtap->source-table gtap)}
+                    :parameters (mapv (partial attr-remapping->parameter (:login_attributes @*current-user*))
+                                      (:attribute_remappings gtap))})}))
 
 (defn- apply-row-level-permissions-for-joins* [query]
-  (let [join-tables     (-> query :query :join-tables)
-        table-ids->gtap (into {} (for [{:keys [table-id]} join-tables
-                                       :when (table-should-have-segmented-permissions? table-id)]
-                                   [table-id (gtap-for-table query table-id)]))]
+  (let [joins           (-> query :query :joins)
+        table-ids->gtap (into {} (for [{:keys [source-table]} joins
+                                       :when                  (table-should-have-segmented-permissions? source-table)]
+                                   [source-table (gtap-for-table query source-table)]))]
     (if (seq table-ids->gtap)
       (-> query
           (update :gtap-perms into (mapcat gtap->perms-set (vals table-ids->gtap)))
-          (assoc-in [:query :join-tables] (vec (for [{:keys [table-id], :as jt} join-tables]
-                                                 (if-let [gtap (get table-ids->gtap table-id)]
-                                                   (create-join-query jt gtap query)
-                                                   jt)))))
+          (assoc-in [:query :joins] (vec (for [{:keys [source-table], :as join} joins]
+                                           (if-let [gtap (get table-ids->gtap source-table)]
+                                             (create-join-query join gtap query)
+                                             join)))))
       query)))
 
 (defn apply-row-level-permissions-for-joins
-  "Looks in the `:join-tables` of the query for segmented permissions. If any are found, swap them for a gtap
+  "Looks in the `:joins` of the query for segmented permissions. If any are found, swap them for a gtap
   otherwise return the original query"
   [qp]
   (comp qp apply-row-level-permissions-for-joins*))

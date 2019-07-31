@@ -1,11 +1,7 @@
 (ns metabase.mt.test-util
   "Shared test utilities for multi-tenant tests."
-  (:require [metabase
-             [sync :as sync]
-             [util :as u]]
-            [metabase.models
+  (:require [metabase.models
              [card :refer [Card]]
-             [database :refer [Database]]
              [permissions :as perms]
              [permissions-group :as perms-group :refer [PermissionsGroup]]
              [permissions-group-membership :refer [PermissionsGroupMembership]]
@@ -15,32 +11,10 @@
             [metabase.test
              [data :as data]
              [util :as tu]]
-            [metabase.test.data
-             [dataset-definitions :as defs]
-             [users :as users]]
+            [metabase.test.data.users :as users]
+            [metabase.util :as u]
             [schema.core :as s]
             [toucan.util.test :as tt]))
-
-(defn ^:deprecated do-with-copy-of-test-db
-  "This function creates a new database with the test data so that our test users permissions can be safely changed
-  without affect other tests that use those same accounts and the test database."
-  [f]
-  (data/with-db (data/get-or-create-database! defs/test-data)
-    ;; copy the test database
-    (tt/with-temp Database [{db-id :id, :as db} (select-keys (data/db) [:details :engine :name])]
-      (users/create-users-if-needed!)
-      (sync/sync-database! db)
-      (data/with-db db
-        (f (Database db-id))))))
-
-(defmacro ^:deprecated with-copy-of-test-db
-  "Run `body` with a copy of the usual test database, so we can go crazy changing it without worrying about affecting
-  the primary test data DB. DB is bound for use by `data/db` and `data/id`.
-
-  DEPRECATED -- There's a new `with-copy-of-db` macro that does the same thing in Metabase 0.33.0+. Use that instead."
-  [[db-binding] & body]
-  `(do-with-copy-of-test-db (fn [~db-binding] ~@body)))
-
 
 (defmacro with-user-attributes
   "Execute `body` with the attributes for a user temporarily set to `attributes-map`.
@@ -95,8 +69,8 @@
    (s/pred map?)})
 
 (defn do-with-gtaps [args-fn f]
-  (with-copy-of-test-db [db]                                                 ; copy test data DB, bind to `data/db`
-    (perms/revoke-permissions! (perms-group/all-users) db)                   ; remove perms for All Users group
+  (data/with-temp-copy-of-db
+    (perms/revoke-permissions! (perms-group/all-users) (data/db))            ; remove perms for All Users group
     (with-group [group]                                                      ; create new perms group
       (let [{:keys [gtaps attributes]} (s/validate WithGTAPsArgs (args-fn))]
         (with-user-attributes :rasta attributes                              ; set Rasta login_attributes
@@ -132,6 +106,14 @@
 ;;; |                                            DEPRECATED HELPER MACROS                                            |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
+(defmacro ^:deprecated with-copy-of-test-db
+  "DEPRECATED -- There is a new `with-temp-copy-of-db` macro in the test utils that does the same thing. This will be
+  removed in the near future."
+  [[db-binding] & body]
+  `(data/with-temp-copy-of-db
+     (let [~db-binding (data/db)]
+       ~@body)))
+
 (defn ^:deprecated add-segmented-perms-for-venues-for-all-users-group!
   "Removes the default full permissions for all users and adds segmented and read permissions
 
@@ -151,10 +133,10 @@
                                [:field-id $category_id]]})})
 
 (defn ^:deprecated call-with-segmented-test-setup [make-query-fn f]
-  (with-copy-of-test-db [db]
+  (data/with-temp-copy-of-db
     (let [attr-remappings {:cat ["variable" [:field-id (data/id :venues :category_id)]]}]
       (tt/with-temp* [Card                       [card  {:name          "magic"
-                                                         :dataset_query (make-query-fn (u/get-id db))}]
+                                                         :dataset_query (make-query-fn (data/id))}]
                       PermissionsGroup           [group {:name "Restricted Venues"}]
                       PermissionsGroupMembership [_     {:group_id (u/get-id group)
                                                          :user_id  (users/user->id :rasta)}]
@@ -162,7 +144,7 @@
                                                          :table_id             (data/id :venues)
                                                          :card_id              (u/get-id card)
                                                          :attribute_remappings attr-remappings}]]
-        (add-segmented-perms-for-venues-for-all-users-group! db)
+        (add-segmented-perms-for-venues-for-all-users-group! (data/db))
         (f)))))
 
 (defmacro ^:deprecated with-segmented-test-setup

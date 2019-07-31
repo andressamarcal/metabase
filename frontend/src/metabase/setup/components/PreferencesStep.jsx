@@ -1,7 +1,7 @@
 /* eslint "react/prop-types": "warn" */
 import React, { Component } from "react";
 import PropTypes from "prop-types";
-import { t, jt } from "c-3po";
+import { t, jt } from "ttag";
 import MetabaseAnalytics from "metabase/lib/analytics";
 import MetabaseSettings from "metabase/lib/settings";
 import Toggle from "metabase/components/Toggle.jsx";
@@ -22,7 +22,7 @@ export default class PreferencesStep extends Component {
   };
 
   toggleTracking() {
-    let { allowTracking } = this.props;
+    const { allowTracking } = this.props;
 
     this.props.setAllowTracking(!allowTracking);
   }
@@ -41,7 +41,7 @@ export default class PreferencesStep extends Component {
   }
 
   render() {
-    let {
+    const {
       activeStep,
       allowTracking,
       setupComplete,
@@ -101,8 +101,7 @@ export default class PreferencesStep extends Component {
                     <span style={{ fontWeight: "bold" }}>{t`never`}</span>
                   )} collects anything about your data or question results.`}</li>
                   <li>{t`All collection is completely anonymous.`}</li>
-                  <li
-                  >{t`Collection can be turned off at any point in your admin settings.`}</li>
+                  <li>{t`Collection can be turned off at any point in your admin settings.`}</li>
                 </ul>
               </div>
             ) : null}

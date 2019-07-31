@@ -2,7 +2,7 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import ReactDOM from "react-dom";
-import { t } from "c-3po";
+import { t } from "ttag";
 
 import Icon from "metabase/components/Icon.jsx";
 import Popover from "metabase/components/Popover.jsx";
@@ -160,21 +160,20 @@ export default class CardPicker extends Component {
             className="rounded bordered scroll-y scroll-show"
             style={{ width: inputWidth + "px", maxHeight: "400px" }}
           >
-            {visibleCardList &&
-              collectionIds.length > 1 && (
-                <div
-                  className="flex align-center text-slate cursor-pointer border-bottom p2"
-                  onClick={e => {
-                    this.setState({
-                      collectionId: undefined,
-                      isClicking: true,
-                    });
-                  }}
-                >
-                  <Icon name="chevronleft" size={18} />
-                  <h3 className="ml1">{collection && collection.name}</h3>
-                </div>
-              )}
+            {visibleCardList && collectionIds.length > 1 && (
+              <div
+                className="flex align-center text-slate cursor-pointer border-bottom p2"
+                onClick={e => {
+                  this.setState({
+                    collectionId: undefined,
+                    isClicking: true,
+                  });
+                }}
+              >
+                <Icon name="chevronleft" size={18} />
+                <h3 className="ml1">{collection && collection.name}</h3>
+              </div>
+            )}
             {visibleCardList ? (
               <ul className="List text-brand">
                 {visibleCardList.map(card => this.renderItem(card))}
