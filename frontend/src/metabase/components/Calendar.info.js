@@ -8,6 +8,8 @@ export const description = `For when gregorian time is your need, a calendar is 
 
 const onChange = () => ({});
 
+export const noSnapshotTest = true;
+
 export const examples = {
   default: <Calendar onChange={onChange} />,
   "With a selected date": <Calendar onChange={onChange} selected={moment()} />,
