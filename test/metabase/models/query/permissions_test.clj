@@ -256,8 +256,8 @@
 
 ;; Are permissions calculated correctly for JOINs?
 (expect
-  #{(perms/object-path (data/id) "PUBLIC" (data/id :checkins))
-    (perms/object-path (data/id) "PUBLIC" (data/id :users))}
+  #{(perms/table-query-path (data/id) "PUBLIC" (data/id :checkins))
+    (perms/table-query-path (data/id) "PUBLIC" (data/id :users))}
   (tt/with-temp Card [{card-id :id} (qp.test-util/card-with-source-metadata-for-query
                                      (data/mbql-query checkins
                                                       {:aggregation [[:sum $id]]
@@ -274,8 +274,8 @@
      :throw-exceptions? true)))
 
 (expect
-  #{(perms/object-path (data/id) "PUBLIC" (data/id :checkins))
-    (perms/object-path (data/id) "PUBLIC" (data/id :users))}
+  #{(perms/table-query-path (data/id) "PUBLIC" (data/id :checkins))
+    (perms/table-query-path (data/id) "PUBLIC" (data/id :users))}
   (query-perms/perms-set
    (data/mbql-query users
      {:joins [{:alias        "c"

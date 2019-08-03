@@ -1,6 +1,7 @@
 (ns metabase.mt.test-util
   "Shared test utilities for multi-tenant tests."
-  (:require [metabase.models
+  (:require [expectations :refer [expect]]
+            [metabase.models
              [card :refer [Card]]
              [permissions :as perms]
              [permissions-group :as perms-group :refer [PermissionsGroup]]
@@ -83,7 +84,7 @@
   "Execute `body` with `gtaps` and optionally user `attributes` in effect. All underlying objects and permissions are
   created automatically.
 
-  `gtaps-and-attributes-m` is a map containing `:gtaps` and optionally `:attributes`; see the `WithGTAPsArgs` schema
+  `gtaps-and-attributes-map` is a map containing `:gtaps` and optionally `:attributes`; see the `WithGTAPsArgs` schema
   in this namespace.
 
   *  `:gtaps` is a map of test ID table name -> gtap def. Both `:query` and `:remappings` are optional.
@@ -98,8 +99,21 @@
                        :attributes {\"user_category\" 1}}
       (data/run-mbql-query checkins {:limit 2}))"
   {:style/indent 1}
-  [gtaps-and-attributes-m & body]
-  `(do-with-gtaps (fn [] ~gtaps-and-attributes-m) (fn [~'&group] ~@body)))
+  [gtaps-and-attributes-map & body]
+  `(do-with-gtaps (fn [] ~gtaps-and-attributes-map) (fn [~'&group] ~@body)))
+
+(defmacro expect-with-gtaps
+  "Like `expect`, but with GTAPs created by `with-gtaps` in effect for both expected and actual forms."
+  {:style/indent 1}
+  [gtaps-and-attributes-map expected actual]
+  ;; not using a gensym here or otherwise each time ns is reloaded expectations will generate a new test because it
+  ;; hashes the form
+  `(let [~'result (delay
+                    (with-gtaps ~gtaps-and-attributes-map
+                      {:expected ~expected, :actual ~actual}))]
+     (expect
+       (:expected @~'result)
+       (:actual @~'result))))
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -127,7 +141,7 @@
   {:database db-id
    :type     :query
    :query    (data/$ids venues
-               {:source_table $$table
+               {:source_table $$venues
                 :fields       [[:field-id $id]
                                [:field-id $name]
                                [:field-id $category_id]]})})

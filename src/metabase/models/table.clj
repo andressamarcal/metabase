@@ -11,6 +11,7 @@
              [metric :refer [Metric retrieve-metrics]]
              [permissions :as perms :refer [Permissions]]
              [segment :refer [retrieve-segments Segment]]]
+            [metabase.plugins.classloader :as classloader]
             [toucan
              [db :as db]
              [models :as models]]))
@@ -37,7 +38,9 @@
   (db/delete! Metric      :table_id id)
   (db/delete! Field       :table_id id)
   (db/delete! 'Card       :table_id id)
-  (db/delete! Permissions :object [:like (str (perms/object-path db_id schema id) "%")]))
+  (db/delete! Permissions :object [:like (str (perms/object-path db_id schema id) "%")])
+  (classloader/require 'metabase.mt.models.group-table-access-policy)
+  (db/delete! @(resolve 'metabase.mt.models.group-table-access-policy/GroupTableAccessPolicy) :table_id id))
 
 (defn- perms-objects-set [table read-or-write]
   ;; To read (e.g., fetch metadata) a Table you (predictably) have read permissions; to write a Table (e.g. update its

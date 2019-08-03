@@ -23,9 +23,9 @@
             [metabase.test.data.env :as tx.env]
             [metabase.util
              [date :as du]
-             [pretty :as pretty]
              [schema :as su]]
             [potemkin.types :as p.types]
+            [pretty.core :as pretty]
             [schema.core :as s]
             [toucan.db :as db])
   (:import clojure.lang.Keyword))

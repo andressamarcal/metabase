@@ -9,7 +9,7 @@
             [metabase.mbql.schema :as mbql.s]
             [metabase.mt.query-processor.middleware
              [column-level-perms-check :as mt.column-level-perms-check]
-             [row-level-restrictions :as mt.row-level-restrictions]]
+             [row-level-restrictions :as mt.gtap]]
             [metabase.query-processor
              [debug :as debug]
              [store :as qp.store]]
@@ -116,7 +116,7 @@
    #'perms/check-query-permissions
    #'pre-alias-ags/pre-alias-aggregations
    #'cumulative-ags/handle-cumulative-aggregations
-   #'mt.row-level-restrictions/apply-row-level-permissions-for-joins
+   #'mt.gtap/apply-row-level-permissions ; yes, this is called a second time, because we need to handle any joins that got added
    ;; ▲▲▲ NO FK->s POINT ▲▲▲ Everything after this point will not see `:fk->` clauses, only `:joined-field`
    #'resolve-joins/resolve-joins
    #'add-implicit-joins/add-implicit-joins
@@ -129,6 +129,7 @@
    #'resolve-fields/resolve-fields
    #'add-dim/add-remapping
    #'implicit-clauses/add-implicit-clauses
+   #'mt.gtap/apply-row-level-permissions
    #'add-source-metadata/add-source-metadata-for-source-queries
    #'mt.column-level-perms-check/maybe-apply-column-level-perms-check
    #'reconcile-bucketing/reconcile-breakout-and-order-by-bucketing
@@ -155,7 +156,6 @@
    #'resolve-database/resolve-database
    #'fetch-source-query/resolve-card-id-source-tables
    #'store/initialize-store
-   #'mt.row-level-restrictions/apply-row-level-permissions
    #'log-query/log-query
    ;; ▲▲▲ SYNC MIDDLEWARE ▲▲▲
    ;;
@@ -242,14 +242,25 @@
                   (throw (ex-info (str (tru "Error preprocessing query")) results)))))))]
     (receive-native-query (build-pipeline deliver-native-query))))
 
+(def ^:private ^:dynamic *preprocessing-level* 0)
+
+(def ^:private ^:const max-preprocessing-level 20)
+
 (defn query->preprocessed
   "Return the fully preprocessed form for `query`, the way it would look immediately before `mbql->native` is called.
   Especially helpful for debugging or testing driver QP implementations."
   {:style/indent 0}
   [query]
-  (-> (update query :middleware assoc :disable-mbql->native? true)
-      preprocess
-      (m/dissoc-in [:middleware :disable-mbql->native?])))
+  ;; record the number of recursive preprocesses taking place to prevent infinite preprocessing loops.
+  (binding [*preprocessing-level* (inc *preprocessing-level*)]
+    (when (>= *preprocessing-level* max-preprocessing-level)
+      (throw (ex-info (str (tru "Infinite loop detected: recursively preprocessed query {0} times."
+                                max-preprocessing-level))
+               {:type :bug})))
+    (-> query        (update :middleware assoc :disable-mbql->native? true)
+        (update :preprocessing-level (fnil inc 0))
+        preprocess
+        (m/dissoc-in [:middleware :disable-mbql->native?]))))
 
 (defn query->expected-cols
   "Return the `:cols` you would normally see in MBQL query results by preprocessing the query amd calling `annotate` on
@@ -257,11 +268,10 @@
   [{query-type :type, :as query}]
   (when-not (= query-type :query)
     (throw (Exception. (str (tru "Can only determine expected columns for MBQL queries.")))))
-  (let [results (qp.store/with-store
-                  ((annotate/add-column-info (constantly nil))
-                   (query->preprocessed query)))]
-    (or (seq (:cols results))
-        (throw (ex-info (str (tru "No columns returned.")) results)))))
+  (qp.store/with-store
+    (let [preprocessed (query->preprocessed query)
+          results      ((annotate/add-column-info (constantly nil)) preprocessed)]
+      (seq (:cols results)))))
 
 (defn query->native
   "Return the native form for `query` (e.g. for a MBQL query on Postgres this would return a map containing the compiled
