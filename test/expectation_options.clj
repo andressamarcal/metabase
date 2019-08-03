@@ -4,6 +4,7 @@
              [data :as data]
              [set :as set]]
             [expectations :as expectations]
+            [environ.core :as env]
             [metabase.models
              [database :refer [Database]]
              [field :refer [Field]]
@@ -85,7 +86,10 @@
 
 ;;; ------------------------------------------------ enforce-timeout -------------------------------------------------
 
-(def ^:private test-timeout-ms (* 5 60 1000))
+(def ^:private test-timeout-ms
+  (if (env/env :drivers)
+    (* 5 60 1000) ; 5 minutes
+    (* 30 1000))) ; 30 seconds. No test should take longer than that when only running against H2.
 
 (defn- enforce-timeout
   "If any test takes longer that 5 minutes to run print a message and stop running tests. (This usually happens when

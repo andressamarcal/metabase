@@ -255,9 +255,3 @@
     ;; add them as we come across them.
     (when (#{:avg :stddev} aggregation-type)
       {:base_type :type/Float}))))
-
-(defmethod sql.tx/qualify+quote-name :bigquery
-  ([_ db-name table-name]
-   (format "`%s.%s`" (normalize-name db-name) (normalize-name table-name)))
-  ([driver db-name table-name field-name]
-   (format "%s.`%s`" (sql.tx/qualify+quote-name driver db-name table-name) (normalize-name field-name))))
