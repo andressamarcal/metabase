@@ -3,8 +3,8 @@
   (:require [clojure
              [data :as data]
              [set :as set]]
-            [expectations :as expectations]
             [environ.core :as env]
+            [expectations :as expectations]
             [metabase.models
              [database :refer [Database]]
              [field :refer [Field]]
