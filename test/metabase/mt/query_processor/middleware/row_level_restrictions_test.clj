@@ -31,6 +31,7 @@
              [datasets :as datasets]
              [env :as tx.env]
              [users :as users]]
+            [metabase.util.honeysql-extensions :as hx]
             [toucan.util.test :as tt]))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -62,7 +63,14 @@
 (defn- format-honeysql [honeysql]
   (let [honeysql (cond-> honeysql
                    (= driver/*driver* :sqlserver)
-                   (assoc :modifiers ["TOP 1000"]))]
+                   (assoc :modifiers ["TOP 1000"])
+
+                   ;; SparkSQL has to have an alias source table (or at least our driver is written as if it has to
+                   ;; have one.) HACK
+                   (= driver/*driver* :sparksql)
+                   (update :from (fn [from]
+                                   [from (sql.qp/->honeysql :sparksql
+                                           (hx/identifier :table-alias @(resolve 'metabase.driver.sparksql/source-table-alias)))])))]
     (first (hsql/format honeysql, :quoting (sql.qp/quote-style driver/*driver*), :allow-dashed-names? true))))
 
 (defn- venues-category-native-gtap-def []

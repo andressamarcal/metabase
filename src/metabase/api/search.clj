@@ -309,7 +309,10 @@
          :from   [[(merge
                     base-query
                     {:select [:id :schema :db_id :name :description
-                              [(hx/concat "/db/" :db_id "/" :schema "/" :id "/") :path]]})
+                              [(hx/concat (hx/literal "/db/") :db_id (hx/literal "/")
+                                          (hsql/call :case [:not= :schema nil] :schema :else (hx/literal "")) (hx/literal "/")
+                                          :id (hx/literal "/"))
+                               :path]]})
                    :table]]
          :where  (cons
                   :or
