@@ -530,7 +530,7 @@
        tabledef))
    table-definitions))
 
-(s/defn ^:private fielddefs-for-table-with-name :- ValidFieldDefinition
+(s/defn ^:private fielddefs-for-table-with-name :- [ValidFieldDefinition]
   "Return the `FieldDefinitions` associated with table with `table-name` in `dbdef`."
   [dbdef :- DatabaseDefinition, table-name :- su/NonBlankString]
   (:field-definitions (tabledef-with-name dbdef table-name)))
