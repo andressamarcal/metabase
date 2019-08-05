@@ -1,14 +1,13 @@
 (ns metabase.mt.query-processor.middleware.row-level-restrictions-test
   (:require [clojure.string :as str]
             [expectations :refer [expect]]
-            [honeysql
-             [core :as hsql]
-             [format :as hformat]]
+            [honeysql.core :as hsql]
             [metabase
              [driver :as driver]
              [query-processor :as qp]
              [query-processor-test :as qp.test]
              [util :as u]]
+            [metabase.driver.sql.query-processor :as sql.qp]
             [metabase.mbql
              [normalize :as normalize]
              [util :as mbql.u]]
@@ -31,7 +30,6 @@
             [metabase.test.data
              [datasets :as datasets]
              [env :as tx.env]
-             [sql :as sql.tx]
              [users :as users]]
             [toucan.util.test :as tt]))
 
@@ -39,12 +37,14 @@
 ;;; |                                      SHARED GTAP DEFINITIONS & HELPER FNS                                      |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-(defn- quote-native-identifier
-  ([{db-name :name, driver :engine, :as db} table-name]
-   (sql.tx/qualify-and-quote driver (name db-name) (name table-name)))
+(defn- identifier
+  ([table-key]
+   (qp.tu/with-everything-store
+     (sql.qp/->honeysql driver/*driver* (Table (data/id table-key)))))
 
-  ([{db-name :name, driver :engine, :as db} table-name field-name]
-   (sql.tx/qualify-and-quote driver (name db-name) (name table-name) (name field-name))))
+  ([table-key field-key]
+   (qp.tu/with-everything-store
+     (sql.qp/->honeysql driver/*driver* (Field (data/id table-key field-key))))))
 
 
 (defn- venues-category-mbql-gtap-def []
@@ -59,56 +59,55 @@
   {:query      (data/mbql-query checkins {:filter [:> $date "2014-01-01"]})
    :remappings {:user ["variable" [:field-id (data/id :checkins :user_id)]]}})
 
+(defn- format-honeysql [honeysql]
+  (let [honeysql (cond-> honeysql
+                   (= driver/*driver* :sqlserver)
+                   (assoc :modifiers ["TOP 1000"]))]
+    (first (hsql/format honeysql, :quoting (sql.qp/quote-style driver/*driver*), :allow-dashed-names? true))))
+
 (defn- venues-category-native-gtap-def []
-  {:query      {:database (data/id)
-                :type     :native
-                :native   {:query         (format "SELECT %s FROM %s WHERE %s = {{cat}} ORDER BY %s ASC"
-                                                  (str (when (= driver/*driver* :sqlserver)
-                                                         "TOP 1000 ")
-                                                       "*")
-                                                  (quote-native-identifier (data/db) :venues)
-                                                  (quote-native-identifier (data/db) :venues :category_id)
-                                                  (quote-native-identifier (data/db) :venues :id))
-                           :template_tags {:cat {:name "cat" :display_name "cat" :type "number" :required true}}}}
+  (assert (driver/supports? driver/*driver* :native-parameters))
+  {:query (data/native-query
+            {:query
+             (format-honeysql
+              {:select   [:*]
+               :from     [(identifier :venues)]
+               :where    [:= (identifier :venues :category_id) (hsql/raw "{{cat}}")]
+               :order-by [(identifier :venues :id)]})
+
+             :template_tags
+             {:cat {:name "cat" :display_name "cat" :type "number" :required true}}})
    :remappings {:cat ["variable" ["template-tag" "cat"]]}})
 
 (defn- parameterized-sql-with-join-gtap-def []
-  {:query     {:database (data/id)
-               :type     :native
-               :native   {:query
-                          (first
-                           (let [identifier (fn [& args]
-                                              (hsql/raw (apply quote-native-identifier (data/db) args)))]
-                             (hsql/format {:select    [(identifier :checkins :id)
-                                                       (identifier :checkins :user_id)
-                                                       (identifier :venues :name)
-                                                       (identifier :venues :category_id)]
-                                           :modifiers (when (= driver/*driver* :sqlserver)
-                                                        ["TOP 1000"])
-                                           :from      [(identifier :checkins)]
-                                           :left-join [(identifier :venues)
-                                                       [:= (identifier :checkins :venue_id) (identifier :venues :id)]]
-                                           :where     (reify hformat/ToSql
-                                                        (to-sql [_]
-                                                          (format "[[%s = {{user}}]]" (quote-native-identifier (data/db) :checkins :user_id))))
-                                           :order-by  [[(identifier :checkins :id) :asc]]})))
+  (assert (driver/supports? driver/*driver* :native-parameters))
+  {:query (data/native-query
+            {:query
+             (format-honeysql
+              {:select    [(identifier :checkins :id)
+                           (identifier :checkins :user_id)
+                           (identifier :venues :name)
+                           (identifier :venues :category_id)]
+               :from      [(identifier :checkins)]
+               :left-join [(identifier :venues)
+                           [:= (identifier :checkins :venue_id) (identifier :venues :id)]]
+               :where     [:= (identifier :checkins :user_id) (hsql/raw "{{user}}")]
+               :order-by  [[(identifier :checkins :id) :asc]]})
 
-                          :template_tags
-                          {"user" {:name         "user"
-                                   :display-name "User ID"
-                                   :type         :number
-                                   :required     true}}}}
+             :template_tags
+             {"user" {:name         "user"
+                      :display-name "User ID"
+                      :type         :number
+                      :required     true}}})
    :remappings {:user ["variable" ["template-tag" "user"]]}})
 
 (defn- venue-names-native-gtap-def []
-  {:query {:database (data/id)
-           :type     :native
-           :native   {:query (format "SELECT %s FROM %s ORDER BY %s ASC"
-                                     (str (when (= driver/*driver* :sqlserver)
-                                            "TOP 1000 ")
-                                          (quote-native-identifier (data/db) :venues :name))
-                                     (quote-native-identifier (data/db) :venues)
-                                     (quote-native-identifier (data/db) :venues :id))}}})
+  {:query (data/native-query
+            {:query
+             (format-honeysql
+              {:select   [(identifier :venues :name)]
+               :from     [(identifier :venues)]
+               :order-by [(identifier :venues :id)]})})})
 
 
 

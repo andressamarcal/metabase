@@ -120,13 +120,14 @@
   `(do-with-search-items ~search-string false (fn [~created-items-sym] ~@body)))
 
 (defn- search-request [user-kwd & params]
-  (sorted-results
-   (for [result (apply (test-users/user->client user-kwd) :get 200 "search" params)
-         ;; filter out any results not from the usual test data DB (e.g. results from other drivers)
-         :when  (contains? #{(data/id) nil} (:database_id result))]
-     (-> result
-         tu/boolean-ids-and-timestamps
-         (update :collection_name #(some-> % string?))))))
+  (vec
+   (sorted-results
+    (for [result (apply (test-users/user->client user-kwd) :get 200 "search" params)
+          ;; filter out any results not from the usual test data DB (e.g. results from other drivers)
+          :when  (contains? #{(data/id) nil} (:database_id result))]
+      (-> result
+          tu/boolean-ids-and-timestamps
+          (update :collection_name #(some-> % string?)))))))
 
 ;; Basic search, should find 1 of each entity type, all items in the root collection
 (expect
