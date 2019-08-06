@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import ReactDOM from "react-dom";
-import { t } from "c-3po";
+import { t } from "ttag";
 import visualizations, { getVisualizationRaw } from "metabase/visualizations";
 import Visualization, {
   ERROR_MESSAGE_GENERIC,
@@ -242,7 +242,7 @@ const ChartSettingsButton = ({ series, onReplaceAllVisualizationSettings }) => (
     triggerElement={
       <Icon name="gear" size={HEADER_ICON_SIZE} style={HEADER_ACTION_STYLE} />
     }
-    triggerClasses="text-light text-medium-hover cursor-pointer flex align-center flex-no-shrink mr1"
+    triggerClasses="text-light text-medium-hover cursor-pointer flex align-center flex-no-shrink mr1 drag-disabled"
   >
     <ChartSettingsWithState
       series={series}
@@ -254,7 +254,7 @@ const ChartSettingsButton = ({ series, onReplaceAllVisualizationSettings }) => (
 
 const RemoveButton = ({ onRemove }) => (
   <a
-    className="text-light text-medium-hover "
+    className="text-light text-medium-hover drag-disabled"
     data-metabase-event="Dashboard;Remove Card Modal"
     onClick={onRemove}
     style={HEADER_ACTION_STYLE}
@@ -266,7 +266,7 @@ const RemoveButton = ({ onRemove }) => (
 const AddSeriesButton = ({ series, onAddSeries }) => (
   <a
     data-metabase-event={"Dashboard;Edit Series Modal;open"}
-    className="text-light text-medium-hover cursor-pointer h3 flex-no-shrink relative mr1"
+    className="text-light text-medium-hover cursor-pointer h3 flex-no-shrink relative mr1 drag-disabled"
     onClick={onAddSeries}
     style={HEADER_ACTION_STYLE}
   >
@@ -289,7 +289,7 @@ const AddSeriesButton = ({ series, onAddSeries }) => (
 
 function getSeriesIconName(series) {
   try {
-    let display = series[0].card.display;
+    const display = series[0].card.display;
     return visualizations.get(display === "scalar" ? "bar" : display).iconName;
   } catch (e) {
     return "bar";

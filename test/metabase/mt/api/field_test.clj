@@ -1,6 +1,6 @@
 (ns metabase.mt.api.field-test
   "Tests for special behavior of `/api/metabase/field` endpoints in the Metabase Enterprise Edition."
-  (:require [expectations :refer :all]
+  (:require [expectations :refer [expect]]
             [metabase.mt.test-util :as mt.tu]
             [metabase.test.data :as data]
             [metabase.test.data.users :as users]))

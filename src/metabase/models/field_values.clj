@@ -1,5 +1,6 @@
 (ns metabase.models.field-values
   (:require [clojure.tools.logging :as log]
+            [metabase.plugins.classloader :as classloader]
             [metabase.util :as u]
             [metabase.util
              [i18n :refer [trs]]
@@ -76,7 +77,7 @@
   FieldValues. You most likely should not be using this directly in code outside of this namespace, unless it's for a
   very specific reason, such as certain cases where we fetch ad-hoc FieldValues for GTAP-filtered Fields.)"
   [field]
-  (require 'metabase.db.metadata-queries)
+  (classloader/require 'metabase.db.metadata-queries)
   (let [values ((resolve 'metabase.db.metadata-queries/field-distinct-values) field)]
     (when (values-less-than-total-max-length? values)
       values)))

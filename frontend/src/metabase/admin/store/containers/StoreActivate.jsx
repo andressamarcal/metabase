@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Flex } from "grid-styled";
-import { t } from "c-3po";
+import { t } from "ttag";
 
 import colors from "metabase/lib/colors";
 
@@ -83,9 +83,7 @@ export default class Activate extends React.Component {
               <Flex my={2}>
                 <a
                   className="ml-auto"
-                  href={`mailto:support@metabase.com?Subject="Issue with token activation for token ${
-                    this._input.value
-                  }"&Body="${this.state.errorMessage}"`}
+                  href={`mailto:support@metabase.com?Subject="Issue with token activation for token ${this._input.value}"&Body="${this.state.errorMessage}"`}
                 >
                   <Button primary>{t`Contact support`}</Button>
                 </a>

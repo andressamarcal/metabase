@@ -12,8 +12,13 @@ import {
 import cx from "classnames";
 import _ from "underscore";
 
-export const GroupOption = ({ group, selectedGroups = {}, onGroupChange }) => {
-  const disabled = !canEditMembership(group);
+export const GroupOption = ({
+  group,
+  selectedGroups = {},
+  onGroupChange,
+  isDisabled = false,
+}) => {
+  const disabled = isDisabled || !canEditMembership(group);
   const selected = isDefaultGroup(group) || selectedGroups[group.id];
   return (
     <div
@@ -30,7 +35,12 @@ export const GroupOption = ({ group, selectedGroups = {}, onGroupChange }) => {
   );
 };
 
-export const GroupSelect = ({ groups, selectedGroups, onGroupChange }) => {
+export const GroupSelect = ({
+  groups,
+  selectedGroups,
+  onGroupChange,
+  isCurrentUser,
+}) => {
   const other = groups.filter(g => !isAdminGroup(g) && !isDefaultGroup(g));
   const adminGroup = _.find(groups, isAdminGroup);
   const defaultGroup = _.find(groups, isDefaultGroup);
@@ -41,6 +51,7 @@ export const GroupSelect = ({ groups, selectedGroups, onGroupChange }) => {
           group={adminGroup}
           selectedGroups={selectedGroups}
           onGroupChange={onGroupChange}
+          isDisabled={isCurrentUser}
         />
       )}
       {defaultGroup && (
@@ -50,10 +61,9 @@ export const GroupSelect = ({ groups, selectedGroups, onGroupChange }) => {
           onGroupChange={onGroupChange}
         />
       )}
-      {other.length > 0 &&
-        (defaultGroup || adminGroup) && (
-          <div key="divider" className="border-bottom pb1 mb1" />
-        )}
+      {other.length > 0 && (defaultGroup || adminGroup) && (
+        <div key="divider" className="border-bottom pb1 mb1" />
+      )}
       {other.map(group => (
         <GroupOption
           group={group}

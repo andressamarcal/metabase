@@ -294,46 +294,36 @@
     "Get the stack trace associated with E and return it as a vector with non-metabase frames after the last Metabase
     frame filtered out."))
 
-;; These next two functions are a workaround for this bug https://dev.clojure.org/jira/browse/CLJ-1790
-;; When Throwable/Thread are type-hinted, they return an array of type StackTraceElement, this causes
-;; a VerifyError. Adding a layer of indirection here avoids the problem. Once we upgrade to Clojure 1.9
-;; we should be able to remove this code.
-(defn- throwable-get-stack-trace [^Throwable t]
-  (.getStackTrace t))
+(extend-protocol IFilteredStacktrace
+  nil
+  (filtered-stacktrace [_] nil)
 
-(defn- thread-get-stack-trace [^Thread t]
-  (.getStackTrace t))
+  Throwable
+  (filtered-stacktrace [^Throwable this]
+    (filtered-stacktrace (.getStackTrace this)))
 
-(extend nil
-  IFilteredStacktrace {:filtered-stacktrace (constantly nil)})
+  Thread
+  (filtered-stacktrace [^Thread this]
+    (filtered-stacktrace (.getStackTrace this))))
 
-(extend Throwable
-  IFilteredStacktrace {:filtered-stacktrace (fn [this]
-                                             (filtered-stacktrace (throwable-get-stack-trace this)))})
-
-(extend Thread
-  IFilteredStacktrace {:filtered-stacktrace (fn [this]
-                                              (filtered-stacktrace (thread-get-stack-trace this)))})
-
-(defn- metabase-frame? [frame]
-  (re-find #"metabase" (str frame)))
-
-;; StackTraceElement[] is what the `.getStackTrace` method for Thread and Throwable returns
 (extend (Class/forName "[Ljava.lang.StackTraceElement;")
   IFilteredStacktrace
   {:filtered-stacktrace
    (fn [this]
      ;; keep all the frames before the last Metabase frame, but then filter out any other non-Metabase frames after
      ;; that
-     (let [[frames-after-last-mb other-frames]     (split-with (complement metabase-frame?)
-                                                               (map str (seq this)))
-           [last-mb-frame & frames-before-last-mb] (map #(str/replace % #"^metabase\." "")
-                                                        (filter metabase-frame? other-frames))]
+     (let [[frames-after-last-mb other-frames]     (split-with #(not (str/includes? % "metabase"))
+                                                               (seq this))
+           [last-mb-frame & frames-before-last-mb] (for [frame other-frames
+                                                         :when (str/includes? frame "metabase")]
+                                                     (str/replace frame #"^metabase\." ""))]
        (concat
-        frames-after-last-mb
+        (map str frames-after-last-mb)
         ;; add a little arrow to the frame so it stands out more
-        (cons (some->> last-mb-frame (str "--> "))
-              frames-before-last-mb))))})
+        (cons
+         (some->> last-mb-frame (str "--> "))
+         frames-before-last-mb))))})
+
 
 (defn deref-with-timeout
   "Call `deref` on a something derefable (e.g. a future or promise), and throw an exception if it takes more than
@@ -346,30 +336,35 @@
       (throw (TimeoutException. (str (tru "Timed out after {0} milliseconds." timeout-ms)))))
     result))
 
+(defn do-with-timeout
+  "Impl for `with-timeout` macro."
+  [timeout-ms f]
+  (let [result (deref-with-timeout
+                (future
+                  (try
+                    (f)
+                    (catch Throwable e
+                      e)))
+                timeout-ms)]
+    (if (instance? Throwable result)
+      (throw result)
+      result)))
+
 (defmacro with-timeout
   "Run `body` in a `future` and throw an exception if it fails to complete after `timeout-ms`."
   [timeout-ms & body]
-  `(deref-with-timeout (future ~@body) ~timeout-ms))
+  `(do-with-timeout ~timeout-ms (fn [] ~@body)))
 
 (defn round-to-decimals
-  "Round (presumabily floating-point) NUMBER to DECIMAL-PLACE. Returns a `Double`.
+  "Round (presumabily floating-point) `number` to `decimal-place`. Returns a `Double`.
 
      (round-to-decimals 2 35.5058998M) -> 35.51"
   ^Double [^Integer decimal-place, ^Number number]
   {:pre [(integer? decimal-place) (number? number)]}
   (double (.setScale (bigdec number) decimal-place BigDecimal/ROUND_HALF_UP)))
 
-(defn ^:deprecated drop-first-arg
-  "Returns a new fn that drops its first arg and applies the rest to the original.
-   Useful for creating `extend` method maps when you don't care about the `this` param. :flushed:
-
-     ((drop-first-arg :value) xyz {:value 100}) -> (apply :value [{:value 100}]) -> 100"
-  ^clojure.lang.IFn [^clojure.lang.IFn f]
-  (comp (partial apply f) rest list))
-
-
 (defn- check-protocol-impl-method-map
-  "Check that the methods expected for PROTOCOL are all implemented by METHOD-MAP, and that no extra methods are
+  "Check that the methods expected for `protocol` are all implemented by `method-map`, and that no extra methods are
    provided. Used internally by `strict-extend`."
   [protocol method-map]
   (let [[missing-methods extra-methods] (data/diff (set (keys (:method-map protocol))) (set (keys method-map)))]
@@ -467,13 +462,17 @@
   [f coll]
   (into {} (map (juxt f identity)) coll))
 
-(defn keyword->qualified-name
-  "Return keyword K as a string, including its namespace, if any (unlike `name`).
+(defn qualified-name
+  "Return `k` as a string, qualified by its namespace, if any (unlike `name`). Handles `nil` values gracefully as well
+  (also unlike `name`).
 
-     (keyword->qualified-name :type/FK) ->  \"type/FK\""
+     (u/qualified-name :type/FK) -> \"type/FK\""
   [k]
-  (when k
-    (str/replace (str k) #"^:" "")))
+  (when (some? k)
+    (if-let [namespac (when (instance? clojure.lang.Named k)
+                        (namespace k))]
+      (str namespac "/" (name k))
+      (name k))))
 
 (defn id
   "If passed an integer ID, returns it. If passed a map containing an `:id` key, returns the value if it is an integer.
@@ -715,3 +714,26 @@
   {:style/indent 0}
   [& body]
   `(do-with-us-locale (fn [] ~@body)))
+
+(defn xor
+  "Exclusive or. (Because this is implemented as a function, rather than a macro, it is not short-circuting the way `or`
+  is.)"
+  [x y & more]
+  (loop [[x y & more] (into [x y] more)]
+    (cond
+      (and x y)
+      false
+
+      (seq more)
+      (recur (cons (or x y) more))
+
+      :else
+      (or x y))))
+
+(defn xor-pred
+  "Takes a set of predicates and returns a function that is true if *exactly one* of its composing predicates returns a
+  logically true value. Compare to `every-pred`."
+  [& preds]
+  (fn [& args]
+    (apply xor (for [pred preds]
+                 (apply pred args)))))

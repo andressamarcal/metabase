@@ -1,4 +1,4 @@
-import { t } from "c-3po";
+import { t } from "ttag";
 import MetabaseSettings from "metabase/lib/settings";
 
 const FEATURES = {

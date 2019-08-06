@@ -5,7 +5,7 @@ import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper";
 import EntitySearch from "metabase/containers/EntitySearch";
 import { getMetadata } from "metabase/selectors/metadata";
 import _ from "underscore";
-import { t } from "c-3po";
+import { t } from "ttag";
 import MetabaseSettings from "metabase/lib/settings";
 import type { Metric } from "metabase/meta/types/Metric";
 import type Metadata from "metabase-lib/lib/metadata/Metadata";
@@ -37,7 +37,10 @@ const mapDispatchToProps = {
   resetQuery,
 };
 
-@connect(mapStateToProps, mapDispatchToProps)
+@connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)
 export default class MetricSearch extends Component {
   props: {
     getUrlForQuery: StructuredQuery => void,

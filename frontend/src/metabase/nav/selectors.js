@@ -10,8 +10,12 @@ export const getContext = createSelector(
     path.startsWith("/auth/")
       ? "auth"
       : path.startsWith("/setup/")
-        ? "setup"
-        : path.startsWith("/admin/") ? "admin" : path === "/" ? "home" : "main",
+      ? "setup"
+      : path.startsWith("/admin/")
+      ? "admin"
+      : path === "/"
+      ? "home"
+      : "main",
 );
 
 export const getFeatures = state => state.settings.values.features;

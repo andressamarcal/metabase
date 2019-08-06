@@ -10,6 +10,11 @@
   display: inline-flex;
 }
 
+.flex-auto,
+:local(.flex-auto) {
+  flex: auto;
+}
+
 .flex-full,
 :local(.flex-full) {
   flex: 1 0 auto;

@@ -41,7 +41,7 @@
 (s/defn load
   "Load serialized metabase instance as created by `dump` command from directory `path`."
   [path context :- Context]
-  (mdb/setup-db-if-needed!)
+  (mdb/setup-db!)
   (when-not (load/compatible? path)
     (log/warn (trs "Dump was produced using a different version of Metabase. Things may break!")))
   (let [context (merge {:mode     :skip
@@ -67,7 +67,7 @@
 (defn dump
   "Serialized metabase instance into directory `path`."
   [path user]
-  (mdb/setup-db-if-needed!)
+  (mdb/setup-db!)
   (let [users       (if user
                       (let [user (db/select-one User
                                    :email        user

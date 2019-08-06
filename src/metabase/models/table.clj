@@ -11,6 +11,7 @@
              [metric :refer [Metric retrieve-metrics]]
              [permissions :as perms :refer [Permissions]]
              [segment :refer [retrieve-segments Segment]]]
+            [metabase.plugins.classloader :as classloader]
             [toucan
              [db :as db]
              [models :as models]]))
@@ -37,7 +38,9 @@
   (db/delete! Metric      :table_id id)
   (db/delete! Field       :table_id id)
   (db/delete! 'Card       :table_id id)
-  (db/delete! Permissions :object [:like (str (perms/object-path db_id schema id) "%")]))
+  (db/delete! Permissions :object [:like (str (perms/object-path db_id schema id) "%")])
+  (classloader/require 'metabase.mt.models.group-table-access-policy)
+  (db/delete! @(resolve 'metabase.mt.models.group-table-access-policy/GroupTableAccessPolicy) :table_id id))
 
 (defn- perms-objects-set [table read-or-write]
   ;; To read (e.g., fetch metadata) a Table you (predictably) have read permissions; to write a Table (e.g. update its
@@ -68,7 +71,7 @@
 ;;; --------------------------------------------------- Hydration ----------------------------------------------------
 
 (defn fields
-  "Return the `FIELDS` belonging to a single TABLE."
+  "Return the Fields belonging to a single `table`."
   [{:keys [id]}]
   (db/select Field
     :table_id        id
@@ -77,17 +80,17 @@
     {:order-by [[:position :asc] [:name :asc]]}))
 
 (defn metrics
-  "Retrieve the `Metrics` for a single TABLE."
+  "Retrieve the Metrics for a single `table`."
   [{:keys [id]}]
   (retrieve-metrics id :all))
 
 (defn segments
-  "Retrieve the `Segments` for a single TABLE."
+  "Retrieve the Segments for a single `table`."
   [{:keys [id]}]
   (retrieve-segments id :all))
 
 (defn field-values
-  "Return the `FieldValues` for all `Fields` belonging to a single TABLE."
+  "Return the FieldValues for all Fields belonging to a single `table`."
   {:hydrate :field_values, :arglists '([table])}
   [{:keys [id]}]
   (let [field-ids (db/select-ids Field
@@ -98,7 +101,7 @@
       (db/select-field->field :field_id :values FieldValues, :field_id [:in field-ids]))))
 
 (defn pk-field-id
-  "Return the ID of the primary key `Field` for TABLE."
+  "Return the ID of the primary key `Field` for `table`."
   {:hydrate :pk_field, :arglists '([table])}
   [{:keys [id]}]
   (db/select-one-id Field
@@ -115,7 +118,7 @@
       (assoc table hydration-key (get table-id->objects (:id table) [])))))
 
 (defn with-segments
-  "Efficiently hydrate the `Segments` for a collection of TABLES."
+  "Efficiently hydrate the Segments for a collection of `tables`."
   {:batched-hydrate :segments}
   [tables]
   (with-objects :segments
@@ -124,7 +127,7 @@
     tables))
 
 (defn with-metrics
-  "Efficiently hydrate the `Metrics` for a collection of TABLES."
+  "Efficiently hydrate the Metrics for a collection of `tables`."
   {:batched-hydrate :metrics}
   [tables]
   (with-objects :metrics
@@ -133,7 +136,7 @@
     tables))
 
 (defn with-fields
-  "Efficiently hydrate the `Fields` for a collection of TABLES."
+  "Efficiently hydrate the Fields for a collection of `tables`."
   {:batched-hydrate :fields}
   [tables]
   (with-objects :fields
@@ -149,7 +152,7 @@
 ;;; ------------------------------------------------ Convenience Fns -------------------------------------------------
 
 (defn qualified-identifier
-  "Return a keyword identifier for TABLE in the form `:schema.table-name` (if the Table has a non-empty `:schema` field)
+  "Return a keyword identifier for `table` in the form `:schema.table-name` (if the Table has a non-empty `:schema` field)
   or `:table-name` (if the Table has no `:schema`)."
   ^clojure.lang.Keyword [{schema :schema, table-name :name}]
   (keyword (str (when (seq schema)

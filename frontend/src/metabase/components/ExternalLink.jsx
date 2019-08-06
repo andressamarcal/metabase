@@ -14,7 +14,7 @@ const ExternalLink = ({
     className={className || "link"}
     target={target}
     // prevent malicious pages from navigating us away
-    rel="noopener"
+    rel="noopener noreferrer"
     // disables quickfilter in tables
     onClickCapture={e => e.stopPropagation()}
     {...props}

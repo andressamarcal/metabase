@@ -3,7 +3,7 @@ import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { connect } from "react-redux";
 import { reduxForm } from "redux-form";
-import { t } from "c-3po";
+import { t } from "ttag";
 import cx from "classnames";
 
 import LoadingAndErrorWrapper from "metabase/components/LoadingAndErrorWrapper.jsx";
@@ -125,7 +125,10 @@ const mapDispatchToProps = {
   ...actions,
 };
 
-@connect(mapStateToProps, mapDispatchToProps)
+@connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)
 @reduxForm({
   form: "guide",
   fields: [

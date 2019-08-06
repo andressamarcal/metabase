@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import { assocIn } from "icepick";
 
 import SettingHeader from "./SettingHeader.jsx";
-import { t } from "c-3po";
+import { t } from "ttag";
 import SettingInput from "./widgets/SettingInput.jsx";
 import SettingNumber from "./widgets/SettingNumber.jsx";
 import SettingPassword from "./widgets/SettingPassword.jsx";
@@ -60,7 +60,7 @@ export default class SettingsSetting extends Component {
         {!setting.noHeader && <SettingHeader setting={setting} />}
         <div className="flex">
           <Widget
-            {...setting.props || {}}
+            {...(setting.props || {})}
             {...updatePlaceholderForEnvironmentVars(this.props)}
           />
         </div>

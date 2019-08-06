@@ -1,6 +1,7 @@
 (ns metabase.serialization.names
   "Consistent instance-independent naming scheme that replaces IDs with human-readable paths."
   (:require [clojure.string :as str]
+            [metabase.mbql.schema :as mbql.s]
             [metabase.models
              [card :refer [Card]]
              [collection :refer [Collection]]
@@ -138,7 +139,7 @@
 (defmethod path->context* "databases"
   [context _ db-name]
   (assoc context :database (if (= db-name "__virtual")
-                             database/virtual-id
+                             mbql.s/saved-questions-virtual-database-id
                              (db/select-one-id Database :name db-name))))
 
 (defmethod path->context* "schemas"

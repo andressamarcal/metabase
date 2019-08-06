@@ -27,7 +27,7 @@
                 :from     [[:query_execution :qe]]
                 :left-join [[:core_user :u] [:= :qe.executor_id :u.id]]
                 :where    [:and
-                           [:> :qe.started_at (driver/date-interval (mdb/db-type) :day -30)]
+                           [:> :qe.started_at (driver/date-add (mdb/db-type) :%now -30 :day)]
                            (common/query-execution-is-download :qe)]
                 :order-by [[:qe.result_rows :desc]]
                 :limit    1000})})

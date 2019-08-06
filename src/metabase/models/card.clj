@@ -19,6 +19,7 @@
              [query :as query]
              [revision :as revision]]
             [metabase.models.query.permissions :as query-perms]
+            [metabase.plugins.classloader :as classloader]
             [metabase.query-processor.util :as qputil]
             [metabase.util.i18n :as ui18n :refer [tru]]
             [toucan
@@ -153,12 +154,15 @@
     (when (:dataset_query card)
       (check-for-circular-source-query-references card))))
 
+;; Cards don't normally get deleted (they get archived instead) so this mostly affects tests
 (defn- pre-delete [{:keys [id]}]
   (db/delete! 'PulseCard :card_id id)
   (db/delete! 'Revision :model "Card", :model_id id)
   (db/delete! 'DashboardCardSeries :card_id id)
   (db/delete! 'DashboardCard :card_id id)
-  (db/delete! 'CardFavorite :card_id id))
+  (db/delete! 'CardFavorite :card_id id)
+  (classloader/require 'metabase.mt.models.group-table-access-policy)
+  (db/delete! @(resolve 'metabase.mt.models.group-table-access-policy/GroupTableAccessPolicy) :card_id id))
 
 
 (u/strict-extend (class Card)

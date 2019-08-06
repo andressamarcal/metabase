@@ -5,7 +5,7 @@ import React from "react";
 import AuditTable from "./AuditTable";
 import AuditParameters from "../components/AuditParameters";
 
-import { t } from "c-3po";
+import { t } from "ttag";
 import { updateIn } from "icepick";
 
 import type { AuditDashCard } from "../types";

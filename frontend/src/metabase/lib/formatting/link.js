@@ -61,7 +61,7 @@ function getValueAndColumnForColumnName(clicked, columnName) {
 }
 
 export function formatDateTimeForParameter(value, unit) {
-  let m = parseTimestamp(value, unit);
+  const m = parseTimestamp(value, unit);
   if (!m.isValid()) {
     return String(value);
   }

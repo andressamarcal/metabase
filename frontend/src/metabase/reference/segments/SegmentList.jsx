@@ -2,7 +2,7 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { connect } from "react-redux";
-import { t } from "c-3po";
+import { t } from "ttag";
 import { isQueryable } from "metabase/lib/table";
 import MetabaseSettings from "metabase/lib/settings";
 
@@ -42,7 +42,10 @@ const mapDispatchToProps = {
   ...metadataActions,
 };
 
-@connect(mapStateToProps, mapDispatchToProps)
+@connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)
 export default class SegmentList extends Component {
   static propTypes = {
     style: PropTypes.object.isRequired,

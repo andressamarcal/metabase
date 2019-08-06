@@ -5,7 +5,6 @@
              [util :as mbql.u]]
             [metabase.models
              [card :refer [Card]]
-             [database :as database]
              [field :refer [Field]]
              [params :as params]
              [permissions :as perms]
@@ -13,30 +12,77 @@
              [table :refer [Table]]]
             [metabase.models.query.permissions :as query-perms]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
-            [metabase.query-processor.middleware.resolve-fields :as resolve-fields]
+            [metabase.query-processor.middleware.fetch-source-query :as fetch-source-query]
+            [metabase.query-processor.store :as qp.store]
             [metabase.util :as u]
             [puppetlabs.i18n.core :refer [tru]]
             [schema.core :as s]
             [toucan.db :as db]))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
-;;; |                                     Fetching Appropriate GTAPs for a Table                                     |
+;;; |                                                  query->gtap                                                   |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-(defn- gtap-for-table [outer-query table-or-table-id]
-  (let [groups (db/select-field :group_id PermissionsGroupMembership :user_id (u/get-id *current-user-id*))]
-    ;; check that user is in a group
-    (when-not (seq groups)
-      (throw (RuntimeException. (str (tru "User with email ''{0}'' is not a member of any group"
-                                          (:email @*current-user*))))))
-    ;; ok, now fetch GTAP(s). More than one GTAP = error
-    (let [[gtap & more-gtaps] (db/select GroupTableAccessPolicy
-                                :group_id [:in groups]
-                                :table_id (u/get-id table-or-table-id))]
-      (if (seq more-gtaps)
-        (throw (RuntimeException. (str (tru "Found more than one group table access policy for user ''{0}''"
-                                            (:email @*current-user*)))))
-        gtap))))
+(defn- all-table-ids [m]
+  (set
+   (reduce
+    concat
+    (mbql.u/match m
+      (_ :guard (every-pred map? :source-table (complement :gtap?)))
+      (let [recursive-ids (all-table-ids (dissoc &match :source-table))]
+        (cons (:source-table &match) recursive-ids))))))
+
+(defn- query->all-table-ids [query]
+  (let [ids (all-table-ids query)]
+    (when (seq ids)
+      (qp.store/fetch-and-store-tables! ids)
+      (set ids))))
+
+(defn- table-should-have-segmented-permissions?
+  "Determine whether we should apply segmented permissions for `table-or-table-id`."
+  [table-id]
+  (let [table (assoc (qp.store/table table-id) :db_id (u/get-id (qp.store/database)))]
+    (and
+     ;; User does not have full data access
+     (not (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-query-path table)))
+     ;; User does have segmented access
+     (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-segmented-query-path table)))))
+
+(defn- assert-one-gtap-per-table
+  "Make sure all referenced Tables have at most one GTAP."
+  [gtaps]
+  (doseq [[table-id gtaps] (group-by :table_id gtaps)
+          :when            (> (count gtaps) 1)]
+    (throw (ex-info (str (tru "Found more than one group table access policy for user ''{0}''"
+                              (:email @*current-user*)))
+             {:table-id  table-id
+              :gtaps     gtaps
+              :user      *current-user-id*
+              :group-ids (map :group_id gtaps)}))))
+
+(defn- tables->gtaps [table-ids]
+  (qp.store/cached [*current-user-id* table-ids]
+    (let [group-ids (qp.store/cached *current-user-id*
+                      (db/select-field :group_id PermissionsGroupMembership :user_id *current-user-id*))
+          gtaps     (when (seq group-ids)
+                      (db/select GroupTableAccessPolicy
+                        :group_id [:in group-ids]
+                        :table_id [:in table-ids]))]
+      (when (seq gtaps)
+        (assert-one-gtap-per-table gtaps)
+        gtaps))))
+
+(defn- query->table-id->gtap [query]
+  {:pre [(some? *current-user-id*)]}
+  (when-let [gtaps (some->> (query->all-table-ids query)
+                            ((comp seq filter) table-should-have-segmented-permissions?)
+                            tables->gtaps)]
+    (u/key-by :table_id gtaps)))
+
+
+;;; +----------------------------------------------------------------------------------------------------------------+
+;;; |                                                Applying a GTAP                                                 |
+;;; +----------------------------------------------------------------------------------------------------------------+
 
 (defn- target->type
   "Attempt to expand `maybe-field` to find its `id`. This might not be a field and instead a template tag or something
@@ -70,15 +116,33 @@
      :target target
      :value  (attr-value->param-value maybe-field-type attr-value)}))
 
-(defn- gtap->database-id [{:keys [card_id table_id] :as gtap}]
-  (if card_id
-    database/virtual-id
-    (db/select-one-field :db_id Table :id table_id)))
+(defn- gtap->parameters [{attribute-remappings :attribute_remappings}]
+  (mapv (partial attr-remapping->parameter (:login_attributes @*current-user*))
+        attribute-remappings))
 
-(defn- gtap->source-table [{:keys [card_id table_id] :as gtap}]
-  (if card_id
-    (str "card__" card_id)
-    table_id))
+(s/defn ^:private preprocess-source-query :- mbql.s/SourceQuery
+  [source-query :- mbql.s/SourceQuery]
+  (let [query        {:database (:id (qp.store/database))
+                      :type     :query
+                      :query    source-query}
+        preprocessed (binding [api/*current-user-id* nil]
+                       ((resolve 'metabase.query-processor/query->preprocessed) query))]
+    (select-keys (:query preprocessed) [:source-query :source-metadata])))
+
+(s/defn ^:private card-gtap->source
+  [{card-id :card_id, :as gtap}]
+  (update-in (fetch-source-query/card-id->source-query-and-metadata card-id)
+             [:source-query :parameters]
+             concat
+             (gtap->parameters gtap)))
+
+(defn- table-gtap->source [{table-id :table_id, :as gtap}]
+  {:source-query {:source-table table-id, :parameters (gtap->parameters gtap)}})
+
+(defn- gtap->source [{card-id :card_id, :as gtap}]
+  {:pre [gtap]}
+  (let [source ((if card-id card-gtap->source table-gtap->source) gtap)]
+    (preprocess-source-query source)))
 
 (s/defn ^:private gtap->perms-set :- #{perms/ObjectPath}
   "Calculate the set of permissions needed to run the query associated with a GTAP; this set of permissions is excluded
@@ -90,110 +154,52 @@
   first place; the actual perms required to normally run the underlying GTAP query is more likely something like
   *full* query perms for Table 15.) The QP perms check middleware subtracts this set from the set of required
   permissions, allowing the user to run their GTAPped query."
-  [{:keys [card_id table_id]}]
-  (if card_id
-    (query-perms/perms-set (db/select-one-field :dataset_query Card :id card_id), :throw-exceptions? true)
-    #{(perms/table-query-path (Table table_id))}))
+  [{card-id :card_id, table-id :table_id}]
+  (if card-id
+    (qp.store/cached card-id
+      (query-perms/perms-set (db/select-one-field :dataset_query Card :id card-id), :throw-exceptions? true))
+    #{(perms/table-query-path (Table table-id))}))
+
+(defn- gtaps->perms-set [gtaps]
+  (set (mapcat gtap->perms-set gtaps)))
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
-;;; |                                          Should a Query Get GTAPped?                                           |
-;;; +----------------------------------------------------------------------------------------------------------------+
-
-(defn- table-should-have-segmented-permissions?
-  "Determine whether we should apply segmented permissions for `table-or-table-id`.
-
-    (table-should-have-segmented-permissions? outer-query) ; -> true"
-  [table-or-table-id]
-  (boolean
-   ;; Check whether the query uses a source Table (e.g., whether it is an MBQL query)
-   (when-let [id (and *current-user-id* table-or-table-id (u/get-id table-or-table-id))]
-     (let [table (db/select-one ['Table :id :db_id :schema] :id id)]
-       (and
-        ;; User does not have full data access
-        (not (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-query-path table)))
-        ;; User does have segmented access
-        (perms/set-has-full-permissions? @*current-user-permissions-set* (perms/table-segmented-query-path table)))))))
-
-
-;;; +----------------------------------------------------------------------------------------------------------------+
-;;; |                                           Applying GTAPs to a Query                                            |
+;;; |                                                   Middleware                                                   |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
 ;;; ------------------------------------------ apply-row-level-permissions -------------------------------------------
 
-(s/defn ^:private apply-row-level-permissions-from-gtap :- mbql.s/Query
-  {:arglists '([outer-query gtap])}
-  [outer-query {:keys [attribute_remappings] :as gtap}]
-  (-> outer-query
-      (assoc :database    (gtap->database-id gtap)
-             :type        :query
-             :gtap-perms  (gtap->perms-set gtap))
-      (assoc-in [:query :source-table] (gtap->source-table gtap))
-      (update :parameters into (map (partial attr-remapping->parameter (:login_attributes @*current-user*))
-                                    attribute_remappings))))
+(defn- apply-gtap [m gtap]
+  (merge
+   (dissoc m :source-table :source-query)
+   (gtap->source gtap)))
 
-(defn- query->gtap
-  "Return the GTAP that should be applied to a `query`, or `nil` if none should be applied."
-  [outer-query]
-  ;; `query->source-table-id` will throw an Exception if it encounters an unresolved source query, i.e. a `card__id`
-  ;; form; we don't support loading GTAPs for those at this point in time, so we can go ahead and ignore that
-  ;; Exception.
-  (when-let [source-table-id (u/ignore-exceptions
-                               (mbql.u/query->source-table-id outer-query))]
-    (and (table-should-have-segmented-permissions? source-table-id)
-         (gtap-for-table outer-query source-table-id))))
+(defn- apply-gtaps [m table-id->gtap]
+  ;; replace maps that have `:source-table` key and a matching entry in `table-id->gtap`, but do not have `:gtap?` key
+  (mbql.u/replace m
+    (_ :guard (every-pred map? (complement :gtap?) :source-table #(get table-id->gtap (:source-table %))))
+    (let [updated             (apply-gtap &match (get table-id->gtap (:source-table &match)))
+          ;; now recursively apply gtaps anywhere else they might exist at this level, e.g. `:joins`
+          recursively-updated (merge
+                               (select-keys updated [:source-table :source-query])
+                               (apply-gtaps (dissoc updated :source-table :source-query) table-id->gtap))]
+      ;; add a `:gtap?` key next to every `:source-table` key so when we do a second pass after adding JOINs they
+      ;; don't get processed again
+      (mbql.u/replace recursively-updated
+        (_ :guard (every-pred map? :source-table))
+        (assoc &match :gtap? true)))))
 
-(defn- apply-row-level-permissions* [outer-query]
-  (if-let [gtap (query->gtap outer-query)]
-    (apply-row-level-permissions-from-gtap outer-query gtap)
-    outer-query))
+(defn- apply-row-level-permissions* [query]
+  (if-let [table-id->gtap (when *current-user-id*
+                            (query->table-id->gtap query))]
+    (-> query
+        (apply-gtaps table-id->gtap)
+        (update :gtap-perms (comp set concat) (gtaps->perms-set (vals table-id->gtap))))
+    query))
 
 (defn apply-row-level-permissions
   "Does the work of swapping the given table the user was querying against with a nested subquery that restricts the
   rows returned. Will return the original query if there are no segmented permissions found"
   [qp]
   (comp qp apply-row-level-permissions*))
-
-
-;;; ------------------------------------- apply-row-level-permissions-for-joins --------------------------------------
-
-(defn- preprocess-and-resolve-fields [query]
-  (u/prog1 (binding [api/*current-user-id* nil]
-             ((resolve 'metabase.query-processor/query->preprocessed) query))
-    ;; have to make sure the Fields from the Join query we create are present in the store because we're doing this
-    ;; after the middleware step that normally resolves Fields
-    ((resolve-fields/resolve-fields identity) <>)))
-
-(s/defn create-join-query :- mbql.s/JoinQueryInfo
-  "Create a join query with a new GTAP query used for the join and using the original join Table data from `join-table`"
-  [join-table :- mbql.s/JoinTableInfo, gtap, {:keys [database] :as orig-query}]
-  (merge
-   (select-keys join-table [:table-id :join-alias :fk-field-id :pk-field-id])
-   {:join-alias (:join-alias join-table)
-    :query      (preprocess-and-resolve-fields
-                 {:database   (u/get-id database)
-                  :type       :query
-                  :query      {:source-table (gtap->source-table gtap)}
-                  :parameters (mapv (partial attr-remapping->parameter (:login_attributes @*current-user*))
-                                    (:attribute_remappings gtap))})}))
-
-(defn- apply-row-level-permissions-for-joins* [query]
-  (let [join-tables     (-> query :query :join-tables)
-        table-ids->gtap (into {} (for [{:keys [table-id]} join-tables
-                                       :when (table-should-have-segmented-permissions? table-id)]
-                                   [table-id (gtap-for-table query table-id)]))]
-    (if (seq table-ids->gtap)
-      (-> query
-          (update :gtap-perms into (mapcat gtap->perms-set (vals table-ids->gtap)))
-          (assoc-in [:query :join-tables] (vec (for [{:keys [table-id], :as jt} join-tables]
-                                                 (if-let [gtap (get table-ids->gtap table-id)]
-                                                   (create-join-query jt gtap query)
-                                                   jt)))))
-      query)))
-
-(defn apply-row-level-permissions-for-joins
-  "Looks in the `:join-tables` of the query for segmented permissions. If any are found, swap them for a gtap
-  otherwise return the original query"
-  [qp]
-  (comp qp apply-row-level-permissions-for-joins*))

@@ -135,7 +135,7 @@ export default class AccordianList extends Component {
       }
     }
 
-    let openSection = this.getOpenSection();
+    const openSection = this.getOpenSection();
     if (openSection === sectionIndex) {
       sectionIndex = null;
     }
@@ -149,7 +149,7 @@ export default class AccordianList extends Component {
 
     let { openSection } = this.state;
     if (openSection === undefined) {
-      for (let [index, section] of this.props.sections.entries()) {
+      for (const [index, section] of this.props.sections.entries()) {
         if (this.sectionIsSelected(section, index)) {
           openSection = index;
           break;
@@ -160,7 +160,7 @@ export default class AccordianList extends Component {
   }
 
   sectionIsSelected(section, sectionIndex) {
-    let { sections } = this.props;
+    const { sections } = this.props;
     let selectedSection = null;
     for (let i = 0; i < sections.length; i++) {
       if (_.some(sections[i].items, item => this.itemIsSelected(item))) {
@@ -408,7 +408,9 @@ export default class AccordianList extends Component {
                         }
                       >
                         {this.renderSectionIcon(section, sectionIndex)}
-                        <h3 className="List-section-title">{section.name}</h3>
+                        <h3 className="List-section-title text-wrap">
+                          {section.name}
+                        </h3>
                         {sections.length > 1 &&
                           section.items &&
                           section.items.length > 0 && (
@@ -456,7 +458,7 @@ export default class AccordianList extends Component {
                       >
                         <a
                           className={cx(
-                            "p1 flex-full flex align-center",
+                            "p1 flex flex-auto align-center",
                             this.itemIsClickable(item)
                               ? "cursor-pointer"
                               : "cursor-default",
@@ -469,7 +471,9 @@ export default class AccordianList extends Component {
                           <span className="flex align-center">
                             {this.renderItemIcon(item, itemIndex)}
                           </span>
-                          <h4 className="List-item-title ml1">{item.name}</h4>
+                          <h4 className="List-item-title ml1 text-wrap">
+                            {item.name}
+                          </h4>
                         </a>
                         {this.renderItemExtra(item, itemIndex)}
                         {showItemArrows && (

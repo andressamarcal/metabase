@@ -26,7 +26,7 @@ import QuestionLoader from "metabase/containers/QuestionLoader";
 import Dimension from "metabase-lib/lib/Dimension";
 
 import _ from "underscore";
-import { jt, t } from "c-3po";
+import { jt, t } from "ttag";
 
 const mapStateToProps = () => ({});
 const mapDispatchToProps = {
@@ -51,7 +51,10 @@ type State = {
 };
 
 @withRouter
-@connect(mapStateToProps, mapDispatchToProps)
+@connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)
 export default class GTAPModal extends React.Component {
   props: Props;
   state: State = {
@@ -86,7 +89,10 @@ export default class GTAPModal extends React.Component {
   }
 
   close = () => {
-    const { push, params: { databaseId, schemaName } } = this.props;
+    const {
+      push,
+      params: { databaseId, schemaName },
+    } = this.props;
     push(
       `/admin/permissions/databases/${databaseId}` +
         (schemaName ? `/schemas/${encodeURIComponent(schemaName)}` : ``) +
@@ -95,7 +101,7 @@ export default class GTAPModal extends React.Component {
   };
 
   _getCanonicalGTAP() {
-    let { gtap, simple } = this.state;
+    const { gtap, simple } = this.state;
     if (!gtap) {
       return null;
     }
@@ -232,12 +238,11 @@ export default class GTAPModal extends React.Component {
           }
         </LoadingAndErrorWrapper>
         <div className="p3">
-          {valid &&
-            canonicalGTAP && (
-              <div className="pb1">
-                <GTAPSummary gtap={canonicalGTAP} />
-              </div>
-            )}
+          {valid && canonicalGTAP && (
+            <div className="pb1">
+              <GTAPSummary gtap={canonicalGTAP} />
+            </div>
+          )}
           <div className="flex align-center justify-end">
             <Button onClick={this.close}>{t`Cancel`}</Button>
             <ActionButton
@@ -433,8 +438,7 @@ const AttributeOptionsEmptyState = ({ title }) => (
     />
     <div>
       <h3 className="pb1">{title}</h3>
-      <div
-      >{t`You can add attributes automatically by setting up an SSO that uses SAML, or you can enter them manually by going to the People section and clicking on the … menu on the far right.`}</div>
+      <div>{t`You can add attributes automatically by setting up an SSO that uses SAML, or you can enter them manually by going to the People section and clicking on the … menu on the far right.`}</div>
     </div>
   </div>
 );

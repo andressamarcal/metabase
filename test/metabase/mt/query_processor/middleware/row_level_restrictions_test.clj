@@ -1,14 +1,16 @@
 (ns metabase.mt.query-processor.middleware.row-level-restrictions-test
   (:require [clojure.string :as str]
             [expectations :refer [expect]]
-            [honeysql
-             [core :as hsql]
-             [format :as hformat]]
+            [honeysql.core :as hsql]
             [metabase
              [driver :as driver]
              [query-processor :as qp]
              [query-processor-test :as qp.test]
              [util :as u]]
+            [metabase.driver.sql.query-processor :as sql.qp]
+            [metabase.mbql
+             [normalize :as normalize]
+             [util :as mbql.u]]
             [metabase.models
              [card :refer [Card]]
              [collection :refer [Collection]]
@@ -16,28 +18,34 @@
              [permissions :as perms]
              [permissions-group :as perms-group]
              [table :refer [Table]]]
+            [metabase.mt.query-processor.middleware.row-level-restrictions :as row-level-restrictions]
             [metabase.mt.test-util :as mt.tu]
-            [metabase.query-processor.util :as qputil]
+            [metabase.query-processor
+             [interface :as qp.i]
+             [test-util :as qp.tu]
+             [util :as qputil]]
             [metabase.test
              [data :as data]
              [util :as tu]]
             [metabase.test.data
              [datasets :as datasets]
              [env :as tx.env]
-             [sql :as sql.tx]
              [users :as users]]
+            [metabase.util.honeysql-extensions :as hx]
             [toucan.util.test :as tt]))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                      SHARED GTAP DEFINITIONS & HELPER FNS                                      |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-(defn- quote-native-identifier
-  ([{db-name :name, driver :engine, :as db} table-name]
-   (sql.tx/qualify+quote-name driver (name db-name) (name table-name)))
+(defn- identifier
+  ([table-key]
+   (qp.tu/with-everything-store
+     (sql.qp/->honeysql driver/*driver* (Table (data/id table-key)))))
 
-  ([{db-name :name, driver :engine, :as db} table-name field-name]
-   (sql.tx/qualify+quote-name driver (name db-name) (name table-name) (name field-name))))
+  ([table-key field-key]
+   (qp.tu/with-everything-store
+     (sql.qp/->honeysql driver/*driver* (Field (data/id table-key field-key))))))
 
 
 (defn- venues-category-mbql-gtap-def []
@@ -52,56 +60,62 @@
   {:query      (data/mbql-query checkins {:filter [:> $date "2014-01-01"]})
    :remappings {:user ["variable" [:field-id (data/id :checkins :user_id)]]}})
 
+(defn- format-honeysql [honeysql]
+  (let [honeysql (cond-> honeysql
+                   (= driver/*driver* :sqlserver)
+                   (assoc :modifiers ["TOP 1000"])
+
+                   ;; SparkSQL has to have an alias source table (or at least our driver is written as if it has to
+                   ;; have one.) HACK
+                   (= driver/*driver* :sparksql)
+                   (update :from (fn [[table]]
+                                   [[table (sql.qp/->honeysql :sparksql
+                                             (hx/identifier :table-alias @(resolve 'metabase.driver.sparksql/source-table-alias)))]])))]
+    (first (hsql/format honeysql, :quoting (sql.qp/quote-style driver/*driver*), :allow-dashed-names? true))))
+
 (defn- venues-category-native-gtap-def []
-  {:query      {:database (data/id)
-                :type     :native
-                :native   {:query         (format "SELECT %s FROM %s WHERE %s = {{cat}} ORDER BY %s ASC"
-                                                  (str (when (= driver/*driver* :sqlserver)
-                                                         "TOP 1000 ")
-                                                       "*")
-                                                  (quote-native-identifier (data/db) :venues)
-                                                  (quote-native-identifier (data/db) :venues :category_id)
-                                                  (quote-native-identifier (data/db) :venues :id))
-                           :template_tags {:cat {:name "cat" :display_name "cat" :type "number" :required true}}}}
+  (assert (driver/supports? driver/*driver* :native-parameters))
+  {:query (data/native-query
+            {:query
+             (format-honeysql
+              {:select   [:*]
+               :from     [(identifier :venues)]
+               :where    [:= (identifier :venues :category_id) (hsql/raw "{{cat}}")]
+               :order-by [(identifier :venues :id)]})
+
+             :template_tags
+             {:cat {:name "cat" :display_name "cat" :type "number" :required true}}})
    :remappings {:cat ["variable" ["template-tag" "cat"]]}})
 
 (defn- parameterized-sql-with-join-gtap-def []
-  {:query     {:database (data/id)
-               :type     :native
-               :native   {:query
-                          (first
-                           (let [identifier (fn [& args]
-                                              (hsql/raw (apply quote-native-identifier (data/db) args)))]
-                             (hsql/format {:select    [(identifier :checkins :id)
-                                                       (identifier :checkins :user_id)
-                                                       (identifier :venues :name)
-                                                       (identifier :venues :category_id)]
-                                           :modifiers (when (= driver/*driver* :sqlserver)
-                                                        ["TOP 1000"])
-                                           :from      [(identifier :checkins)]
-                                           :left-join [(identifier :venues)
-                                                       [:= (identifier :checkins :venue_id) (identifier :venues :id)]]
-                                           :where     (reify hformat/ToSql
-                                                        (to-sql [_]
-                                                          (format "[[%s = {{user}}]]" (quote-native-identifier (data/db) :checkins :user_id))))
-                                           :order-by  [[(identifier :checkins :id) :asc]]})))
+  (assert (driver/supports? driver/*driver* :native-parameters))
+  {:query (data/native-query
+            {:query
+             (format-honeysql
+              {:select    [(identifier :checkins :id)
+                           (identifier :checkins :user_id)
+                           (identifier :venues :name)
+                           (identifier :venues :category_id)]
+               :from      [(identifier :checkins)]
+               :left-join [(identifier :venues)
+                           [:= (identifier :checkins :venue_id) (identifier :venues :id)]]
+               :where     [:= (identifier :checkins :user_id) (hsql/raw "{{user}}")]
+               :order-by  [[(identifier :checkins :id) :asc]]})
 
-                          :template_tags
-                          {"user" {:name         "user"
-                                   :display-name "User ID"
-                                   :type         :number
-                                   :required     true}}}}
+             :template_tags
+             {"user" {:name         "user"
+                      :display-name "User ID"
+                      :type         :number
+                      :required     true}}})
    :remappings {:user ["variable" ["template-tag" "user"]]}})
 
 (defn- venue-names-native-gtap-def []
-  {:query {:database (data/id)
-           :type     :native
-           :native   {:query (format "SELECT %s FROM %s ORDER BY %s ASC"
-                                     (str (when (= driver/*driver* :sqlserver)
-                                            "TOP 1000 ")
-                                          (quote-native-identifier (data/db) :venues :name))
-                                     (quote-native-identifier (data/db) :venues)
-                                     (quote-native-identifier (data/db) :venues :id))}}})
+  {:query (data/native-query
+            {:query
+             (format-honeysql
+              {:select   [(identifier :venues :name)]
+               :from     [(identifier :venues)]
+               :order-by [(identifier :venues :id)]})})})
 
 
 
@@ -120,7 +134,79 @@
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
-;;; |                                                     TESTS                                                      |
+;;; |                                                MIDDLEWARE TESTS                                                |
+;;; +----------------------------------------------------------------------------------------------------------------+
+
+;; make sure that `all-table-ids` can properly find all Tables in the query, even in cases where a map has
+;; a `:source-table` and some of its children also have a `:source-table`
+(expect
+  (data/$ids nil
+    #{$$checkins $$venues $$users $$categories})
+  (#'row-level-restrictions/all-table-ids
+   (data/mbql-query nil
+     {:source-table $$checkins
+      :joins        [{:source-table $$venues}
+                     {:source-query {:source-table $$users
+                                     :joins        [{:source-table $$categories}]}}]})))
+
+(defn- apply-row-level-permissions [query]
+  (let [result          (qp.tu/with-everything-store
+                          ((row-level-restrictions/apply-row-level-permissions identity)
+                           (normalize/normalize query)))
+        remove-metadata (fn remove-metadata [m]
+                          (mbql.u/replace m
+                            (_ :guard (every-pred map? :source-metadata))
+                            (remove-metadata (dissoc &match :source-metadata))))]
+    (remove-metadata result)))
+
+;; Make sure the middleware does the correct transformation given the GTAPs we have
+(mt.tu/expect-with-gtaps {:gtaps      {:checkins (checkins-user-mbql-gtap-def)
+                                       :venues   (dissoc (venues-price-mbql-gtap-def) :query)}
+                          :attributes {"user" 5, "price" 1}}
+  (data/query checkins
+    {:type       :query
+     :query      {:source-query {:source-query {:source-table $$checkins
+                                                :fields       [*id !default.*date *user_id *venue_id]
+                                                :filter       [:> $date [:absolute-datetime
+                                                                         #inst "2014-01-01T00:00:00.000000000-00:00"
+                                                                         :default]]}
+                                 :filter       [:= $user_id [:value 5 {:base_type     :type/Integer
+                                                                       :special_type  :type/FK
+                                                                       :database_type "INTEGER"}]]
+                                 :fields       [*id *date *user_id *venue_id]
+                                 :limit        qp.i/absolute-max-results}
+                  :joins        [{:source-table $$venues
+                                  :alias        "v"
+                                  :strategy     :left-join
+                                  :condition    [:= $venue_id &v.venues.id]}]
+                  :aggregation  [[:count]]
+                  :gtap?        true}
+     :gtap-perms #{(perms/table-query-path (Table (data/id :venues)))
+                   (perms/table-query-path (Table (data/id :checkins)))}})
+  (apply-row-level-permissions
+   (data/mbql-query checkins
+     {:aggregation [[:count]]
+      :joins       [{:source-table $$venues
+                     :alias        "v"
+                     :strategy     :left-join
+                     :condition    [:= $venue_id &v.venues.id]}]})))
+
+(mt.tu/expect-with-gtaps {:gtaps      {:venues (venues-category-native-gtap-def)}
+                          :attributes {"cat" 50}}
+  (data/query nil
+    {:database (data/id)
+     :type       :query
+     :query      {:aggregation  [[:count]]
+                  :source-query {:native "SELECT * FROM \"VENUES\" WHERE \"VENUES\".\"CATEGORY_ID\" = 50 ORDER BY \"VENUES\".\"ID\" ASC"
+                                 :params nil}}
+     :gtap-perms #{(perms/adhoc-native-query-path (data/id))}})
+  (apply-row-level-permissions
+   (data/mbql-query venues
+     {:aggregation [[:count]]})))
+
+
+;;; +----------------------------------------------------------------------------------------------------------------+
+;;; |                                                END-TO-END TESTS                                                |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
 ;; When querying with full permissions, no changes should be made
@@ -202,17 +288,17 @@
 ;; Users with view access to the related collection should bypass segmented permissions
 (datasets/expect-with-drivers (qp.test/non-timeseries-drivers-with-feature :nested-queries)
   1
-  (mt.tu/with-copy-of-test-db [db]
+  (data/with-temp-copy-of-db
     (tt/with-temp* [Collection [collection]
                     Card       [card        {:collection_id (u/get-id collection)}]]
       (mt.tu/with-group [group]
-        (perms/revoke-permissions! (perms-group/all-users) (u/get-id db))
+        (perms/revoke-permissions! (perms-group/all-users) (data/id))
         (perms/grant-collection-read-permissions! group collection)
         (users/with-test-user :rasta
           (count
            (qp.test/rows
              (qp/process-query
-               {:database (u/get-id db)
+               {:database (data/id)
                 :type     :query
                 :query    {:source-table (data/id :venues)
                            :limit        1}
@@ -269,7 +355,7 @@
 
 (defmacro ^:private with-bigquery-fks [& body]
   `(do-with-bigquery-fks (fn [] ~@body)))
-;;
+
 ;; 1 - Creates a GTAP filtering question, looking for any checkins happening on or after 2014
 ;; 2 - Apply the `user` attribute, looking for only our user (i.e. `user_id` =  5)
 ;; 3 - Checkins are related to Venues, query for checkins, grouping by the Venue's price
@@ -277,7 +363,8 @@
 (datasets/expect-with-drivers (row-level-restrictions-fk-drivers)
   [[1 10] [2 36] [3 4] [4 5]]
   (enable-bigquery-fks
-   (mt.tu/with-gtaps {:gtaps      {:checkins (checkins-user-mbql-gtap-def)}
+   (mt.tu/with-gtaps {:gtaps      {:checkins (checkins-user-mbql-gtap-def)
+                                   :venues   nil}
                       :attributes {"user" 5}}
      (with-bigquery-fks
        (run-checkins-count-broken-out-by-price-query)))))

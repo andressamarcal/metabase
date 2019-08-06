@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Flex } from "grid-styled";
-import { t } from "c-3po";
+import { t } from "ttag";
 import BrowserCrumbs from "metabase/components/BrowserCrumbs";
 import { connect } from "react-redux";
 
@@ -182,9 +182,7 @@ export class TableBrowser extends React.Component {
                                 )}
                                 <Tooltip tooltip={t`Learn about this table`}>
                                   <Link
-                                    to={`reference/databases/${dbId}/tables/${
-                                      table.id
-                                    }`}
+                                    to={`reference/databases/${dbId}/tables/${table.id}`}
                                     data-metabase-event={`${ANALYTICS_CONTEXT};Table Item;Reference Click`}
                                   >
                                     <Icon
@@ -238,7 +236,7 @@ export class DatabaseBrowser extends React.Component {
                     >
                       <Card p={3} hover={{ color: normal.blue }}>
                         <Icon name="database" color={normal.grey2} mb={3} />
-                        <Subhead>{database.name}</Subhead>
+                        <Subhead className="text-wrap">{database.name}</Subhead>
                       </Card>
                     </Link>
                   </GridItem>

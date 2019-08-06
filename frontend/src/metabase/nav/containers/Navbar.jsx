@@ -1,7 +1,7 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import cx from "classnames";
-import { t } from "c-3po";
+import { t } from "ttag";
 import { Box, Flex } from "grid-styled";
 import styled from "styled-components";
 import { space, width } from "styled-system";
@@ -68,7 +68,7 @@ const getActiveSearchColor = () =>
 
 const SearchWrapper = Flex.extend`
   ${width} background-color: ${props =>
-      props.active ? getActiveSearchColor() : getDefaultSearchColor()};
+  props.active ? getActiveSearchColor() : getDefaultSearchColor()};
   border-radius: 6px;
   align-items: center;
   color: white;
@@ -156,7 +156,10 @@ const MODAL_NEW_DASHBOARD = "MODAL_NEW_DASHBOARD";
   // set this to false to prevent a potential spinner on the main nav
   loadingAndErrorWrapper: false,
 })
-@connect(mapStateToProps, mapDispatchToProps)
+@connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)
 export default class Navbar extends Component {
   state = {
     modal: null,
