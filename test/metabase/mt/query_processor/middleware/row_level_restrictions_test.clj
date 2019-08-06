@@ -68,9 +68,9 @@
                    ;; SparkSQL has to have an alias source table (or at least our driver is written as if it has to
                    ;; have one.) HACK
                    (= driver/*driver* :sparksql)
-                   (update :from (fn [from]
-                                   [from (sql.qp/->honeysql :sparksql
-                                           (hx/identifier :table-alias @(resolve 'metabase.driver.sparksql/source-table-alias)))])))]
+                   (update :from (fn [[table]]
+                                   [[table (sql.qp/->honeysql :sparksql
+                                             (hx/identifier :table-alias @(resolve 'metabase.driver.sparksql/source-table-alias)))]])))]
     (first (hsql/format honeysql, :quoting (sql.qp/quote-style driver/*driver*), :allow-dashed-names? true))))
 
 (defn- venues-category-native-gtap-def []
