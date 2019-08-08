@@ -24,7 +24,8 @@
              [routes :as saml-routes]
              [shared :as saml-shared]
              [sp :as saml-sp]]
-            [schema.core :as s]))
+            [schema.core :as s])
+  (:import java.util.UUID))
 
 (defn- group-names->ids [group-names]
   (set (mapcat (sso-settings/saml-group-mappings)
@@ -35,14 +36,18 @@
     (when group-names
       (integrations.common/sync-group-memberships! user (group-names->ids group-names)))))
 
-(defn saml-auth-fetch-or-create-user!
-  "Returns a session map for the given `email`. Will create the user if needed."
+(s/defn saml-auth-fetch-or-create-user! :- (s/maybe {:id UUID, s/Keyword s/Any})
+  "Returns a Session for the given `email`. Will create the user if needed."
   [first-name last-name email group-names user-attributes]
   (when-not (sso-settings/saml-configured?)
     (throw (IllegalArgumentException. "Can't create new SAML user when SAML is not configured")))
   (when-not email
-    (throw (ex-info (format "Invalid SAML configuration: could not find user email. We tried looking for %s, but couldn't find the attribute. Please make sure your SAML IdP is properly configured."
-                            (sso-settings/saml-attribute-email))
+    (throw (ex-info (str (tru "Invalid SAML configuration: could not find user email.")
+                         " "
+                         (tru "We tried looking for {0}, but couldn't find the attribute."
+                              (sso-settings/saml-attribute-email))
+                         " "
+                         (tru "Please make sure your SAML IdP is properly configured."))
              {:status-code 400, :user-attributes (keys user-attributes)})))
   (when-let [user (or (sso-utils/fetch-and-update-login-attributes! email user-attributes)
                       (sso-utils/create-new-sso-user! {:first_name       first-name
@@ -51,7 +56,7 @@
                                                        :sso_source       "saml"
                                                        :login_attributes user-attributes}))]
     (sync-groups! user group-names)
-    {:id (session/create-session! :sso user)}))
+    (session/create-session! :sso user)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -185,16 +190,14 @@
   ;; `(get-in saml-info [:assertions :attrs])
   [{:keys [params], :as request}]
   (check-saml-enabled)
-  (let [continue-url        (decrypt-relay-state (:RelayState params))
-        xml-string          (base64-decode (:SAMLResponse params))
-        saml-response       (xml-string->saml-response xml-string)
-        attrs               (saml-response->attributes saml-response)
-        email               (get attrs (sso-settings/saml-attribute-email))
-        first-name          (get attrs (sso-settings/saml-attribute-firstname) "Unknown")
-        last-name           (get attrs (sso-settings/saml-attribute-lastname) "Unknown")
-        groups              (get attrs (sso-settings/saml-attribute-group))
-        {session-token :id} (saml-auth-fetch-or-create-user! first-name last-name email groups attrs)]
-    (mw.session/set-session-cookie
-     request
-     (resp/redirect (or continue-url (public-settings/site-url)))
-     session-token)))
+  (let [continue-url  (decrypt-relay-state (:RelayState params))
+        xml-string    (base64-decode (:SAMLResponse params))
+        saml-response (xml-string->saml-response xml-string)
+        attrs         (saml-response->attributes saml-response)
+        email         (get attrs (sso-settings/saml-attribute-email))
+        first-name    (get attrs (sso-settings/saml-attribute-firstname) "Unknown")
+        last-name     (get attrs (sso-settings/saml-attribute-lastname) "Unknown")
+        groups        (get attrs (sso-settings/saml-attribute-group))
+        session       (saml-auth-fetch-or-create-user! first-name last-name email groups attrs)
+        response      (resp/redirect (or continue-url (public-settings/site-url)))]
+    (mw.session/set-session-cookie response session)))

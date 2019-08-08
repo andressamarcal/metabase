@@ -5,6 +5,7 @@ import querystring from "querystring";
 import EventEmitter from "events";
 
 import { delay } from "metabase/lib/promise";
+import { IFRAMED } from "metabase/lib/dom";
 
 type TransformFn = (o: any) => any;
 
@@ -22,6 +23,10 @@ export type Options = {
 
 const ONE_SECOND = 1000;
 const MAX_RETRIES = 10;
+
+const ANTI_CSRF_HEADER = "X-Metabase-Anti-CSRF-Token";
+
+let ANTI_CSRF_TOKEN = null;
 
 export type Data = {
   [key: string]: any,
@@ -107,6 +112,14 @@ export class Api extends EventEmitter {
           ? { Accept: "application/json", "Content-Type": "application/json" }
           : {};
 
+        if (IFRAMED) {
+          headers["X-Metabase-Embedded"] = "true";
+        }
+
+        if (ANTI_CSRF_TOKEN) {
+          headers[ANTI_CSRF_HEADER] = ANTI_CSRF_TOKEN;
+        }
+
         let body;
         if (options.hasBody) {
           body = JSON.stringify(data);
@@ -176,6 +189,12 @@ export class Api extends EventEmitter {
       xhr.onreadystatechange = () => {
         // $FlowFixMe
         if (xhr.readyState === XMLHttpRequest.DONE) {
+          // getResponseHeader() is case-insensitive
+          const antiCsrfToken = xhr.getResponseHeader(ANTI_CSRF_HEADER);
+          if (antiCsrfToken) {
+            ANTI_CSRF_TOKEN = antiCsrfToken;
+          }
+
           let body = xhr.responseText;
           if (options.json) {
             try {

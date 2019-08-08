@@ -48,5 +48,6 @@
    wrap-cookies                            ; Parses cookies in the request map and assocs as :cookies
    mw.misc/add-content-type                ; Adds a Content-Type header for any response that doesn't already have one
    mw.misc/disable-streaming-buffering     ; Add header to streaming (async) responses so ngnix doesn't buffer keepalive bytes
-   wrap-gzip))                             ; GZIP response if client can handle it
+   wrap-gzip                               ; GZIP response if client can handle it
+   mw.misc/bind-request))                  ; bind `metabase.middleware.misc/*request*` for the duration of the request
 ;; ▲▲▲ PRE-PROCESSING ▲▲▲ happens from BOTTOM-TO-TOP

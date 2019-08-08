@@ -27,7 +27,9 @@
              [i18n :refer [tru]]
              [schema :as su]]
             [schema.core :as s]
-            [toucan.db :as db])
+            [toucan
+             [db :as db]
+             [models :as t.models]])
   (:import java.util.UUID))
 
 (def ^:private SetupToken
@@ -56,13 +58,12 @@
    schedules        (s/maybe database-api/ExpandedSchedulesMap)
    auto_run_queries (s/maybe s/Bool)}
   ;; Now create the user
-  (let [session-id (UUID/randomUUID)
-        new-user   (db/insert! User
-                     :email        email
-                     :first_name   first_name
-                     :last_name    last_name
-                     :password     (str (UUID/randomUUID))
-                     :is_superuser true)]
+  (let [new-user (db/insert! User
+                   :email        email
+                   :first_name   first_name
+                   :last_name    last_name
+                   :password     (str (UUID/randomUUID))
+                   :is_superuser true)]
     ;; this results in a second db call, but it avoids redundant password code so figure it's worth it
     (user/set-password! (:id new-user) password)
     ;; set a couple preferences
@@ -87,13 +88,17 @@
     ;; clear the setup token now, it's no longer needed
     (setup/clear-token!)
     ;; then we create a session right away because we want our new user logged in to continue the setup process
-    (db/insert! Session
-      :id      (str session-id)
-      :user_id (u/get-id new-user))
-    ;; notify that we've got a new user in the system AND that this user logged in
-    (events/publish-event! :user-create {:user_id (u/get-id new-user)})
-    (events/publish-event! :user-login {:user_id (u/get-id new-user), :session_id (str session-id), :first_login true})
-    (mw.session/set-session-cookie request {:id (str session-id)} session-id)))
+    (let [session-uuid (UUID/randomUUID)
+          session      (or (db/insert! Session
+                             :id      (str session-uuid)
+                             :user_id (u/get-id new-user))
+                           ;; HACK - Toucan doesn't seem to work correctly with models with string IDs
+                           (t.models/post-insert (Session (str session-uuid))))]
+      ;; notify that we've got a new user in the system AND that this user logged in
+      (events/publish-event! :user-create {:user_id (u/get-id new-user)})
+      (events/publish-event! :user-login {:user_id (u/get-id new-user), :session_id (str session-uuid), :first_login true})
+      (let [response {:id (str session-uuid)}]
+        (mw.session/set-session-cookie response session)))))
 
 
 (api/defendpoint POST "/validate"
@@ -118,7 +123,7 @@
   [_]
   {:title       (tru "Add a database")
    :group       (tru "Get connected")
-   :description (tru "Connect {0} to your data so your whole team can start to explore." (u/app-name-tru))
+   :description (tru "Connect to your data so your whole team can start to explore.")
    :link        "/admin/databases/create"
    :completed   (db/exists? Database, :is_sample false)
    :triggered   :always})
@@ -165,7 +170,7 @@
   [_]
   {:title       (tru "Organize questions")
    :group       (tru "Curate your data")
-   :description (tru "Have a lot of saved questions in {0}? Create collections to help manage them and add context." (u/app-name-tru))
+   :description (tru "Have a lot of saved questions in {0}? Create collections to help manage them and add context." (tru "Metabase"))
    :link        "/collection/root"
    :completed   (db/exists? Collection)
    :triggered   (>= (db/count Card) 30)})

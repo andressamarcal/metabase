@@ -55,19 +55,17 @@
 
 (defn- login-jwt-user
   [jwt {{redirect :return_to} :params, :as request}]
-  (let [jwt-data      (jwt/unsign jwt (sso-settings/jwt-shared-secret)
-                                  {:max-age three-minutes-in-seconds})
-        login-attrs   (jwt-data->login-attributes jwt-data)
-        email         (get jwt-data (jwt-attribute-email))
-        first-name    (get jwt-data (jwt-attribute-firstname) "Unknown")
-        last-name     (get jwt-data (jwt-attribute-lastname) "Unknown")
-        user          (fetch-or-create-user! first-name last-name email login-attrs)
-        session-token (session/create-session! :sso user)]
+  (let [jwt-data     (jwt/unsign jwt (sso-settings/jwt-shared-secret)
+                                 {:max-age three-minutes-in-seconds})
+        login-attrs  (jwt-data->login-attributes jwt-data)
+        email        (get jwt-data (jwt-attribute-email))
+        first-name   (get jwt-data (jwt-attribute-firstname) "Unknown")
+        last-name    (get jwt-data (jwt-attribute-lastname) "Unknown")
+        user         (fetch-or-create-user! first-name last-name email login-attrs)
+        session      (session/create-session! :sso user)
+        redirect-url (or redirect (URLEncoder/encode "/"))]
     (sync-groups! user jwt-data)
-    (mw.session/set-session-cookie
-     request
-     (resp/redirect (or redirect (URLEncoder/encode "/")))
-     session-token)))
+    (mw.session/set-session-cookie (resp/redirect redirect-url) session)))
 
 (defn- check-jwt-enabled []
   (api/check (sso-settings/jwt-configured?)

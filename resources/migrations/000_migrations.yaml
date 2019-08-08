@@ -5400,3 +5400,16 @@ databaseChangeLog:
               constraints:
                 nullable: false
               defaultValueBoolean: true
+
+  # To fix EE full-app embedding without compromising security. Full-app embed sessions cannot have `SameSite` attributes in their cookies.
+  - changeSet:
+      id: 104
+      author: camsaul
+      comment: 'Added EE 1.1.6/CE 0.33.0'
+      changes:
+        - addColumn:
+            tableName: core_session
+            columns:
+              name: anti_csrf_token
+              type: text
+              remarks: 'Anti-CSRF token for full-app embed sessions.'

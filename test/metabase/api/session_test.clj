@@ -246,7 +246,7 @@
 ;; test that an existing user can log in with Google auth even if the auto-create accounts domain is different from
 ;; their account should return a Session
 (expect
-  UUID
+  (class Session)
   (tt/with-temp User [user {:email "cam@sf-toucannery.com"}]
     (tu/with-temporary-setting-values [google-auth-auto-create-accounts-domain "metabase.com"]
       (#'session-api/google-auth-fetch-or-create-user! "Cam" "Saul" "cam@sf-toucannery.com"))))
@@ -262,7 +262,7 @@
 ;; test that a user that doesn't exist with the *same* domain as the auto-create accounts domain means a new user gets
 ;; created
 (expect
-  UUID
+  (class Session)
   (et/with-fake-inbox
     (tu/with-temporary-setting-values [google-auth-auto-create-accounts-domain "sf-toucannery.com"
                                        admin-email                             "rasta@toucans.com"]
