@@ -79,20 +79,19 @@ export default class AuditTable extends React.Component {
             this.setState({ hasMorePages: results[0].row_count === pageSize })
           }
         />
-        {hasMorePages ||
-          (page > 0 && (
-            <div className="mt1 pt2 border-top flex">
-              <PaginationControls
-                className="ml-auto"
-                start={page * pageSize}
-                end={(page + 1) * pageSize - 1}
-                hasPrevious={page > 0}
-                hasNext={hasMorePages}
-                onPrevious={() => this.setState({ page: page - 1 })}
-                onNext={() => this.setState({ page: page + 1 })}
-              />
-            </div>
-          ))}
+        {(hasMorePages || page > 0) && (
+          <div className="mt1 pt2 border-top flex">
+            <PaginationControls
+              className="ml-auto"
+              start={page * pageSize}
+              end={(page + 1) * pageSize - 1}
+              hasPrevious={page > 0}
+              hasNext={hasMorePages}
+              onPrevious={() => this.setState({ page: page - 1 })}
+              onNext={() => this.setState({ page: page + 1 })}
+            />
+          </div>
+        )}
       </div>
     );
   }
