@@ -24,6 +24,7 @@ export default class AuditContent extends React.Component {
               optionValueFn={tab => `${pagePath}/${tab.path}`}
               optionNameFn={tab => tab.title}
               optionKeyFn={tab => tab.path}
+              onChange={this.props.router.push}
             />
           </div>
         )}
