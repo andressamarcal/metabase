@@ -5,17 +5,23 @@ import { capitalize } from "humanize-plus";
 import { t } from "ttag";
 
 const propTypes = {
-  provider: PropTypes.string.isRequired,
+  provider: PropTypes.string,
+  onClick: PropTypes.func,
 };
 
 class SSOLoginButton extends Component {
   render() {
-    const { provider } = this.props;
+    const { provider, onClick } = this.props;
     return (
-      <div className="relative z2 bg-white p2 cursor-pointer shadow-hover text-centered sm-text-left rounded block sm-inline-block bordered shadowed">
-        <div className="flex align-center">
+      <div
+        className="relative z2 bg-white p2 cursor-pointer shadow-hover text-centered sm-text-left rounded bordered shadowed flex"
+        onClick={onClick}
+      >
+        <div className="flex align-center ml-auto mr-auto">
           <Icon className="mr1" name={provider} />
-          <h4>{t`Sign in with ${capitalize(provider)}`}</h4>
+          <h4>
+            {provider ? t`Sign in with ${capitalize(provider)}` : t`Sign in`}
+          </h4>
         </div>
       </div>
     );

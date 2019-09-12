@@ -8,7 +8,7 @@ import TogglePropagateAction from "./containers/TogglePropagateAction";
 
 import MetabaseAnalytics from "metabase/lib/analytics";
 import MetabaseSettings from "metabase/lib/settings";
-import colors, { alpha } from "metabase/lib/colors";
+import { color, alpha } from "metabase/lib/colors";
 
 import { t } from "ttag";
 
@@ -229,22 +229,22 @@ const BG_ALPHA = 0.15;
 
 const OPTION_GREEN = {
   icon: "check",
-  iconColor: colors["success"],
-  bgColor: alpha(colors["success"], BG_ALPHA),
+  iconColor: color("success"),
+  bgColor: alpha(color("success"), BG_ALPHA),
 };
 const OPTION_YELLOW = {
   icon: "eye",
-  iconColor: colors["warning"],
-  bgColor: alpha(colors["warning"], BG_ALPHA),
+  iconColor: color("warning"),
+  bgColor: alpha(color("warning"), BG_ALPHA),
 };
 const OPTION_RED = {
   icon: "close",
-  iconColor: colors["error"],
-  bgColor: alpha(colors["error"], BG_ALPHA),
+  iconColor: color("error"),
+  bgColor: alpha(color("error"), BG_ALPHA),
 };
 const OPTION_BLUE = {
-  iconColor: colors["brand"],
-  bgColor: alpha(colors["brand"], BG_ALPHA),
+  iconColor: color("brand"),
+  bgColor: alpha(color("brand"), BG_ALPHA),
 };
 
 const OPTION_ALL = {
@@ -259,7 +259,7 @@ const OPTION_CONTROLLED = {
   value: "controlled",
   title: t`Limit access`,
   tooltip: t`Limited access`,
-  icon: "permissionsLimited",
+  icon: "permissions_limited",
 };
 
 const OPTION_NONE = {
@@ -328,7 +328,7 @@ export const getTablesPermissionsGrid = createSelector(
     databaseId: DatabaseId,
     schemaName: SchemaName,
   ) => {
-    const database = metadata.databases[databaseId];
+    const database = metadata.database(databaseId);
 
     if (!groups || !permissions || !database) {
       return null;
@@ -449,7 +449,7 @@ export const getSchemasPermissionsGrid = createSelector(
     permissions: GroupsPermissions,
     databaseId: DatabaseId,
   ) => {
-    const database = metadata.databases[databaseId];
+    const database = metadata.database(databaseId);
 
     if (!groups || !permissions || !database) {
       return null;
@@ -553,7 +553,7 @@ export const getDatabasesPermissionsGrid = createSelector(
       return null;
     }
 
-    const databases = Object.values(metadata.databases);
+    const databases = metadata.databasesList({ savedQuestions: false });
     const defaultGroup = _.find(groups, isDefaultGroup);
 
     return {
@@ -581,7 +581,7 @@ export const getDatabasesPermissionsGrid = createSelector(
           },
           postAction(groupId, { databaseId }, value) {
             if (value === "controlled") {
-              const database = metadata.databases[databaseId];
+              const database = metadata.database(databaseId);
               const schemas = database ? database.schemaNames() : [];
               if (
                 schemas.length === 0 ||

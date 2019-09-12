@@ -86,7 +86,7 @@
    [dk.ative/docjure "1.13.0"]                                        ; Excel export
    [environ "1.1.0"]                                                  ; easy environment management
    [hiccup "1.0.5"]                                                   ; HTML templating
-   [honeysql "0.9.4" :exclusions [org.clojure/clojurescript]]         ; Transform Clojure data structures to SQL
+   [honeysql "0.9.5" :exclusions [org.clojure/clojurescript]]         ; Transform Clojure data structures to SQL
    [io.forward/yaml "1.0.9"                                           ; Clojure wrapper for YAML library SnakeYAML (which we already use for liquidbase)
     :exclusions [org.clojure/clojure
                  org.flatland/ordered
@@ -101,7 +101,7 @@
    [metabase/connection-pool "1.0.2"]                                 ; simple wrapper around C3P0. JDBC connection pools
    [metabase/mbql "1.3.5"]                                            ; MBQL language schema & util fns
    [metabase/saml20-clj "1.0.2"]                                      ; EE SAML integration
-   [metabase/throttle "1.0.1"]                                        ; Tools for throttling access to API endpoints and other code pathways
+   [metabase/throttle "1.0.2"]                                        ; Tools for throttling access to API endpoints and other code pathways
    [javax.xml.bind/jaxb-api "2.4.0-b180830.0359"]                     ; add the `javax.xml.bind` classes which we're still using but were removed in Java 11
    [net.redhogs.cronparser/cron-parser-core "3.4"                     ; describe Cron schedule in human-readable language
     :exclusions [org.slf4j/slf4j-api]]
@@ -125,7 +125,7 @@
    [org.eclipse.jetty/jetty-server "9.4.15.v20190215"]                ; We require JDK 8 which allows us to run Jetty 9.4, ring-jetty-adapter runs on 1.7 which forces an older version
    [ring/ring-json "0.4.0"]                                           ; Ring middleware for reading/writing JSON automatically
    [stencil "0.5.0"]                                                  ; Mustache templates for Clojure
-   [toucan "1.12.0" :exclusions [org.clojure/java.jdbc honeysql]]     ; Model layer, hydration, and DB utilities
+   [toucan "1.14.0" :exclusions [org.clojure/java.jdbc honeysql]]     ; Model layer, hydration, and DB utilities
    [weavejester/dependency "0.2.1"]]                                  ; Dependency graphs and topological sorting
 
   :main ^:skip-aot metabase.core
@@ -134,10 +134,10 @@
   :manifest
   {"Liquibase-Package"
    #=(eval
-      (str "liquibase.change,liquibase.changelog,liquibase.database,liquibase.parser,liquibase.precondition,"
-           "liquibase.datatype,liquibase.serializer,liquibase.sqlgenerator,liquibase.executor,"
-           "liquibase.snapshot,liquibase.logging,liquibase.diff,liquibase.structure,"
-           "liquibase.structurecompare,liquibase.lockservice,liquibase.sdk,liquibase.ext"))}
+       (str "liquibase.change,liquibase.changelog,liquibase.database,liquibase.parser,liquibase.precondition,"
+            "liquibase.datatype,liquibase.serializer,liquibase.sqlgenerator,liquibase.executor,"
+            "liquibase.snapshot,liquibase.logging,liquibase.diff,liquibase.structure,"
+            "liquibase.structurecompare,liquibase.lockservice,liquibase.sdk,liquibase.ext"))}
 
   :jvm-opts
   ["-XX:+IgnoreUnrecognizedVMOptions"                                 ; ignore things not recognized for our Java version instead of refusing to start
@@ -154,7 +154,9 @@
 
   :profiles
   {:dev
-   {:dependencies
+   {:source-paths ["dev/src" "local/src"]
+
+    :dependencies
     [[clj-http-fake "1.0.3" :exclusions [slingshot]]                  ; Library to mock clj-http responses
      [expectations "2.1.10"]                                          ; unit tests
      [ring/ring-mock "0.3.2"]]
@@ -250,7 +252,7 @@
      [[jonase/eastwood "0.3.1" :exclusions [org.clojure/clojure]]]
 
      :eastwood
-     {:exclude-namespaces [:test-paths]
+     {:exclude-namespaces [:test-paths dev]
       :config-files       ["./test_resources/eastwood-config.clj"]
       :add-linters        [:unused-private-vars
                            :unused-namespaces
@@ -258,7 +260,7 @@
                            ;; disabled (yet)
                            ;;
                            ;; For example see https://github.com/jonase/eastwood/issues/193
-                           ;
+                                                                      ;
                            ;; It's still useful to re-enable them and run them every once in a while because they catch
                            ;; a lot of actual errors too. Keep an eye on the issue above and re-enable them if we can
                            ;; get them to work
@@ -286,7 +288,7 @@
    :check-namespace-decls
    [:include-all-drivers
     {:plugins               [[lein-check-namespace-decls "1.0.2"]]
-     :source-paths          ["test"]
+     :source-paths          ^:replace ["src" "test"]
      :check-namespace-decls {:prefix-rewriting true}}]
 
    ;; build the uberjar with `lein uberjar`

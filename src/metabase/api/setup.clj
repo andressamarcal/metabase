@@ -76,7 +76,7 @@
     ;; setup database (if needed)
     (when engine
       (when-not (driver/available? engine)
-        (throw (ex-info (str (tru "Cannot create Database: cannot find driver {0}." engine))
+        (throw (ex-info (tru "Cannot create Database: cannot find driver {0}." engine)
                  {:engine engine})))
       (let [db (db/insert! Database
                  (merge
@@ -97,6 +97,9 @@
       ;; notify that we've got a new user in the system AND that this user logged in
       (events/publish-event! :user-create {:user_id (u/get-id new-user)})
       (events/publish-event! :user-login {:user_id (u/get-id new-user), :session_id (str session-uuid), :first_login true})
+      ;; set `source-address-header` to "X-Forwarded-For" if such a header is present
+      (when (get-in request [:headers "x-forwarded-for"])
+        (public-settings/source-address-header "X-Forwarded-For"))
       (let [response {:id (str session-uuid)}]
         (mw.session/set-session-cookie response session)))))
 

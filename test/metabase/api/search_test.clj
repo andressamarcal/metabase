@@ -28,6 +28,7 @@
 (def ^:private default-search-row
   {:id                  true
    :description         nil
+   :display_name        nil
    :archived            false
    :collection_id       false
    :collection_position nil
@@ -298,19 +299,36 @@
 (defn- default-table-search-row [table-name]
   (merge
    default-search-row
-   {:name table-name, :table_name table-name :table_id true, :archived nil, :model "table", :database_id true}))
+   {:name         table-name
+    :display_name table-name
+    :table_name   table-name
+    :table_id     true
+    :archived     nil
+    :model        "table"
+    :database_id  true}))
+
+(expect
+  [(default-table-search-row "Round Table")]
+  (tt/with-temp Table [table {:name "Round Table"}]
+    (search-request :crowberto :q "Round Table")))
+
+(expect
+  [(default-table-search-row "Kitchen Table")]
+  (tt/with-temp Table [table {:name "Kitchen Table"}]
+    (search-request :rasta :q "Kitchen Table")))
+
+;; But *archived* tables should not appear in search results
+(let [table-name (tu/random-name)]
+  (expect
+    []
+    (tt/with-temp Table [table {:name table-name}]
+      (search-request :crowberto :q table-name :archived true))))
 
 (let [table-name (tu/random-name)]
   (expect
-    [(default-table-search-row table-name)]
+    []
     (tt/with-temp Table [table {:name table-name}]
-      (search-request :crowberto :q table-name))))
-
-(let [table-name (tu/random-name)]
-  (expect
-    [(default-table-search-row table-name)]
-    (tt/with-temp Table [table {:name table-name}]
-      (search-request :rasta :q table-name))))
+      (search-request :rasta :q table-name :archived true))))
 
 ;; you should not be able to see a Table if the current user doesn't have permissions for that Table
 (expect

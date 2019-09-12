@@ -7,7 +7,7 @@
             [metabase.models.setting :as setting :refer [defsetting]]
             [metabase.util :as u]
             [metabase.util
-             [i18n :refer [trs tru]]
+             [i18n :refer [trs tru deferred-tru]]
              [schema :as su]]
             [saml20-clj.shared :as saml20.shared]
             [schema.core :as s]))
@@ -19,12 +19,12 @@
   (s/validator GroupMappings))
 
 (defsetting saml-enabled
-  (tru "Enable SAML authentication.")
+  (deferred-tru "Enable SAML authentication.")
   :type    :boolean
   :default false)
 
 (defsetting saml-identity-provider-uri
-  (tru "This is a URI if of the SAML Identity Provider (where the user would login)"))
+  (deferred-tru "This is a URI if of the SAML Identity Provider (where the user would login)"))
 
 (s/defn ^:private validate-saml-idp-cert
   "Validate that an encoded identity provider certificate is valid, or throw an Exception."
@@ -40,7 +40,7 @@
                      (tru "Do NOT include ASCII armor lines like `-----BEGIN CERTIFICATE-----`.")]))))))
 
 (defsetting saml-identity-provider-certificate
-  (tru "Encoded certificate for the identity provider")
+  (deferred-tru "Encoded certificate for the identity provider")
   :setter (fn [new-value]
             ;; when setting the idp cert validate that it's something we
             (when new-value
@@ -48,44 +48,44 @@
             (setting/set-string! :saml-identity-provider-certificate new-value)))
 
 (defsetting saml-application-name
-  (tru "This application name will be used for requests to the Identity Provider")
+  (deferred-tru "This application name will be used for requests to the Identity Provider")
   :default "Metabase")
 
 (defsetting saml-keystore-path
-  (tru "Absolute path to the Keystore file to use for signing SAML requests"))
+  (deferred-tru "Absolute path to the Keystore file to use for signing SAML requests"))
 
 (defsetting saml-keystore-password
-  (tru "Password for opening the keystore")
+  (deferred-tru "Password for opening the keystore")
   :default "changeit")
 
 (defsetting saml-keystore-alias
-  (tru "Alias for the key that Metabase should use for signing SAML requests")
+  (deferred-tru "Alias for the key that Metabase should use for signing SAML requests")
   :default "metabase")
 
 (defsetting saml-attribute-email
-  (tru "SAML attribute for the user''s email address")
+  (deferred-tru "SAML attribute for the user''s email address")
   :default "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")
 
 (defsetting saml-attribute-firstname
-  (tru "SAML attribute for the user''s first name")
+  (deferred-tru "SAML attribute for the user''s first name")
   :default "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname")
 
 (defsetting saml-attribute-lastname
-  (tru "SAML attribute for the user''s last name")
+  (deferred-tru "SAML attribute for the user''s last name")
   :default "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname")
 
 (defsetting saml-group-sync
-  (tru "Enable group membership synchronization with SAML.")
+  (deferred-tru "Enable group membership synchronization with SAML.")
   :type    :boolean
   :default false)
 
 (defsetting saml-attribute-group
-  (tru "SAML attribute for group syncing")
+  (deferred-tru "SAML attribute for group syncing")
   :default "member_of")
 
 (defsetting saml-group-mappings
   ;; Should be in the form: {"groupName": [1, 2, 3]} where keys are SAML groups and values are lists of MB groups IDs
-  (tru "JSON containing SAML to Metabase group mappings.")
+  (deferred-tru "JSON containing SAML to Metabase group mappings.")
   :type    :json
   :default {}
   :setter (comp (partial setting/set-json! :saml-group-mappings) validate-group-mappings))
@@ -98,15 +98,15 @@
                 (saml-identity-provider-certificate))))
 
 (defsetting jwt-enabled
-  (tru "Enable JWT based authentication")
+  (deferred-tru "Enable JWT based authentication")
   :type    :boolean
   :default false)
 
 (defsetting jwt-identity-provider-uri
-  (tru "URL of JWT based login page"))
+  (deferred-tru "URL of JWT based login page"))
 
 (defsetting jwt-shared-secret
-  (tru "String used to seed the private key used to validate JWT messages")
+  (deferred-tru "String used to seed the private key used to validate JWT messages")
   :setter (fn [new-value]
             (when (seq new-value)
               (assert (u/hexadecimal-string? new-value)
@@ -114,29 +114,29 @@
             (setting/set-string! :jwt-shared-secret new-value)))
 
 (defsetting jwt-attribute-email
-  (tru "Key to retrieve the JWT user's email address")
+  (deferred-tru "Key to retrieve the JWT user's email address")
   :default "email")
 
 (defsetting jwt-attribute-firstname
-  (tru "Key to retrieve the JWT user's first name")
+  (deferred-tru "Key to retrieve the JWT user's first name")
   :default "first_name")
 
 (defsetting jwt-attribute-lastname
-  (tru "Key to retrieve the JWT user's last name")
+  (deferred-tru "Key to retrieve the JWT user's last name")
   :default "last_name")
 
 (defsetting jwt-attribute-groups
-  (tru "Key to retrieve the JWT user's groups")
+  (deferred-tru "Key to retrieve the JWT user's groups")
   :default "groups")
 
 (defsetting jwt-group-sync
-  (tru "Enable group membership synchronization with JWT.")
+  (deferred-tru "Enable group membership synchronization with JWT.")
   :type    :boolean
   :default false)
 
 (defsetting jwt-group-mappings
   ;; Should be in the form: {"groupName": [1, 2, 3]} where keys are JWT groups and values are lists of MB groups IDs
-  (tru "JSON containing JWT to Metabase group mappings.")
+  (deferred-tru "JSON containing JWT to Metabase group mappings.")
   :type    :json
   :default {}
   :setter  (comp (partial setting/set-json! :jwt-group-mappings) validate-group-mappings))

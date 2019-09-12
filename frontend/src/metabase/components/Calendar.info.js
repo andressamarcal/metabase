@@ -6,9 +6,10 @@ export const component = Calendar;
 
 export const description = `For when gregorian time is your need, a calendar is your friend indeed`;
 
-const onChange = () => ({});
-
+// disable snapshot testing due to snapshot changing every day
 export const noSnapshotTest = true;
+
+const onChange = () => ({});
 
 export const examples = {
   default: <Calendar onChange={onChange} />,
@@ -17,14 +18,6 @@ export const examples = {
     <Calendar
       selected={moment()}
       selectedEnd={moment().add(10, "days")}
-      onChange={onChange}
-    />
-  ),
-  "Dual with a date range": (
-    <Calendar
-      isDual
-      selected={moment()}
-      selectedEnd={moment().add(1, "month")}
       onChange={onChange}
     />
   ),

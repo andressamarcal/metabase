@@ -11,7 +11,7 @@ import {
 import { drillThroughSettings } from "../lib/settings/drill";
 
 export default class RowChart extends LineAreaBarChart {
-  static uiName = t`Row Chart`;
+  static uiName = t`Row`;
   static identifier = "row";
   static iconName = "horizontal_bar";
   static noun = t`row chart`;

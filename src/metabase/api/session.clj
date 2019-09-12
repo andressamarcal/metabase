@@ -19,7 +19,7 @@
              [setting :refer [defsetting]]
              [user :as user :refer [User]]]
             [metabase.util
-             [i18n :as ui18n :refer [trs tru]]
+             [i18n :as ui18n :refer [deferred-tru trs tru]]
              [password :as pass]
              [schema :as su]]
             [schema.core :as s]
@@ -64,6 +64,13 @@
   ((get-method create-session! :sso) session-type user))
 
 
+(s/defmethod create-session! :password
+  [session-type, user :- CreateSessionUserInfo]
+  ;; this is actually the same as `create-session!` for `:sso` for CE. Resist the urge to refactor this multimethod
+  ;; out impl is a little different in EE.
+  ((get-method create-session! :sso) session-type user))
+
+
 ;;; ## API Endpoints
 
 (def ^:private login-throttlers
@@ -71,8 +78,8 @@
    ;; IP Address doesn't have an actual UI field so just show error by username
    :ip-address (throttle/make-throttler :username, :attempts-threshold 50)})
 
-(def ^:private password-fail-message (tru "Password did not match stored password."))
-(def ^:private password-fail-snippet (tru "did not match stored password"))
+(def ^:private password-fail-message (deferred-tru "Password did not match stored password."))
+(def ^:private password-fail-snippet (deferred-tru "did not match stored password"))
 
 (s/defn ^:private ldap-login :- (s/maybe {:id UUID, s/Keyword s/Any})
   "If LDAP is enabled and a matching user exists return a new Session for them, or `nil` if they couldn't be
@@ -121,16 +128,40 @@
          {:status-code 400
           :errors      {:password password-fail-snippet}}))))
 
+(defn- source-address
+  "The `public-settings/source-address-header` header's value, or the `(:remote-addr request)` if not set."
+  [{:keys [headers remote-addr]}]
+  (or (some->> (public-settings/source-address-header) (get headers))
+      remote-addr))
+
+(defn- do-http-400-on-error [f]
+  (try
+    (f)
+    (catch clojure.lang.ExceptionInfo e
+      (throw (ex-info (ex-message e)
+                      (assoc (ex-data e) :status-code 400))))))
+
+(defmacro http-400-on-error
+  "Add `{:status-code 400}` to exception data thrown by `body`."
+  [& body]
+  `(do-http-400-on-error (fn [] ~@body)))
+
 (api/defendpoint POST "/"
   "Login."
-  [:as {{:keys [username password]} :body, remote-address :remote-addr}]
+  [:as {{:keys [username password]} :body, :as request}]
   {username su/NonBlankString
    password su/NonBlankString}
-  (throttle-check (login-throttlers :ip-address) remote-address)
-  (throttle-check (login-throttlers :username)   username)
-  (let [{session-uuid :id, :as session} (login username password)
-        response                        {:id (str session-uuid)}]
-    (mw.session/set-session-cookie response session)))
+  (let [request-source (source-address request)
+        do-login (fn []
+                   (let [{session-uuid :id, :as session} (login username password)
+                         response                        {:id (str session-uuid)}]
+                     (mw.session/set-session-cookie response session)))]
+    (if throttling-disabled?
+      (do-login)
+      (http-400-on-error
+        (throttle/with-throttling [(login-throttlers :ip-address) request-source
+                                   (login-throttlers :username)   username]
+          (do-login))))))
 
 
 (api/defendpoint DELETE "/"
@@ -153,17 +184,18 @@
 
 (api/defendpoint POST "/forgot_password"
   "Send a reset email when user has forgotten their password."
-  [:as {:keys [server-name] {:keys [email]} :body, remote-address :remote-addr}]
+  [:as {:keys [server-name] {:keys [email]} :body, :as request}]
   {email su/Email}
-  (throttle-check (forgot-password-throttlers :ip-address) remote-address)
-  (throttle-check (forgot-password-throttlers :email)      email)
   ;; Don't leak whether the account doesn't exist, just pretend everything is ok
-  (when-let [{user-id :id, google-auth? :google_auth} (db/select-one [User :id :google_auth]
-                                                        :email email, :is_active true)]
-    (let [reset-token        (user/set-password-reset-token! user-id)
-          password-reset-url (str (public-settings/site-url) "/auth/reset_password/" reset-token)]
-      (email/send-password-reset-email! email google-auth? server-name password-reset-url)
-      (log/info password-reset-url))))
+  (let [request-source (source-address request)]
+    (throttle-check (forgot-password-throttlers :ip-address) source-address)
+    (throttle-check (forgot-password-throttlers :email)      email)
+    (when-let [{user-id :id, google-auth? :google_auth} (db/select-one [User :id :google_auth]
+                                                                       :email email, :is_active true)]
+      (let [reset-token        (user/set-password-reset-token! user-id)
+            password-reset-url (str (public-settings/site-url) "/auth/reset_password/" reset-token)]
+        (email/send-password-reset-email! email google-auth? server-name password-reset-url)
+        (log/info password-reset-url)))))
 
 
 (def ^:private ^:const reset-token-ttl-ms
@@ -225,10 +257,10 @@
 ;; add more 3rd-party SSO options
 
 (defsetting google-auth-client-id
-  (tru "Client ID for Google Auth SSO. If this is set, Google Auth is considered to be enabled."))
+  (deferred-tru "Client ID for Google Auth SSO. If this is set, Google Auth is considered to be enabled."))
 
 (defsetting google-auth-auto-create-accounts-domain
-  (tru "When set, allow users to sign up on their own if their Google account email address is from this domain."))
+  (deferred-tru "When set, allow users to sign up on their own if their Google account email address is from this domain."))
 
 (defn- google-auth-token-info [^String token]
   (let [{:keys [status body]} (http/post (str "https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=" token))]
@@ -276,18 +308,24 @@
                                                      :email      email}))]
     (create-session! :sso user)))
 
-(api/defendpoint POST "/google_auth"
-  "Login with Google Auth."
-  [:as {{:keys [token]} :body, remote-address :remote-addr}]
-  {token su/NonBlankString}
-  (throttle-check (login-throttlers :ip-address) remote-address)
-  ;; Verify the token is valid with Google
+(defn- do-google-auth [{{:keys [token]} :body, :as request}]
   (let [{:keys [given_name family_name email]} (google-auth-token-info token)]
     (log/info (trs "Successfully authenticated Google Auth token for: {0} {1}" given_name family_name))
     (let [{session-uuid :id, :as session} (api/check-500
                                            (google-auth-fetch-or-create-user! given_name family_name email))
           response                        {:id (str session-uuid)}]
       (mw.session/set-session-cookie response session))))
+
+(api/defendpoint POST "/google_auth"
+  "Login with Google Auth."
+  [:as {{:keys [token]} :body, :as request}]
+  {token su/NonBlankString}
+  ;; Verify the token is valid with Google
+  (if throttling-disabled?
+    (do-google-auth token)
+    (http-400-on-error
+      (throttle/with-throttling [(login-throttlers :ip-address) (source-address request)]
+        (do-google-auth request)))))
 
 
 (api/define-routes)

@@ -18,7 +18,7 @@
             [metabase.util
              [date :as du]
              [export :as export]
-             [i18n :refer [trs tru]]
+             [i18n :refer [deferred-trs trs tru]]
              [quotation :as quotation]
              [urls :as url]]
             [stencil
@@ -87,15 +87,15 @@
    :logoHeader true})
 
 (defn- abandonment-context []
-  {:heading      (str (trs "We’d love your feedback."))
-   :callToAction (str (trs "It looks like Metabase wasn’t quite a match for you.")
+  {:heading      (trs "We’d love your feedback.")
+   :callToAction (str (deferred-trs "It looks like Metabase wasn’t quite a match for you.")
                       " "
-                      (trs "Would you mind taking a fast 5 question survey to help the Metabase team understand why and make things better in the future?"))
+                      (deferred-trs "Would you mind taking a fast 5 question survey to help the Metabase team understand why and make things better in the future?"))
    :link         "https://metabase.com/feedback/inactive"})
 
 (defn- follow-up-context []
-  {:heading      (str (trs "We hope you''ve been enjoying Metabase."))
-   :callToAction (str (trs "Would you mind taking a fast 6 question survey to tell us how it’s going?"))
+  {:heading      (trs "We hope you''ve been enjoying Metabase.")
+   :callToAction (trs "Would you mind taking a fast 6 question survey to tell us how it’s going?")
    :link         "https://metabase.com/feedback/active"})
 
 
@@ -170,7 +170,7 @@
                                :passwordResetUrl password-reset-url
                                :logoHeader       true}))]
     (email/send-message!
-      :subject      (str (trs "[{0}] Password Reset Request" (u/app-name-trs)))
+      :subject      (trs "[{0}] Password Reset Request" (u/app-name-trs))
       :recipients   [email]
       :message-type :html
       :message      message-body)))
@@ -210,7 +210,7 @@
         message-body (stencil/render-file "metabase/email/notification"
                                           (merge (common-context) context))]
     (email/send-message!
-      :subject      (str (trs "[{0}] Notification" (u/app-name-trs)))
+      :subject      (trs "[{0}] Notification" (u/app-name-trs))
       :recipients   [email]
       :message-type :html
       :message      message-body)))
@@ -261,8 +261,8 @@
   (try
     (create-temp-file suffix)
     (catch IOException e
-      (let [ex-msg (str (tru "Unable to create temp file in `{0}` for email attachments "
-                             (System/getProperty "java.io.tmpdir")))]
+      (let [ex-msg (tru "Unable to create temp file in `{0}` for email attachments "
+                        (System/getProperty "java.io.tmpdir"))]
         (throw (IOException. ex-msg e))))))
 
 (defn- create-result-attachment-map [export-type card-name ^File attachment-file]

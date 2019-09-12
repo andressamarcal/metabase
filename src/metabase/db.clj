@@ -108,7 +108,8 @@
            " "
            (trs "If you decide to continue to use H2, please be sure to back up the database file regularly.")
            " "
-           (trs "See https://metabase.com/docs/latest/operations-guide/start.html#migrating-from-using-the-h2-database-to-mysql-or-postgres for more information.")))))
+           (trs "For more information, see")
+           "https://metabase.com/docs/latest/operations-guide/migrating-from-h2.html"))))
    (or @connection-string-details
        (case (db-type)
          :h2       {:type     :h2 ; TODO - we probably don't need to specifc `:type` here since we can just call (db-type)
@@ -210,10 +211,9 @@
     (if (has-unrun-migrations? liquibase)
       (do
         (log/info (trs "Migration lock is cleared. Running migrations..."))
-        (let [^Contexts contexts nil]
-          (.update liquibase contexts)))
+        (u/auto-retry 3 (let [^Contexts contexts nil] (.update liquibase contexts))))
       (log/info
-       (trs "Migration lock cleared, but nothing to do here! Migrations were finished by another instance.")))))
+        (trs "Migration lock cleared, but nothing to do here! Migrations were finished by another instance.")))))
 
 (defn- force-migrate-up-if-needed!
   "Force migrating up. This does two things differently from `migrate-up-if-needed!`:

@@ -1,11 +1,11 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 
-import FieldList from "./FieldList.jsx";
-import FieldName from "./FieldName.jsx";
-import Popover from "metabase/components/Popover.jsx";
+import FieldList from "./FieldList";
+import FieldName from "./FieldName";
+import Popover from "metabase/components/Popover";
 
-import Query from "metabase/lib/query";
+import * as Q_DEPRECATED from "metabase/lib/query";
 
 import _ from "underscore";
 import cx from "classnames";
@@ -41,7 +41,7 @@ export default class FieldWidget extends Component {
 
   setField(value) {
     this.props.setField(value);
-    if (Query.isValidField(value)) {
+    if (Q_DEPRECATED.isValidField(value)) {
       this.toggle();
     }
   }

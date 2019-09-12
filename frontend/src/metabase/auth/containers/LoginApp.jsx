@@ -4,14 +4,16 @@ import { Link } from "react-router";
 import { connect } from "react-redux";
 
 import { t } from "ttag";
-import AuthScene from "../components/AuthScene.jsx";
-import SSOLoginButton from "../components/SSOLoginButton.jsx";
+import cx from "classnames";
+
+import AuthScene from "../components/AuthScene";
+import SSOLoginButton from "../components/SSOLoginButton";
 import Button from "metabase/components/Button";
 import CheckBox from "metabase/components/CheckBox";
-import FormField from "metabase/components/form/FormField.jsx";
-import FormLabel from "metabase/components/form/FormLabel.jsx";
-import FormMessage from "metabase/components/form/FormMessage.jsx";
-import LogoIcon from "metabase/components/LogoIcon.jsx";
+import FormField from "metabase/components/form/FormField";
+import FormLabel from "metabase/components/form/FormLabel";
+import FormMessage from "metabase/components/form/FormMessage";
+import LogoIcon from "metabase/components/LogoIcon";
 import Settings from "metabase/lib/settings";
 import Utils from "metabase/lib/utils";
 import { IFRAMED } from "metabase/lib/dom";
@@ -40,7 +42,6 @@ export default class LoginApp extends Component {
       credentials: {},
       valid: false,
       rememberMe: true,
-      adminLogin: false,
     };
   }
 
@@ -122,24 +123,44 @@ export default class LoginApp extends Component {
     login(credentials, location.query.redirect);
   }
 
-  onClickSSOLoginButton() {
+  onClickSSOLoginButton = () => {
     const { location, loginSSO } = this.props;
     loginSSO(location.query.redirect);
-  }
+  };
 
   render() {
-    const { loginError } = this.props;
-    const { adminLogin } = this.state;
+    const { loginError, location } = this.props;
 
     if (IFRAMED && Settings.get("other_sso_configured")) {
       return null;
     }
 
+    const passwordEnabled = Settings.passwordEnabled();
+    const googleAuthEnabled = Settings.googleAuthEnabled();
+    const otherAuthEnabled = Settings.get("other_sso_configured");
+
+    const ldapEnabled = Settings.ldapEnabled();
+
+    const preferUsernameAndPassword = location.query.useMBLogin;
+
+    const loginFormEnabled = passwordEnabled || ldapEnabled;
+
+    const showGoogleAuthButton =
+      googleAuthEnabled && !preferUsernameAndPassword;
+    const showOtherAuthButton = otherAuthEnabled && !preferUsernameAndPassword;
+    const showLoginFormButton = loginFormEnabled;
+
+    const showLoginForm =
+      loginFormEnabled &&
+      ((!showGoogleAuthButton && !showOtherAuthButton) ||
+        preferUsernameAndPassword);
+    const showAdminBackupLoginButton = showOtherAuthButton && loginFormEnabled;
+
     return (
-      <div className="full flex flex-column flex-full md-layout-centered">
+      <div className="bg-white flex flex-column flex-full md-layout-centered">
         <div className="Login-wrapper wrapper Grid Grid--full md-Grid--1of2 relative z2">
           <div className="Grid-cell flex layout-centered text-brand">
-            <LogoIcon className="Logo my4 sm-my0" height={65} />
+            <LogoIcon className="Logo my4 sm-my0" width={66} height={85} />
           </div>
           <div className="Login-content Grid-cell">
             <form
@@ -149,32 +170,37 @@ export default class LoginApp extends Component {
             >
               <h3 className="Login-header Form-offset">{t`Sign in to Metabase`}</h3>
 
-              {Settings.googleAuthEnabled() && (
-                <div className="mx4 mb4 py3 border-bottom relative">
-                  <SSOLoginButton provider="google" ref="ssoLoginButton" />
-                  {/*<div className="g-signin2 ml1 relative z2" id="g-signin2"></div>*/}
-                  {Settings.passwordEnabled() && (
+              {showGoogleAuthButton && (
+                <div className="mx4 py3 relative my4">
+                  <div className="relative border-bottom pb4">
+                    <SSOLoginButton provider="google" ref="ssoLoginButton" />
+                    {/*<div className="g-signin2 ml1 relative z2" id="g-signin2"></div>*/}
                     <div
-                      className="mx1 absolute text-centered left right"
+                      className={cx("mx1 absolute text-centered left right", {
+                        hide: !showLoginFormButton,
+                      })}
                       style={{ bottom: -8 }}
                     >
                       <span className="text-bold px3 py2 text-medium bg-white">{t`OR`}</span>
                     </div>
-                  )}
+                  </div>
+                  <div className={cx("py3", { hide: !showLoginFormButton })}>
+                    <Link to="/auth/login?useMBLogin=true">
+                      <Button className="EmailSignIn full">
+                        {t`Sign in with email`}
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               )}
 
-              {Settings.get("other_sso_configured") && !adminLogin ? (
+              {showOtherAuthButton && (
                 <div className="mx4 mb1 py3 border-bottom relative">
-                  <Button
-                    type="button"
-                    primary
-                    onClick={this.onClickSSOLoginButton.bind(this)}
-                  >
-                    {t`Sign in`}
-                  </Button>
+                  <SSOLoginButton onClick={this.onClickSSOLoginButton} />
                 </div>
-              ) : Settings.passwordEnabled() || Settings.ldapEnabled() ? (
+              )}
+
+              {showLoginForm && (
                 <div>
                   <FormMessage
                     formError={
@@ -207,7 +233,7 @@ export default class LoginApp extends Component {
                          * in auth, set the input type to email so we get built in
                          * validation in modern browsers
                          * */
-                        Settings.ldapEnabled() ? "text" : "email"
+                        ldapEnabled ? "text" : "email"
                       }
                       onChange={e => this.onChange("username", e.target.value)}
                       autoFocus
@@ -241,7 +267,9 @@ export default class LoginApp extends Component {
                         name="remember"
                         checked={this.state.rememberMe}
                         onChange={() =>
-                          this.setState({ rememberMe: !this.state.rememberMe })
+                          this.setState({
+                            rememberMe: !this.state.rememberMe,
+                          })
                         }
                       />
                       <span className="ml1">{t`Remember Me`}</span>
@@ -269,18 +297,15 @@ export default class LoginApp extends Component {
                     >{t`I seem to have forgotten my password`}</Link>
                   </div>
                 </div>
-              ) : null}
+              )}
             </form>
-            {Settings.get("other_sso_configured") &&
-              Settings.passwordEnabled() &&
-              !adminLogin && (
-                <div
-                  className="mt2 px2 cursor-pointer text-grey-1 text-right"
-                  onClick={() => this.setState({ adminLogin: true })}
-                >
+            {showAdminBackupLoginButton && (
+              <Link to="/auth/login?useMBLogin=true">
+                <div className="mt2 px2 cursor-pointer text-grey-1 text-right">
                   Admin backup login
                 </div>
-              )}
+              </Link>
+            )}
           </div>
         </div>
         <AuthScene />

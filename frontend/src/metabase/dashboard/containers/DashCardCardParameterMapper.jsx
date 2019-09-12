@@ -6,8 +6,9 @@ import { connect } from "react-redux";
 import { t } from "ttag";
 import S from "./DashCardCardParameterMapper.css";
 
-import Icon from "metabase/components/Icon.jsx";
-import Tooltip from "metabase/components/Tooltip.jsx";
+import Icon from "metabase/components/Icon";
+import Tooltip from "metabase/components/Tooltip";
+
 import ParameterTargetWidget from "metabase/parameters/components/ParameterTargetWidget";
 
 import { fetchDatabaseMetadata } from "metabase/redux/metadata";

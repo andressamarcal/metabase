@@ -11,7 +11,7 @@
              [util :as u]]
             [metabase.models.setting :as setting :refer [defsetting]]
             [metabase.util
-             [i18n :refer [trs tru]]
+             [i18n :refer [deferred-tru trs tru]]
              [schema :as su]]
             [schema.core :as s]))
 
@@ -73,12 +73,12 @@
               (or
                body
                {:valid         false
-                :status        (str (tru "Unable to validate token"))
+                :status        (tru "Unable to validate token")
                 :error-details (.getMessage e)})))))
    fetch-token-status-timeout-ms
    {:valid         false
-    :status        (str (tru "Unable to validate token"))
-    :error-details (str (tru "Token validation timed out."))}))
+    :status        (tru "Unable to validate token")
+    :error-details (tru "Token validation timed out.")}))
 
 (def ^{:arglists '([token])} fetch-token-status
   "TTL-memoized version of `fetch-token-status*`. Caches API responses for 5 minutes. This is important to avoid making
@@ -115,14 +115,14 @@
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
 (defsetting premium-embedding-token     ; TODO - rename this to premium-features-token?
-  (tru "Token for premium features. Go to the MetaStore to get yours!")
+  (deferred-tru "Token for premium features. Go to the MetaStore to get yours!")
   :setter
   (fn [new-value]
     ;; validate the new value if we're not unsetting it
     (try
       (when (seq new-value)
         (when (s/check ValidToken new-value)
-          (throw (ex-info (str (tru "Token format is invalid."))
+          (throw (ex-info (tru "Token format is invalid.")
                    {:status-code 400, :error-details "Token should be 64 hexadecimal characters."})))
         (valid-token->features new-value)
         (log/info (trs "Token is valid.")))

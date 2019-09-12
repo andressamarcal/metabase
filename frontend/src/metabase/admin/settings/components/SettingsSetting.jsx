@@ -2,16 +2,17 @@ import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { assocIn } from "icepick";
 
-import SettingHeader from "./SettingHeader.jsx";
+import SettingHeader from "./SettingHeader";
 import { t } from "ttag";
-import SettingInput from "./widgets/SettingInput.jsx";
-import SettingNumber from "./widgets/SettingNumber.jsx";
-import SettingPassword from "./widgets/SettingPassword.jsx";
-import SettingRadio from "./widgets/SettingRadio.jsx";
-import SettingToggle from "./widgets/SettingToggle.jsx";
-import SettingSelect from "./widgets/SettingSelect.jsx";
-import SettingText from "./widgets/SettingText.jsx";
-import SettingColor from "./widgets/SettingColor.jsx";
+
+import SettingInput from "./widgets/SettingInput";
+import SettingNumber from "./widgets/SettingNumber";
+import SettingPassword from "./widgets/SettingPassword";
+import SettingRadio from "./widgets/SettingRadio";
+import SettingToggle from "./widgets/SettingToggle";
+import SettingSelect from "./widgets/SettingSelect";
+import SettingText from "./widgets/SettingText";
+import SettingColor from "./widgets/SettingColor";
 
 const SETTING_WIDGET_MAP = {
   string: SettingInput,

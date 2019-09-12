@@ -2,17 +2,13 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { t } from "ttag";
-import Icon from "metabase/components/Icon.jsx";
+import Icon from "metabase/components/Icon";
 
 const MainPane = ({ databases, show }) => (
   <div>
-    <div className="ml1 mt2 mb3">
-      <h2>{t`Data Reference`}</h2>
-      <p className="text-spaced">
-        {t`Browse the contents of your databases, tables, and columns. Pick a database to get started`}
-        .
-      </p>
-    </div>
+    <p className="mt2 mb3 text-spaced">
+      {t`Browse the contents of your databases, tables, and columns. Pick a database to get started.`}
+    </p>
     <ul>
       {databases &&
         databases

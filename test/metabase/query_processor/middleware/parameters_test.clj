@@ -131,38 +131,3 @@
                      :alias        "c"
                      :condition    [:= $category_id &c.categories.id]
                      :parameters   [{:type "category", :target $categories.name, :value "BBQ"}]}]})))
-
-;; TEMPLATE-TAG params from higher-levels should be made available to the queries they operate on.
-#_(expect
-  (data/mbql-query nil
-    {:source-query {:native "SELECT * FROM categories WHERE name = ?;"
-                    :params ["BBQ"]}})
-  (subsitute-params
-   (data/mbql-query nil
-     {:source-query {:native        "SELECT * FROM categories WHERE name = {{cat}};"
-                     :template-tags {"cat" {:name "cat", :display-name "Category", :type :text}}}
-      :parameters   [{:type "category", :target [:variable [:template-tag "cat"]], :value "BBQ"}]})))
-
-#_(expect
-  [{:level      1
-    :parameters [{:type   "category"
-                  :target [:variable [:template-tag "cat"]]
-                  :value  "BBQ"}]}
-   {:level      2
-    :parameters [{:type   "category"
-                  :target [:variable [:template-tag "cat"]]
-                  :value  "BBQ"}]}])
-#_(defn- x []
-  (let [inputs (atom [])
-        orig  @#'parameters/expand-one]
-    (with-redefs [parameters/expand-one (fn [outer-query m]
-                                          (swap! inputs conj (select-keys m [:level :parameters]))
-                                          (orig outer-query m))]
-      (subsitute-params
-       (data/mbql-query nil
-         {:level        1
-          :source-query {:level         2
-                         :native        "SELECT * FROM categories WHERE name = {{cat}};"
-                         :template-tags {"cat" {:name "cat", :display-name "Category", :type :text}}}
-          :parameters   [{:type "category", :target [:variable [:template-tag "cat"]], :value "BBQ"}]}))
-      @inputs)))

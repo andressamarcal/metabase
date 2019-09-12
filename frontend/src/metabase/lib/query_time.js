@@ -69,7 +69,7 @@ export function expandTimeIntervalFilter(filter) {
     n = 1;
   }
 
-  field = ["datetime-field", field, "as", unit];
+  field = ["datetime-field", field, unit];
 
   if (n < -1) {
     return [
@@ -182,6 +182,9 @@ export function generateTimeValueDescription(value, bucketing) {
 }
 
 export function formatBucketing(bucketing = "", n = 1) {
+  if (!bucketing) {
+    return "";
+  }
   switch (bucketing) {
     case "default":
       return ngettext(msgid`Default period`, `Default periods`, n);

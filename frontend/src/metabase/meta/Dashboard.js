@@ -19,7 +19,7 @@ import { t } from "ttag";
 import { getTemplateTags } from "./Card";
 
 import { slugify, stripId } from "metabase/lib/formatting";
-import Query from "metabase/lib/query";
+import * as Q_DEPRECATED from "metabase/lib/query";
 import { TYPE, isa } from "metabase/lib/types";
 
 import _ from "underscore";
@@ -205,7 +205,7 @@ function getDimensionTargetFieldId(target: DimensionTarget): ?FieldId {
   if (Array.isArray(target) && target[0] === "template-tag") {
     return null;
   } else {
-    return Query.getFieldTargetId(target);
+    return Q_DEPRECATED.getFieldTargetId(target);
   }
 }
 
@@ -217,7 +217,7 @@ export function getTableDimensions(
   return _.chain(table.fields)
     .map(field => {
       const targetField = field.target;
-      if (targetField && depth > 0) {
+      if (targetField && depth > 0 && targetField.table) {
         const targetTable = targetField.table;
         const dimensions = getTableDimensions(
           targetTable,
