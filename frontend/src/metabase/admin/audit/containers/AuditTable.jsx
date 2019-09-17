@@ -8,6 +8,7 @@ import QuestionLoadAndDisplay from "metabase/containers/QuestionLoadAndDisplay";
 import Icon from "metabase/components/Icon";
 
 import Question from "metabase-lib/lib/Question";
+
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
 import { getMetadata } from "metabase/selectors/metadata";

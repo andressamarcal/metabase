@@ -21,6 +21,10 @@ export const mostViewedDashboards = (userId: number) => ({
       fn: "metabase.audit.pages.user-detail/most-viewed-dashboards",
       args: [userId],
     },
+    visualization_settings: {
+      "graph.dimensions": ["dashboard_id"],
+      "graph.metrics": ["count"],
+    },
   },
 });
 
@@ -32,6 +36,10 @@ export const mostViewedQuestions = (userId: number) => ({
       type: "internal",
       fn: "metabase.audit.pages.user-detail/most-viewed-questions",
       args: [userId],
+    },
+    visualization_settings: {
+      "graph.dimensions": ["card_id"],
+      "graph.metrics": ["count"],
     },
   },
 });

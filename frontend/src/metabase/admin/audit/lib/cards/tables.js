@@ -9,6 +9,10 @@ export const mostQueried = () => ({
       fn: "metabase.audit.pages.tables/most-queried",
       args: [],
     },
+    visualization_settings: {
+      "graph.dimensions": ["table_id"],
+      "graph.metrics": ["executions"],
+    },
   },
 });
 
@@ -20,6 +24,10 @@ export const leastQueried = () => ({
       type: "internal",
       fn: "metabase.audit.pages.tables/least-queried",
       args: [],
+    },
+    visualization_settings: {
+      "graph.dimensions": ["table_id"],
+      "graph.metrics": ["executions"],
     },
   },
 });

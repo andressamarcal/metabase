@@ -11,7 +11,7 @@ export const totalQueryExecutionsByDb = () => ({
     },
     visualization_settings: {
       "graph.metrics": ["queries", "avg_running_time"],
-      "graph.dimensions": ["database"],
+      "graph.dimensions": ["database_id"],
       "graph.x_axis.title_text": "Database",
       "graph.x_axis.axis_enabled": true,
       "graph.y_axis.axis_enabled": true,

@@ -54,6 +54,8 @@ export const mostActive = () => ({
     visualization_settings: {
       "graph.x_axis.axis_enabled": true,
       "graph.x_axis.title_text": "Views",
+      "graph.dimensions": ["user_id"],
+      "graph.metrics": ["count"],
     },
   },
 });
@@ -66,6 +68,10 @@ export const mostSaves = () => ({
       type: "internal",
       fn: "metabase.audit.pages.users/most-saves",
       args: [],
+    },
+    visualization_settings: {
+      "graph.dimensions": ["user_id"],
+      "graph.metrics": ["saves"],
     },
   },
 });

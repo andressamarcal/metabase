@@ -29,6 +29,10 @@ export const mostPopular = () => ({
       fn: "metabase.audit.pages.queries/most-popular",
       args: [],
     },
+    visualization_settings: {
+      "graph.metrics": ["card_id"],
+      "graph.dimensions": ["executions"],
+    },
   },
 });
 
@@ -40,6 +44,10 @@ export const slowest = () => ({
       type: "internal",
       fn: "metabase.audit.pages.queries/slowest",
       args: [],
+    },
+    visualization_settings: {
+      "graph.metrics": ["card_id"],
+      "graph.dimensions": ["avg_running_time"],
     },
   },
 });

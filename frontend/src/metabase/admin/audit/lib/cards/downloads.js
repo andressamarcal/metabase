@@ -24,6 +24,10 @@ export const perUser = () => ({
       fn: "metabase.audit.pages.downloads/per-user",
       args: [],
     },
+    visualization_settings: {
+      "graph.dimensions": ["user_id"],
+      "graph.metrics": ["downloads"],
+    },
   },
 });
 

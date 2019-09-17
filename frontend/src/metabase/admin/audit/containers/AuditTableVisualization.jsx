@@ -20,8 +20,9 @@ export default class AuditTableVisualization extends React.Component {
   static identifier = "audit-table";
   static noHeader = true;
 
-  // copy Table's settings
+  // copy Table's settings and columnSettings
   static settings = Table.settings;
+  static columnSettings = Table.columnSettings;
 
   render() {
     const {
@@ -35,10 +36,9 @@ export default class AuditTableVisualization extends React.Component {
       settings,
     } = this.props;
 
-    const columnSettings = settings["table.columns"];
-    const columnIndexes = columnSettings.map(({ name, enabled }) =>
-      _.findIndex(cols, col => col.name === name),
-    );
+    const columnIndexes = settings["table.columns"]
+      .filter(({ enabled }) => enabled)
+      .map(({ name }) => _.findIndex(cols, col => col.name === name));
 
     if (rows.length === 0) {
       return (
@@ -67,15 +67,12 @@ export default class AuditTableVisualization extends React.Component {
         <tbody>
           {rows.map((row, rowIndex) => (
             <tr>
-              {columnIndexes.map((colIndex, columnSettingsIndex) => {
+              {columnIndexes.map(colIndex => {
                 const value = row[colIndex];
                 const column = cols[colIndex];
-                const clickObject = { column, value, origin: { row, cols } };
-                const clickable = visualizationIsClickable(clickObject);
-                const settings = columnSettings[columnSettingsIndex];
-                if (settings && !settings.enabled) {
-                  return null;
-                }
+                const clicked = { column, value, origin: { row, cols } };
+                const clickable = visualizationIsClickable(clicked);
+                const columnSettings = settings.column(column);
                 return (
                   <td
                     className={cx({
@@ -83,17 +80,17 @@ export default class AuditTableVisualization extends React.Component {
                       "text-right": isColumnRightAligned(column),
                     })}
                     onClick={
-                      clickable ? () => onVisualizationClick(clickObject) : null
+                      clickable ? () => onVisualizationClick(clicked) : null
                     }
                   >
                     {formatValue(value, {
-                      column: column,
+                      ...columnSettings,
                       type: "cell",
                       jsx: true,
                       rich: true,
+                      clicked: clicked,
                       // always show timestamps in local time for the audit app
                       local: true,
-                      ...(settings || {}),
                     })}
                   </td>
                 );

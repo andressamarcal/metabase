@@ -2,6 +2,10 @@
 
 import React from "react";
 
+import { connect } from "react-redux";
+import { push } from "react-router-redux";
+import { getMetadata } from "metabase/selectors/metadata";
+
 import { Dashboard } from "metabase/dashboard/containers/Dashboard";
 import DashboardData from "metabase/dashboard/hoc/DashboardData";
 
@@ -17,7 +21,7 @@ type Props = {
   cards: AuditCard[],
 };
 
-const AuditDashboards = ({ cards, ...props }: Props) => (
+const AuditDashboard = ({ cards, ...props }: Props) => (
   <DashboardWithData
     style={{ backgroundColor: "transparent", padding: 0 }}
     // HACK: to get inline dashboards working quickly
@@ -44,4 +48,15 @@ const AuditDashboards = ({ cards, ...props }: Props) => (
   />
 );
 
-export default AuditDashboards;
+const mapStateToProps = (state, props) => ({
+  metadata: getMetadata(state),
+});
+
+const mapDispatchToProps = {
+  onChangeLocation: push,
+};
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps,
+)(AuditDashboard);
