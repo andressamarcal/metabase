@@ -19,24 +19,24 @@
              [dump :as dump]
              [load :as load]]
             [metabase.util
-             [i18n :refer [trs]]
+             [i18n :refer [deferred-trs trs]]
              [schema :as su]]
             [schema.core :as s]
             [toucan.db :as db]))
 
 (def ^:private Mode
   (su/with-api-error-message (s/enum :skip :update)
-    (trs "invalid --mode value")))
+    (deferred-trs "invalid --mode value")))
 
 (def ^:private OnError
   (su/with-api-error-message (s/enum :continue :abort)
-    (trs "invalid --on-error value")))
+    (deferred-trs "invalid --on-error value")))
 
 (def ^:private Context
   (su/with-api-error-message
     {(s/optional-key :on-error) OnError
      (s/optional-key :mode)     Mode}
-    (trs "invalid context seed value")))
+    (deferred-trs "invalid context seed value")))
 
 (s/defn load
   "Load serialized metabase instance as created by `dump` command from directory `path`."

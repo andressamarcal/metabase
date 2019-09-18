@@ -7,7 +7,7 @@
             [metabase.models.setting :as setting :refer [defsetting]]
             [metabase.util :as u]
             [metabase.util
-             [i18n :refer [trs tru deferred-tru]]
+             [i18n :refer [deferred-tru trs tru]]
              [schema :as su]]
             [saml20-clj.shared :as saml20.shared]
             [schema.core :as s]))
