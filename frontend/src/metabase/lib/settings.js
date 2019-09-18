@@ -59,6 +59,10 @@ const MetabaseSettings = {
     return mb_settings.ldap_configured;
   },
 
+  otherSSOEnabled() {
+    return mb_settings.other_sso_configured;
+  },
+
   passwordEnabled() {
     return mb_settings.enable_password_login;
   },

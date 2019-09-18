@@ -61,7 +61,7 @@ export default class LoginApp extends Component {
 
   componentWillMount() {
     // If we're iframed and SSO is configured immediately redirect to it
-    if (IFRAMED && Settings.get("other_sso_configured")) {
+    if (IFRAMED && Settings.otherSSOEnabled()) {
       this.onClickSSOLoginButton();
       return;
     }
@@ -131,13 +131,13 @@ export default class LoginApp extends Component {
   render() {
     const { loginError, location } = this.props;
 
-    if (IFRAMED && Settings.get("other_sso_configured")) {
+    if (IFRAMED && Settings.otherSSOEnabled()) {
       return null;
     }
 
     const passwordEnabled = Settings.passwordEnabled();
     const googleAuthEnabled = Settings.googleAuthEnabled();
-    const otherAuthEnabled = Settings.get("other_sso_configured");
+    const otherAuthEnabled = Settings.otherSSOEnabled();
 
     const ldapEnabled = Settings.ldapEnabled();
 

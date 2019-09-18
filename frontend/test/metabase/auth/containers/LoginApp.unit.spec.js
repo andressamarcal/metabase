@@ -4,18 +4,25 @@ import LoginApp from "metabase/auth/containers/LoginApp";
 
 import { mountWithStore } from "__support__/integration_tests";
 
+jest.mock("metabase/components/LogoIcon", () => () => null);
+
 jest.mock("metabase/lib/settings", () => ({
   get: () => ({
     tag: 1,
     version: 1,
   }),
-  ssoEnabled: jest.fn(),
   ldapEnabled: jest.fn(),
+  googleAuthEnabled: jest.fn(),
+  otherSSOEnabled: jest.fn(),
+  passwordEnabled: jest.fn(),
 }));
 
 import Settings from "metabase/lib/settings";
 
 describe("LoginApp", () => {
+  beforeEach(() => {
+    Settings.passwordEnabled.mockReturnValue(true);
+  });
   describe("initial state", () => {
     describe("without SSO", () => {
       it("should show the login form", () => {
@@ -27,7 +34,7 @@ describe("LoginApp", () => {
     });
     describe("with SSO", () => {
       beforeEach(() => {
-        Settings.ssoEnabled.mockReturnValue(true);
+        Settings.googleAuthEnabled.mockReturnValue(true);
       });
       it("should show the SSO button", () => {
         const { wrapper } = mountWithStore(
