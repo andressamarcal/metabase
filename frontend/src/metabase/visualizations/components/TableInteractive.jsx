@@ -422,7 +422,7 @@ export default class TableInteractive extends Component {
   getCellFormattedValue(
     value: Value,
     columnSettings: any,
-    clicked: ClickObject,
+    clicked: ?ClickObject,
   ) {
     try {
       return formatValue(value, {
@@ -447,6 +447,7 @@ export default class TableInteractive extends Component {
     const value = row[columnIndex];
 
     const columnSettings = settings.column(column);
+    const clicked = this.getCellClickedObject(rowIndex, columnIndex);
 
     const cellData = columnSettings["show_mini_bar"] ? (
       <MiniBar
@@ -460,7 +461,6 @@ export default class TableInteractive extends Component {
       /* using formatValue instead of <Value> here for performance. The later wraps in an extra <span> */
     );
 
-    const clicked = this.getCellClickedObject(rowIndex, columnIndex);
     const isLink = cellData && cellData.type === ExternalLink;
     const isClickable = !isLink && this.visualizationIsClickable(clicked);
     const backgroundColor = this.getCellBackgroundColor(

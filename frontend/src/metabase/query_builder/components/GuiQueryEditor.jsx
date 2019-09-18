@@ -50,7 +50,7 @@ type Props = {
   setSourceTableFn?: (id: TableId) => void,
   setDatasetQuery?: (datasetQuery: DatasetQuery) => void,
 
-  isShowingDataReference: boolean,
+  isShowingDataReference?: boolean,
 };
 
 type State = {
