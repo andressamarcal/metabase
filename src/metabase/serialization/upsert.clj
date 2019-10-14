@@ -54,7 +54,7 @@
 (defn- select-identical
   [model entity]
   (->> (or (identity-condition model)
-           (throw (i18n/ex-info (trs "Model {0} does not support upsert" model) {:model model})))
+           (throw (ex-info (trs "Model {0} does not support upsert" model) {:model model})))
        (select-keys entity)
        (m/map-vals (fn [v]
                      (if (coll? v)

@@ -43,7 +43,7 @@ type Props = {
  *        <Link
  *          to={
  *            question.query()
- *                    .addFilter([
+ *                    .filter([
  *                      "segment",
  *                      question.query().filterSegmentOptions()[0]
  *                    ])

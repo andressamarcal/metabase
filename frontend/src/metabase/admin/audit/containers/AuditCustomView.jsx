@@ -27,7 +27,7 @@ const mapDispatchToProps = {
 export default class AuditTable extends React.Component {
   render() {
     const { metadata, card } = this.props;
-    const question = new Question(metadata, card.card);
+    const question = new Question(card.card, metadata);
 
     return (
       <QuestionResultLoader className="mt3" question={question}>

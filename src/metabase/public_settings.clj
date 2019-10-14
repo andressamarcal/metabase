@@ -291,59 +291,73 @@
 
 (def ^:private short-timezone-name (memoize short-timezone-name*))
 
+(defn- resolve-setting [ns-symb setting-symb]
+  (classloader/require ns-symb)
+  (let [varr (or (ns-resolve ns-symb setting-symb)
+                 (throw (Exception. (tru "Could not resolve Setting {0}/{1}" ns-symb setting-symb))))
+        f    (var-get varr)]
+    (assert (ifn? f)
+      (tru "Invalid Setting: {0}/{1}" ns-symb setting-symb))
+    (f)))
+
 ;; TODO - it seems like it would be a nice performance win to cache this a little bit
-(defn public-settings
-  "Return a simple map of key/value pairs which represent the public settings (`MetabaseBootstrap`) for the front-end
-   application."
-  []
-  {:admin_email             (admin-email)
-   :anon_tracking_enabled   (anon-tracking-enabled)
-   :application_colors      (setting/get-json :application-colors)
-   :application_favicon_url (setting/get :application-favicon-url)
-   :application_logo_url    (setting/get :application-logo-url)
-   :application_name        (setting/get :application-name)
-   :available_locales       (available-locales-with-names)
-   :custom_formatting       (setting/get :custom-formatting)
-   :custom_geojson          (setting/get :custom-geojson)
-   :email_configured        (do
-                              (classloader/require 'metabase.email)
-                              ((resolve 'metabase.email/email-configured?)))
-   :embedding               (enable-embedding)
+(defn- community-edition-public-settings []
+  {:admin_email           (admin-email)
+   :anon_tracking_enabled (anon-tracking-enabled)
+   :available_locales     (available-locales-with-names)
+   :custom_formatting     (custom-formatting)
+   :custom_geojson        (resolve-setting 'metabase.api.geojson 'custom-geojson)
+   :email_configured      (resolve-setting 'metabase.email 'email-configured?)
+   :embedding             (enable-embedding)
+   :enable_nested_queries (enable-nested-queries)
+   :enable_query_caching  (enable-query-caching)
+   :enable_xrays          (enable-xrays)
+   :engines               (driver.u/available-drivers-info)
+   :entities              (types/types->parents :entity/*)
+   :ga_code               "UA-60817802-1"
+   :google_auth_client_id (resolve-setting 'metabase.api.session 'google-auth-client-id)
+   :has_sample_dataset    (db/exists? 'Database, :is_sample true)
+   :hide_embed_branding   (metastore/hide-embed-branding?)
+   :ldap_configured       (resolve-setting 'metabase.integrations.ldap 'ldap-configured?)
+   :map_tile_server_url   (map-tile-server-url)
+   :metastore_url         metastore/store-url
+   :password_complexity   password/active-password-complexity
+   :premium_token         (metastore/premium-embedding-token)
+   :public_sharing        (enable-public-sharing)
+   :report_timezone       (resolve-setting 'metabase.driver 'report-timezone)
+   :setup_token           (resolve-setting 'metabase.setup 'token-value)
+   :site_name             (site-name)
+   :site_url              (site-url)
+   :timezone_short        (short-timezone-name (resolve-setting 'metabase.driver 'report-timezone))
+   :timezones             common/timezones
+   :types                 (types/types->parents :type/*)
+   :version config/mb-version-info})
+
+(defn- enterprise-public-settings []
+  {:application_colors      (application-colors)
+   :application_favicon_url (application-favicon-url)
+   :application_logo_url    (application-logo-url)
+   :application_name        (application-name)
    :embedding_app_origin    (embedding-app-origin)
-   :enable_nested_queries   (enable-nested-queries)
    :enable_password_login   (enable-password-login)
-   :enable_query_caching    (enable-query-caching)
-   :enable_xrays            (enable-xrays)
-   :engines                 (driver.u/available-drivers-info)
-   :entities                (types/types->parents :entity/*)
-   :features                {:home       (setting/get :enable-home)
-                             :question   (setting/get :enable-query-builder)
-                             :questions  (setting/get :enable-saved-questions)
-                             :dashboards (setting/get :enable-dashboards)
-                             :pulse      (setting/get :enable-pulses)
-                             :reference  (setting/get :enable-dataref)}
-   :ga_code                 "UA-60817802-1"
-   :google_auth_client_id   (setting/get :google-auth-client-id)
-   :has_sample_dataset      (db/exists? 'Database, :is_sample true)
-   :landing_page            (setting/get :landing-page)
-   :ldap_configured         (ldap-configured?)
-   :map_tile_server_url     (map-tile-server-url)
-   :metastore_url           metastore/store-url
+   :features                {:home       (enable-home)
+                             :question   (enable-query-builder)
+                             :questions  (enable-saved-questions)
+                             :dashboards (enable-dashboards)
+                             :pulse      (enable-pulses)
+                             :reference  (enable-dataref)}
+   :landing_page            (landing-page)
    :other_sso_configured    (other-sso-configured?)
-   :password_complexity     password/active-password-complexity
    :premium_features        {:embedding  (metastore/hide-embed-branding?)
                              :whitelabel (metastore/enable-whitelabeling?)
                              :audit_app  (metastore/enable-audit-app?)
                              :sandboxes  (metastore/enable-sandboxes?)
-                             :sso        (metastore/enable-sso?)}
-   :public_sharing          (enable-public-sharing)
-   :report_timezone         (setting/get :report-timezone)
-   :setup_token             (do
-                              (classloader/require 'metabase.setup)
-                              ((resolve 'metabase.setup/token-value)))
-   :site_name               (site-name)
-   :site_url                (site-url)
-   :timezone_short          (short-timezone-name (setting/get :report-timezone))
-   :timezones               common/timezones
-   :types                   (types/types->parents :type/*)
-   :version                 config/mb-version-info})
+                             :sso        (metastore/enable-sso?)}})
+
+(defn public-settings
+  "Return a simple map of key/value pairs which represent the public settings (`MetabaseBootstrap`) for the front-end
+   application."
+  []
+  (merge
+   (community-edition-public-settings)
+   (enterprise-public-settings)))

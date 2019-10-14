@@ -41,11 +41,11 @@
 (defn- identifier
   ([table-key]
    (qp.tu/with-everything-store
-     (sql.qp/->honeysql driver/*driver* (Table (data/id table-key)))))
+     (sql.qp/->honeysql (or driver/*driver* :h2) (Table (data/id table-key)))))
 
   ([table-key field-key]
    (qp.tu/with-everything-store
-     (sql.qp/->honeysql driver/*driver* (Field (data/id table-key field-key))))))
+     (sql.qp/->honeysql (or driver/*driver* :h2) (Field (data/id table-key field-key))))))
 
 
 (defn- venues-category-mbql-gtap-def []
@@ -74,40 +74,42 @@
     (first (hsql/format honeysql, :quoting (sql.qp/quote-style driver/*driver*), :allow-dashed-names? true))))
 
 (defn- venues-category-native-gtap-def []
-  (assert (driver/supports? driver/*driver* :native-parameters))
-  {:query (data/native-query
-            {:query
-             (format-honeysql
-              {:select   [:*]
-               :from     [(identifier :venues)]
-               :where    [:= (identifier :venues :category_id) (hsql/raw "{{cat}}")]
-               :order-by [(identifier :venues :id)]})
+  (driver/with-driver (or driver/*driver* :h2)
+    (assert (driver/supports? driver/*driver* :native-parameters))
+    {:query (data/native-query
+              {:query
+               (format-honeysql
+                {:select   [:*]
+                 :from     [(identifier :venues)]
+                 :where    [:= (identifier :venues :category_id) (hsql/raw "{{cat}}")]
+                 :order-by [(identifier :venues :id)]})
 
-             :template_tags
-             {:cat {:name "cat" :display_name "cat" :type "number" :required true}}})
-   :remappings {:cat ["variable" ["template-tag" "cat"]]}})
+               :template_tags
+               {:cat {:name "cat" :display_name "cat" :type "number" :required true}}})
+     :remappings {:cat ["variable" ["template-tag" "cat"]]}}))
 
 (defn- parameterized-sql-with-join-gtap-def []
-  (assert (driver/supports? driver/*driver* :native-parameters))
-  {:query (data/native-query
-            {:query
-             (format-honeysql
-              {:select    [(identifier :checkins :id)
-                           (identifier :checkins :user_id)
-                           (identifier :venues :name)
-                           (identifier :venues :category_id)]
-               :from      [(identifier :checkins)]
-               :left-join [(identifier :venues)
-                           [:= (identifier :checkins :venue_id) (identifier :venues :id)]]
-               :where     [:= (identifier :checkins :user_id) (hsql/raw "{{user}}")]
-               :order-by  [[(identifier :checkins :id) :asc]]})
+  (driver/with-driver (or driver/*driver* :h2)
+    (assert (driver/supports? driver/*driver* :native-parameters))
+    {:query (data/native-query
+              {:query
+               (format-honeysql
+                {:select    [(identifier :checkins :id)
+                             (identifier :checkins :user_id)
+                             (identifier :venues :name)
+                             (identifier :venues :category_id)]
+                 :from      [(identifier :checkins)]
+                 :left-join [(identifier :venues)
+                             [:= (identifier :checkins :venue_id) (identifier :venues :id)]]
+                 :where     [:= (identifier :checkins :user_id) (hsql/raw "{{user}}")]
+                 :order-by  [[(identifier :checkins :id) :asc]]})
 
-             :template_tags
-             {"user" {:name         "user"
-                      :display-name "User ID"
-                      :type         :number
-                      :required     true}}})
-   :remappings {:user ["variable" ["template-tag" "user"]]}})
+               :template_tags
+               {"user" {:name         "user"
+                        :display-name "User ID"
+                        :type         :number
+                        :required     true}}})
+     :remappings {:user ["variable" ["template-tag" "user"]]}}))
 
 (defn- venue-names-native-gtap-def []
   {:query (data/native-query
@@ -197,8 +199,10 @@
     {:database (data/id)
      :type       :query
      :query      {:aggregation  [[:count]]
-                  :source-query {:native "SELECT * FROM \"VENUES\" WHERE \"VENUES\".\"CATEGORY_ID\" = 50 ORDER BY \"VENUES\".\"ID\" ASC"
-                                 :params nil}}
+                  :source-query {:native (str "SELECT * FROM \"PUBLIC\".\"VENUES\" "
+                                              "WHERE \"PUBLIC\".\"VENUES\".\"CATEGORY_ID\" = 50 "
+                                              "ORDER BY \"PUBLIC\".\"VENUES\".\"ID\"")
+                                 :params []}}
      :gtap-perms #{(perms/adhoc-native-query-path (data/id))}})
   (apply-row-level-permissions
    (data/mbql-query venues

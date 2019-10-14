@@ -66,7 +66,7 @@ export default class AuditTable extends React.Component {
       .assocIn(["dataset_query", "offset"], pageSize * page)
       .value();
 
-    const question = new Question(metadata, card);
+    const question = new Question(card, metadata);
 
     return (
       <div>

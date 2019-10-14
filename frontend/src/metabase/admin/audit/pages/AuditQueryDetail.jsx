@@ -88,7 +88,7 @@ class QueryBuilderReadOnly extends React.Component {
   }
   render() {
     const { card, metadata } = this.props;
-    const question = new Question(metadata, card);
+    const question = new Question(card, metadata);
 
     const query = question.query();
 

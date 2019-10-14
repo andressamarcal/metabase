@@ -100,7 +100,7 @@ const MetabaseSettings = {
   hasPremiumFeature: feature => {
     const hasFeature =
       mb_settings.premium_features && mb_settings.premium_features[feature];
-    if (hasFeature == undefined) {
+    if (hasFeature == null) {
       console.warn("Unknown premium feature", feature);
     }
     return hasFeature;
@@ -166,8 +166,8 @@ const MetabaseSettings = {
 
     const description =
       capitalize === false
-        ? t`must be` + " " + complexity.total + " " + t`characters long`
-        : t`Must be` + " " + complexity.total + " " + t`characters long`;
+        ? t`must be at least ${complexity.total} characters long`
+        : t`Must be at least ${complexity.total} characters long`;
     const clauses = [];
 
     ["lower", "upper", "digit", "special"].forEach(function(clause) {

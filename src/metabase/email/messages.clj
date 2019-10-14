@@ -220,7 +220,7 @@
   [email msg-type]
   {:pre [(u/email? email) (contains? #{"abandon" "follow-up"} msg-type)]}
   (let [subject      (str (if (= "abandon" msg-type)
-                            (trs "[{0}] Help make [{0}] better." (u/app-name-trs))
+                            (trs "[{0}] Help make [{0}] better." (u/app-name-trs) (u/app-name-trs))
                             (trs "[{0}] Tell us how things are going." (u/app-name-trs))))
         context      (merge notification-context
                             (random-quote-context)

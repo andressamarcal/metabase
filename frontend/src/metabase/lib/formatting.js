@@ -728,7 +728,7 @@ export function formatValueRaw(value: Value, options: FormattingOptions = {}) {
     return remapped;
   }
 
-  if (value == undefined) {
+  if (value == null) {
     return null;
   } else if (
     (isURL(column) && options.view_as !== null) ||

@@ -397,7 +397,7 @@ const TableName = ({ tableId }) => (
 const TargetName = ({ gtap, target }: { gtap: GTAP, target: any }) => {
   if (Array.isArray(target)) {
     if (
-      (target[0] == "variable" || target[0] === "dimension") &&
+      (target[0] === "variable" || target[0] === "dimension") &&
       target[1][0] === "template-tag"
     ) {
       return (
