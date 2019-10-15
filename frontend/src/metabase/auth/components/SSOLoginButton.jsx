@@ -18,7 +18,7 @@ class SSOLoginButton extends Component {
         onClick={onClick}
       >
         <div className="flex align-center ml-auto mr-auto">
-          <Icon className="mr1" name={provider} />
+          {provider && <Icon className="mr1" name={provider} />}
           <h4>
             {provider ? t`Sign in with ${capitalize(provider)}` : t`Sign in`}
           </h4>
