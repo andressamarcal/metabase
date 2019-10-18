@@ -130,6 +130,10 @@ const TrialActive = ({ features, expires }) => (
         "mailto:support@metabase.com?Subject=Metabase Enterprise Edition"
       }
     />
+    <Link
+      className="link"
+      to={"admin/store/activate"}
+    >{t`Activate a license`}</Link>
   </AccountStatus>
 );
 
@@ -142,6 +146,10 @@ const TrialExpired = ({ features }) => (
         "mailto:support@metabase.com?Subject=Expired Enterprise Trial"
       }
     />
+    <Link
+      className="link"
+      to={"admin/store/activate"}
+    >{t`Activate a license`}</Link>
   </AccountStatus>
 );
 
