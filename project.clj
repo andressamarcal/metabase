@@ -132,7 +132,7 @@
    [ring/ring-jetty-adapter "1.7.1"]                                  ; Ring adapter using Jetty webserver (used to run a Ring server for unit tests)
    [ring/ring-json "0.4.0"]                                           ; Ring middleware for reading/writing JSON automatically
    [stencil "0.5.0"]                                                  ; Mustache templates for Clojure
-   [toucan "1.14.0" :exclusions [org.clojure/java.jdbc honeysql]]     ; Model layer, hydration, and DB utilities
+   [toucan "1.15.0" :exclusions [org.clojure/java.jdbc honeysql]]     ; Model layer, hydration, and DB utilities
    [weavejester/dependency "0.2.1"]                                   ; Dependency graphs and topological sorting
    ]
 
@@ -160,9 +160,14 @@
   :uberjar-name
   "metabase.jar"
 
+  ;; EE-specific code
+  :source-paths ["src" "ee/src"]
+  :test-paths ["test"]
+
   :profiles
   {:dev
    {:source-paths ["dev/src" "local/src"]
+    :test-paths   ["ee/test"]
 
     :dependencies
     [[clj-http-fake "1.0.3" :exclusions [slingshot]]                  ; Library to mock clj-http responses
@@ -311,8 +316,8 @@
    {:dependencies
     [[faker "0.3.2"]                                                     ; Fake data generator -- port of Perl/Ruby library
      [jdistlib "0.5.1" :exclusions [com.github.wendykierp/JTransforms]]] ; Distribution statistic tests
-    :source-paths ["lein-commands/sample-dataset"]
-    :main         ^:skip-aot metabase.sample-dataset.generate}
+    :source-paths                                                        ["lein-commands/sample-dataset"]
+    :main                                                                ^:skip-aot metabase.sample-dataset.generate}
 
    ;; lein strip-and-compress my-plugin.jar [path/to/metabase.jar]
    ;; strips classes from my-plugin.jar that already exist in other JAR and recompresses with higher compression ratio.
@@ -320,7 +325,7 @@
    :strip-and-compress
    {:source-paths ["src"
                    "lein-commands/strip-and-compress"]
-    :main ^:skip-aot metabase.strip-and-compress-module}
+    :main         ^:skip-aot metabase.strip-and-compress-module}
 
    ;; Profile Metabase start time with `lein profile`
    :profile
@@ -335,5 +340,5 @@
    {:main metabase.automagic-dashboards.rules}
 
    :compare-h2-dbs
-   {:main ^:skip-aot metabase.cmd.compare-h2-dbs
+   {:main         ^:skip-aot metabase.cmd.compare-h2-dbs
     :source-paths ["test"]}})

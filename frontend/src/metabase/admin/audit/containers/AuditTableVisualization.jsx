@@ -11,6 +11,8 @@ import Table from "metabase/visualizations/visualizations/Table";
 
 import EmptyState from "metabase/components/EmptyState";
 
+import NoResults from "assets/img/no_results.svg";
+
 import { t } from "ttag";
 
 import _ from "underscore";
@@ -44,7 +46,7 @@ export default class AuditTableVisualization extends React.Component {
       return (
         <EmptyState
           title={t`No results`}
-          illustrationElement={<img src="../app/assets/img/no_results.svg" />}
+          illustrationElement={<img src={NoResults} />}
         />
       );
     }

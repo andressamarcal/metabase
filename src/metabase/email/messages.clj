@@ -34,8 +34,7 @@
 
 (def ^:private ^:const data-uri-svg-regex #"^data:image/svg\+xml;base64,(.*)$")
 
-(defn- data-uri-svg?
-  [url]
+(defn- data-uri-svg? [url]
   (re-matches data-uri-svg-regex url))
 
 (defn- themed-image-url
@@ -53,6 +52,9 @@
         color (public-settings/application-color)]
     (cond
       (= url "app/assets/img/logo.svg") "http://static.metabase.com/email_logo.png"
+      ;; NOTE: disabling whitelabeled URLs for now since some email clients don't render them correctly
+      ;; We need to extract them and embed as attachments like we do in metabase.pulse.render.image-bundle
+      true                              nil
       (data-uri-svg? url)               (themed-image-url url color)
       :else                             url)))
 
@@ -242,7 +244,8 @@
    :content      url})
 
 (defn- pulse-context [pulse]
-  (merge {:emailType    "pulse"
+  (merge (common-context)
+         {:emailType    "pulse"
           :pulseName    (:name pulse)
           :sectionStyle (render.style/style (render.style/section-style))
           :colorGrey4   render.style/color-gray-4

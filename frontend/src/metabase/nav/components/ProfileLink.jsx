@@ -86,6 +86,8 @@ export default class ProfileLink extends Component {
   render() {
     const { modalOpen } = this.state;
     const { tag, date, ...versionExtra } = MetabaseSettings.get("version");
+    // don't show trademark if application name is whitelabeled
+    const showTrademark = t`Metabase` === "Metabase";
     return (
       <Box>
         <EntityMenu
@@ -127,16 +129,18 @@ export default class ProfileLink extends Component {
                 )}
               </div>
             </div>
-            <div
-              style={{ borderWidth: "2px" }}
-              className="p2 h5 text-centered text-medium border-top"
-            >
-              <span className="block">
-                <span className="text-bold">Metabase</span>{" "}
-                {t`is a Trademark of`} Metabase, Inc
-              </span>
-              <span>{t`and is built with care in San Francisco, CA`}</span>
-            </div>
+            {showTrademark && (
+              <div
+                style={{ borderWidth: "2px" }}
+                className="p2 h5 text-centered text-medium border-top"
+              >
+                <span className="block">
+                  <span className="text-bold">Metabase</span>{" "}
+                  {t`is a Trademark of`} Metabase, Inc
+                </span>
+                <span>{t`and is built with care in San Francisco, CA`}</span>
+              </div>
+            )}
           </Modal>
         ) : null}
       </Box>

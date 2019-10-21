@@ -238,28 +238,45 @@
   (into [User] user/admin-or-self-visible-columns))
 
 (defn- find-user [user-id]
-  (db/select-one current-user-fields, :id user-id))
+  (when user-id
+    (db/select-one current-user-fields, :id user-id)))
 
-(defn- do-with-current-user [request thunk]
-  (if-let [current-user-id (:metabase-user-id request)]
-    (binding [*current-user-id*              current-user-id
-              *is-superuser?*                (:is-superuser? request)
-              *current-user*                 (delay (find-user current-user-id))
-              *current-user-permissions-set* (delay (user/permissions-set current-user-id))]
-      (thunk))
+(defn superuser?
+  "Is User with `user-id` a superuser?"
+  [user-id]
+  (when user-id
+    (db/select-one-field :is_superuser User :id user-id)))
+
+(defn do-with-current-user
+  "Impl for `with-current-user`."
+  [current-user-id superuser? thunk]
+  (binding [*current-user-id*              current-user-id
+            *is-superuser?*                (boolean superuser?)
+            *current-user*                 (delay (find-user current-user-id))
+            *current-user-permissions-set* (delay (some-> current-user-id user/permissions-set))]
     (thunk)))
 
-(defmacro ^:private with-current-user [request & body]
-  `(do-with-current-user ~request (fn [] ~@body)))
+(defmacro with-current-user
+  "Execute code in body with User with `current-user-id` bound as the current user."
+  {:style/indent 1}
+  [current-user-id & body]
+  `(let [user-id# ~current-user-id]
+     (do-with-current-user user-id# (superuser? user-id#) (fn [] ~@body))))
+
+(defmacro ^:private with-current-user-for-request
+  [request & body]
+  `(let [request# ~request]
+     (do-with-current-user (:metabase-user-id request#) (:is-superuser? request#) (fn [] ~@body))))
 
 (defn bind-current-user
   "Middleware that binds `metabase.api.common/*current-user*`, `*current-user-id*`, `*is-superuser?*`, and
   `*current-user-permissions-set*`.
+
   *  `*current-user-id*`             int ID or nil of user associated with request
   *  `*current-user*`                delay that returns current user (or nil) from DB
   *  `*is-superuser?*`               Boolean stating whether current user is a superuser.
   *  `current-user-permissions-set*` delay that returns the set of permissions granted to the current user from DB"
   [handler]
   (fn [request respond raise]
-    (with-current-user request
+    (with-current-user-for-request request
       (handler request respond raise))))
