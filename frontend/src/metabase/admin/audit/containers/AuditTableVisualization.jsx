@@ -21,6 +21,7 @@ import cx from "classnames";
 export default class AuditTableVisualization extends React.Component {
   static identifier = "audit-table";
   static noHeader = true;
+  static hidden = true;
 
   // copy Table's settings and columnSettings
   static settings = Table.settings;
