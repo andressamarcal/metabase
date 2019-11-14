@@ -332,7 +332,7 @@
   not normally have FK tests ran for it."
   []
   (cond-> (qp.test/non-timeseries-drivers-with-feature :nested-queries :foreign-keys)
-    (tx.env/test-drivers :bigquery) (conj :bigquery)))
+    (@tx.env/test-drivers :bigquery) (conj :bigquery)))
 
 ;; HACK - Since BigQuery doesn't formally support foreign keys (meaning we can't sync them automatically), FK tests
 ;; are disabled by default for BigQuery. We really want to test them here! The macros below let us "fake" FK support
