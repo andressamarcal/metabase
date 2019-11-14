@@ -331,7 +331,7 @@
    :timezone_short        (short-timezone-name (resolve-setting 'metabase.driver 'report-timezone))
    :timezones             common/timezones
    :types                 (types/types->parents :type/*)
-   :version config/mb-version-info})
+   :version               config/mb-version-info})
 
 (defn- enterprise-public-settings []
   {:application_colors      (application-colors)

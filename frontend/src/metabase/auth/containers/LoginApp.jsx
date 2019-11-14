@@ -20,6 +20,10 @@ import { IFRAMED } from "metabase/lib/dom";
 
 import * as authActions from "../auth";
 
+const GOOGLE_AUTH_ERRORS = {
+  popup_closed_by_user: t`The window was closed before completing Google Authentication.`,
+};
+
 const mapStateToProps = (state, props) => {
   return {
     loginError: state.auth && state.auth.loginError,
@@ -42,6 +46,7 @@ export default class LoginApp extends Component {
       credentials: {},
       valid: false,
       rememberMe: true,
+      errorMessage: null,
     };
   }
 
@@ -74,7 +79,7 @@ export default class LoginApp extends Component {
 
     const ssoLoginButton = findDOMNode(this.refs.ssoLoginButton);
 
-    function attachGoogleAuth() {
+    const attachGoogleAuth = () => {
       // if gapi isn't loaded yet then wait 100ms and check again. Keep doing this until we're ready
       if (!window.gapi) {
         window.setTimeout(attachGoogleAuth, 100);
@@ -89,14 +94,23 @@ export default class LoginApp extends Component {
           auth2.attachClickHandler(
             ssoLoginButton,
             {},
-            googleUser => loginGoogle(googleUser, location.query.redirect),
-            error => console.error("There was an error logging in", error),
+            googleUser => {
+              this.setState({ errorMessage: null });
+              loginGoogle(googleUser, location.query.redirect);
+            },
+            error => {
+              this.setState({
+                errorMessage:
+                  GOOGLE_AUTH_ERRORS[error.error] ||
+                  t`There was an issue signing in with Google. Pleast contact an administrator.`,
+              });
+            },
           );
         });
       } catch (error) {
         console.error("Error attaching Google Auth handler: ", error);
       }
-    }
+    };
     attachGoogleAuth();
   }
 
@@ -139,6 +153,7 @@ export default class LoginApp extends Component {
     const googleAuthEnabled = Settings.googleAuthEnabled();
     const otherAuthEnabled = Settings.otherSSOEnabled();
 
+    const { errorMessage } = this.state;
     const ldapEnabled = Settings.ldapEnabled();
 
     const preferUsernameAndPassword = location.query.useMBLogin;
@@ -169,6 +184,13 @@ export default class LoginApp extends Component {
               onSubmit={e => this.formSubmitted(e)}
             >
               <h2 className="Login-header mb2">{t`Sign in to Metabase`}</h2>
+
+              {errorMessage && (
+                <div className="bg-error p1 rounded text-white text-bold mt3">
+                  {errorMessage}
+                </div>
+              )}
+
               {showGoogleAuthButton && (
                 <div className="py3 relative my4">
                   <div className="relative border-bottom pb4">

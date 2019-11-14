@@ -19,7 +19,8 @@
    "test"                              ["with-profile" "+test" "test"]
    "bikeshed"                          ["with-profile" "+bikeshed" "bikeshed"
                                         "--max-line-length" "205"
-                                        "--exclude-profiles" "compare-h2-dbs"]
+                                        ;; see https://github.com/dakrone/lein-bikeshed/issues/41
+                                        "--exclude-profiles" "compare-h2-dbs,dev"]
    "check-namespace-decls"             ["with-profile" "+check-namespace-decls" "check-namespace-decls"]
    "eastwood"                          ["with-profile" "+eastwood" "eastwood"]
    "check-reflection-warnings"         ["with-profile" "+reflection-warnings" "check"]
@@ -103,7 +104,7 @@
                  javax.jms/jms
                  com.sun.jdmk/jmxtools
                  com.sun.jmx/jmxri]]
-   [me.raynes/fs "1.4.6"]                                   ; FS tools
+   [me.raynes/fs "1.4.6"]                                             ; Filesystem tools
    [medley "1.2.0"]                                                   ; lightweight lib of useful functions
    [metabase/connection-pool "1.0.3"]                                 ; simple wrapper around C3P0. JDBC connection pools
    [metabase/mbql "1.3.6"]                                            ; MBQL language schema & util fns
@@ -118,7 +119,7 @@
    [org.flatland/ordered "1.5.7"]                                     ; ordered maps & sets
    [org.liquibase/liquibase-core "3.6.3"                              ; migration management (Java lib)
     :exclusions [ch.qos.logback/logback-classic]]
-   [org.mariadb.jdbc/mariadb-java-client "2.3.0"]                     ; MySQL/MariaDB driver
+   [org.mariadb.jdbc/mariadb-java-client "2.5.1"]                     ; MySQL/MariaDB driver
    [org.postgresql/postgresql "42.2.5"]                               ; Postgres driver
    [org.slf4j/slf4j-log4j12 "1.7.25"]                                 ; abstraction for logging frameworks -- allows end user to plug in desired logging framework at deployment time
    [org.tcrawley/dynapath "1.0.0"]                                    ; Dynamically add Jars (e.g. Oracle or Vertica) to classpath
@@ -259,7 +260,7 @@
    :bikeshed
    [:include-all-drivers
     {:plugins
-     [[lein-bikeshed "0.4.1"]]}]
+     [[lein-bikeshed "0.5.2"]]}]
 
    :eastwood
    [:include-all-drivers
