@@ -2,6 +2,8 @@ import React, { Component } from "react";
 import ReactDOM from "react-dom";
 import PropTypes from "prop-types";
 
+import { PLUGIN_ADMIN_NAV_ITEMS } from "metabase/plugins";
+
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
 
@@ -13,7 +15,6 @@ import { space } from "styled-system";
 
 import * as Urls from "metabase/lib/urls";
 import { color, darken, lighten, getNavBarColor } from "metabase/lib/colors";
-import MetabaseSettings from "metabase/lib/settings";
 
 import Icon, { IconWrapper } from "metabase/components/Icon";
 import Link from "metabase/components/Link";
@@ -26,7 +27,7 @@ import CreateDashboardModal from "metabase/components/CreateDashboardModal";
 
 import ProfileLink from "metabase/nav/components/ProfileLink";
 
-import { getPath, getContext, getUser, getFeatures } from "../selectors";
+import { getPath, getContext, getUser } from "../selectors";
 import {
   getHasDataAccess,
   getHasNativeWrite,
@@ -38,7 +39,6 @@ const mapStateToProps = (state, props) => ({
   path: getPath(state, props),
   context: getContext(state, props),
   user: getUser(state),
-  features: getFeatures(state) || {},
   plainNativeQuery: getPlainNativeQuery(state),
   hasDataAccess: getHasDataAccess(state),
   hasNativeWrite: getHasNativeWrite(state),
@@ -250,18 +250,13 @@ export default class Navbar extends Component {
               path="/admin/permissions"
               currentPath={this.props.path}
             />
-            {MetabaseSettings.hasPremiumFeature("audit_app") && (
+            {PLUGIN_ADMIN_NAV_ITEMS.map(({ name, path }) => (
               <AdminNavItem
-                name={t`Audit`}
-                path="/admin/audit"
+                name={name}
+                path={path}
                 currentPath={this.props.path}
               />
-            )}
-            <AdminNavItem
-              name={t`Enterprise`}
-              path="/admin/store"
-              currentPath={this.props.path}
-            />
+            ))}
             <AdminNavItem
               name={t`Troubleshooting`}
               path="/admin/troubleshooting"

@@ -2,12 +2,12 @@
 
 import type { QueryMode } from "metabase/meta/types/Visualization";
 
-import CustomLink from "../drill/CustomLink";
+import { PLUGIN_DRILLS } from "metabase/plugins";
 
 const PublicMode: QueryMode = {
   name: "public",
   actions: [],
-  drills: [CustomLink],
+  drills: PLUGIN_DRILLS,
 };
 
 export default PublicMode;

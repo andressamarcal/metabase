@@ -9,7 +9,8 @@ import AutomaticDashboardDrill from "./AutomaticDashboardDrill";
 import CompareToRestDrill from "./CompareToRestDrill";
 import ZoomDrill from "./ZoomDrill";
 import FormatAction from "./FormatAction";
-import CustomLink from "./CustomLink";
+
+import { PLUGIN_DRILLS } from "metabase/plugins";
 
 export const DEFAULT_DRILLS = [
   ZoomDrill,
@@ -21,5 +22,5 @@ export const DEFAULT_DRILLS = [
   AutomaticDashboardDrill,
   CompareToRestDrill,
   FormatAction,
-  CustomLink,
+  ...PLUGIN_DRILLS,
 ];

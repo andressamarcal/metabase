@@ -12,7 +12,7 @@ import {
   GRAPH_COLORS_SETTINGS,
   GRAPH_AXIS_SETTINGS,
 } from "../lib/settings/graph";
-import { drillThroughSettings } from "../lib/settings/drill";
+import { PLUGIN_CHART_SETTINGS } from "metabase/plugins";
 
 export default class BarChart extends LineAreaBarChart {
   static uiName = t`Bar`;
@@ -26,7 +26,7 @@ export default class BarChart extends LineAreaBarChart {
     ...GRAPH_GOAL_SETTINGS,
     ...GRAPH_COLORS_SETTINGS,
     ...GRAPH_AXIS_SETTINGS,
-    ...drillThroughSettings(),
+    ...PLUGIN_CHART_SETTINGS,
   };
 
   static renderer = barRenderer;

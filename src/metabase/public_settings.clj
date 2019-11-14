@@ -208,36 +208,6 @@
   :type :string
   :default "frontend_client/favicon.ico")
 
-(defsetting enable-home
-  (deferred-tru "Enable the home screen")
-  :type    :boolean
-  :default true)
-
-(defsetting enable-query-builder
-  (deferred-tru "Enable the query builder")
-  :type    :boolean
-  :default true)
-
-(defsetting enable-saved-questions
-  (deferred-tru "Enable saved questions")
-  :type    :boolean
-  :default true)
-
-(defsetting enable-dashboards
-  (deferred-tru "Enable dashboards")
-  :type    :boolean
-  :default true)
-
-(defsetting enable-pulses
-  (deferred-tru "Enable pulses")
-  :type    :boolean
-  :default true)
-
-(defsetting enable-dataref
-  (deferred-tru "Enable data reference")
-  :type    :boolean
-  :default true)
-
 (defsetting enable-password-login
   (deferred-tru "Allow logging in by email and password.")
   :type    :boolean
@@ -340,12 +310,6 @@
    :application_name        (application-name)
    :embedding_app_origin    (embedding-app-origin)
    :enable_password_login   (enable-password-login)
-   :features                {:home       (enable-home)
-                             :question   (enable-query-builder)
-                             :questions  (enable-saved-questions)
-                             :dashboards (enable-dashboards)
-                             :pulse      (enable-pulses)
-                             :reference  (enable-dataref)}
    :landing_page            (landing-page)
    :other_sso_configured    (other-sso-configured?)
    :premium_features        {:embedding  (metastore/hide-embed-branding?)

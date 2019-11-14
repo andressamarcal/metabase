@@ -1,3 +1,5 @@
+import "metabase/plugins/builtin";
+
 import { useSharedAdminLogin, createTestStore } from "__support__/e2e";
 import { click } from "__support__/enzyme";
 

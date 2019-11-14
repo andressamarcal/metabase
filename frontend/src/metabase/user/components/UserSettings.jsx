@@ -11,7 +11,7 @@ import UserAvatar from "metabase/components/UserAvatar";
 
 import SetUserPassword from "./SetUserPassword";
 
-import MetabaseSettings from "metabase/lib/settings";
+import { PLUGIN_SHOW_CHANGE_PASSWORD_CONDITIONS } from "metabase/plugins";
 
 export default class UserSettings extends Component {
   static propTypes = {
@@ -31,9 +31,9 @@ export default class UserSettings extends Component {
 
   render() {
     const { tab, user, setTab } = this.props;
-    const nonSSOManagedAccount = !user.google_auth && !user.ldap_auth;
-    const showChangePassword =
-      nonSSOManagedAccount && MetabaseSettings.passwordEnabled();
+    const showChangePassword = PLUGIN_SHOW_CHANGE_PASSWORD_CONDITIONS.every(f =>
+      f(user),
+    );
 
     return (
       <Box>

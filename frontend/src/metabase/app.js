@@ -19,7 +19,14 @@ import "metabase/lib/i18n";
 // NOTE: why do we need to load this here?
 import "metabase/lib/colors";
 
-import { updateColors } from "metabase/lib/whitelabel";
+// NOTE: this loads all builtin plugins
+import "metabase/plugins/builtin";
+
+// NOTE: this loads all the enterprise plugins
+// eslint-disable-next-line no-restricted-imports
+import "metabase-enterprise/plugins";
+
+import { PLUGIN_APP_INIT_FUCTIONS } from "metabase/plugins";
 
 import React from "react";
 import ReactDOM from "react-dom";
@@ -95,11 +102,7 @@ function _init(reducers, getRoutes, callback) {
     ] = MetabaseSettings.isTrackingEnabled() ? null : true;
   });
 
-  MetabaseSettings.on("application-colors", updateColors);
-  MetabaseSettings.on("application-colors", () => {
-    root.forceUpdate();
-  });
-  updateColors();
+  PLUGIN_APP_INIT_FUCTIONS.forEach(init => init({ root }));
 
   window.Metabase = window.Metabase || {};
   window.Metabase.store = store;

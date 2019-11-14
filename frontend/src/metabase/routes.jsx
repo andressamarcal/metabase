@@ -2,6 +2,8 @@
 
 import React from "react";
 
+import { PLUGIN_LANDING_PAGE } from "metabase/plugins";
+
 import { Route } from "metabase/hoc/Title";
 import { Redirect, IndexRedirect, IndexRoute } from "react-router";
 import { routerActions } from "react-router-redux";
@@ -177,6 +179,7 @@ export const getRoutes = store => (
         <IndexRedirect to="/auth/login" />
         <Route component={IsNotAuthenticated}>
           <Route path="login" title={t`Login`} component={LoginApp} />
+          <Route path="login/:provider" title={t`Login`} component={LoginApp} />
         </Route>
         <Route path="logout" component={LogoutApp} />
         <Route path="forgot_password" component={ForgotPasswordApp} />
@@ -191,9 +194,7 @@ export const getRoutes = store => (
           path="/"
           component={Overworld}
           onEnter={(nextState, replace) => {
-            // TODO: also check that this feature is enabled, and if not redirect to the landing page
-            // TODO: same for other (all?) routes
-            const page = MetabaseSettings.landingPage();
+            const page = PLUGIN_LANDING_PAGE[0] && PLUGIN_LANDING_PAGE[0]();
             if (page && page !== "/") {
               replace(page);
             }

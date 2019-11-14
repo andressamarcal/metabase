@@ -13,7 +13,7 @@ import { UserApi, SessionApi } from "metabase/services";
 
 import FormGroupsWidget from "metabase/components/form/widgets/FormGroupsWidget";
 
-import { PLUGIN_USER_FORM_FIELDS } from "metabase/plugins";
+import { PLUGIN_ADMIN_USER_FORM_FIELDS } from "metabase/plugins";
 
 import type { FormFieldDefinition } from "metabase/containers/Form";
 
@@ -157,7 +157,7 @@ const Users = createEntity({
           title: "Groups",
           type: FormGroupsWidget,
         },
-        ...PLUGIN_USER_FORM_FIELDS,
+        ...PLUGIN_ADMIN_USER_FORM_FIELDS,
       ],
     },
     user: {

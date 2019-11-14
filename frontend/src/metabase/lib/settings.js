@@ -59,45 +59,8 @@ const MetabaseSettings = {
     return mb_settings.ldap_configured;
   },
 
-  otherSSOEnabled() {
-    return mb_settings.other_sso_configured;
-  },
-
-  passwordEnabled() {
-    return mb_settings.enable_password_login;
-  },
-
-  colorScheme: function() {
-    // FIXME: Ugh? initially load public setting as "application_color" but if the admin updates it
-    // we need to use "application-colors"
-    return mb_settings["application-colors"] || mb_settings.application_colors;
-  },
-
-  applicationName: function() {
-    // FIXME: Ugh? see comment in colorScheme()
-    return mb_settings["application-name"] || mb_settings.application_name;
-  },
-
-  landingPage: function() {
-    // FIXME: Ugh? see comment in colorScheme()
-    const features = MetabaseSettings.features();
-    let page;
-    if (features.length === 1) {
-      // NOTE: assumes features are named same as their URL
-      page = features[0];
-    } else {
-      page = mb_settings["landing-page"] || mb_settings.landing_page;
-    }
-    return "/" + (page || "");
-  },
-
-  features: function() {
-    return Object.entries(mb_settings["features"])
-      .filter(([key, enabled]) => enabled)
-      .map(([key]) => key);
-  },
-
-  hasPremiumFeature: feature => {
+  hasPremiumFeature(feature) {
+    // TODO: EE setting
     const hasFeature =
       mb_settings.premium_features && mb_settings.premium_features[feature];
     if (hasFeature == null) {
@@ -106,17 +69,16 @@ const MetabaseSettings = {
     return hasFeature;
   },
 
+  hideEmbedBranding: () => mb_settings.hide_embed_branding,
+
   metastoreUrl: () => mb_settings.metastore_url,
 
+  docsTag() {
+    return this.currentVersion() || "latest";
+  },
+
   docsUrl: (page = "", anchor = "") => {
-    // let { tag } = MetabaseSettings.get("version", {});
-    // if (!tag) {
-    //   tag = "latest";
-    // }
-
-    // NOTE: temporarily use "latest" for Enterprise Edition
-    const tag = "latest";
-
+    const tag = MetabaseSettings.docsTag();
     if (page) {
       page = `/${page}.html`;
     }
@@ -126,22 +88,49 @@ const MetabaseSettings = {
     return `https://metabase.com/docs/${tag}${page}${anchor}`;
   },
 
-  newVersionAvailable: function(settings) {
-    let versionInfo = _.findWhere(settings, { key: "version-info" });
-    const currentVersion = MetabaseSettings.get("version").tag;
-
-    if (versionInfo) {
-      versionInfo = versionInfo.value;
-    }
-
-    return (
-      versionInfo &&
-      versionInfo.latest_enterprise &&
-      MetabaseUtils.compareVersions(
-        currentVersion,
-        versionInfo.latest_enterprise.version,
-      ) < 0
+  newVersionAvailable() {
+    const result = MetabaseUtils.compareVersions(
+      this.currentVersion(),
+      this.latestVersion(),
     );
+    return result != null && result < 0;
+  },
+
+  versionIsLatest() {
+    const result = MetabaseUtils.compareVersions(
+      this.currentVersion(),
+      this.latestVersion(),
+    );
+    return result != null && result >= 0;
+  },
+
+  /*
+    We expect the versionInfo to take on the JSON structure detailed below.
+    The 'older' section should contain only the last 5 previous versions, we don't need to go on forever.
+    The highlights for a version should just be text and should be limited to 5 items tops.
+
+    type VersionInfo = {
+      latest: Version,
+      older: Version[]
+    };
+    type Version = {
+      version: string, // e.x. "v0.17.1"
+      released: ISO8601Time,
+      patch: bool,
+      highlights: string[]
+    };
+  */
+  versionInfo() {
+    return this.get("version-info", {});
+  },
+
+  currentVersion() {
+    return this.get("version", {}).tag;
+  },
+
+  latestVersion() {
+    const { latest } = this.versionInfo();
+    return latest && latest.version;
   },
 
   // returns a map that looks like {total: 6, digit: 1}

@@ -3,6 +3,8 @@ import { Route } from "metabase/hoc/Title";
 import { IndexRoute, IndexRedirect } from "react-router";
 import { t } from "ttag";
 
+import { PLUGIN_ADMIN_ROUTES } from "metabase/plugins";
+
 import { withBackground } from "metabase/hoc/Background";
 import { ModalRoute } from "metabase/hoc/ModalRoute";
 
@@ -41,15 +43,8 @@ import PeopleListingApp from "metabase/admin/people/containers/PeopleListingApp"
 import GroupsListingApp from "metabase/admin/people/containers/GroupsListingApp";
 import GroupDetailApp from "metabase/admin/people/containers/GroupDetailApp";
 
-// Audit
-import getAdminAuditRoutes from "metabase/admin/audit/routes.jsx";
-
 // Permissions
 import getAdminPermissionsRoutes from "metabase/admin/permissions/routes";
-
-// Store
-import StoreActivate from "metabase/admin/store/containers/StoreActivate";
-import StoreAccount from "metabase/admin/store/containers/StoreAccount";
 
 const getRoutes = (store, IsAdmin) => (
   <Route
@@ -58,11 +53,6 @@ const getRoutes = (store, IsAdmin) => (
     component={withBackground("bg-white")(IsAdmin)}
   >
     <IndexRedirect to="settings" />
-
-    <Route path="store" title={t`Store`}>
-      <IndexRoute component={StoreAccount} />
-      <Route path="activate" component={StoreActivate} />
-    </Route>
 
     <Route path="databases" title={t`Databases`}>
       <IndexRoute component={DatabaseListApp} />
@@ -141,16 +131,14 @@ const getRoutes = (store, IsAdmin) => (
     {/* SETTINGS */}
     <Route path="settings" title={t`Settings`}>
       <IndexRedirect to="setup" />
-      {/* <IndexRoute component={SettingsEditorApp} /> */}
-      <Route path=":section/:authType" component={SettingsEditorApp} />
-      <Route path=":section" component={SettingsEditorApp} />
+      <Route path="*" component={SettingsEditorApp} />
     </Route>
-
-    {/* AUDIT APP */}
-    {getAdminAuditRoutes(store)}
 
     {/* PERMISSIONS */}
     {getAdminPermissionsRoutes(store)}
+
+    {/* PLUGINS */}
+    {PLUGIN_ADMIN_ROUTES.map(getRoutes => getRoutes(store))}
   </Route>
 );
 

@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import { connect } from "react-redux";
 import PropTypes from "prop-types";
 import MetabaseAnalytics from "metabase/lib/analytics";
 import MetabaseUtils from "metabase/lib/utils";
@@ -12,6 +13,12 @@ import RetinaImage from "react-retina-image";
 import _ from "underscore";
 import { t, jt } from "ttag";
 
+import { updateSlackSettings } from "../settings";
+
+@connect(
+  null,
+  { updateSlackSettings },
+)
 export default class SettingsSlackForm extends Component {
   constructor(props, context) {
     super(props, context);

@@ -1,0 +1,45 @@
+import { t } from "ttag";
+import { updateIn } from "icepick";
+
+import MetabaseSettings from "metabase/lib/settings";
+import { PLUGIN_ADMIN_SETTINGS_UPDATES } from "metabase/plugins";
+
+import EmbeddingLevel from "metabase/admin/settings/components/widgets/EmbeddingLevel";
+
+if (MetabaseSettings.hasPremiumFeature("embedding")) {
+  MetabaseSettings.hideEmbedBranding = () => true;
+}
+
+const APP_ORIGIN_SETTING = {
+  key: "embedding-app-origin",
+  display_name: t`Embedding the entire Metabase app`,
+  description: t`If you want to embed all of Metabase, enter the origin (protocol and host only) of the website where you want to allow embedding in an iFrame.`,
+  placeholder: "https://example.com",
+  type: "string",
+  getHidden: settings => !settings["enable-embedding"],
+};
+
+PLUGIN_ADMIN_SETTINGS_UPDATES.push(sections =>
+  updateIn(
+    sections,
+    ["embedding_in_other_applications", "settings"],
+    settings => {
+      // remove the embedding level widget from EE
+      settings = settings.filter(s => s.widget !== EmbeddingLevel);
+
+      // insert the app origin setting right after the secret key widget
+      const itemIndex = settings.findIndex(
+        s => s.key === "embedding-secret-key",
+      );
+      const sliceIndex = itemIndex === -1 ? settings.length : itemIndex + 1;
+
+      settings = [
+        ...settings.slice(0, sliceIndex),
+        APP_ORIGIN_SETTING,
+        ...settings.slice(sliceIndex),
+      ];
+
+      return settings;
+    },
+  ),
+);

@@ -20,7 +20,7 @@ import {
   dimensionSetting,
 } from "metabase/visualizations/lib/settings/utils";
 import { columnSettings } from "metabase/visualizations/lib/settings/column";
-import { drillThroughSettings } from "metabase/visualizations/lib/settings/drill";
+import { PLUGIN_CHART_SETTINGS } from "metabase/plugins";
 
 import { formatValue } from "metabase/lib/formatting";
 
@@ -193,7 +193,7 @@ export default class PieChart extends Component {
       },
       readDependencies: ["pie._dimensionIndex"],
     },
-    ...drillThroughSettings(),
+    ...PLUGIN_CHART_SETTINGS,
   };
 
   componentDidUpdate() {

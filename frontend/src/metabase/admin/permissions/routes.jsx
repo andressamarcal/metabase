@@ -8,8 +8,7 @@ import SchemasPermissionsApp from "./containers/SchemasPermissionsApp";
 import TablesPermissionsApp from "./containers/TablesPermissionsApp";
 import CollectionPermissions from "./containers/CollectionsPermissionsApp";
 
-import { ModalRoute } from "metabase/hoc/ModalRoute";
-import GTAPModal from "metabase/plugins/mt/components/GTAPModal";
+import { PLUGIN_ADMIN_PERMISSIONS_TABLE_ROUTES } from "metabase/plugins";
 
 const getRoutes = store => (
   <Route title={t`Permissions`} path="permissions">
@@ -28,10 +27,7 @@ const getRoutes = store => (
         path=":databaseId/schemas/:schemaName/tables"
         component={TablesPermissionsApp}
       >
-        <ModalRoute
-          path=":tableId/segmented/group/:groupId"
-          modal={GTAPModal}
-        />
+        {PLUGIN_ADMIN_PERMISSIONS_TABLE_ROUTES}
       </Route>
 
       {/* TABLES NO SCHEMA */}
@@ -47,10 +43,7 @@ const getRoutes = store => (
           />
         )}
       >
-        <ModalRoute
-          path=":tableId/segmented/group/:groupId"
-          modal={GTAPModal}
-        />
+        {PLUGIN_ADMIN_PERMISSIONS_TABLE_ROUTES}
       </Route>
     </Route>
 

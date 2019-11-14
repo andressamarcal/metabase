@@ -666,9 +666,6 @@ export function createEntity(def: EntityDefinition): Entity {
   // add container components and HOCs
   require("metabase/entities/containers").addEntityContainers(entity);
 
-  // add container components and HOCs
-  require("metabase/entities/containers").addEntityContainers(entity);
-
   return entity;
 }
 

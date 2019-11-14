@@ -7,8 +7,13 @@ import { push } from "react-router-redux";
 import TogglePropagateAction from "./containers/TogglePropagateAction";
 
 import MetabaseAnalytics from "metabase/lib/analytics";
-import MetabaseSettings from "metabase/lib/settings";
 import { color, alpha } from "metabase/lib/colors";
+
+import {
+  PLUGIN_ADMIN_PERMISSIONS_TABLE_FIELDS_OPTIONS,
+  PLUGIN_ADMIN_PERMISSIONS_TABLE_FIELDS_ACTIONS,
+  PLUGIN_ADMIN_PERMISSIONS_TABLE_FIELDS_POST_ACTION,
+} from "metabase/plugins";
 
 import { t } from "ttag";
 
@@ -242,10 +247,6 @@ const OPTION_RED = {
   iconColor: color("error"),
   bgColor: alpha(color("error"), BG_ALPHA),
 };
-const OPTION_BLUE = {
-  iconColor: color("brand"),
-  bgColor: alpha(color("brand"), BG_ALPHA),
-};
 
 const OPTION_ALL = {
   ...OPTION_GREEN,
@@ -291,30 +292,6 @@ const OPTION_COLLECTION_READ = {
   tooltip: t`Can view items in this collection`,
 };
 
-const OPTION_SEGMENTED = {
-  ...OPTION_BLUE,
-  value: "controlled",
-  title: t`Grant sandboxed access`,
-  tooltip: t`Sandboxed access`,
-  icon: "permissionsLimited",
-};
-
-const getEditSegementedAccessUrl = (
-  groupId,
-  { databaseId, schemaName, tableId },
-) =>
-  `/admin/permissions` +
-  `/databases/${databaseId}` +
-  (schemaName ? `/schemas/${encodeURIComponent(schemaName)}` : "") +
-  `/tables/${tableId}/segmented/group/${groupId}`;
-
-const getEditSegementedAccessAction = (groupId, entityId) => ({
-  ...OPTION_BLUE,
-  title: t`Edit sandboxed access`,
-  icon: "pencil",
-  value: push(getEditSegementedAccessUrl(groupId, entityId)),
-});
-
 export const getTablesPermissionsGrid = createSelector(
   getMetadata,
   getGroups,
@@ -356,17 +333,22 @@ export const getTablesPermissionsGrid = createSelector(
         fields: {
           header: t`Data Access`,
           options(groupId, entityId) {
-            if (MetabaseSettings.hasPremiumFeature("sandboxes")) {
-              return [OPTION_ALL, OPTION_SEGMENTED, OPTION_NONE];
-            } else {
-              return [OPTION_ALL, OPTION_NONE];
-            }
+            return [
+              OPTION_ALL,
+              ...PLUGIN_ADMIN_PERMISSIONS_TABLE_FIELDS_OPTIONS,
+              OPTION_NONE,
+            ];
           },
           actions(groupId, entityId) {
-            return getFieldsPermission(permissions, groupId, entityId) ===
-              "controlled"
-              ? [getEditSegementedAccessAction(groupId, entityId)]
-              : [];
+            const value = getFieldsPermission(permissions, groupId, entityId);
+            const getActions =
+              PLUGIN_ADMIN_PERMISSIONS_TABLE_FIELDS_ACTIONS[value] || [];
+            return getActions.map(getAction => getAction(groupId, entityId));
+          },
+          postAction(groupId, entityId, value) {
+            const getPostAction =
+              PLUGIN_ADMIN_PERMISSIONS_TABLE_FIELDS_POST_ACTION[value];
+            return getPostAction && getPostAction(groupId, entityId);
           },
           getter(groupId, entityId) {
             return getFieldsPermission(permissions, groupId, entityId);
@@ -386,11 +368,6 @@ export const getTablesPermissionsGrid = createSelector(
               entityId,
               metadata,
             );
-          },
-          postAction(groupId, entityId, value) {
-            if (value === "controlled") {
-              return push(getEditSegementedAccessUrl(groupId, entityId));
-            }
           },
           confirm(groupId, entityId, value) {
             return [

@@ -62,8 +62,8 @@ export default class EmbedFrame extends Component {
     const { innerScroll } = this.state;
 
     const showFooter =
-      !MetabaseSettings.hasPremiumFeature("embedding") ||
-      (actionButtons && actionButtons.length !== 0);
+      !MetabaseSettings.hideEmbedBranding() ||
+      (actionButtons && actionButtons.length > 0);
 
     const { bordered, titled, theme, hide_parameters } = {
       ...DEFAULT_OPTIONS,
@@ -111,7 +111,7 @@ export default class EmbedFrame extends Component {
         </div>
         {showFooter && (
           <div className="EmbedFrame-footer p1 md-p2 lg-p3 border-top flex-no-shrink flex align-center">
-            {!MetabaseSettings.hasPremiumFeature("embedding") && (
+            {!MetabaseSettings.hideEmbedBranding() && (
               <LogoBadge dark={theme} />
             )}
             {actionButtons && (

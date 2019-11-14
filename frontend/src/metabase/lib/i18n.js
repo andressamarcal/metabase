@@ -1,7 +1,4 @@
 import { addLocale, useLocale } from "ttag";
-
-import MetabaseSettings from "metabase/lib/settings";
-
 import moment from "moment";
 
 // NOTE: loadLocalization not currently used, and we need to be sure to set the
@@ -18,14 +15,6 @@ import moment from "moment";
 
 export function setLocalization(translationsObject) {
   const locale = translationsObject.headers.language;
-
-  try {
-    translationsObject.translations[""]["Metabase"].msgstr = [
-      MetabaseSettings.applicationName(),
-    ];
-  } catch (e) {
-    console.error("Couldn't set application name", e);
-  }
 
   addMsgIds(translationsObject);
 
