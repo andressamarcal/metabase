@@ -5401,6 +5401,7 @@ databaseChangeLog:
                 nullable: false
               defaultValueBoolean: true
 
+
   # To fix EE full-app embedding without compromising security. Full-app embed sessions cannot have `SameSite` attributes in their cookies.
   - changeSet:
       id: 104
@@ -5413,3 +5414,16 @@ databaseChangeLog:
               name: anti_csrf_token
               type: text
               remarks: 'Anti-CSRF token for full-app embed sessions.'
+
+#
+# Change `metabase_field.database_type` to `text` to accomodate more exotic field types (enums in Clickhouse, rows in Presto, ...)
+#
+  - changeSet:
+      id: 106
+      author: sb
+      comment: 'Added 0.33.5'
+      changes:
+        - modifyDataType:
+            tableName: metabase_field
+            columnName: database_type
+            newDataType: text
