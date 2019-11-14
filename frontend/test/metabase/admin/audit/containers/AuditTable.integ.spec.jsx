@@ -1,6 +1,6 @@
 import React from "react";
 import mock from "xhr-mock";
-import { mountWithStore } from "__support__/integration_tests";
+import { mountWithStore } from "__support__/integration";
 
 import AuditTable from "metabase/admin/audit/containers/AuditTable";
 import { delay } from "metabase/lib/promise";
