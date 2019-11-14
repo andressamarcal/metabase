@@ -1,5 +1,6 @@
 (ns metabase.mt.integrations.saml-test
   (:require [clojure.string :as str]
+            [clojure.test :refer :all]
             [expectations :refer :all]
             [metabase
              [config :as config]
@@ -17,12 +18,15 @@
             [metabase.public-settings.metastore :as metastore]
             [metabase.test.data.users :as users :refer :all]
             [metabase.test.util :as tu]
+            [metabase.test.fixtures :as fixtures]
             [toucan.db :as db]
             [toucan.util.test :as tt])
   (:import java.net.URL
            java.nio.charset.StandardCharsets
            org.apache.http.client.utils.URLEncodedUtils
            org.apache.http.message.BasicNameValuePair))
+
+(use-fixtures :once (fixtures/initialize :test-users))
 
 (defmacro with-valid-metastore-token
   "Stubs the `metastore/enable-sso?` function to simulate a valid token. This needs to be included to test any of the
@@ -129,7 +133,6 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
   `(with-valid-metastore-token
      (call-with-login-attributes-cleared!
       (fn []
-        (users/create-users-if-needed!)
         (call-with-default-saml-config
          (fn []
            ~@body))))))
@@ -220,8 +223,6 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
    :redirect-uri      default-redirect-uri
    :login-attributes  (some-saml-attributes "rasta")}
   (with-saml-default-setup
-    (users/create-users-if-needed!)
-
     (let [req-options (saml-post-request-options (saml-test-response)
                                                  (#'saml/encrypt-redirect-str default-redirect-uri))
           response (client-full-response :post 302 "/auth/sso" req-options)]
@@ -236,7 +237,6 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
    :redirect-uri      (public-settings/site-url)
    :login-attributes  (some-saml-attributes "rasta")}
   (with-saml-default-setup
-    (users/create-users-if-needed!)
     (let [req-options (saml-post-request-options (saml-test-response)
                                                  (str (#'saml/encrypt-redirect-str default-redirect-uri)
                                                       "something-random"))
@@ -254,7 +254,6 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
                               :date_joined true,                   :common_name  "New User"}]
    :login-attributes        (some-saml-attributes "newuser")}
   (with-saml-default-setup
-    (users/create-users-if-needed!)
     (try
       (let [new-user-exists? (boolean (seq (db/select User :email "newuser@metabase.com")))
             req-options      (saml-post-request-options (new-user-saml-test-response)
@@ -275,7 +274,6 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
 (expect
   #{"All Users" ":metabase.mt.integrations.saml-test/group-1" ":metabase.mt.integrations.saml-test/group-2"}
   (with-saml-default-setup
-    (users/create-users-if-needed!)
     (tt/with-temp* [PermissionsGroup [group-1 {:name (str ::group-1)}]
                     PermissionsGroup [group-2 {:name (str ::group-2)}]]
       (tu/with-temporary-setting-values [saml-group-sync      true
