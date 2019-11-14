@@ -5,6 +5,8 @@
             [clojure.string :as str]
             [crypto.random :as crypto-random]
             [expectations :refer :all]
+            [clojure.test :refer :all]
+            [metabase.test.fixtures :as fixtures]
             [metabase.models
              [permissions-group :as group :refer [PermissionsGroup]]
              [permissions-group-membership :refer [PermissionsGroupMembership]]
@@ -17,6 +19,8 @@
             [metabase.util :as u]
             [toucan.db :as db]
             [toucan.util.test :as tt]))
+
+(use-fixtures :once (fixtures/initialize :test-users))
 
 (def ^:private default-idp-uri      "http://test.idp.metabase.com")
 (def ^:private default-redirect-uri "http://localhost:3000/test")
@@ -54,7 +58,6 @@
   `(saml-test/with-valid-metastore-token
      (saml-test/call-with-login-attributes-cleared!
       (fn []
-        (users/create-users-if-needed!)
         (call-with-default-jwt-config
          (fn []
            ~@body))))))

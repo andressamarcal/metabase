@@ -1,6 +1,7 @@
 (ns metabase.mt.integrations.saml-test
-  (:require [clojure.string :as str]
-            [clojure.test :refer :all]
+  (:require [clojure
+             [string :as str]
+             [test :refer :all]]
             [expectations :refer :all]
             [metabase
              [config :as config]
@@ -16,9 +17,9 @@
              [saml :as saml :refer :all]
              [sso-settings :as sso-settings]]
             [metabase.public-settings.metastore :as metastore]
-            [metabase.test.data.users :as users :refer :all]
-            [metabase.test.util :as tu]
-            [metabase.test.fixtures :as fixtures]
+            [metabase.test
+             [fixtures :as fixtures]
+             [util :as tu]]
             [toucan.db :as db]
             [toucan.util.test :as tt])
   (:import java.net.URL
