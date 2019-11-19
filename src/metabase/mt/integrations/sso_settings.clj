@@ -24,7 +24,9 @@
   :default false)
 
 (defsetting saml-identity-provider-uri
-  (deferred-tru "This is a URI if of the SAML Identity Provider (where the user would login)"))
+  (deferred-tru "This is the URL where your users go to log in to your identity provider.
+                Depending on which IdP you''re using, this usually looks like
+                https://your-org-name.okta.com"))
 
 (s/defn ^:private validate-saml-idp-cert
   "Validate that an encoded identity provider certificate is valid, or throw an Exception."
@@ -40,7 +42,9 @@
                      (tru "Do NOT include ASCII armor lines like `-----BEGIN CERTIFICATE-----`.")]))))))
 
 (defsetting saml-identity-provider-certificate
-  (deferred-tru "Encoded certificate for the identity provider")
+  (deferred-tru "Encoded certificate for the identity provider. Depending on your IdP,
+                you might need to download this, open it in a text editor, then copy and paste
+                the certificate's contents here.")
   :setter (fn [new-value]
             ;; when setting the idp cert validate that it's something we
             (when new-value

@@ -276,6 +276,10 @@ export default class SettingsBatchForm extends Component {
           ),
         )}
 
+        {formErrors && formErrors.message && (
+          <div className="m2 text-error text-bold">{formErrors.message}</div>
+        )}
+
         <div className="m2 mb4">
           <Button
             mr={1}
@@ -294,12 +298,6 @@ export default class SettingsBatchForm extends Component {
               disabled,
               dirty,
             })}
-
-          {formErrors && formErrors.message ? (
-            <span className="pl3 text-error text-bold">
-              {formErrors.message}
-            </span>
-          ) : null}
         </div>
       </div>
     );
@@ -333,7 +331,7 @@ class CollapsibleSection extends React.Component {
           onClick={this.handleToggle.bind(this)}
         >
           <div className="flex align-center">
-            <DisclosureTriangle open={show} />
+            <DisclosureTriangle className="mx1" open={show} />
             <h3>{title}</h3>
           </div>
         </div>

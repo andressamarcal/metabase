@@ -126,6 +126,7 @@ export default class SettingsEditorApp extends Component {
       return (
         <activeSection.component
           elements={activeSection.settings}
+          settingValues={settingValues}
           updateSetting={this.updateSetting}
         />
       );

@@ -1,4 +1,6 @@
-import { t } from "ttag";
+import React from "react";
+import ExternalLink from "metabase/components/ExternalLink";
+import { t, jt } from "ttag";
 import { updateIn } from "icepick";
 
 import MetabaseSettings from "metabase/lib/settings";
@@ -60,7 +62,15 @@ PLUGIN_ADMIN_SETTINGS_UPDATES.push(sections => ({
       {
         key: "saml-enabled",
         display_name: t`SAML Authentication`,
-        description: null,
+        description: jt`Use the settings below to configure your SSO via SAML. If you have any questions, check out our ${(
+          <ExternalLink
+            href={MetabaseSettings.docsUrl(
+              "enterprise-guide/authenticating-with-saml",
+            )}
+          >
+            {t`documentation`}
+          </ExternalLink>
+        )}.`,
         type: "boolean",
       },
       {
