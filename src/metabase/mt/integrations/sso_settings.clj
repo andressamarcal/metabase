@@ -151,3 +151,8 @@
   (boolean (and (jwt-enabled)
                 (jwt-identity-provider-uri)
                 (jwt-shared-secret))))
+
+(defsetting send-new-user-admin-email?
+  (deferred-tru "Should new email notifications be sent to admins, for all new SSO users?")
+  :type :boolean
+  :default true)

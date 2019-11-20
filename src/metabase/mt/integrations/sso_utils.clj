@@ -2,6 +2,7 @@
   "Functions shared by the various SSO implementations"
   (:require [metabase.email.messages :as email]
             [metabase.models.user :refer [User]]
+            [metabase.mt.integrations.sso-settings :as sso-settings]
             [metabase.util :as u]
             [metabase.util.schema :as su]
             [schema.core :as s]
@@ -24,7 +25,8 @@
   [user :- UserAttributes]
   (u/prog1 (db/insert! User (merge user {:password (str (UUID/randomUUID))}))
     ;; send an email to everyone including the site admin if that's set
-    (email/send-user-joined-admin-notification-email! <>, :google-auth? true)))
+    (when (sso-settings/send-new-user-admin-email?)
+      (email/send-user-joined-admin-notification-email! <>, :google-auth? true))))
 
 (defn fetch-and-update-login-attributes!
   "Update the login attributes for the user at `email`. This call is a no-op if the login attributes are the same"
