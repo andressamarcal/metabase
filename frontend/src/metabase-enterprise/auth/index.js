@@ -42,7 +42,7 @@ PLUGIN_ADMIN_SETTINGS_UPDATES.push(sections =>
     {
       key: "enable-password-login",
       display_name: t`Enable Password Authentication`,
-      description: t`Turn this off to force users to log in with your auth system instead of email and password.`,
+      description: t`When enabled, users can additionally log in with email and password.`,
       type: "boolean",
       getHidden: settings =>
         !settings["google-auth-client-id"] &&
