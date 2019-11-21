@@ -53,7 +53,7 @@ PLUGIN_ADMIN_SETTINGS_UPDATES.push(sections =>
     {
       key: "send-new-sso-user-admin-email?",
       display_name: t`Notify admins of new SSO users`,
-      description: t`Turn this off to stop sending notification emails to admins about new SSO users.`,
+      description: t`When enabled, administrators will receive an email the first time a user uses Single Sign-On.`,
       type: "boolean",
       getHidden: settings =>
         !settings["google-auth-client-id"] &&
