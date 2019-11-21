@@ -5,8 +5,9 @@
             [metabase.models.user :refer [User]]
             [metabase.mt.integrations.sso-settings :as sso-settings]
             [metabase.util :as u]
-            [metabase.util.i18n :refer [trs]]
-            [metabase.util.schema :as su]
+            [metabase.util
+             [i18n :refer [trs]]
+             [schema :as su]]
             [schema.core :as s]
             [toucan.db :as db])
   (:import java.util.UUID))
