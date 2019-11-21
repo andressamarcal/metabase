@@ -50,6 +50,17 @@ PLUGIN_ADMIN_SETTINGS_UPDATES.push(sections =>
         !settings["saml-enabled"] &&
         !settings["jwt-enabled"],
     },
+    {
+      key: "send-new-sso-user-admin-email?",
+      display_name: t`Notify admins of new SSO users`,
+      description: t`Turn this off to stop sending notification emails to admins about new SSO users.`,
+      type: "boolean",
+      getHidden: settings =>
+        !settings["google-auth-client-id"] &&
+        !settings["ldap-enabled"] &&
+        !settings["saml-enabled"] &&
+        !settings["jwt-enabled"],
+    },
   ]),
 );
 
