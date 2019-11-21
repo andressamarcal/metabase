@@ -28,7 +28,7 @@
   (u/prog1 (db/insert! User (merge user {:password (str (UUID/randomUUID))}))
     (log/info (trs "New SSO user created: {0} ({1})" (:common_name <>) (:email <>)))
     ;; send an email to everyone including the site admin if that's set
-    (when (sso-settings/send-new-user-admin-email?)
+    (when (sso-settings/send-new-sso-user-admin-email?)
       (email/send-user-joined-admin-notification-email! <>, :google-auth? true))))
 
 (defn fetch-and-update-login-attributes!
