@@ -1,8 +1,8 @@
 (ns metabase.middleware.security-test
-  (:require [clojure.string :as str]
-            [clojure.test :refer :all]
+  (:require [clojure
+             [string :as str]
+             [test :refer :all]]
             [metabase.middleware.security :as mw.security]
-            [metabase.public-settings :as public-settings]
             [metabase.test.util :as tu]))
 
 (defn- csp-frame-ancestors-directive
