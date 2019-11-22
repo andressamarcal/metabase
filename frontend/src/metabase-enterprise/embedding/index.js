@@ -1,4 +1,5 @@
-import { t } from "ttag";
+import React from 'react';
+import { jt, t } from "ttag";
 import { updateIn } from "icepick";
 
 import MetabaseSettings from "metabase/lib/settings";
@@ -13,8 +14,11 @@ if (MetabaseSettings.hasPremiumFeature("embedding")) {
 const APP_ORIGIN_SETTING = {
   key: "embedding-app-origin",
   display_name: t`Embedding the entire Metabase app`,
-  description: t`If you want to embed all of Metabase, enter the origin (protocol and host only) of the website where you want to allow embedding in an iFrame.`,
-  placeholder: "https://example.com",
+  description: t`If you want to embed all of Metabase, enter the origins of the websites where you want to allow embedding in an iframe.`,
+  note: jt`The value must be valid for the ${<code>Content-Security-Policy</code>} header's
+    ${<a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors" className="link"><code>frame-ancestors</code> directive</a>},
+    or empty.`,
+  placeholder: "https://*.example.com",
   type: "string",
   getHidden: settings => !settings["enable-embedding"],
 };
