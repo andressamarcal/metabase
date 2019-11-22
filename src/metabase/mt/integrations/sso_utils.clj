@@ -1,9 +1,13 @@
 (ns metabase.mt.integrations.sso-utils
   "Functions shared by the various SSO implementations"
-  (:require [metabase.email.messages :as email]
+  (:require [clojure.tools.logging :as log]
+            [metabase.email.messages :as email]
             [metabase.models.user :refer [User]]
+            [metabase.mt.integrations.sso-settings :as sso-settings]
             [metabase.util :as u]
-            [metabase.util.schema :as su]
+            [metabase.util
+             [i18n :refer [trs]]
+             [schema :as su]]
             [schema.core :as s]
             [toucan.db :as db])
   (:import java.util.UUID))
@@ -23,8 +27,10 @@
   reuse it"
   [user :- UserAttributes]
   (u/prog1 (db/insert! User (merge user {:password (str (UUID/randomUUID))}))
+    (log/info (trs "New SSO user created: {0} ({1})" (:common_name <>) (:email <>)))
     ;; send an email to everyone including the site admin if that's set
-    (email/send-user-joined-admin-notification-email! <>, :google-auth? true)))
+    (when (sso-settings/send-new-sso-user-admin-email?)
+      (email/send-user-joined-admin-notification-email! <>, :google-auth? true))))
 
 (defn fetch-and-update-login-attributes!
   "Update the login attributes for the user at `email`. This call is a no-op if the login attributes are the same"

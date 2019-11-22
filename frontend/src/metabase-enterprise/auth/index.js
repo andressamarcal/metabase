@@ -42,7 +42,18 @@ PLUGIN_ADMIN_SETTINGS_UPDATES.push(sections =>
     {
       key: "enable-password-login",
       display_name: t`Enable Password Authentication`,
-      description: t`Turn this off to force users to log in with your auth system instead of email and password.`,
+      description: t`When enabled, users can additionally log in with email and password.`,
+      type: "boolean",
+      getHidden: settings =>
+        !settings["google-auth-client-id"] &&
+        !settings["ldap-enabled"] &&
+        !settings["saml-enabled"] &&
+        !settings["jwt-enabled"],
+    },
+    {
+      key: "send-new-sso-user-admin-email?",
+      display_name: t`Notify admins of new SSO users`,
+      description: t`When enabled, administrators will receive an email the first time a user uses Single Sign-On.`,
       type: "boolean",
       getHidden: settings =>
         !settings["google-auth-client-id"] &&
