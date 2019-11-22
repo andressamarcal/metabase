@@ -23,7 +23,6 @@
              "Last-Modified"                     true ; this will be current date, so do update-in ... string?
              "Strict-Transport-Security"         "max-age=31536000"
              "X-Content-Type-Options"            "nosniff"
-             "X-Frame-Options"                   "DENY"
              "X-Permitted-Cross-Domain-Policies" "none"
              "X-XSS-Protection"                  "1; mode=block"}})
 
