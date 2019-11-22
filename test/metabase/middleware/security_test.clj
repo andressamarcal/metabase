@@ -25,4 +25,10 @@
     (tu/with-temporary-setting-values [enable-embedding     true
                                        embedding-app-origin nil]
       (is (= "frame-ancestors 'none'"
-             (csp-frame-ancestors-directive))))))
+             (csp-frame-ancestors-directive)))))
+
+  (testing "Frame ancestors is 'none' if embedding is disabled"
+    (tu/with-temporary-setting-values [enable-embedding false
+                                       embedding-app-origin "https: http:"]
+      (is (= "frame-ancestors 'none'"
+          (csp-frame-ancestors-directive))))))
