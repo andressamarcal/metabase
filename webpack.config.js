@@ -86,7 +86,7 @@ const config = (module.exports = {
       },
       {
         test: /\.(eot|woff2?|ttf|svg|png)$/,
-        use: [{ loader: "file-loader", options: { publicPath: "./" } }],
+        use: [{ loader: "file-loader" }],
       },
       {
         test: /\.css$/,
@@ -96,6 +96,7 @@ const config = (module.exports = {
             { loader: "css-loader", options: CSS_CONFIG },
             { loader: "postcss-loader" },
           ],
+          publicPath: "./",
         }),
       },
     ],
