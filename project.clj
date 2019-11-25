@@ -251,10 +251,10 @@
 
    :include-all-drivers
    [:with-include-drivers-middleware
-    {:include-drivers :all
-     :injections
-     [(require 'metabase.plugins)
-      (metabase.plugins/load-plugins!)]}]
+   {:include-drivers :all
+    :injections
+    [(require 'metabase.plugins)
+     (metabase.plugins/load-plugins!)]}]
 
    :repl
    [:include-all-drivers
