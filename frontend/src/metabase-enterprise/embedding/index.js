@@ -14,19 +14,14 @@ if (MetabaseSettings.hasPremiumFeature("embedding")) {
 const APP_ORIGIN_SETTING = {
   key: "embedding-app-origin",
   display_name: t`Embedding the entire Metabase app`,
-  description: t`If you want to embed all of Metabase, enter the origins of the websites where you want to allow embedding in an iframe.`,
-  note: jt`The value must be valid for the ${(
-    <code>Content-Security-Policy</code>
-  )} header's
-    ${(
-      <a
-        href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors"
-        className="link"
-      >
-        <code>frame-ancestors</code> directive
-      </a>
-    )},
-    or empty.`,
+  description: jt`If you want to embed all of Metabase, enter the origin(s) of the website(s) or web app(s) where you want to allow embedding in an iframe, separated by a space. The value must be valid for the Content Security Policy header's ${(
+    <a
+      href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors"
+      className="link"
+    >
+      frame-ancestors directive
+    </a>
+  )}, or empty.`,
   placeholder: "https://*.example.com",
   type: "string",
   getHidden: settings => !settings["enable-embedding"],
