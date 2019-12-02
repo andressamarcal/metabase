@@ -63,7 +63,9 @@ export default class Radio extends Component {
       : [NormalList, NormalItem];
 
     if (underlined && value === undefined) {
-      console.warn("Radio can't underline selected option when no value is given.");
+      console.warn(
+        "Radio can't underline selected option when no value is given.",
+      );
     }
 
     return (
