@@ -1,6 +1,8 @@
 (ns metabase.middleware.session
   "Ring middleware related to session (binding current user and permissions)."
   (:require [clojure.java.jdbc :as jdbc]
+            [clojure.string :as str]
+            [java-time :as t]
             [metabase
              [config :as config]
              [db :as mdb]
@@ -14,13 +16,15 @@
             [metabase.models
              [session :refer [Session]]
              [user :as user :refer [User]]]
-            [metabase.util.i18n :refer [tru]]
+            [metabase.util
+             [date-2 :as u.date]
+             [i18n :refer [tru]]]
             [ring.util.response :as resp]
             [schema.core :as s]
             [toucan.db :as db])
   (:import [java.sql Connection PreparedStatement]
-           java.util.UUID
-           org.joda.time.DateTime))
+           java.time.temporal.Temporal
+           java.util.UUID))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                                    Util Fns                                                    |
@@ -57,7 +61,7 @@
 (def ^:private ^String anti-csrf-token-header           "x-metabase-anti-csrf-token")
 
 (defn- clear-cookie [response cookie-name]
-  (resp/set-cookie response cookie-name nil {:expires (DateTime. 0), :path "/"}))
+  (resp/set-cookie response cookie-name nil {:expires "Thu, 1 Jan 1970 00:00:00 GMT", :path "/"}))
 
 (defn clear-session-cookie
   "Add a header to `response` to clear the current Metabase session cookie."
@@ -214,11 +218,23 @@
     (fetch-session (fetch-session-sql :full-app-embed) [session-id anti-csrf-token])
     (fetch-session (fetch-session-sql :normal)         [session-id])))
 
+(s/defn ^:private session-expired?
+  ([session]
+   (session-expired? session (config/config-int :max-session-age)))
+
+  ([{created-at :created_at} :- {(s/optional-key :created_at) (s/maybe Temporal), s/Keyword s/Any}
+    max-age-minutes          :- s/Int]
+   (or
+    (not created-at)
+    (u.date/older-than? created-at (t/minutes max-age-minutes)))))
+
 (defn- current-user-info-for-session
   "Return User ID and superuser status for Session with `session-id` if it is valid and not expired."
   [session-id anti-csrf-token]
   (when (and session-id (init-status/complete?))
-    (session-with-id session-id anti-csrf-token)))
+    (when-let [session (db/select-one Session :id session-id)]
+      (when-not (session-expired? session)
+        (session-with-id session-id anti-csrf-token)))))
 
 (defn- wrap-current-user-id* [{:keys [metabase-session-id anti-csrf-token], :as request}]
   (merge request (current-user-info-for-session metabase-session-id anti-csrf-token)))

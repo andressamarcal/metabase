@@ -1,7 +1,9 @@
 (ns metabase.middleware.session-test
-  (:require [clojure.string :as str]
+  (:require [clojure.test :refer :all]
+            [clojure.string :as str]
             [environ.core :as env]
             [expectations :refer [expect]]
+            [java-time :as t]
             [metabase.api.common :refer [*current-user* *current-user-id*]]
             [metabase.middleware
              [misc :as mw.misc]
@@ -10,7 +12,8 @@
             [metabase.test.data.users :as test-users]
             [ring.mock.request :as mock]
             [toucan.db :as db]
-            [toucan.util.test :as tt]))
+            [toucan.util.test :as tt])
+  (:import java.util.UUID))
 
 ;;; ----------------------------------------------- set-session-cookie -----------------------------------------------
 
@@ -46,29 +49,38 @@
 
 ;; if request is an HTTPS request then we should set `:secure true`. There are several different headers we check for
 ;; this. Make sure they all work.
-(defn- secure-cookie-for-headers? [headers]
-  (binding [mw.misc/*request* {:headers headers}]
-    (-> (mw.session/set-session-cookie {} test-session)
-        (get-in [:cookies session-cookie :secure])
-        boolean)))
+(deftest secure-cookie-test
+  (doseq [[headers expected] [[{"x-forwarded-proto" "https"} true]
+                              [{"x-forwarded-proto" "http"} false]
+                              [{"x-forwarded-protocol" "https"} true]
+                              [{"x-forwarded-protocol" "http"} false]
+                              [{"x-url-scheme" "https"} true]
+                              [{"x-url-scheme" "http"} false]
+                              [{"x-forwarded-ssl" "on"} true]
+                              [{"x-forwarded-ssl" "off"} false]
+                              [{"front-end-https" "on"} true]
+                              [{"front-end-https" "off"} false]
+                              [{"origin" "https://mysite.com"} true]
+                              [{"origin" "http://mysite.com"} false]]]
+    (let [actual (-> (mw.session/set-session-cookie {:headers headers} {} (UUID/randomUUID))
+                     (get-in [:cookies "metabase.SESSION" :secure])
+                     boolean)]
+      (is (= expected
+             actual)
+          (format "With headers %s we %s set the 'secure' attribute on the session cookie"
+                  (pr-str headers) (if expected "SHOULD" "SHOULD NOT"))))))
 
-(expect true  (secure-cookie-for-headers? {"x-forwarded-proto" "https"}))
-(expect false (secure-cookie-for-headers? {"x-forwarded-proto" "http"}))
-
-(expect true  (secure-cookie-for-headers? {"x-forwarded-protocol" "https"}))
-(expect false (secure-cookie-for-headers? {"x-forwarded-protocol" "http"}))
-
-(expect true  (secure-cookie-for-headers? {"x-url-scheme" "https"}))
-(expect false (secure-cookie-for-headers? {"x-url-scheme" "http"}))
-
-(expect true  (secure-cookie-for-headers? {"x-forwarded-ssl" "on"}))
-(expect false (secure-cookie-for-headers? {"x-forwarded-ssl" "off"}))
-
-(expect true  (secure-cookie-for-headers? {"front-end-https" "on"}))
-(expect false (secure-cookie-for-headers? {"front-end-https" "off"}))
-
-(expect true  (secure-cookie-for-headers? {"origin" "https://mysite.com"}))
-(expect false (secure-cookie-for-headers? {"origin" "http://mysite.com"}))
+(deftest session-expired-test
+  (testing "Session expiration time = 1 minute"
+    (doseq [[created-at expected msg]
+            [[nil                                              true  "nil created-at"]
+             [(t/offset-date-time)                             false "brand-new session"]
+             [#t "1970-01-01T00:00:00Z"                        true  "really old session"]
+             [(t/instant (- (System/currentTimeMillis) 61000)) true  "session that is 61 seconds old"]
+             [(t/instant (- (System/currentTimeMillis) 59000)) false "session that is 59 seconds old"]]]
+      (is (= expected
+             (#'mw.session/session-expired? {:created_at created-at} 1))
+          (format "%s %s be expired." msg (if expected "SHOULD" "SHOULD NOT"))))))
 
 
 ;;; ------------------------------------- tests for full-app embedding sessions --------------------------------------

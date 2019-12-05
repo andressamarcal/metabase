@@ -6,7 +6,6 @@
              [misc :as mw.misc]
              [util :as mw.util]]
             [metabase.util :as u]
-            [metabase.util.date :as du]
             [schema.core :as s]
             [toucan.models :as models]))
 
@@ -20,7 +19,7 @@
   (throw (RuntimeException. "You cannot update a Session.")))
 
 (defn- pre-insert [session]
-  (cond-> (assoc session :created_at (du/new-sql-timestamp))
+  (cond-> (assoc session :created_at :%now)
     (some-> mw.misc/*request* mw.util/embedded?) (assoc :anti_csrf_token (random-anti-csrf-token))))
 
 (defn- post-insert [{anti-csrf-token :anti_csrf_token, :as session}]
@@ -33,5 +32,4 @@
    models/IModelDefaults
    {:pre-insert  pre-insert
     :post-insert post-insert
-    :pre-update  pre-update
-    :types       (constantly {:id :clob, :anti_csrf_token :clob})}))
+    :pre-update  pre-update}))

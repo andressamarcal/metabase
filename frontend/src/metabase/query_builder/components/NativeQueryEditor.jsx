@@ -3,7 +3,6 @@
 
 import React, { Component } from "react";
 import ReactDOM from "react-dom";
-
 import cx from "classnames";
 
 import "./NativeQueryEditor.css";
@@ -38,7 +37,7 @@ import Parameters from "metabase/parameters/components/Parameters";
 const SCROLL_MARGIN = 8;
 const LINE_HEIGHT = 16;
 
-const MIN_HEIGHT_LINES = 1;
+const MIN_HEIGHT_LINES = 10;
 const MAX_AUTO_SIZE_LINES = 12;
 
 const ICON_SIZE = 18;
@@ -59,6 +58,7 @@ import {
   SchemaAndTableDataSelector,
 } from "metabase/query_builder/components/DataSelector";
 
+import RunButtonWithTooltip from "./RunButtonWithTooltip";
 import DataReferenceButton from "./view/DataReferenceButton";
 import NativeVariablesButton from "./view/NativeVariablesButton";
 
@@ -84,9 +84,16 @@ type Props = {
 
   isNativeEditorOpen: boolean,
   setIsNativeEditorOpen: (isOpen: boolean) => void,
+
+  isRunnable: boolean,
+  isRunning: boolean,
+  isResultDirty: boolean,
+  isPreviewing: boolean,
+  isNativeEditorOpen: boolean,
 };
 type State = {
   initialHeight: number,
+  hasTextSelected: boolean,
   firstRun: boolean,
 };
 
@@ -100,14 +107,18 @@ export default class NativeQueryEditor extends Component {
   constructor(props: Props) {
     super(props);
 
-    const lines = Math.min(
-      MAX_AUTO_SIZE_LINES,
-      (props.query && props.query.lineCount()) || MAX_AUTO_SIZE_LINES,
+    const lines = Math.max(
+      Math.min(
+        MAX_AUTO_SIZE_LINES,
+        (props.query && props.query.lineCount()) || MAX_AUTO_SIZE_LINES,
+      ),
+      MIN_HEIGHT_LINES,
     );
 
     this.state = {
       initialHeight: getEditorLineHeight(lines),
       firstRun: true,
+      hasTextSelected: false,
     };
 
     // Ace sometimes fires mutliple "change" events in rapid succession
@@ -127,6 +138,7 @@ export default class NativeQueryEditor extends Component {
 
   componentDidMount() {
     this.loadAceEditor();
+    document.addEventListener("selectionchange", this.handleSelectionChange);
     document.addEventListener("keydown", this.handleKeyDown);
   }
 
@@ -172,29 +184,34 @@ export default class NativeQueryEditor extends Component {
   }
 
   componentWillUnmount() {
+    document.removeEventListener("selectionchange", this.handleSelectionChange);
     document.removeEventListener("keydown", this.handleKeyDown);
   }
+
+  handleSelectionChange = () => {
+    const hasTextSelected = Boolean(this._editor.getSelectedText());
+    if (this.state.hasTextSelected !== hasTextSelected) {
+      this.setState({ hasTextSelected });
+    }
+  };
 
   handleKeyDown = (e: KeyboardEvent) => {
     const { query, runQuestionQuery } = this.props;
 
     const ENTER_KEY = 13;
-    if (e.keyCode === ENTER_KEY && (e.metaKey || e.ctrlKey) && query.canRun()) {
-      const { query } = this.props;
-      if (e.altKey) {
-        // run just the selected text, if any
-        const selectedText = this._editor.getSelectedText();
-        if (selectedText) {
-          const temporaryCard = query
-            .setQueryText(selectedText)
-            .question()
-            .card();
-          runQuestionQuery({
-            overrideWithCard: temporaryCard,
-            shouldUpdateUrl: false,
-          });
-        }
-      } else {
+    if (e.keyCode === ENTER_KEY && (e.metaKey || e.ctrlKey)) {
+      // if any text is selected, just run that
+      const selectedText = this._editor.getSelectedText();
+      if (selectedText) {
+        const temporaryCard = query
+          .setQueryText(selectedText)
+          .question()
+          .card();
+        runQuestionQuery({
+          overrideWithCard: temporaryCard,
+          shouldUpdateUrl: false,
+        });
+      } else if (query.canRun()) {
         runQuestionQuery();
       }
     }
@@ -268,7 +285,8 @@ export default class NativeQueryEditor extends Component {
     const newHeight = getEditorLineHeight(doc.getLength());
     if (
       (allowShrink || newHeight > element.offsetHeight) &&
-      newHeight <= getEditorLineHeight(MAX_AUTO_SIZE_LINES)
+      newHeight <= getEditorLineHeight(MAX_AUTO_SIZE_LINES) &&
+      newHeight >= getEditorLineHeight(MIN_HEIGHT_LINES)
     ) {
       element.style.height = newHeight + "px";
       this._editor.resize();
@@ -325,6 +343,11 @@ export default class NativeQueryEditor extends Component {
       location,
       readOnly,
       isNativeEditorOpen,
+      isRunnable,
+      isRunning,
+      isResultDirty,
+      isPreviewing,
+      runQuestionQuery,
     } = this.props;
 
     const database = query.database();
@@ -386,15 +409,11 @@ export default class NativeQueryEditor extends Component {
       );
     }
 
-    let editorClasses, toggleEditorText, toggleEditorIcon;
+    let toggleEditorText, toggleEditorIcon;
     if (isNativeEditorOpen) {
-      editorClasses = "";
-      toggleEditorText = query.hasWritePermission()
-        ? t`Hide Editor`
-        : t`Hide Query`;
+      toggleEditorText = null;
       toggleEditorIcon = "contract";
     } else {
-      editorClasses = "hide";
       toggleEditorText = query.hasWritePermission()
         ? t`Open Editor`
         : t`Show Query`;
@@ -416,20 +435,6 @@ export default class NativeQueryEditor extends Component {
             commitImmediately
           />
           <div className="flex-align-right flex align-center text-medium pr1">
-            {isNativeEditorOpen &&
-              !readOnly &&
-              DataReferenceButton.shouldRender(this.props) && (
-                <DataReferenceButton {...this.props} size={ICON_SIZE} />
-              )}
-            {isNativeEditorOpen &&
-              !readOnly &&
-              NativeVariablesButton.shouldRender(this.props) && (
-                <NativeVariablesButton
-                  {...this.props}
-                  size={ICON_SIZE}
-                  className="mx3 flex align-center"
-                />
-              )}
             <a
               className={cx(
                 "Query-label no-decoration flex align-center mx3 text-brand-hover transition-all",
@@ -446,16 +451,37 @@ export default class NativeQueryEditor extends Component {
         </div>
         <ResizableBox
           ref="resizeBox"
-          className={"border-top " + editorClasses}
+          className={cx("border-top flex ", { hide: !isNativeEditorOpen })}
           height={this.state.initialHeight}
           minConstraints={[Infinity, getEditorLineHeight(MIN_HEIGHT_LINES)]}
           axis="y"
+          handle={<div className="NativeQueryEditorDragHandle" />}
           onResizeStop={(e, data) => {
             this.props.handleResize();
             this._editor.resize();
           }}
+          resizeHandles={["s"]}
         >
-          <div id="id_sql" ref="editor" />
+          <div className="flex-full" id="id_sql" ref="editor" />
+          <div className="flex flex-column align-center border-left">
+            {[DataReferenceButton, NativeVariablesButton].map(Button => (
+              <Button {...this.props} size={ICON_SIZE} className="mt3" />
+            ))}
+            <RunButtonWithTooltip
+              disabled={!isRunnable}
+              isRunning={isRunning}
+              isDirty={isResultDirty}
+              isPreviewing={isPreviewing}
+              onRun={runQuestionQuery}
+              compact
+              className="mx2 mb2 mt-auto p2"
+              getTooltip={() =>
+                this.state.hasTextSelected
+                  ? t`Run selected text (⌘ + enter)`
+                  : t`Run query (⌘ + enter)`
+              }
+            />
+          </div>
         </ResizableBox>
       </div>
     );
