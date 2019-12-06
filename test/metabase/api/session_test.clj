@@ -378,7 +378,18 @@
                                "\"email_verified\":\"true\"}")}
                  "PRETEND-GOOD-GOOGLE-CLIENT-ID")
                (catch Exception e
-                 [(-> e ex-data :status-code) (.getMessage e)])))))))
+                 [(-> e ex-data :status-code) (.getMessage e)]))))))
+
+  (testing "Supports multiple :aud token data fields"
+    (let [token-1 "GOOGLE-CLIENT-ID-1"
+          token-2 "GOOGLE-CLIENT-ID-2"]
+      (is (= [token-1 token-2]
+             (:aud (#'session-api/google-auth-token-info
+                     {:status 200
+                      :body   (format "{\"aud\":[\"%s\",\"%s\"],\"email_verified\":\"true\"}"
+                                      token-1
+                                      token-2)}
+                     token-1)))))))
 
 ;;; --------------------------------------- google-auth-fetch-or-create-user! ----------------------------------------
 

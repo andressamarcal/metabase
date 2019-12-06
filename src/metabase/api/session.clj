@@ -272,8 +272,10 @@
      (when-not (= status 200)
        (throw (ex-info (tru "Invalid Google Auth token.") {:status-code 400})))
      (u/prog1 (json/parse-string body keyword)
-              (when-not (= (:aud <>) client-id)
-                (throw (ex-info (tru "Google Auth token meant for a different site.") {:status-code 400})))
+              (let [audience (:aud <>)
+                    audience (if (string? audience) [audience] audience)]
+                (when-not (contains? (set audience) client-id)
+                  (throw (ex-info (tru "Google Auth token meant for a different site.") {:status-code 400}))))
               (when-not (= (:email_verified <>) "true")
                 (throw (ex-info (tru "Email is not verified.") {:status-code 400})))))))
 
