@@ -343,39 +343,42 @@
 
 ;;; --------------------------------------------- google-auth-token-info ---------------------------------------------
 (deftest google-auth-token-info-tests
-  (testing "Throws exception for non-200 status"
-    (is (= [400 "Invalid Google Auth token."]
-           (try
-             (#'session-api/google-auth-token-info {:status 400} "")
-             (catch Exception e
-               [(-> e ex-data :status-code) (.getMessage e)]))))
-    (is (= [400 "Google Auth token meant for a different site."]
-           (try
-             (#'session-api/google-auth-token-info
-               {:status 200
-                :body   "{\"aud\":\"BAD-GOOGLE-CLIENT-ID\"}"}
-               "PRETEND-GOOD-GOOGLE-CLIENT-ID")
-             (catch Exception e
-               [(-> e ex-data :status-code) (.getMessage e)]))))
-    (is (= [400 "Email is not verified."]
-           (try
-             (#'session-api/google-auth-token-info
-               {:status 200
-                :body   (str "{\"aud\":\"PRETEND-GOOD-GOOGLE-CLIENT-ID\","
-                             "\"email_verified\":false}")}
-               "PRETEND-GOOD-GOOGLE-CLIENT-ID")
-             (catch Exception e
-               [(-> e ex-data :status-code) (.getMessage e)]))))
-    (is (= {:aud            "PRETEND-GOOD-GOOGLE-CLIENT-ID"
-            :email_verified "true"}
-           (try
-             (#'session-api/google-auth-token-info
-               {:status 200
-                :body   (str "{\"aud\":\"PRETEND-GOOD-GOOGLE-CLIENT-ID\","
-                             "\"email_verified\":\"true\"}")}
-               "PRETEND-GOOD-GOOGLE-CLIENT-ID")
-             (catch Exception e
-               [(-> e ex-data :status-code) (.getMessage e)]))))))
+  (testing "Throws exception"
+    (testing "for non-200 status"
+      (is (= [400 "Invalid Google Auth token."]
+             (try
+               (#'session-api/google-auth-token-info {:status 400} "")
+               (catch Exception e
+                 [(-> e ex-data :status-code) (.getMessage e)])))))
+
+    (testing "for invalid data."
+      (is (= [400 "Google Auth token meant for a different site."]
+             (try
+               (#'session-api/google-auth-token-info
+                 {:status 200
+                  :body   "{\"aud\":\"BAD-GOOGLE-CLIENT-ID\"}"}
+                 "PRETEND-GOOD-GOOGLE-CLIENT-ID")
+               (catch Exception e
+                 [(-> e ex-data :status-code) (.getMessage e)]))))
+      (is (= [400 "Email is not verified."]
+             (try
+               (#'session-api/google-auth-token-info
+                 {:status 200
+                  :body   (str "{\"aud\":\"PRETEND-GOOD-GOOGLE-CLIENT-ID\","
+                               "\"email_verified\":false}")}
+                 "PRETEND-GOOD-GOOGLE-CLIENT-ID")
+               (catch Exception e
+                 [(-> e ex-data :status-code) (.getMessage e)]))))
+      (is (= {:aud            "PRETEND-GOOD-GOOGLE-CLIENT-ID"
+              :email_verified "true"}
+             (try
+               (#'session-api/google-auth-token-info
+                 {:status 200
+                  :body   (str "{\"aud\":\"PRETEND-GOOD-GOOGLE-CLIENT-ID\","
+                               "\"email_verified\":\"true\"}")}
+                 "PRETEND-GOOD-GOOGLE-CLIENT-ID")
+               (catch Exception e
+                 [(-> e ex-data :status-code) (.getMessage e)])))))))
 
 ;;; --------------------------------------- google-auth-fetch-or-create-user! ----------------------------------------
 
