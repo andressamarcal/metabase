@@ -262,13 +262,20 @@
 (defsetting google-auth-auto-create-accounts-domain
   (deferred-tru "When set, allow users to sign up on their own if their Google account email address is from this domain."))
 
-(defn- google-auth-token-info [^String token]
-  (let [{:keys [status body]} (http/post (str "https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=" token))]
-    (when-not (= status 200)
-      (throw (ex-info (tru "Invalid Google Auth token.") {:status-code 400})))
-    (u/prog1 (json/parse-string body keyword)
-      (when-not (= (:email_verified <>) "true")
-        (throw (ex-info (tru "Email is not verified.") {:status-code 400}))))))
+(def ^:private google-auth-token-info-url "https://www.googleapis.com/oauth2/v3/tokeninfo?id_token=%s")
+
+(defn- google-auth-token-info
+  ([token-info-response]
+   (google-auth-token-info token-info-response (google-auth-client-id)))
+  ([token-info-response client-id]
+   (let [{:keys [status body]} token-info-response]
+     (when-not (= status 200)
+       (throw (ex-info (tru "Invalid Google Auth token.") {:status-code 400})))
+     (u/prog1 (json/parse-string body keyword)
+              (when-not (= (:aud <>) client-id)
+                (throw (ex-info (tru "Google Auth token meant for a different site.") {:status-code 400})))
+              (when-not (= (:email_verified <>) "true")
+                (throw (ex-info (tru "Email is not verified.") {:status-code 400})))))))
 
 ;; TODO - are these general enough to move to `metabase.util`?
 (defn- email->domain ^String [email]
@@ -308,8 +315,9 @@
                                                      :email      email}))]
     (create-session! :sso user)))
 
-(defn- do-google-auth [{{:keys [token]} :body, :as request}]
-  (let [{:keys [given_name family_name email]} (google-auth-token-info token)]
+(defn- do-google-auth [{{:keys [token]} :body}]
+  (let [token-info-response                    (http/post (format google-auth-token-info-url token))
+        {:keys [given_name family_name email]} (google-auth-token-info token-info-response)]
     (log/info (trs "Successfully authenticated Google Auth token for: {0} {1}" given_name family_name))
     (let [{session-uuid :id, :as session} (api/check-500
                                            (google-auth-fetch-or-create-user! given_name family_name email))
