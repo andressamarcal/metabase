@@ -55,7 +55,6 @@ export default class SettingsEditorApp extends Component {
     activeSection: PropTypes.object,
     activeSectionName: PropTypes.string,
     updateSetting: PropTypes.func.isRequired,
-    updateLdapSettings: PropTypes.func.isRequired,
   };
 
   componentWillMount() {
