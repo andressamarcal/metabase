@@ -330,6 +330,8 @@
   "Login with Google Auth."
   [:as {{:keys [token]} :body, :as request}]
   {token su/NonBlankString}
+  (when-not (google-auth-client-id)
+    (throw (ex-info "Google Auth is disabled." {:status-code 400})))
   ;; Verify the token is valid with Google
   (if throttling-disabled?
     (do-google-auth token)
