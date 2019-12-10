@@ -196,8 +196,11 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
 (defn- new-user-saml-test-response []
   (saml-response-from-file "test_resources/saml-test-response-new-user.xml"))
 
-(defn- new-user-with-group-saml-test-response []
-  (saml-response-from-file "test_resources/saml-test-response-new-user-with-group.xml"))
+(defn- new-user-with-single-group-saml-test-response []
+  (saml-response-from-file "test_resources/saml-test-response-new-user-with-single-group.xml"))
+
+(defn- new-user-with-groups-saml-test-response []
+  (saml-response-from-file "test_resources/saml-test-response-new-user-with-groups.xml"))
 
 (defn- saml-post-request-options [saml-response relay-state]
   {:request-options {:content-type     :x-www-form-urlencoded
@@ -267,30 +270,51 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
       (finally
         (db/delete! User :email "newuser@metabase.com")))))
 
-;; login should sync group memberships if enabled
 (defn- group-memberships [user-or-id]
   (when-let [group-ids (seq (db/select-field :group_id PermissionsGroupMembership :user_id (u/get-id user-or-id)))]
     (db/select-field :name PermissionsGroup :id [:in group-ids])))
 
-(deftest login-should-sync-group-memberships-if-enabled
-  (with-saml-default-setup
-    (tt/with-temp* [PermissionsGroup [group-1 {:name (str ::group-1)}]
-                    PermissionsGroup [group-2 {:name (str ::group-2)}]]
-      (tu/with-temporary-setting-values [saml-group-sync      true
-                                         saml-group-mappings  {"group_1" [(u/get-id group-1)]
-                                                               "group_2" [(u/get-id group-2)]}
-                                         saml-attribute-group "GroupMembership"]
-        (try
-          ;; user doesn't exist until SAML request
-          (is (not (db/select-one-id User :email "newuser@metabase.com")))
-          (let [req-options            (saml-post-request-options (new-user-with-group-saml-test-response)
-                                                                  (#'saml/encrypt-redirect-str default-redirect-uri))
-                response               (client-full-response :post 302 "/auth/sso" req-options)
-                new-user-id            (db/select-one-id User :email "newuser@metabase.com")]
-            (assert (successful-login? response))
-            (is (= #{"All Users"
-                     ":metabase.mt.integrations.saml-test/group-1"
-                     ":metabase.mt.integrations.saml-test/group-2"}
-                   (group-memberships new-user-id))))
-          (finally
-            (db/delete! User :email "newuser@metabase.com")))))))
+(deftest login-should-sync-single-group-membership
+  (testing "saml group sync works when there's just a single group, which gets interpreted as a string"
+    (with-saml-default-setup
+      (tt/with-temp* [PermissionsGroup [group-1 {:name (str ::group-1)}]]
+        (tu/with-temporary-setting-values [saml-group-sync      true
+                                           saml-group-mappings  {"group_1" [(u/get-id group-1)]}
+                                           saml-attribute-group "GroupMembership"]
+          (try
+            ;; user doesn't exist until SAML request
+            (is (not (db/select-one-id User :email "newuser@metabase.com")))
+            (let [req-options            (saml-post-request-options (new-user-with-single-group-saml-test-response)
+                                                                    (#'saml/encrypt-redirect-str default-redirect-uri))
+                  response               (client-full-response :post 302 "/auth/sso" req-options)
+                  new-user-id            (db/select-one-id User :email "newuser@metabase.com")]
+              (assert (successful-login? response))
+              (is (= #{"All Users"
+                       ":metabase.mt.integrations.saml-test/group-1"}
+                     (group-memberships new-user-id))))
+            (finally
+              (db/delete! User :email "newuser@metabase.com"))))))))
+
+(deftest login-should-sync-multiple-group-membership
+  (testing "saml group sync works when there are multiple groups, which gets interpreted as a list of stringss"
+    (with-saml-default-setup
+      (tt/with-temp* [PermissionsGroup [group-1 {:name (str ::group-1)}]
+                      PermissionsGroup [group-2 {:name (str ::group-2)}]]
+        (tu/with-temporary-setting-values [saml-group-sync      true
+                                           saml-group-mappings  {"group_1" [(u/get-id group-1)]
+                                                                 "group_2" [(u/get-id group-2)]}
+                                           saml-attribute-group "GroupMembership"]
+          (try
+            ;; user doesn't exist until SAML request
+            (is (not (db/select-one-id User :email "newuser@metabase.com")))
+            (let [req-options            (saml-post-request-options (new-user-with-groups-saml-test-response)
+                                                                    (#'saml/encrypt-redirect-str default-redirect-uri))
+                  response               (client-full-response :post 302 "/auth/sso" req-options)
+                  new-user-id            (db/select-one-id User :email "newuser@metabase.com")]
+              (assert (successful-login? response))
+              (is (= #{"All Users"
+                       ":metabase.mt.integrations.saml-test/group-1"
+                       ":metabase.mt.integrations.saml-test/group-2"}
+                     (group-memberships new-user-id))))
+            (finally
+              (db/delete! User :email "newuser@metabase.com"))))))))

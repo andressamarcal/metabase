@@ -28,8 +28,10 @@
   (:import java.util.UUID))
 
 (defn- group-names->ids [group-names]
-  (set (mapcat (sso-settings/saml-group-mappings)
-               (map keyword group-names))))
+  (->> (cond-> group-names (string? group-names) vector)
+       (map keyword)
+       (mapcat (sso-settings/saml-group-mappings))
+       set))
 
 (defn- sync-groups! [user group-names]
   (when (sso-settings/saml-group-sync)
