@@ -272,8 +272,7 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
   (when-let [group-ids (seq (db/select-field :group_id PermissionsGroupMembership :user_id (u/get-id user-or-id)))]
     (db/select-field :name PermissionsGroup :id [:in group-ids])))
 
-(expect
-  #{"All Users" ":metabase.mt.integrations.saml-test/group-1" ":metabase.mt.integrations.saml-test/group-2"}
+(deftest login-should-sync-group-memberships-if-enabled
   (with-saml-default-setup
     (tt/with-temp* [PermissionsGroup [group-1 {:name (str ::group-1)}]
                     PermissionsGroup [group-2 {:name (str ::group-2)}]]
@@ -282,11 +281,16 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
                                                                "group_2" [(u/get-id group-2)]}
                                          saml-attribute-group "GroupMembership"]
         (try
-          (let [req-options (saml-post-request-options (new-user-with-group-saml-test-response)
-                                                       (#'saml/encrypt-redirect-str default-redirect-uri))
-                response    (client-full-response :post 302 "/auth/sso" req-options)
-                _           (assert (successful-login? response))
-                new-user-id (db/select-one-id User :email "newuser@metabase.com")]
-            (group-memberships new-user-id))
+          ;; user doesn't exist until SAML request
+          (is (not (db/select-one-id User :email "newuser@metabase.com")))
+          (let [req-options            (saml-post-request-options (new-user-with-group-saml-test-response)
+                                                                  (#'saml/encrypt-redirect-str default-redirect-uri))
+                response               (client-full-response :post 302 "/auth/sso" req-options)
+                new-user-id            (db/select-one-id User :email "newuser@metabase.com")]
+            (assert (successful-login? response))
+            (is (= #{"All Users"
+                     ":metabase.mt.integrations.saml-test/group-1"
+                     ":metabase.mt.integrations.saml-test/group-2"}
+                   (group-memberships new-user-id))))
           (finally
             (db/delete! User :email "newuser@metabase.com")))))))
