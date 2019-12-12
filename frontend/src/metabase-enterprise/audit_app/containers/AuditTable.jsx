@@ -73,6 +73,7 @@ export default class AuditTable extends React.Component {
         <QuestionLoadAndDisplay
           className="mt3"
           question={question}
+          metadata={metadata}
           mode={AuditMode}
           onChangeLocation={onChangeLocation}
           onChangeCardAndRun={() => {}}
