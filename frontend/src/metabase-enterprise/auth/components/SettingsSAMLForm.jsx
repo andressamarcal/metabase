@@ -124,6 +124,7 @@ export default class SettingsSAMLForm extends Component {
             title={t`SAML Identity Provider Certificate`}
             type="text"
             required
+            monospaceText
           />
           <FormField
             {...settingField("saml-application-name")}
