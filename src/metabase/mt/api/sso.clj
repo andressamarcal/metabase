@@ -1,5 +1,5 @@
 (ns metabase.mt.api.sso
-  "`/api/auth/sso` Routes.
+  "`/auth/sso` Routes.
 
   Implements the SSO routes needed for SAML and JWT. This namespace primarily provides hooks for those two backends so
   we can have a uniform interface both via the API and code"
