@@ -106,8 +106,8 @@
                  com.sun.jmx/jmxri]]
    [me.raynes/fs "1.4.6"]                                             ; Filesystem tools
    [medley "1.2.0"]                                                   ; lightweight lib of useful functions
-   [metabase/connection-pool "1.0.3"]                                 ; simple wrapper around C3P0. JDBC connection pools
-   [metabase/mbql "1.4.0"]                                            ; MBQL language schema & util fns
+   [metabase/connection-pool "1.1.1"]                                 ; simple wrapper around C3P0. JDBC connection pools
+   [metabase/mbql "1.4.3"]                                            ; MBQL language schema & util fns
    [metabase/saml20-clj "1.0.2"]                                      ; EE SAML integration
    [metabase/throttle "1.0.2"]                                        ; Tools for throttling access to API endpoints and other code pathways
    [net.redhogs.cronparser/cron-parser-core "3.4"                     ; describe Cron schedule in human-readable language
@@ -268,7 +268,8 @@
 
    :repl
    [:include-all-drivers
-    {:jvm-opts ["-Duser.timezone=UTC"]}] ; so running the tests doesn't give you different answers
+    ;; so running the tests doesn't give you different answers
+    {:jvm-opts ["-Duser.timezone=UTC"]}]
 
    :bikeshed
    [:include-all-drivers
@@ -325,8 +326,9 @@
 
    ;; build the uberjar with `lein uberjar`
    :uberjar
-   {:auto-clean true
-    :aot        :all}
+   {:auto-clean  true
+    :aot         :all
+    :omit-source true}
 
    ;; lein strip-and-compress my-plugin.jar [path/to/metabase.jar]
    ;; strips classes from my-plugin.jar that already exist in other JAR and recompresses with higher compression ratio.
