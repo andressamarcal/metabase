@@ -34,7 +34,7 @@
              [names :refer [fully-qualified-name->context]]
              [upsert :refer [maybe-upsert-many!]]]
             [metabase.util
-             [date :as du]
+             [date-2 :as u.date]
              [i18n :refer [trs]]]
             [toucan.db :as db]
             [yaml.core :as yaml]))
@@ -136,7 +136,7 @@
                        (for [field fields]
                          (-> field
                              (update :parent_id (comp :field fully-qualified-name->context))
-                             (update :last_analyzed du/->Timestamp)
+                             (update :last_analyzed u.date/parse)
                              (update :fk_target_field_id (comp :field fully-qualified-name->context))
                              (dissoc :values)
                              (assoc :table_id (:table context)))))]
