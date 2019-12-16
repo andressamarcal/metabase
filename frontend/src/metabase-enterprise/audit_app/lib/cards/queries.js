@@ -30,8 +30,8 @@ export const mostPopular = () => ({
       args: [],
     },
     visualization_settings: {
-      "graph.metrics": ["card_id"],
-      "graph.dimensions": ["executions"],
+      "graph.metrics": ["executions"],
+      "graph.dimensions": ["card_id"],
     },
   },
 });
@@ -46,8 +46,8 @@ export const slowest = () => ({
       args: [],
     },
     visualization_settings: {
-      "graph.metrics": ["card_id"],
-      "graph.dimensions": ["avg_running_time"],
+      "graph.metrics": ["avg_running_time"],
+      "graph.dimensions": ["card_id"],
     },
   },
 });
