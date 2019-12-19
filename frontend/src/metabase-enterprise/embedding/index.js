@@ -21,7 +21,7 @@ const APP_ORIGIN_SETTING = {
     >
       exact specifications
     </a>
-  )} for what can be entered.`,
+  )} for what can be entered. Only the first one will be used for IE11 users.`,
   placeholder: "https://*.example.com",
   type: "string",
   getHidden: settings => !settings["enable-embedding"],
