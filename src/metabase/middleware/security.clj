@@ -103,6 +103,13 @@
        (deferred-tru "See {0} for more information." "http://mzl.la/1EnfqBf")))
 ;; TODO - it would be nice if we could make this a proper link in the UI; consider enabling markdown parsing
 
+(defn- first-embedding-app-origin
+  "Return only the first embedding app origin."
+  []
+  (some-> (embedding-app-origin)
+          (str/split #" ")
+          first))
+
 (defn security-headers
   "Fetch a map of security headers that should be added to a response based on the passed options."
   [& {:keys [allow-iframes? allow-cache?]
@@ -113,6 +120,11 @@
      (cache-prevention-headers))
    strict-transport-security-header
    (content-security-policy-header-with-frame-ancestors allow-iframes?)
+   (when-not allow-iframes?
+     ;; Tell browsers not to render our site as an iframe (prevent clickjacking)
+     {"X-Frame-Options"                 (if (embedding-app-origin)
+                                          (format "ALLOW-FROM %s" (first-embedding-app-origin))
+                                          "DENY")})
    { ;; Tell browser to block suspected XSS attacks
     "X-XSS-Protection"                  "1; mode=block"
     ;; Prevent Flash / PDF files from including content from site.
