@@ -901,7 +901,8 @@ export default function lineAreaBar(
   if (onRender) {
     onRender({
       yAxisSplit: yAxisProps.yAxisSplit,
-      warnings: Object.values(warnings),
+      // $FlowFixMe
+      warnings: (Object.values(warnings): string[]),
     });
   }
 

@@ -28,6 +28,8 @@ import "metabase-enterprise/plugins";
 
 import { PLUGIN_APP_INIT_FUCTIONS } from "metabase/plugins";
 
+import registerVisualizations from "metabase/visualizations/register";
+
 import React from "react";
 import ReactDOM from "react-dom";
 import { Provider } from "react-redux";
@@ -88,6 +90,8 @@ function _init(reducers, getRoutes, callback) {
   history.listen(location => {
     MetabaseAnalytics.trackPageView(location.pathname);
   });
+
+  registerVisualizations();
 
   initializeEmbedding(store);
 

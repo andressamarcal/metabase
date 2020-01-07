@@ -14,6 +14,7 @@ type DeregisterFunction = () => void;
 
 type Props = VisualizationProps & {
   renderer: (element: Element, props: VisualizationProps) => DeregisterFunction,
+  style?: any,
 };
 
 @ExplicitSize({ wrapped: true })

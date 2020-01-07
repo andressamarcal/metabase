@@ -48,7 +48,6 @@ import PulseEditApp from "metabase/pulse/containers/PulseEditApp";
 import SetupApp from "metabase/setup/containers/SetupApp";
 import PostSetupApp from "metabase/setup/containers/PostSetupApp";
 import UserSettingsApp from "metabase/user/containers/UserSettingsApp";
-import EntityPage from "metabase/components/EntityPage";
 // new question
 import NewQueryOptions from "metabase/new_query/containers/NewQueryOptions";
 
@@ -242,7 +241,6 @@ export const getRoutes = store => (
           <Route path="notebook" component={QueryBuilder} />
           <Route path=":cardId" component={QueryBuilder} />
           <Route path=":cardId/notebook" component={QueryBuilder} />
-          <Route path=":cardId/entity" component={EntityPage} />
         </Route>
 
         <Route path="/ready" component={PostSetupApp} />
