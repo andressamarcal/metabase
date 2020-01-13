@@ -4,7 +4,7 @@ import Icon from "metabase/components/Icon";
 import LogoIcon from "metabase/components/LogoIcon";
 import SettingInput from "metabase/admin/settings/components/widgets/SettingInput.jsx";
 
-import { getNavBarColor } from "metabase/lib/colors";
+import { color } from "metabase/lib/colors";
 
 const LogoUpload = ({ setting, onChange, ...props }) => (
   <div>
@@ -12,7 +12,7 @@ const LogoUpload = ({ setting, onChange, ...props }) => (
       {/* Preview of icon as it will appear in the nav bar */}
       <span
         className="mb1 p1 rounded flex layout-centered"
-        style={{ backgroundColor: getNavBarColor() }}
+        style={{ backgroundColor: color("nav") }}
       >
         <LogoIcon dark height={32} />
       </span>

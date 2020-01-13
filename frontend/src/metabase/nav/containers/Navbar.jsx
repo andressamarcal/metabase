@@ -14,7 +14,7 @@ import styled from "styled-components";
 import { space } from "styled-system";
 
 import * as Urls from "metabase/lib/urls";
-import { color, darken, lighten, getNavBarColor } from "metabase/lib/colors";
+import { color, darken, lighten } from "metabase/lib/colors";
 
 import Icon, { IconWrapper } from "metabase/components/Icon";
 import Link from "metabase/components/Link";
@@ -62,11 +62,11 @@ const AdminNavItem = ({ name, path, currentPath }) => (
   </li>
 );
 
-const DefaultSearchColor = lighten(getNavBarColor(), 0.07);
-const ActiveSearchColor = lighten(getNavBarColor(), 0.1);
+const DefaultSearchColor = lighten(color("nav"), 0.07);
+const ActiveSearchColor = lighten(color("nav"), 0.1);
 
 const NavHover = {
-  backgroundColor: darken(getNavBarColor()),
+  backgroundColor: darken(color("nav")),
   color: "white",
 };
 
@@ -308,7 +308,7 @@ export default class Navbar extends Component {
         // TODO: hide nav using state in redux instead?
         className="Nav relative bg-brand text-white z3 flex-no-shrink"
         align="center"
-        style={{ backgroundColor: getNavBarColor() }}
+        style={{ backgroundColor: color("nav") }}
         py={1}
         pr={2}
       >

@@ -11,7 +11,7 @@ import React from "react";
 import { push } from "react-router-redux";
 import { t } from "ttag";
 
-import MetabaseSettings from "metabase/lib/settings";
+import { hasPremiumFeature } from "metabase-enterprise/settings";
 import { color, alpha } from "metabase/lib/colors";
 
 import { ModalRoute } from "metabase/hoc/ModalRoute";
@@ -50,7 +50,7 @@ const getEditSegementedAccessAction = (groupId, entityId) => ({
 const getEditSegmentedAcessPostAction = (groupId, entityId) =>
   push(getEditSegementedAccessUrl(groupId, entityId));
 
-if (MetabaseSettings.hasPremiumFeature("sandboxes")) {
+if (hasPremiumFeature("sandboxes")) {
   PLUGIN_ADMIN_USER_FORM_FIELDS.push({
     name: "login_attributes",
     title: "Attributes",

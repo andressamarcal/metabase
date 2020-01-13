@@ -21,3 +21,4 @@ import "./auth";
 import "./whitelabel";
 import "./embedding";
 import "./store";
+import "./formatting";

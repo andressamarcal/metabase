@@ -2,7 +2,7 @@ import React from "react";
 
 import { t } from "ttag";
 
-import { renderLinkURLForClick } from "metabase/lib/formatting/link";
+import { renderLinkURLForClick } from "metabase-enterprise/formatting/link";
 import { open } from "metabase/lib/dom";
 
 import ChartSettingInputWithInfo from "../components/ChartSettingInputWithInfo";

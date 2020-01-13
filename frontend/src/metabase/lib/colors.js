@@ -39,7 +39,6 @@ const colors = {
   "bg-white": "#FFFFFF",
   shadow: "rgba(0,0,0,0.08)",
   border: "#F0F0F0",
-  nav: undefined,
   /* Saturated colors for the SQL editor. Shouldn't be used elsewhere since they're not white-labelable. */
   "saturated-blue": "#2D86D4",
   "saturated-green": "#70A63A",
@@ -56,6 +55,7 @@ export const aliases = {
   database: "accent2",
   dashboard: "brand",
   pulse: "accent4",
+  nav: "brand",
 };
 
 export const harmony = [];
@@ -130,8 +130,6 @@ export const getRandomColor = (family: ColorFamily): ColorString => {
   const colors: ColorString[] = Object.values(family);
   return colors[Math.floor(Math.random() * colors.length)];
 };
-
-export const getNavBarColor = () => colors["nav"] || colors["brand"];
 
 type ColorScale = (input: number) => ColorString;
 
