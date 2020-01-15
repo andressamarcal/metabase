@@ -193,7 +193,7 @@
 
 (defn- syncable-user-attributes [m]
   (when (ldap-sync-user-attributes)
-    (apply dissoc m :objectClass (map keyword (ldap-sync-user-attributes-blacklist)))))
+    (apply dissoc m :objectclass (map (comp keyword u/lower-case-en) (ldap-sync-user-attributes-blacklist)))))
 
 (defn find-user
   "Gets user information for the supplied username."
@@ -213,9 +213,9 @@
           :email      email
           :attributes (syncable-user-attributes result)
           :groups     (when (ldap-group-sync)
-                        ;; ActiveDirectory (and others?) will supply a `memberOf` overlay attribute for groups
-                        ;; Otherwise we have to make the inverse query to get them
-                        (or (:memberOf result) (get-user-groups dn) []))})))))
+                        ;; Active Directory and others (like FreeIPA) will supply a `memberOf` overlay attribute for
+                        ;; groups. Otherwise we have to make the inverse query to get them.
+                        (or (:memberof result) (get-user-groups dn) []))})))))
 
 (defn verify-password
   "Verifies if the supplied password is valid for the `user-info` (from `find-user`) or DN."

@@ -37,7 +37,14 @@
              [date-2 :as u.date]
              [i18n :refer [trs]]]
             [toucan.db :as db]
-            [yaml.core :as yaml]))
+            [yaml
+             [core :as yaml]
+             [reader :as y.reader]])
+  (:import java.time.temporal.Temporal))
+
+(extend-type Temporal y.reader/YAMLReader
+  (decode [data]
+    (u.date/parse data)))
 
 (defn- slurp-dir
   [path]

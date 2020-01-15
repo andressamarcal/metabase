@@ -1,7 +1,6 @@
 (ns metabase.middleware.session
   "Ring middleware related to session (binding current user and permissions)."
   (:require [clojure.java.jdbc :as jdbc]
-            [clojure.string :as str]
             [java-time :as t]
             [metabase
              [config :as config]

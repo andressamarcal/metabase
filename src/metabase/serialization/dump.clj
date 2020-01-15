@@ -18,8 +18,17 @@
             [metabase.serialization
              [names :refer [fully-qualified-name name-for-logging safe-name]]
              [serialize :as serialize :refer [serialize]]]
-            [metabase.util.i18n :as i18n :refer [trs]]
-            [yaml.core :as yaml]))
+            [metabase.util
+             [date-2 :as u.date]
+             [i18n :as i18n :refer [trs]]]
+            [yaml
+             [core :as yaml]
+             [writer :as y.writer]])
+  (:import java.time.temporal.Temporal))
+
+(extend-type Temporal y.writer/YAMLWriter
+  (encode [data]
+    (u.date/format data)))
 
 (defn- spit-yaml
   [filename obj]
