@@ -115,6 +115,7 @@
    :first-name "Fred"
    :last-name  "Taylor"
    :email      "fred.taylor@metabase.com"
+   :attributes {:uid "ftaylor300", :mail "fred.taylor@metabase.com", :givenname "Fred", :sn "Taylor", :cn "Fred Taylor"}
    :groups     []}
   (ldap.test/with-ldap-server
     (ldap/find-user "fred.taylor@metabase.com")))
