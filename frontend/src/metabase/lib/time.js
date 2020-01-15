@@ -47,9 +47,9 @@ export function parseTimestamp(value, unit = null, local = false) {
   if (moment.isMoment(value)) {
     m = value;
   } else if (typeof value === "string" && /(Z|[+-]\d\d:?\d\d)$/.test(value)) {
-    m = moment.parseZone(value);
-  } else if (unit in NUMERIC_UNIT_FORMATS) {
-    m = NUMERIC_UNIT_FORMATS[unit](value);
+    return moment.parseZone(value);
+  } else if (unit in NUMERIC_UNIT_FORMATS && typeof value == "number") {
+    return NUMERIC_UNIT_FORMATS[unit](value);
   } else {
     m = moment.utc(value);
   }
