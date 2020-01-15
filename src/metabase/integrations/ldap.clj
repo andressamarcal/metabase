@@ -193,7 +193,7 @@
 
 (defn- syncable-user-attributes [m]
   (when (ldap-sync-user-attributes)
-    (apply dissoc m :objectClass (map keyword (ldap-sync-user-attributes-blacklist)))))
+    (apply dissoc m :objectclass (map (comp keyword u/lower-case-en) (ldap-sync-user-attributes-blacklist)))))
 
 (defn find-user
   "Gets user information for the supplied username."

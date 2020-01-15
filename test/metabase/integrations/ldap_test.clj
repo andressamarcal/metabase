@@ -93,7 +93,7 @@
    :first-name "John"
    :last-name  "Smith"
    :email      "John.Smith@metabase.com"
-   :attributes {:uid "jsmith1", :mail "John.Smith@metabase.com", :givenName "John", :sn "Smith", :cn "John Smith"}
+   :attributes {:uid "jsmith1", :mail "John.Smith@metabase.com", :givenname "John", :sn "Smith", :cn "John Smith"}
    :groups     ["cn=Accounting,ou=Groups,dc=metabase,dc=com"]}
   (ldap.test/with-ldap-server
     (ldap/find-user "jsmith1")))
@@ -104,7 +104,7 @@
    :first-name "John"
    :last-name  "Smith"
    :email      "John.Smith@metabase.com"
-   :attributes {:uid "jsmith1", :mail "John.Smith@metabase.com", :givenName "John", :sn "Smith", :cn "John Smith"}
+   :attributes {:uid "jsmith1", :mail "John.Smith@metabase.com", :givenname "John", :sn "Smith", :cn "John Smith"}
    :groups     ["cn=Accounting,ou=Groups,dc=metabase,dc=com"]}
   (ldap.test/with-ldap-server
     (ldap/find-user "John.Smith@metabase.com")))
@@ -140,7 +140,7 @@
    :attributes {:uid       "lucky"
                 :mail      "lucky@metabase.com"
                 :title     "King Pigeon"
-                :givenName "Lucky"
+                :givenname "Lucky"
                 :sn        "Pigeon"
                 :cn        "Lucky Pigeon"}
    :groups     []}
@@ -156,7 +156,7 @@
    :email      "lucky@metabase.com"
    :attributes {:uid       "lucky"
                 :mail      "lucky@metabase.com"
-                :givenName "Lucky"
+                :givenname "Lucky"
                 :sn        "Pigeon"
                 :cn        "Lucky Pigeon"}
    :groups     []}
@@ -184,7 +184,7 @@
    :email       "John.Smith@metabase.com"
    :login_attributes {"uid"       "jsmith1"
                       "mail"      "John.Smith@metabase.com"
-                      "givenName" "John"
+                      "givenname" "John"
                       "sn"        "Smith"
                       "cn"        "John Smith"}
    :common_name "John Smith"}
