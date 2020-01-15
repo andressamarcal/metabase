@@ -1,6 +1,7 @@
 (ns metabase.middleware.session-test
-  (:require [clojure.test :refer :all]
-            [clojure.string :as str]
+  (:require [clojure
+             [string :as str]
+             [test :refer :all]]
             [environ.core :as env]
             [expectations :refer [expect]]
             [java-time :as t]
