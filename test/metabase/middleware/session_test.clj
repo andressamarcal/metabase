@@ -63,11 +63,13 @@
                               [{"front-end-https" "off"} false]
                               [{"origin" "https://mysite.com"} true]
                               [{"origin" "http://mysite.com"} false]]]
-    (let [actual (-> (mw.session/set-session-cookie {:headers headers} {} (UUID/randomUUID))
-                     (get-in [:cookies "metabase.SESSION" :secure])
-                     boolean)]
-      (is (= expected
-             actual)
+    (let [session {:id   (UUID/randomUUID)
+                   :type :normal}
+          actual  (binding [mw.misc/*request* {:headers headers}]
+                    (-> (mw.session/set-session-cookie {} session)
+                        (get-in [:cookies "metabase.SESSION" :secure])
+                        boolean))]
+      (is (= expected actual)
           (format "With headers %s we %s set the 'secure' attribute on the session cookie"
                   (pr-str headers) (if expected "SHOULD" "SHOULD NOT"))))))
 
