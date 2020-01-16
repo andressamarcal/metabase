@@ -34,10 +34,7 @@ import {
   getTimeFormatFromStyle,
   hasHour,
 } from "metabase/lib/formatting/date";
-import {
-  renderLinkURLForClick,
-  renderLinkTextForClick,
-} from "metabase/lib/formatting/link";
+import { PLUGIN_FORMATTING_HELPERS } from "metabase/plugins";
 
 import type Field from "metabase-lib/lib/metadata/Field";
 import type { Column, Value } from "metabase/meta/types/Dataset";
@@ -581,19 +578,8 @@ function isDefaultLinkProtocol(protocol) {
 }
 
 export function formatUrl(value: Value, options: FormattingOptions = {}) {
-  const {
-    jsx,
-    rich,
-    view_as,
-    link_text,
-    link_template,
-    column,
-    clicked,
-  } = options;
-  const url =
-    link_template && clicked
-      ? renderLinkURLForClick(link_template, clicked)
-      : String(value);
+  const { jsx, rich, view_as, column } = options;
+  const url = PLUGIN_FORMATTING_HELPERS.url(value, options);
   const protocol = getUrlProtocol(url);
   if (
     jsx &&
@@ -608,15 +594,9 @@ export function formatUrl(value: Value, options: FormattingOptions = {}) {
       ? isDefaultLinkProtocol(protocol)
       : false)
   ) {
-    const text =
-      link_text && clicked
-        ? renderLinkTextForClick(link_text, clicked)
-        : link_text ||
-          getRemappedValue(value, options) ||
-          formatValue(value, { ...options, view_as: null });
     return (
       <ExternalLink className="link link--wrappable" href={url}>
-        {text}
+        {PLUGIN_FORMATTING_HELPERS.urlText(value, options)}
       </ExternalLink>
     );
   } else {
@@ -696,7 +676,7 @@ export function formatValue(value: Value, options: FormattingOptions = {}) {
   }
 }
 
-function getRemappedValue(
+export function getRemappedValue(
   value: Value,
   { remap, column }: FormattingOptions = {},
 ): ?string {

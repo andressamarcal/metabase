@@ -45,3 +45,12 @@ export const PLUGIN_CHART_SETTINGS = {};
 // List of functions that return columns settings for a column.
 // They override existing column settings for that column.
 export const PLUGIN_TABLE_COLUMN_SETTINGS = [];
+
+// These functions are used in the formatting code. They're not automatically
+// connected anywhere. Instead, they should be called directly with
+// `PLUGIN_FORMATTING_HELPERS.name(value, options)`.
+export const PLUGIN_FORMATTING_HELPERS = {
+  url: (value, options) => String(value),
+  urlText: (value, options) =>
+    options.link_text || PLUGIN_FORMATTING_HELPERS.url(value, options),
+};

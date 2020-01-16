@@ -70,6 +70,12 @@ type Props = VisualizationProps & {
   sort: any,
   isPivoted: boolean,
   onActionDismissal: () => void,
+  onContentWidthChange: (number, number[]) => void,
+  renderTableCellWrapper: any,
+  renderTableHeaderWrapper: any,
+  tableHeaderHeight: number,
+  getColumnTitle: number => string,
+  data: any,
 };
 type State = {
   columnWidths: number[],
@@ -544,6 +550,7 @@ export default class TableInteractive extends Component {
     const { dragColIndex, columnPositions } = this.state;
     const { cols } = this.props.data;
     const indexes = cols.map((col, index) => index);
+    // $FlowFixMe
     indexes.splice(dragColNewIndex, 0, indexes.splice(dragColIndex, 1)[0]);
     let left = 0;
     const lefts = indexes.map(index => {

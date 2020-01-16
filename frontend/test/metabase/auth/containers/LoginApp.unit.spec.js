@@ -8,15 +8,6 @@ import { mountWithStore } from "__support__/integration";
 
 jest.mock("metabase/components/LogoIcon", () => () => null);
 
-jest.mock("metabase/lib/settings", () => ({
-  get: () => ({
-    tag: 1,
-    version: 1,
-  }),
-  googleAuthEnabled: jest.fn(),
-  ldapEnabled: jest.fn(),
-}));
-
 import Settings from "metabase/lib/settings";
 const SELECTOR_FOR_EMAIL_LINK = `[to="/auth/login/password"]`;
 
@@ -30,7 +21,7 @@ describe("LoginApp", () => {
     });
     describe("with SSO", () => {
       beforeEach(() => {
-        Settings.googleAuthEnabled.mockReturnValue(true);
+        Settings.set("google_auth_client_id", 123);
       });
       it("should show the SSO button", () => {
         const { wrapper } = mountWithStore(<LoginApp params={{}} />);

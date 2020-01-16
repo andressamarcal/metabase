@@ -59,16 +59,6 @@ const MetabaseSettings = {
     return mb_settings.ldap_configured;
   },
 
-  hasPremiumFeature(feature) {
-    // TODO: EE setting
-    const hasFeature =
-      mb_settings.premium_features && mb_settings.premium_features[feature];
-    if (hasFeature == null) {
-      console.warn("Unknown premium feature", feature);
-    }
-    return hasFeature;
-  },
-
   hideEmbedBranding: () => mb_settings.hide_embed_branding,
 
   metastoreUrl: () => mb_settings.metastore_url,

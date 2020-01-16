@@ -73,6 +73,5 @@ const AuditDrill = ({
 
 export const AuditMode: QueryMode = {
   name: "audit",
-  actions: [],
-  drills: [AuditDrill],
+  drills: () => [AuditDrill],
 };

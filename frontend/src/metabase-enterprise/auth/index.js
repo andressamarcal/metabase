@@ -3,6 +3,7 @@ import ExternalLink from "metabase/components/ExternalLink";
 import { t, jt } from "ttag";
 import { updateIn } from "icepick";
 
+import { hasPremiumFeature } from "metabase-enterprise/settings";
 import MetabaseSettings from "metabase/lib/settings";
 import {
   PLUGIN_AUTH_PROVIDERS,
@@ -29,7 +30,7 @@ PLUGIN_ADMIN_SETTINGS_UPDATES.push(sections =>
       authType: "saml",
       authEnabled: settings => settings["saml-enabled"],
       widget: AuthenticationOption,
-      getHidden: () => !MetabaseSettings.hasPremiumFeature("sso"),
+      getHidden: () => !hasPremiumFeature("sso"),
     },
     {
       authName: t`JWT`,
@@ -37,7 +38,7 @@ PLUGIN_ADMIN_SETTINGS_UPDATES.push(sections =>
       authType: "jwt",
       authEnabled: settings => settings["jwt-enabled"],
       widget: AuthenticationOption,
-      getHidden: () => !MetabaseSettings.hasPremiumFeature("sso"),
+      getHidden: () => !hasPremiumFeature("sso"),
     },
     {
       key: "enable-password-login",
