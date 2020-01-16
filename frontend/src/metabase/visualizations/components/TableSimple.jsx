@@ -35,6 +35,7 @@ type Props = VisualizationProps & {
   height: number,
   className?: string,
   isPivoted: boolean,
+  getColumnTitle: number => string,
 };
 
 type State = {

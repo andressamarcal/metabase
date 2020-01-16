@@ -6,8 +6,7 @@ import { PLUGIN_DRILLS } from "metabase/plugins";
 
 const PublicMode: QueryMode = {
   name: "public",
-  actions: [],
-  drills: PLUGIN_DRILLS,
+  drills: () => PLUGIN_DRILLS,
 };
 
 export default PublicMode;

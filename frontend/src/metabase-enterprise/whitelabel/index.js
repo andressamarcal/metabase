@@ -7,6 +7,7 @@ import {
 
 import { t } from "ttag";
 
+import { hasPremiumFeature } from "metabase-enterprise/settings";
 import MetabaseSettings from "metabase/lib/settings";
 
 import ColorSchemeWidget from "./components/ColorSchemeWidget";
@@ -17,7 +18,7 @@ import {
   enabledApplicationNameReplacement,
 } from "./lib/whitelabel";
 
-if (MetabaseSettings.hasPremiumFeature("whitelabel")) {
+if (hasPremiumFeature("whitelabel")) {
   PLUGIN_LANDING_PAGE.push(() => MetabaseSettings.get("landing_page"));
   PLUGIN_ADMIN_SETTINGS_UPDATES.push(sections => ({
     ...sections,

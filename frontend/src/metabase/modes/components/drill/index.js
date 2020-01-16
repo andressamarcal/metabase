@@ -12,7 +12,7 @@ import FormatAction from "./FormatAction";
 
 import { PLUGIN_DRILLS } from "metabase/plugins";
 
-export const DEFAULT_DRILLS = [
+export const getDefaultDrills = () => [
   ZoomDrill,
   SortAction,
   ObjectDetailDrill,

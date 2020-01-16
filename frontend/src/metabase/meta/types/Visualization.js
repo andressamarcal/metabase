@@ -9,8 +9,7 @@ export type ActionCreator = (props: ClickActionProps) => ClickAction[];
 
 export type QueryMode = {
   name: string,
-  actions: ActionCreator[],
-  drills: ActionCreator[],
+  drills: () => ActionCreator[],
 };
 
 export type HoverData = Array<{ key: string, value: any, col?: Column }>;

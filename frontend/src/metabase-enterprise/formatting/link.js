@@ -22,7 +22,7 @@ export function renderLinkURLForClick(template, clicked) {
   );
 }
 
-export function renderTemplateForClick(
+function renderTemplateForClick(
   template,
   clicked,
   formatFunction = ({ value }) => value,
@@ -60,7 +60,7 @@ function getValueAndColumnForColumnName(clicked, columnName) {
   }
 }
 
-export function formatDateTimeForParameter(value, unit) {
+function formatDateTimeForParameter(value, unit) {
   const m = parseTimestamp(value, unit);
   if (!m.isValid()) {
     return String(value);
