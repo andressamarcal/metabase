@@ -226,10 +226,19 @@
    (let [dn (if (string? user-info) user-info (:dn user-info))]
      (ldap/bind? conn dn password))))
 
+(defn- update-user-attributes!
+  [{:keys [attributes email]}]
+  (when-let [user (db/select-one [User :id :login_attributes] :email email)]
+    (let [syncable-attributes (syncable-user-attributes attributes)]
+      (if (and (not= (:login_attributes user) syncable-attributes)
+               (db/update! User (:id user) :login_attributes syncable-attributes))
+        (db/select-one User :id (:id user)) ; Reload updated user
+        user))))
+
 (defn fetch-or-create-user!
   "Using the `user-info` (from `find-user`) get the corresponding Metabase user, creating it if necessary."
-  [{:keys [first-name last-name email groups attributes]}]
-  (let [user (or (db/select-one [User :id :last_login] :email email)
+  [{:keys [first-name last-name email groups attributes] :as user-info}]
+  (let [user (or (update-user-attributes! user-info)
                  (user/create-new-ldap-auth-user!
                   {:first_name       first-name
                    :last_name        last-name
