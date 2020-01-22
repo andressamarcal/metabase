@@ -228,12 +228,12 @@
 
 (defn- update-user-attributes!
   [{:keys [attributes email]}]
-  (when-let [user (db/select-one [User :id :login_attributes] :email email)]
+  (when-let [user (db/select-one [User :id :last_login :login_attributes] :email email)]
     (let [syncable-attributes (syncable-user-attributes attributes)]
       (if (and (not= (:login_attributes user) syncable-attributes)
                (db/update! User (:id user) :login_attributes syncable-attributes))
-        (db/select-one User :id (:id user)) ; Reload updated user
-        user))))
+        (db/select-one [User :id :last_login] :id (:id user)) ; Reload updated user
+        (dissoc user :login_attributes)))))
 
 (defn fetch-or-create-user!
   "Using the `user-info` (from `find-user`) get the corresponding Metabase user, creating it if necessary."
