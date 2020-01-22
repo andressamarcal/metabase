@@ -214,44 +214,43 @@
 
 (deftest update-attributes-on-login-test
   (testing "Existing user's attributes are updated on fetch"
-    (is (= {:first_name       "Lucky"
-            :last_name        "Pigeon"
-            :common_name      "Lucky Pigeon"
-            :email            "lucky@metabase.com"
-            :login_attributes {"uid"          "lucky"
-                               "mail"         "lucky@metabase.com"
-                               "title"        "King Pigeon"
-                               "givenname"    "Lucky"
-                               "sn"           "Pigeon"
-                               "cn"           "Lucky Pigeon"
+    (is (= {:first_name       "John"
+            :last_name        "Smith"
+            :common_name      "John Smith"
+            :email            "John.Smith@metabase.com"
+            :login_attributes {"uid"          "jsmith1"
+                               "mail"         "John.Smith@metabase.com"
+                               "givenname"    "John"
+                               "sn"           "Smith"
+                               "cn"           "John Smith"
                                "unladenspeed" 100}}
            (try
-             (ldap.test/with-ldap-server
-               (let [user-info    (ldap/find-user "lucky")]
-                 ;; First let a user get created for Lucky
-                 (ldap/fetch-or-create-user! user-info)
-                 ;; Call fetch-or-create-user! again to trigger update
-                 (ldap/fetch-or-create-user! (assoc-in user-info [:attributes :unladenspeed] 100))
-                 (db/select-one [User :first_name :last_name :email :login_attributes]
-                                :email "lucky@metabase.com")))
-             (finally
-               (db/delete! User :email "lucky@metabase.com"))))))
+            (ldap.test/with-ldap-server
+              (let [user-info    (ldap/find-user "jsmith1")]
+                ;; First let a user get created for John Smith
+                (ldap/fetch-or-create-user! user-info)
+                ;; Call fetch-or-create-user! again to trigger update
+                (ldap/fetch-or-create-user! (assoc-in user-info [:attributes :unladenspeed] 100))
+                (into {} (db/select-one [User :first_name :last_name :email :login_attributes]
+                                        :email "John.Smith@metabase.com"))))
+            (finally
+             (db/delete! User :email "John.Smith@metabase.com"))))))
 
   (testing "Existing user's attributes are not updated on fetch, when attribute sync is disabled"
-    (is (= {:first_name       "Lucky"
-            :last_name        "Pigeon"
-            :common_name      "Lucky Pigeon"
-            :email            "lucky@metabase.com"
+    (is (= {:first_name       "John"
+            :last_name        "Smith"
+            :common_name      "John Smith"
+            :email            "John.Smith@metabase.com"
             :login_attributes nil}
            (try
-             (ldap.test/with-ldap-server
-               (tu/with-temporary-setting-values [ldap-sync-user-attributes false]
-                 (let [user-info    (ldap/find-user "lucky")]
-                   ;; First let a user get created for Lucky
-                   (ldap/fetch-or-create-user! user-info)
-                   ;; Call fetch-or-create-user! again to trigger update
-                   (ldap/fetch-or-create-user! (assoc-in user-info [:attributes :unladenspeed] 100))
-                   (db/select-one [User :first_name :last_name :email :login_attributes]
-                                  :email "lucky@metabase.com"))))
-               (finally
-                 (db/delete! User :email "lucky@metabase.com")))))))
+            (ldap.test/with-ldap-server
+              (tu/with-temporary-setting-values [ldap-sync-user-attributes false]
+                (let [user-info    (ldap/find-user "jsmith1")]
+                  ;; First let a user get created for John Smith
+                  (ldap/fetch-or-create-user! user-info)
+                  ;; Call fetch-or-create-user! again to trigger update
+                  (ldap/fetch-or-create-user! (assoc-in user-info [:attributes :unladenspeed] 100))
+                  (into {} (db/select-one [User :first_name :last_name :email :login_attributes]
+                                          :email "John.Smith@metabase.com")))))
+            (finally
+             (db/delete! User :email "John.Smith@metabase.com")))))))
