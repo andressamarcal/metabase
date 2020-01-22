@@ -190,10 +190,12 @@
                       "sn"        "Smith"
                       "cn"        "John Smith"}
    :common_name "John Smith"}
-  (db/transaction
-    (ldap.test/with-ldap-server
+  (ldap.test/with-ldap-server
+    (try
       (ldap/fetch-or-create-user! (ldap/find-user "jsmith1"))
-      (db/select-one [User :first_name :last_name :email :login_attributes] :email "John.Smith@metabase.com"))))
+      (db/select-one [User :first_name :last_name :email :login_attributes] :email "John.Smith@metabase.com")
+      (finally
+        (db/delete! User :email "John.Smith@metabase.com")))))
 
 ;; when creating a new user and attribute sync is disabled, attributes should not be synced
 (expect
@@ -202,16 +204,19 @@
    :email            "John.Smith@metabase.com"
    :login_attributes nil
    :common_name      "John Smith"}
-  (db/transaction
-    (ldap.test/with-ldap-server
-      (tu/with-temporary-setting-values [ldap-sync-user-attributes false]
+  (ldap.test/with-ldap-server
+    (tu/with-temporary-setting-values [ldap-sync-user-attributes false]
+      (try
         (ldap/fetch-or-create-user! (ldap/find-user "jsmith1"))
-        (db/select-one [User :first_name :last_name :email :login_attributes] :email "John.Smith@metabase.com")))))
+        (db/select-one [User :first_name :last_name :email :login_attributes] :email "John.Smith@metabase.com")
+        (finally
+          (db/delete! User :email "John.Smith@metabase.com"))))))
 
 (deftest update-attributes-on-login-test
   (testing "Existing user's attributes are updated on fetch"
     (is (= {:first_name       "Lucky"
             :last_name        "Pigeon"
+            :common_name      "Lucky Pigeon"
             :email            "lucky@metabase.com"
             :login_attributes {"uid"          "lucky"
                                "mail"         "lucky@metabase.com"
@@ -220,30 +225,33 @@
                                "sn"           "Pigeon"
                                "cn"           "Lucky Pigeon"
                                "unladenspeed" 100}}
-           (db/transaction
+           (try
              (ldap.test/with-ldap-server
-               (let [user-info (ldap/find-user "lucky")]
+               (let [user-info    (ldap/find-user "lucky")]
                  ;; First let a user get created for Lucky
                  (ldap/fetch-or-create-user! user-info)
                  ;; Call fetch-or-create-user! again to trigger update
                  (ldap/fetch-or-create-user! (assoc-in user-info [:attributes :unladenspeed] 100))
-                 (select-keys (db/select-one [User :first_name :last_name :email :login_attributes]
-                                             :email "lucky@metabase.com")
-                              [:first_name :last_name :email :login_attributes])))))))
+                 (db/select-one [User :first_name :last_name :email :login_attributes]
+                                :email "lucky@metabase.com")))
+             (finally
+               (db/delete! User :email "lucky@metabase.com"))))))
 
   (testing "Existing user's attributes are not updated on fetch, when attribute sync is disabled"
     (is (= {:first_name       "Lucky"
             :last_name        "Pigeon"
+            :common_name      "Lucky Pigeon"
             :email            "lucky@metabase.com"
             :login_attributes nil}
-           (db/transaction
+           (try
              (ldap.test/with-ldap-server
                (tu/with-temporary-setting-values [ldap-sync-user-attributes false]
-                 (let [user-info (ldap/find-user "lucky")]
+                 (let [user-info    (ldap/find-user "lucky")]
                    ;; First let a user get created for Lucky
                    (ldap/fetch-or-create-user! user-info)
                    ;; Call fetch-or-create-user! again to trigger update
                    (ldap/fetch-or-create-user! (assoc-in user-info [:attributes :unladenspeed] 100))
-                   (select-keys (db/select-one [User :first_name :last_name :email :login_attributes]
-                                               :email "lucky@metabase.com")
-                                [:first_name :last_name :email :login_attributes])))))))))
+                   (db/select-one [User :first_name :last_name :email :login_attributes]
+                                  :email "lucky@metabase.com"))))
+               (finally
+                 (db/delete! User :email "lucky@metabase.com")))))))
