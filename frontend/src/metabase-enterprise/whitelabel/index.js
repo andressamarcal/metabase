@@ -3,11 +3,16 @@ import {
   PLUGIN_LANDING_PAGE,
   PLUGIN_LOGO_ICON_COMPONENTS,
   PLUGIN_ADMIN_SETTINGS_UPDATES,
+  PLUGIN_SELECTORS,
 } from "metabase/plugins";
 
 import { t } from "ttag";
 
 import { hasPremiumFeature } from "metabase-enterprise/settings";
+import {
+  getIsWhitelabeled,
+  getHasCustomLogo,
+} from "metabase-enterprise/settings/selectors";
 import MetabaseSettings from "metabase/lib/settings";
 
 import ColorSchemeWidget from "./components/ColorSchemeWidget";
@@ -68,3 +73,9 @@ if (hasPremiumFeature("whitelabel")) {
 
   PLUGIN_LOGO_ICON_COMPONENTS.push(LogoIcon);
 }
+
+// these selectors control whitelabeling UI
+PLUGIN_SELECTORS.getShowAuthScene = (state, props) =>
+  !getIsWhitelabeled(state, props);
+PLUGIN_SELECTORS.getLogoBackgroundClass = (state, props) =>
+  getHasCustomLogo(state, props) ? "bg-brand" : "bg-white";

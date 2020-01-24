@@ -5,7 +5,7 @@ import cx from "classnames";
 import { removeAllChildren, parseDataUri } from "metabase/lib/dom";
 
 import { connect } from "react-redux";
-import { getLogoUrl } from "metabase/selectors/settings";
+import { getLogoUrl } from "metabase-enterprise/settings/selectors";
 
 const mapStateToProps = state => ({
   url: getLogoUrl(state),

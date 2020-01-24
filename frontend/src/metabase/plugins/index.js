@@ -54,3 +54,9 @@ export const PLUGIN_FORMATTING_HELPERS = {
   urlText: (value, options) =>
     options.link_text || PLUGIN_FORMATTING_HELPERS.url(value, options),
 };
+
+// selectors that customize behavior between app versions
+export const PLUGIN_SELECTORS = {
+  getShowAuthScene: (state, props) => true,
+  getLogoBackgroundClass: (state, props) => "bg-white",
+};

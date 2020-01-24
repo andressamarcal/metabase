@@ -3,15 +3,15 @@
 import React, { Component } from "react";
 
 import { connect } from "react-redux";
-import { getIsWhitelabeled } from "metabase/selectors/settings";
+import { PLUGIN_SELECTORS } from "metabase/plugins";
 
 const mapStateToProps = (state, props) => ({
-  isWhitelabeled: getIsWhitelabeled(state, props),
+  showAuthScene: PLUGIN_SELECTORS.getShowAuthScene(state, props),
 });
 
 class AuthScene extends Component {
   render() {
-    if (this.props.isWhitelabeled) {
+    if (!this.props.showAuthScene) {
       return null;
     }
 
