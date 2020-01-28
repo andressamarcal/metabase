@@ -996,7 +996,7 @@ workflows:
           filters:
             branches:
               only:
-                - enterprise-release
+                - enterprise-release-*
                 - improved-bin-version-file
 
       - build-release-version-file:
