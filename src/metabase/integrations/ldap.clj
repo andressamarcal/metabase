@@ -233,7 +233,7 @@
       (if (and (not= (:login_attributes user) syncable-attributes)
                (db/update! User (:id user) :login_attributes syncable-attributes))
         (db/select-one [User :id :last_login] :id (:id user)) ; Reload updated user
-        (dissoc user :login_attributes)))))
+        user))))
 
 (defn fetch-or-create-user!
   "Using the `user-info` (from `find-user`) get the corresponding Metabase user, creating it if necessary."
