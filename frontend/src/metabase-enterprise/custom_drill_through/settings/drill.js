@@ -34,18 +34,15 @@ export const drillThroughSettings = ({
       </span>
     ),
     widget: ChartSettingInputWithInfo,
-    getProps: (
-      [
-        {
-          data: { cols },
-        },
-      ],
-      settings,
-    ) => ({
-      placeholder: t`e.g. http://acme.cool-crm.com/client/{{column}}`,
-      infoName: t`Columns`,
-      infos: cols.map(col => col.name),
-    }),
+    getProps: (series, settings) => {
+      // breakout multi-series only have some of the columns, so prefer _raw
+      const [{ data }] = series._raw || series;
+      return {
+        placeholder: t`e.g. http://acme.cool-crm.com/client/{{column}}`,
+        infoName: t`Columns`,
+        infos: data.cols.map(col => col.name),
+      };
+    },
     getHidden: (series, settings, extra) =>
       getHidden(series, settings, extra) || settings["click"] !== "link",
     readDependencies: ["click"],

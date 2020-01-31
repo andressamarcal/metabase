@@ -53,9 +53,9 @@ function getValueAndColumnForColumnName(clicked, columnName) {
       return { value: clicked.origin.row[index], column: cols[index] };
     }
   }
-  for (const { value, column } of [clicked, ...(clicked.dimensions || [])]) {
-    if (column && column.name.toLowerCase() === name) {
-      return { value, column };
+  for (const { col, value } of clicked.data) {
+    if (col.name.toLowerCase() === name) {
+      return { column: col, value };
     }
   }
 }
