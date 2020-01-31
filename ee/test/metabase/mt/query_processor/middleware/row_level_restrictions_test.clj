@@ -215,7 +215,7 @@
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
 (deftest e2e-test
-  (mt/test-drivers (mt/normal-drivers-without-feature :nested-queries)
+  (mt/test-drivers (mt/normal-drivers-with-feature :nested-queries)
     (testing "When querying with full permissions, no changes should be made"
       (mt/with-gtaps {:gtaps      {:venues (venues-category-mbql-gtap-def)}
                       :attributes {"cat" 50}}
@@ -308,10 +308,10 @@
                   "card) to see if row level permissions apply. This was broken when it wasn't expecting a card and "
                   "only expecting resolved source-tables")
       (mt/with-temp Card [card {:dataset_query (mt/mbql-query venues)}]
-        (mt/format-rows-by [int]
-          (mt/rows
-            (mt/with-test-user :rasta
-              (is (= [[100]]
+        (mt/with-test-user :rasta
+          (is (= [[100]]
+                 (mt/format-rows-by [int]
+                   (mt/rows
                      (qp/process-query
                        {:database (mt/id)
                         :type     :query

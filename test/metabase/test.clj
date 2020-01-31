@@ -7,12 +7,12 @@
              [query-processor :as qp]
              [query-processor-test :as qp.test]]
             [metabase.driver.sql-jdbc-test :as sql-jdbc-test]
+            [metabase.mt.test-util :as mt.tu]
             [metabase.query-processor.test-util :as qp.test-util]
             [metabase.test
              [data :as data]
              [initialize :as initialize]
              [util :as tu]]
-            [metabase.mt.test-util :as mt.tu]
             [metabase.test.data
              [datasets :as datasets]
              [env :as tx.env]
@@ -36,7 +36,7 @@
   qp.test-util/keep-me
   qp.test/keep-me
   sql-jdbc-test/keep-me
-  [test-users/keep-me]
+  test-users/keep-me
   tt/keep-me
   tu/keep-me
   tu.log/keep-me
