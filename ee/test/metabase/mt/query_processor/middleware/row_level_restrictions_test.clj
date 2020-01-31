@@ -143,8 +143,9 @@
 
 (defn- apply-row-level-permissions [query]
   (let [result          (mt/with-everything-store
-                          ((row-level-restrictions/apply-row-level-permissions identity)
-                           (normalize/normalize query)))
+                          (-> ((row-level-restrictions/apply-row-level-permissions identity)
+                               (normalize/normalize query))
+                              (dissoc :cols)))
         remove-metadata (fn remove-metadata [m]
                           (mbql.u/replace m
                             (_ :guard (every-pred map? :source-metadata))
@@ -184,6 +185,7 @@
                                   :alias        "v"
                                   :strategy     :left-join
                                   :condition    [:= $venue_id &v.venues.id]}]}))))))
+
     (testing "Should substitute appropriate value in native query"
       (mt.tu/with-gtaps {:gtaps      {:venues (venues-category-native-gtap-def)}
                          :attributes {"cat" 50}}
@@ -449,3 +451,65 @@
                    (mt/run-mbql-query checkins
                      {:aggregation [[:count]]
                       :breakout    [$user_id]})))))))))
+
+(deftest correct-metadata-test
+  (testing (str "We should return the same metadata as the original Table when running a query against a sandboxed "
+                "Table (#390)\n")
+    (let [cols                           (fn []
+                                           (mt/cols
+                                             (mt/run-mbql-query venues
+                                               {:order-by [[:asc $id]]
+                                                :limit    2})))
+          original-cols*                 (cols)
+          ;; `with-gtaps` copies the test DB so this function will update the IDs in `original-cols*` so they'll match
+          ;; up with the current copy
+          original-cols-with-correct-ids (fn []
+                                           (for [col  original-cols*
+                                                 :let [id (mt/id :venues (keyword (str/lower-case (:name col))))]]
+                                             (assoc col
+                                                    :id id
+                                                    :table_id (mt/id :venues)
+                                                    :field_ref [:field-id id])))]
+      (testing "A query with a simple attributes-based sandbox should have the same metadata"
+        (mt/with-gtaps {:gtaps      {:venues (dissoc (venues-category-mbql-gtap-def) :query)}
+                        :attributes {"cat" 50}}
+          (is (= (original-cols-with-correct-ids)
+                 (cols)))))
+      (testing "A query with an equivalent MBQL query sandbox should have the same metadata"
+        (mt/with-gtaps {:gtaps      {:venues (venues-category-mbql-gtap-def)}
+                        :attributes {"cat" 50}}
+          (is (= (original-cols-with-correct-ids)
+                 (cols)))))
+      (testing "A query with an equivalent native query sandbox should have the same metadata"
+        (mt/with-gtaps {:gtaps {:venues {:query (mt/native-query
+                                                  {:query
+                                                   (str "SELECT ID, NAME, CATEGORY_ID, LATITUDE, LONGITUDE, PRICE "
+                                                        "FROM VENUES "
+                                                        "WHERE CATEGORY_ID = {{cat}}")
+
+                                                   :template_tags
+                                                   {:cat {:name "cat" :display_name "cat" :type "number" :required true}}})
+                                         :remappings {:cat ["variable" ["template-tag" "cat"]]}}}
+                        :attributes {"cat" 50}}
+          (is (= (original-cols-with-correct-ids)
+                 (cols)))))
+      (testing (str "If columns are added/removed/reordered we should still merge in metadata for the columns we're "
+                    "able to match from the original Table")
+        (mt/with-gtaps {:gtaps {:venues {:query (mt/native-query
+                                                  {:query
+                                                   (str "SELECT NAME, ID, LONGITUDE, PRICE, 1 AS ONE "
+                                                        "FROM VENUES "
+                                                        "WHERE CATEGORY_ID = {{cat}}")
+
+                                                   :template_tags
+                                                   {:cat {:name "cat" :display_name "cat" :type "number" :required true}}})
+                                         :remappings {:cat ["variable" ["template-tag" "cat"]]}}}
+                        :attributes {"cat" 50}}
+          (let [[id-col name-col _ _ longitude-col price-col] (original-cols-with-correct-ids)
+                one-col                                       {:name         "ONE"
+                                                               :display_name "ONE"
+                                                               :base_type    :type/Integer
+                                                               :source       :fields
+                                                               :field_ref    [:field-literal "ONE" :type/Integer]}]
+            (is (= [name-col id-col longitude-col price-col one-col]
+                   (cols)))))))))
