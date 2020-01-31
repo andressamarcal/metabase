@@ -102,8 +102,8 @@
   [gtaps-and-attributes-map & body]
   `(do-with-gtaps (fn [] ~gtaps-and-attributes-map) (fn [~'&group] ~@body)))
 
-(defmacro expect-with-gtaps
-  "Like `expect`, but with GTAPs created by `with-gtaps` in effect for both expected and actual forms."
+(defmacro ^:deprecated expect-with-gtaps
+  "Like `expect`, but with GTAPs created by `with-gtaps` in effect for both expected and actual forms. DEPRECATED - prefer `with-gtaps` in combination with `deftest` instead."
   {:style/indent 1}
   [gtaps-and-attributes-map expected actual]
   ;; not using a gensym here or otherwise each time ns is reloaded expectations will generate a new test because it

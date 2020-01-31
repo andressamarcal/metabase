@@ -12,6 +12,7 @@
              [data :as data]
              [initialize :as initialize]
              [util :as tu]]
+            [metabase.mt.test-util :as mt.tu]
             [metabase.test.data
              [datasets :as datasets]
              [env :as tx.env]
@@ -30,6 +31,7 @@
   datasets/keep-me
   driver/keep-me
   initialize/keep-me
+  mt.tu/keep-me
   qp/keep-me
   qp.test-util/keep-me
   qp.test/keep-me
@@ -69,6 +71,9 @@
 
  [initialize
   initialize-if-needed!]
+
+ [mt.tu
+  with-gtaps]
 
  [qp
   process-query
