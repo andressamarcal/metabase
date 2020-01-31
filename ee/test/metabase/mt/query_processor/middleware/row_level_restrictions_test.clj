@@ -18,9 +18,7 @@
              [permissions-group :as perms-group]]
             [metabase.mt.query-processor.middleware.row-level-restrictions :as row-level-restrictions]
             [metabase.mt.test-util :as mt.tu]
-            [metabase.query-processor
-             [interface :as qp.i]
-             [util :as qputil]]
+            [metabase.query-processor.util :as qputil]
             [metabase.test.data.env :as tx.env]
             [metabase.test.util :as tu]
             [metabase.util.honeysql-extensions :as hx]
@@ -158,33 +156,42 @@
                                  :venues   (dissoc (venues-price-mbql-gtap-def) :query)}
                     :attributes {"user" 5, "price" 1}}
       (testing "Should add a filter for attributes-only GTAP"
-        (is (= (mt/query checkins
-                 {:type       :query
-                  :query      {:source-query {:source-query {:source-table $$checkins
-                                                             :fields       [*id !default.*date *user_id *venue_id]
-                                                             :filter       [:> $date [:absolute-datetime
-                                                                                      #inst "2014-01-01T00:00:00.000000000-00:00"
-                                                                                      :default]]}
-                                              :filter       [:= $user_id [:value 5 {:base_type     :type/Integer
-                                                                                    :special_type  :type/FK
-                                                                                    :database_type "INTEGER"}]]
-                                              :fields       [*id *date *user_id *venue_id]
-                                              :limit        qp.i/absolute-max-results}
-                               :joins        [{:source-table $$venues
-                                               :alias        "v"
-                                               :strategy     :left-join
-                                               :condition    [:= $venue_id &v.venues.id]}]
-                               :aggregation  [[:count]]
-                               :gtap?        true}
-                  :gtap-perms #{(perms/table-query-path (Table (mt/id :venues)))
-                                (perms/table-query-path (Table (mt/id :checkins)))}})
-               (apply-row-level-permissions
-                (mt/mbql-query checkins
-                  {:aggregation [[:count]]
-                   :joins       [{:source-table $$venues
-                                  :alias        "v"
-                                  :strategy     :left-join
-                                  :condition    [:= $venue_id &v.venues.id]}]}))))))
+        (is (=
+             (mt/query checkins
+               {:type       :query
+                :query      {:source-query {:source-table $$checkins
+                                            :fields       [$id !default.$date $user_id $venue_id]
+                                            :filter       [:and
+                                                           [:> $date [:absolute-datetime #t "2014-01-01T00:00Z[UTC]" :default]]
+                                                           [:=
+                                                            $user_id
+                                                            [:value 5 {:base_type     :type/Integer
+                                                                       :special_type  :type/FK
+                                                                       :database_type "INTEGER"}]]]
+                                            :gtap?        true}
+                             :joins        [{:source-query
+                                             {:source-table $$venues
+                                              :fields       [$venues.id $venues.name $venues.category_id
+                                                             $venues.latitude $venues.longitude $venues.price]
+                                              :filter       [:=
+                                                             $venues.price
+                                                             [:value 1 {:base_type     :type/Integer
+                                                                        :special_type  :type/Category
+                                                                        :database_type "INTEGER"}]]
+                                              :gtap?        true}
+                                             :alias     "v"
+                                             :strategy  :left-join
+                                             :condition [:= $venue_id &v.venues.id]}]
+                             :aggregation  [[:count]]}
+                :gtap-perms #{(perms/table-query-path (Table (mt/id :venues)))
+                              (perms/table-query-path (Table (mt/id :checkins)))}})
+             (apply-row-level-permissions
+              (mt/mbql-query checkins
+                {:aggregation [[:count]]
+                 :joins       [{:source-table $$venues
+                                :alias        "v"
+                                :strategy     :left-join
+                                :condition    [:= $venue_id &v.venues.id]}]}))))))
 
     (testing "Should substitute appropriate value in native query"
       (mt.tu/with-gtaps {:gtaps      {:venues (venues-category-native-gtap-def)}
