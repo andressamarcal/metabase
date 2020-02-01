@@ -12,7 +12,9 @@
              [table :refer [Table]]]
             [metabase.models.query.permissions :as query-perms]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
-            [metabase.query-processor.middleware.fetch-source-query :as fetch-source-query]
+            [metabase.query-processor.middleware
+             [annotate :as annotate]
+             [fetch-source-query :as fetch-source-query]]
             [metabase.query-processor.store :as qp.store]
             [metabase.util :as u]
             [puppetlabs.i18n.core :refer [tru]]
@@ -190,16 +192,38 @@
         (_ :guard (every-pred map? :source-table))
         (assoc &match :gtap? true)))))
 
-(defn- apply-row-level-permissions* [query]
-  (if-let [table-id->gtap (when *current-user-id*
-                            (query->table-id->gtap query))]
-    (-> query
-        (apply-gtaps table-id->gtap)
-        (update :gtap-perms (comp set concat) (gtaps->perms-set (vals table-id->gtap))))
-    query))
+(defn- merge-metadata
+  "Merge column metadata from the source Table into the results Metadata. This way the column Metadata matches what we'd
+  get if the query was not running with a GTAP."
+  [query results]
+  (let [source-table-id (mbql.u/query->source-table-id query)
+        field-name->id  (delay
+                          (u/prog1 (when source-table-id
+                                     (db/select-field->id :name Field :table_id source-table-id))
+                            (qp.store/fetch-and-store-fields! (vals <>))))]
+    (letfn [(id->col-info [field-id]
+              (when field-id
+                (annotate/col-info-for-field-clause (:query query) [:field-id field-id])))
+            (update-col-metadata [{:keys [id source], field-ref :field_ref, field-name :name, :as col}]
+              (let [id (or id (when (and (= (first field-ref) :field-literal)
+                                         field-name)
+                                (get @field-name->id field-name)))]
+                (merge
+                 col
+                 (id->col-info id)
+                 (when (= source :native)
+                   {:source :fields}))))]
+      (update results :cols (partial mapv update-col-metadata)))))
 
 (defn apply-row-level-permissions
   "Does the work of swapping the given table the user was querying against with a nested subquery that restricts the
   rows returned. Will return the original query if there are no segmented permissions found"
   [qp]
-  (comp qp apply-row-level-permissions*))
+  (fn [query]
+    (if-let [table-id->gtap (when *current-user-id*
+                              (query->table-id->gtap query))]
+      (let [query' (-> query
+                       (apply-gtaps table-id->gtap)
+                       (update :gtap-perms (comp set concat) (gtaps->perms-set (vals table-id->gtap))))]
+        (merge-metadata query (qp query')))
+      (qp query))))

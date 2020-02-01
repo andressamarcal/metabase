@@ -1,7 +1,6 @@
 (ns metabase.mt.test-util
   "Shared test utilities for multi-tenant tests."
-  (:require [expectations :refer [expect]]
-            [metabase.models
+  (:require [metabase.models
              [card :refer [Card]]
              [permissions :as perms]
              [permissions-group :as perms-group :refer [PermissionsGroup]]
@@ -101,19 +100,6 @@
   {:style/indent 1}
   [gtaps-and-attributes-map & body]
   `(do-with-gtaps (fn [] ~gtaps-and-attributes-map) (fn [~'&group] ~@body)))
-
-(defmacro expect-with-gtaps
-  "Like `expect`, but with GTAPs created by `with-gtaps` in effect for both expected and actual forms."
-  {:style/indent 1}
-  [gtaps-and-attributes-map expected actual]
-  ;; not using a gensym here or otherwise each time ns is reloaded expectations will generate a new test because it
-  ;; hashes the form
-  `(let [~'result (delay
-                    (with-gtaps ~gtaps-and-attributes-map
-                      {:expected ~expected, :actual ~actual}))]
-     (expect
-       (:expected @~'result)
-       (:actual @~'result))))
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
