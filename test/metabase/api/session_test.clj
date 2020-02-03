@@ -426,10 +426,14 @@
 
 ;; Test that we can login with LDAP
 (expect
-  ;; delete all other sessions for the bird first, otherwise test doesn't seem to work (TODO - why?)
-  (ldap.test/with-ldap-server
-    (db/simple-delete! Session, :user_id (test-users/user->id :rasta))
-    (tu/is-uuid-string? (:id (client :post 200 "session" (test-users/user->credentials :rasta))))))
+ ;; delete all other sessions for the bird first, otherwise test doesn't seem to work (TODO - why?)
+ (ldap.test/with-ldap-server
+   (let [user-id (test-users/user->id :rasta)]
+     (try
+      (db/simple-delete! Session :user_id user-id)
+      (tu/is-uuid-string? (:id (client :post 200 "session" (test-users/user->credentials :rasta))))
+      (finally
+       (db/update! User user-id :login_attributes nil))))))
 
 ;; Test that login will fallback to local for users not in LDAP
 (expect
@@ -446,12 +450,16 @@
 
 ;; Test that login will fallback to local for broken LDAP settings
 (expect
-  (ldap.test/with-ldap-server
-    (tu/with-temporary-setting-values [ldap-user-base "cn=wrong,cn=com"]
-      ;; delete all other sessions for the bird first, otherwise test doesn't seem to work (TODO - why?)
-      (do (db/simple-delete! Session, :user_id (test-users/user->id :rasta))
-          (tu/is-uuid-string? (:id (tu.log/suppress-output
-                                     (client :post 200 "session" (test-users/user->credentials :rasta)))))))))
+ (ldap.test/with-ldap-server
+   (tu/with-temporary-setting-values [ldap-user-base "cn=wrong,cn=com"]
+     ;; delete all other sessions for the bird first, otherwise test doesn't seem to work (TODO - why?)
+     (let [user-id (test-users/user->id :rasta)]
+       (try
+        (db/simple-delete! Session :user_id user-id)
+        (tu/is-uuid-string? (:id (tu.log/suppress-output
+                                  (client :post 200 "session" (test-users/user->credentials :rasta)))))
+        (finally
+         (db/update! User user-id :login_attributes nil)))))))
 
 ;; Test that we can login with LDAP with new user
 (expect
