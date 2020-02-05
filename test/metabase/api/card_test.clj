@@ -489,7 +489,7 @@
                  (perms/revoke-permissions! (perms-group/all-users) db)
                  (perms/grant-permissions! group (perms/table-segmented-query-path table))
                  (perms/grant-collection-readwrite-permissions! group collection)
-                 (boolean ((test-users/user->client :rasta) :post 200 "card"
+                 (boolean ((test-users/user->client :rasta) :post 202 "card"
                            (assoc (card-with-name-and-query card-name (mbql-count-query db table))
                                   :collection_id (u/get-id collection))))))))))
 
@@ -508,7 +508,7 @@
                    (perms/revoke-permissions! (perms-group/all-users) db)
                    (perms/grant-permissions! group (perms/table-segmented-query-path table))
                    (perms/grant-collection-readwrite-permissions! group collection)
-                   (:name ((test-users/user->client :rasta) :put 200 (str "card/" (u/get-id card))
+                   (:name ((test-users/user->client :rasta) :put 202 (str "card/" (u/get-id card))
                            {:name          "Another Name"
                             :dataset_query (mbql-count-query db table)}))))))))))
 

@@ -26,7 +26,7 @@
     ;; make sure the query actually exists
     (assert (resolve (symbol "metabase.audit.pages.dashboards/most-popular-with-avg-speed")))
     ;; ok, now try to run it. Should fail because you must be an admin to run audit-app queries
-    (-> ((test-users/user->client :lucky) :post 200 "dataset"
+    (-> ((test-users/user->client :lucky) :post 202 "dataset"
          {:type :internal
           :fn   "metabase.audit.pages.dashboards/most-popular-with-avg-speed"})
         (select-keys [:status :error]))))
@@ -40,7 +40,7 @@
     ;; make sure the query actually exists
     (assert (resolve (symbol "metabase.audit.pages.dashboards/most-popular-with-avg-speed")))
     ;; ok, now try to run it. Should fail because we don't have audit-app enabled
-    (-> ((test-users/user->client :crowberto) :post 200 "dataset"
+    (-> ((test-users/user->client :crowberto) :post 202 "dataset"
          {:type :internal
           :fn   "metabase.audit.pages.dashboards/most-popular-with-avg-speed"})
         (select-keys [:status :error]))))
@@ -56,7 +56,7 @@
                   Dashboard     [dash]
                   DashboardCard [_ {:card_id (u/get-id card), :dashboard_id (u/get-id dash)}]]
     (metastore-test/with-metastore-token-features #{:audit-app}
-      (let [result ((test-users/user->client :crowberto) :post 200 "dataset"
+      (let [result ((test-users/user->client :crowberto) :post 202 "dataset"
                     {:type :internal
                      :fn   fn-str
                      :args (for [arg arglist]
