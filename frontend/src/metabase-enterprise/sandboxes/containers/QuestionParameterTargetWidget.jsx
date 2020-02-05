@@ -7,13 +7,12 @@ import { QuestionLoaderHOC } from "metabase/containers/QuestionLoader";
 
 import * as Dashboard from "metabase/meta/Dashboard";
 
-import type { Parameter, ParameterTarget } from "metabase/meta/types/Parameter";
+import type { ParameterTarget } from "metabase/meta/types/Parameter";
 
 type Props = {
   questionObject?: any, // FIXME: minimal card
   questionId?: number,
   questionHash?: string,
-  parameter?: Parameter,
   target: ?ParameterTarget,
   onChange: (target: ?ParameterTarget) => void,
 };
@@ -24,11 +23,11 @@ export default class QuestionParameterTargetWidget extends React.Component {
 
   render() {
     // $FlowFixMe: question provided by HOC
-    const { question, parameter, ...props } = this.props;
+    const { question, ...props } = this.props;
     const mappingOptions = question
       ? Dashboard.getParameterMappingOptions(
           question.metadata(),
-          parameter,
+          null,
           question.card(),
         )
       : [];

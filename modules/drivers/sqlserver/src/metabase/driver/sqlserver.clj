@@ -180,8 +180,8 @@
   (hsql/call :datefromparts (hx/year expr) 1 1))
 
 (defmethod driver/date-add :sqlserver
-  [_ dt amount unit]
-  (date-add unit amount dt))
+  [_ hsql-form amount unit]
+  (date-add unit amount hsql-form))
 
 (defmethod sql.qp/unix-timestamp->timestamp [:sqlserver :seconds]
   [_ _ expr]
@@ -297,9 +297,8 @@
 ;; TIMEZONE FIXME — does it make sense to convert this to UTC? Shouldn't we convert it to the report timezone? Figure
 ;; this mystery out
 (defmethod sql-jdbc.execute/set-parameter [:sqlserver OffsetTime]
-  [driver prepared-statement index t]
-  (sql-jdbc.execute/set-parameter driver prepared-statement index
-                                  (t/local-time (t/with-offset-same-instant t (t/zone-offset 0)))))
+  [driver ps i t]
+  (sql-jdbc.execute/set-parameter driver ps i (t/local-time (t/with-offset-same-instant t (t/zone-offset 0)))))
 
 ;; instead of default `microsoft.sql.DateTimeOffset`
 (defmethod sql-jdbc.execute/read-column [:sqlserver microsoft.sql.Types/DATETIMEOFFSET]
