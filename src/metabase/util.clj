@@ -6,13 +6,10 @@
              [set :as set]
              [string :as str]
              [walk :as walk]]
-            [clojure.java
-             [classpath :as classpath]
-             [io :as io]]
+            [clojure.java.classpath :as classpath]
             [clojure.math.numeric-tower :as math]
             [clojure.tools.logging :as log]
             [clojure.tools.namespace.find :as ns-find]
-            [clojure.tools.reader.edn :as edn]
             [colorize.core :as colorize]
             [flatland.ordered.map :refer [ordered-map]]
             [medley.core :as m]
@@ -25,7 +22,7 @@
            java.util.concurrent.TimeoutException
            java.util.Locale
            javax.xml.bind.DatatypeConverter
-           org.apache.commons.validator.routines.UrlValidator))
+           [org.apache.commons.validator.routines RegexValidator UrlValidator]))
 
 (defn app-name-trs
   "Return the user configured application name, or Metabase translated
@@ -99,7 +96,7 @@
 
     (u/varargs String)
     (u/varargs String [\"A\" \"B\"])"
-  {:style/indent 1}
+  {:style/indent 1, :arglists '([klass] [klass xs])}
   [klass & [objects]]
   (vary-meta `(into-array ~klass ~objects)
              assoc :tag (format "[L%s;" (.getCanonicalName ^Class (ns-resolve *ns* klass)))))
@@ -114,7 +111,9 @@
 (defn url?
   "Is `s` a valid HTTP/HTTPS URL string?"
   ^Boolean [s]
-  (let [validator (UrlValidator. (varargs String ["http" "https"]) UrlValidator/ALLOW_LOCAL_URLS)]
+  (let [validator (UrlValidator. (varargs String ["http" "https"])
+                                 (RegexValidator. "^\\p{Alnum}+([\\.|\\-]\\p{Alnum}+)*(:\\d*)?")
+                                 UrlValidator/ALLOW_LOCAL_URLS)]
     (.isValid validator (str s))))
 
 (defn maybe?
@@ -494,37 +493,15 @@
   (or (id object-or-id)
       (throw (Exception. (tru "Not something with an ID: {0}" object-or-id)))))
 
-(defn- metabase-namespace-symbs* []
+;; This is made `^:const` so it will get calculated when the uberjar is compiled. `find-namespaces` won't work if
+;; source is excluded; either way this takes a few seconds, so doing it at compile time speeds up launch as well.
+(defonce ^:const ^{:doc "Vector of symbols of all Metabase namespaces, excluding test namespaces. This is intended for
+  use by various routines that load related namespaces, such as task and events initialization."}
+  metabase-namespace-symbols
   (vec (sort (for [ns-symb (ns-find/find-namespaces (classpath/system-classpath))
                    :when   (and (.startsWith (name ns-symb) "metabase.")
                                 (not (.contains (name ns-symb) "test")))]
                ns-symb))))
-
-(def ^:private namespace-symbs-filename "namespaces.edn")
-
-(when *compile-files*
-  (let [filename (str "resources/" namespace-symbs-filename)]
-    (printf "Saving list of Metabase namespaces to %s...\n" filename)
-    (spit filename (with-out-str (pprint (metabase-namespace-symbs*))))))
-
-(def metabase-namespace-symbols
-  "Delay to a vector of symbols of all Metabase namespaces, excluding test namespaces. This is intended for use by
-  various routines that load related namespaces, such as task and events initialization."
-  ;; When building the uberjar we'll determine the symbols ahead of time ans save to an EDN file which will speed up
-  ;; initialization a bit and also fix an issue where the sequence would be empty if `:omit-source` was enabled.
-  ;; `ns-find` looks for Clojure source files.
-  ;;
-  ;; Use a delay for dev runs since `ns-find` is slow and can take several seconds or more
-  (if config/is-prod?
-    (delay
-      (try
-        (log/info (trs "Reading Metabase namespaces from {0}" namespace-symbs-filename))
-        (edn/read-string (slurp (io/resource namespace-symbs-filename)))
-        (catch Throwable e
-          (log/error e (trs "Failed to read Metabase namespaces from {0}" namespace-symbs-filename))
-          (metabase-namespace-symbs*))))
-    (delay
-      (metabase-namespace-symbs*))))
 
 (def ^java.util.regex.Pattern uuid-regex
   "A regular expression for matching canonical string representations of UUIDs."
@@ -647,15 +624,6 @@
                          (when (pred x) i))
                        coll)))
 
-
-(defn is-java-9-or-higher?
-  "Are we running on Java 9 or above?"
-  ([]
-   (is-java-9-or-higher? (System/getProperty "java.version")))
-  ([java-version-str]
-   (when-let [[_ java-major-version-str] (re-matches #"^(?:1\.)?(\d+).*$" java-version-str)]
-     (>= (Integer/parseInt java-major-version-str) 9))))
-
 (defn hexadecimal-string?
   "Returns truthy if `new-value` is a hexadecimal-string"
   [new-value]
@@ -727,29 +695,6 @@
   {:style/indent 0}
   [& body]
   `(do-with-us-locale (fn [] ~@body)))
-
-(defn xor
-  "Exclusive or. (Because this is implemented as a function, rather than a macro, it is not short-circuting the way `or`
-  is.)"
-  [x y & more]
-  (loop [[x y & more] (into [x y] more)]
-    (cond
-      (and x y)
-      false
-
-      (seq more)
-      (recur (cons (or x y) more))
-
-      :else
-      (or x y))))
-
-(defn xor-pred
-  "Takes a set of predicates and returns a function that is true if *exactly one* of its composing predicates returns a
-  logically true value. Compare to `every-pred`."
-  [& preds]
-  (fn [& args]
-    (apply xor (for [pred preds]
-                 (apply pred args)))))
 
 (defn topological-sort
   "Topologically sorts vertexs in graph g. Graph is a map of vertexs to edges. Optionally takes an
@@ -868,3 +813,28 @@
   "Convert `minutes` to milliseconds. More readable than doing this math inline."
   [minutes]
   (-> minutes minutes->seconds seconds->ms))
+
+(defn parse-currency
+  "Parse a currency String to a BigDecimal. Handles a variety of different formats, such as:
+
+    $1,000.00
+    -£127.54
+    -127,54 €
+    kr-127,54
+    € 127,54-
+    ¥200"
+  ^java.math.BigDecimal [^String s]
+  (when-not (str/blank? s)
+    (bigdec
+     (reduce
+      (partial apply str/replace)
+      s
+      [
+       ;; strip out any current symbols
+       [#"[^\d,.-]+"          ""]
+       ;; now strip out any thousands separators
+       [#"(?<=\d)[,.](\d{3})" "$1"]
+       ;; now replace a comma decimal seperator with a period
+       [#","                  "."]
+       ;; move minus sign at end to front
+       [#"(^[^-]+)-$"         "-$1"]]))))
