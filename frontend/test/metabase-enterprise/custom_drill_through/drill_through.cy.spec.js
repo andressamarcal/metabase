@@ -22,7 +22,7 @@ describe("drill through", () => {
     cy.url().should("match", /\?count=744/);
   });
 
-  it("sets drill through link for value in table", () => {
+  xit("sets drill through link for value in table", () => {
     cy.visit("/browse/1");
     cy.contains("Orders").click();
 
