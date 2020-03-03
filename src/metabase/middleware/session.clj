@@ -81,7 +81,7 @@
   [response, {session-uuid :id} :- {:id (s/cond-pre UUID u/uuid-regex), s/Keyword s/Any}]
   (let [response       (wrap-body-if-needed response)
         cookie-options (merge
-                        {:same-site :lax
+                        {:same-site config/mb-session-cookie-samesite
                          :http-only true
                          ;; TODO - we should set `site-path` as well. Don't want to enable this yet so we don't end
                          ;; up breaking things
