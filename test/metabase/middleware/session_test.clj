@@ -6,6 +6,7 @@
             [expectations :refer [expect]]
             [java-time :as t]
             [metabase.api.common :refer [*current-user* *current-user-id*]]
+            [metabase.config :as config]
             [metabase.middleware
              [misc :as mw.misc]
              [session :as mw.session]]
@@ -47,6 +48,12 @@
     (with-redefs [env/env (assoc env :mb-session-cookies "true")]
       (-> (mw.session/set-session-cookie {} test-session)
           (get-in [:cookies session-cookie])))))
+
+(deftest session-cookie-test
+  (testing "`SameSite` value is read from config (env)"
+    (is (= :strict
+           (with-redefs [env/env (assoc env/env :mb-session-cookie-samesite "StRiCt")]
+             (#'config/mb-session-cookie-samesite*))))))
 
 ;; if request is an HTTPS request then we should set `:secure true`. There are several different headers we check for
 ;; this. Make sure they all work.

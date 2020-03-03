@@ -116,12 +116,16 @@
   local-process-uuid
   (str (UUID/randomUUID)))
 
-(def ^Keyword mb-session-cookie-samesite
-  "Value for session cookie's `SameSite` directive. Must be one of \"none\", \"lax\", or \"strict\" (case insensitive)."
+(defn- mb-session-cookie-samesite*
+  []
   (let [same-site (str/lower-case (config-str :mb-session-cookie-samesite))]
     (when-not (contains? #{"none", "lax", "strict"} same-site)
       (throw (ex-info "Invalid value for MB_COOKIE_SAMESITE" {:mb-session-cookie-samesite same-site})))
     (keyword same-site)))
+
+(def ^Keyword mb-session-cookie-samesite
+  "Value for session cookie's `SameSite` directive. Must be one of \"none\", \"lax\", or \"strict\" (case insensitive)."
+  (mb-session-cookie-samesite*))
 
 
 ;; This only affects dev:
