@@ -15,7 +15,8 @@
             [ring.mock.request :as mock]
             [toucan.db :as db]
             [toucan.util.test :as tt])
-  (:import java.util.UUID))
+  (:import clojure.lang.ExceptionInfo
+           java.util.UUID))
 
 ;;; ----------------------------------------------- set-session-cookie -----------------------------------------------
 
@@ -51,9 +52,21 @@
 
 (deftest session-cookie-test
   (testing "`SameSite` value is read from config (env)"
+    (is (= :lax ; Default value
+           (with-redefs [env/env (dissoc env/env :mb-session-cookie-samesite)]
+             (#'config/mb-session-cookie-samesite*))))
+
     (is (= :strict
            (with-redefs [env/env (assoc env/env :mb-session-cookie-samesite "StRiCt")]
-             (#'config/mb-session-cookie-samesite*))))))
+             (#'config/mb-session-cookie-samesite*))))
+
+    (is (= :none
+           (with-redefs [env/env (assoc env/env :mb-session-cookie-samesite "NONE")]
+             (#'config/mb-session-cookie-samesite*))))
+
+    (is (thrown-with-msg? ExceptionInfo #"Invalid value for MB_COOKIE_SAMESITE"
+          (with-redefs [env/env (assoc env/env :mb-session-cookie-samesite "invalid value")]
+            (#'config/mb-session-cookie-samesite*))))))
 
 ;; if request is an HTTPS request then we should set `:secure true`. There are several different headers we check for
 ;; this. Make sure they all work.
