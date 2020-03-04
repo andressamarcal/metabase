@@ -1,6 +1,7 @@
 (ns metabase.middleware.session
   "Ring middleware related to session (binding current user and permissions)."
   (:require [clojure.java.jdbc :as jdbc]
+            [clojure.tools.logging :as log]
             [java-time :as t]
             [metabase
              [config :as config]
@@ -17,7 +18,7 @@
              [user :as user :refer [User]]]
             [metabase.util
              [date-2 :as u.date]
-             [i18n :refer [tru]]]
+             [i18n :refer [deferred-trs tru]]]
             [ring.util.response :as resp]
             [schema.core :as s]
             [toucan.db :as db])
@@ -81,7 +82,7 @@
   [response, {session-uuid :id} :- {:id (s/cond-pre UUID u/uuid-regex), s/Keyword s/Any}]
   (let [response       (wrap-body-if-needed response)
         cookie-options (merge
-                        {:same-site :lax
+                        {:same-site config/mb-session-cookie-samesite
                          :http-only true
                          ;; TODO - we should set `site-path` as well. Don't want to enable this yet so we don't end
                          ;; up breaking things
@@ -96,8 +97,14 @@
                           {:max-age (* 60 (config/config-int :max-session-age))})
                         ;; If the authentication request request was made over HTTPS (hopefully always except for
                         ;; local dev instances) add `Secure` attribute so the cookie is only sent over HTTPS.
-                        (when (= (mw.util/request-protocol mw.misc/*request*) :https)
-                          {:secure true}))]
+                        (if (= (mw.util/request-protocol mw.misc/*request*) :https)
+                          {:secure true}
+                          (when (= config/mb-session-cookie-samesite :none)
+                            (log/warn
+                             (str (deferred-trs "Session cookie's SameSite is configured to \"None\", but site is ")
+                                  (deferred-trs "served over an insecure connection. Some browsers will reject ")
+                                  (deferred-trs "cookies under these conditions. ")
+                                  (deferred-trs "https://www.chromestatus.com/feature/5633521622188032"))))))]
     (resp/set-cookie response metabase-session-cookie (str session-uuid) cookie-options)))
 
 (s/defmethod set-session-cookie :full-app-embed

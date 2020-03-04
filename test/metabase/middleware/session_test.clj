@@ -6,6 +6,7 @@
             [expectations :refer [expect]]
             [java-time :as t]
             [metabase.api.common :refer [*current-user* *current-user-id*]]
+            [metabase.config :as config]
             [metabase.middleware
              [misc :as mw.misc]
              [session :as mw.session]]
@@ -14,7 +15,8 @@
             [ring.mock.request :as mock]
             [toucan.db :as db]
             [toucan.util.test :as tt])
-  (:import java.util.UUID))
+  (:import clojure.lang.ExceptionInfo
+           java.util.UUID))
 
 ;;; ----------------------------------------------- set-session-cookie -----------------------------------------------
 
@@ -47,6 +49,24 @@
     (with-redefs [env/env (assoc env :mb-session-cookies "true")]
       (-> (mw.session/set-session-cookie {} test-session)
           (get-in [:cookies session-cookie])))))
+
+(deftest session-cookie-test
+  (testing "`SameSite` value is read from config (env)"
+    (is (= :lax ; Default value
+           (with-redefs [env/env (dissoc env/env :mb-session-cookie-samesite)]
+             (#'config/mb-session-cookie-samesite*))))
+
+    (is (= :strict
+           (with-redefs [env/env (assoc env/env :mb-session-cookie-samesite "StRiCt")]
+             (#'config/mb-session-cookie-samesite*))))
+
+    (is (= :none
+           (with-redefs [env/env (assoc env/env :mb-session-cookie-samesite "NONE")]
+             (#'config/mb-session-cookie-samesite*))))
+
+    (is (thrown-with-msg? ExceptionInfo #"Invalid value for MB_COOKIE_SAMESITE"
+          (with-redefs [env/env (assoc env/env :mb-session-cookie-samesite "invalid value")]
+            (#'config/mb-session-cookie-samesite*))))))
 
 ;; if request is an HTTPS request then we should set `:secure true`. There are several different headers we check for
 ;; this. Make sure they all work.
