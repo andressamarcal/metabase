@@ -347,8 +347,10 @@
    (check-404 obj)
    (check-403 (mi/can-read? obj))
    obj)
+
   ([entity id]
    (read-check (entity id)))
+
   ([entity id & other-conditions]
    (read-check (apply db/select-one entity :id id other-conditions))))
 

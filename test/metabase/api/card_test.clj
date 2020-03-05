@@ -9,7 +9,8 @@
             [metabase
              [email-test :as et]
              [http-client :as http :refer :all]
-             [models :refer [Card CardFavorite Collection Dashboard Database PermissionsGroup PermissionsGroupMembership Pulse PulseCard PulseChannel PulseChannelRecipient Table ViewLog]]
+             [models :refer [Card CardFavorite Collection Dashboard Database Pulse PulseCard PulseChannel
+                             PulseChannelRecipient Table ViewLog]]
              [test :as mt]
              [util :as u]]
             [metabase.api.card :as card-api]
@@ -55,7 +56,7 @@
    :cache_ttl           nil
    :result_metadata     nil})
 
-(defn- mbql-count-query
+(defn mbql-count-query
   ([]
    (mbql-count-query (data/id) (data/id :venues)))
 
@@ -64,11 +65,13 @@
     :type     :query
     :query    {:source-table (u/get-id table-or-id), :aggregation [[:count]]}}))
 
-(defn- card-with-name-and-query
+(defn card-with-name-and-query
   ([]
    (card-with-name-and-query (tu/random-name)))
+
   ([card-name]
    (card-with-name-and-query card-name (mbql-count-query)))
+
   ([card-name query]
    {:name                   card-name
     :display                "scalar"
@@ -463,47 +466,6 @@
                                                                               :collection_position 1))
                     (some-> (db/select-one [Card :collection_id :collection_position] :name card-name)
                             (update :collection_id (partial = (u/get-id collection)))))))))))
-
-;; TODO - move these to an EE-only namespace NOCOMMIT
-(deftest users-with-segmented-perms-test
-  (testing "Users with segmented permissions should be able to save cards"
-    (let [card-name (tu/random-name)]
-      (is (true?
-           (tu/with-model-cleanup [Card]
-             (tt/with-temp* [Database                   [db]
-                             Collection                 [collection]
-                             Table                      [table {:db_id (u/get-id db)}]
-                             PermissionsGroup           [group]
-                             PermissionsGroupMembership [_ {:user_id (test-users/user->id :rasta)
-                                                            :group_id (u/get-id group)}]]
-               (data/with-db db
-                 (perms/revoke-permissions! (perms-group/all-users) db)
-                 (perms/grant-permissions! group (perms/table-segmented-query-path table))
-                 (perms/grant-collection-readwrite-permissions! group collection)
-                 (boolean ((test-users/user->client :rasta) :post 202 "card"
-                           (assoc (card-with-name-and-query card-name (mbql-count-query db table))
-                                  :collection_id (u/get-id collection))))))))))
-
-    (testing "Users with segmented permissions should be able to update the query associated to a card"
-      (is (= "Another Name"
-             (tu/with-model-cleanup [Card]
-               (tt/with-temp* [Database                   [db]
-                               Collection                 [collection]
-                               Table                      [table {:db_id (u/get-id db)}]
-                               PermissionsGroup           [group]
-                               PermissionsGroupMembership [_ {:user_id (test-users/user->id :rasta)
-                                                              :group_id (u/get-id group)}]
-                               Card                       [card {:name "Some Name"
-                                                                 :collection_id (u/get-id collection)}]]
-                 (data/with-db db
-                   (perms/revoke-permissions! (perms-group/all-users) db)
-                   (perms/grant-permissions! group (perms/table-segmented-query-path table))
-                   (perms/grant-collection-readwrite-permissions! group collection)
-                   (:name ((test-users/user->client :rasta) :put 202 (str "card/" (u/get-id card))
-                           {:name          "Another Name"
-                            :dataset_query (mbql-count-query db table)}))))))))))
-
-
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                            FETCHING A SPECIFIC CARD                                            |

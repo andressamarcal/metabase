@@ -12,10 +12,12 @@
              [table :refer [Table]]]
             [metabase.models.query.permissions :as query-perms]
             [metabase.mt.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
+            [metabase.query-processor
+             [error-type :as qp.error-type]
+             [store :as qp.store]]
             [metabase.query-processor.middleware
              [annotate :as annotate]
              [fetch-source-query :as fetch-source-query]]
-            [metabase.query-processor.store :as qp.store]
             [metabase.util :as u]
             [puppetlabs.i18n.core :refer [tru]]
             [schema.core :as s]
@@ -55,12 +57,13 @@
   [gtaps]
   (doseq [[table-id gtaps] (group-by :table_id gtaps)
           :when            (> (count gtaps) 1)]
-    (throw (ex-info (str (tru "Found more than one group table access policy for user ''{0}''"
-                              (:email @*current-user*)))
-             {:table-id  table-id
-              :gtaps     gtaps
-              :user      *current-user-id*
-              :group-ids (map :group_id gtaps)}))))
+    (throw (ex-info (tru "Found more than one group table access policy for user ''{0}''"
+                         (:email @*current-user*))
+                    {:type      qp.error-type/client
+                     :table-id  table-id
+                     :gtaps     gtaps
+                     :user      *current-user-id*
+                     :group-ids (map :group_id gtaps)}))))
 
 (defn- tables->gtaps [table-ids]
   (qp.store/cached [*current-user-id* table-ids]
@@ -113,7 +116,8 @@
   (let [attr-value       (get login-attributes attr-name ::not-found)
         maybe-field-type (target->type target)]
     (when (= attr-value ::not-found)
-      (throw (IllegalArgumentException. (str (tru "Query requires user attribute `{0}`" (name attr-name))))))
+      (throw (ex-info (tru "Query requires user attribute `{0}`" (name attr-name))
+                      {:type qp.error-type/missing-required-parameter})))
     {:type   :category
      :target target
      :value  (attr-value->param-value maybe-field-type attr-value)}))
@@ -192,28 +196,31 @@
         (_ :guard (every-pred map? :source-table))
         (assoc &match :gtap? true)))))
 
+(defn- id->col-info [query field-id]
+  (when field-id
+    (annotate/col-info-for-field-clause (:query query) [:field-id field-id])))
+
+(defn- update-col-metadata [query field-name->id-delay {:keys [id source], field-ref :field_ref, field-name :name, :as col}]
+  (let [id (or id (when (and (= (first field-ref) :field-literal)
+                             field-name)
+                    (get @field-name->id-delay field-name)))]
+    (merge
+     col
+     (id->col-info query id)
+     (when (= source :native)
+       {:source :fields}))))
+
 (defn- merge-metadata
   "Merge column metadata from the source Table into the results Metadata. This way the column Metadata matches what we'd
   get if the query was not running with a GTAP."
-  [query results]
-  (let [source-table-id (mbql.u/query->source-table-id query)
-        field-name->id  (delay
-                          (u/prog1 (when source-table-id
-                                     (db/select-field->id :name Field :table_id source-table-id))
-                            (qp.store/fetch-and-store-fields! (vals <>))))]
-    (letfn [(id->col-info [field-id]
-              (when field-id
-                (annotate/col-info-for-field-clause (:query query) [:field-id field-id])))
-            (update-col-metadata [{:keys [id source], field-ref :field_ref, field-name :name, :as col}]
-              (let [id (or id (when (and (= (first field-ref) :field-literal)
-                                         field-name)
-                                (get @field-name->id field-name)))]
-                (merge
-                 col
-                 (id->col-info id)
-                 (when (= source :native)
-                   {:source :fields}))))]
-      (update results :cols (partial mapv update-col-metadata)))))
+  [query metadata]
+  (let [source-table-id      (mbql.u/query->source-table-id query)
+        field-name->id-delay (delay
+                               (u/prog1 (when source-table-id
+                                          (db/select-field->id :name Field :table_id source-table-id))
+                                 (qp.store/fetch-and-store-fields! (vals <>))))
+        update-col-metadata* (partial update-col-metadata query field-name->id-delay)]
+    (update metadata :cols (partial mapv update-col-metadata*))))
 
 (defn apply-row-level-permissions
   "Does the work of swapping the given table the user was querying against with a nested subquery that restricts the
@@ -222,8 +229,10 @@
   (fn [query rff context]
     (if-let [table-id->gtap (when *current-user-id*
                               (query->table-id->gtap query))]
-      (let [query' (-> query
+      (let [query* (-> query
                        (apply-gtaps table-id->gtap)
-                       (update :gtap-perms (comp set concat) (gtaps->perms-set (vals table-id->gtap))))]
-        (merge-metadata query (qp query' rff context)))
+                       (update :gtap-perms (comp set concat) (gtaps->perms-set (vals table-id->gtap))))
+            rff* (fn [metadata]
+                   (rff (merge-metadata query metadata)))]
+        (qp query* rff* context))
       (qp query rff context))))

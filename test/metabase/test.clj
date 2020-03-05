@@ -11,6 +11,7 @@
              [query-processor :as qp]
              [query-processor-test :as qp.test]]
             [metabase.driver.sql-jdbc.test-util :as sql-jdbc.tu]
+            [metabase.mt.test-util :as mt.tu]
             [metabase.query-processor
              [context :as qp.context]
              [reducible :as qp.reducible]
@@ -29,7 +30,6 @@
              [log :as tu.log]
              [timezone :as tu.tz]]
             [potemkin :as p]
-            [metabase.mt.test-util :as mt.tu]
             [toucan.util.test :as tt]))
 
 ;; Fool the linters into thinking these namespaces are used! See discussion on

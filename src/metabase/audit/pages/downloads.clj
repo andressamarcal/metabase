@@ -2,11 +2,9 @@
   "Audit queries returning info about query downloads. Query downloads are any query executions whose results are returned
   as CSV/JSON/XLS."
   (:require [honeysql.core :as hsql]
-            [metabase
-             [db :as mdb]
-             [driver :as driver]]
-            [metabase.driver.sql.query-processor :as sql.qp]
             [metabase.audit.pages.common :as common]
+            [metabase.db :as mdb]
+            [metabase.driver.sql.query-processor :as sql.qp]
             [metabase.util.honeysql-extensions :as hx]
             [schema.core :as s]))
 

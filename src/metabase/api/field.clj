@@ -11,6 +11,8 @@
              [dimension :refer [Dimension]]
              [field :as field :refer [Field]]
              [field-values :as field-values :refer [FieldValues]]
+             [interface :as mi]
+             [permissions :as perms]
              [table :refer [Table]]]
             [metabase.util
              [i18n :refer [trs]]
@@ -32,12 +34,36 @@
   "Schema for a valid `Field` visibility type."
   (apply s/enum (map name field/visibility-types)))
 
+(defn- has-segmented-query-permissions?
+  "Does the Current User have segmented query permissions for `table`?"
+  [table]
+  (perms/set-has-full-permissions? @api/*current-user-permissions-set*
+    (perms/table-segmented-query-path table)))
+
+(defn- throw-if-no-read-or-segmented-perms
+  "Validates that the user either has full read permissions for `field` or segmented permissions on the table
+  associated with `field`. Throws an exception that will return a 403 if not."
+  [field]
+  (when-not (or (mi/can-read? field)
+                (has-segmented-query-permissions? (field/table field)))
+    (api/throw-403)))
 
 (api/defendpoint GET "/:id"
   "Get `Field` with ID."
   [id]
-  (-> (api/read-check Field id)
-      (hydrate [:table :db] :has_field_values :dimensions :name_field)))
+  (let [field (-> (api/check-404 (Field id))
+                  (hydrate [:table :db] :has_field_values :dimensions :name_field))]
+    ;; Normal read perms = normal access.
+    ;;
+    ;; There's also aspecial case where we allow you to fetch a Field even if you don't have full read permissions for
+    ;; it: if you have segmented query access to the Table it belongs to. In this case, we'll still let you fetch the
+    ;; Field, since this is required to power features like Dashboard filters, but we'll treat this Field a little
+    ;; differently in other endpoints such as the FieldValues fetching endpoint.
+    ;;
+    ;; Check for permissions and throw 403 if we don't have them...
+    (throw-if-no-read-or-segmented-perms field)
+    ;; ...but if we do, return the Field <3
+    field))
 
 (defn- clear-dimension-on-fk-change! [{{dimension-id :id dimension-type :type} :dimensions :as field}]
   (when (and dimension-id (= :external dimension-type))
@@ -172,7 +198,22 @@
   "If a Field's value of `has_field_values` is `list`, return a list of all the distinct values of the Field, and (if
   defined by a User) a map of human-readable remapped values."
   [id]
-  (field->values (api/read-check Field id)))
+  (let [field (api/check-404 (Field id))]
+    (cond
+      ;; if you have normal read permissions, return normal results
+      (mi/can-read? field)
+      (field->values (api/read-check field))
+
+      ;; otherwise if you have Segmented query perms (but not normal read perms) we'll do an ad-hoc query to fetch the
+      ;; results, filtered by your GTAP
+      (has-segmented-query-permissions? (field/table field))
+      {:values   (for [value (field-values/distinct-values field)]
+                   ;; for whatever reason values are supposed back as a vector of vectors, e.g. [[1] [2] [3] [4]]
+                   [value])
+       :field_id id}
+
+      :else
+      (api/throw-403))))
 
 ;; match things like GET /field-literal%2Ccreated_at%2Ctype%2FDatetime/values
 ;; (this is how things like [field-literal,created_at,type/Datetime] look when URL-encoded)
@@ -318,9 +359,12 @@
   [id search-id value limit]
   {value su/NonBlankString
    limit (s/maybe su/IntStringGreaterThanZero)}
-  (let [field        (api/read-check Field id)
-        search-field (api/read-check Field search-id)]
+  (let [field        (api/check-404 (Field id))
+        search-field (api/check-404 (Field search-id))]
+    (throw-if-no-read-or-segmented-perms field)
+    (throw-if-no-read-or-segmented-perms search-field)
     (search-values field search-field value (when limit (Integer/parseInt limit)))))
+
 
 (defn remapped-value
   "Search for one specific remapping where the value of `field` exactly matches `value`. Returns a pair like

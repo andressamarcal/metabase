@@ -1,7 +1,7 @@
 (ns metabase.query-processor.middleware.permissions
   "Middleware for checking that the current user has permissions to run the current query."
-  (:require [clojure.tools.logging :as log]
-            [clojure.set :as set]
+  (:require [clojure.set :as set]
+            [clojure.tools.logging :as log]
             [metabase.api.common :refer [*current-user-id* *current-user-permissions-set*]]
             [metabase.models
              [card :refer [Card]]

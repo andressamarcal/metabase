@@ -233,27 +233,31 @@
 (defn- current-user-has-root-permissions? ^Boolean []
   (contains? (current-user-permissions-set) "/"))
 
-(defn- make-perms-check-fn [perms-check-fn-symb]
-  (fn -has-perms?
-    ([read-or-write entity object-id]
-     (or (current-user-has-root-permissions?)
-         (-has-perms? read-or-write (entity object-id))))
-    ([read-or-write object]
-     (and object
-          (-has-perms? (perms-objects-set object read-or-write))))
-    ([perms-set]
-     ((resolve perms-check-fn-symb) (current-user-permissions-set) perms-set))))
+(defn check-perms-with-fn
+  ([fn-symb read-or-write entity object-id]
+   (or (current-user-has-root-permissions?)
+       (check-perms-with-fn fn-symb read-or-write (entity object-id))))
+
+  ([fn-symb read-or-write object]
+   (and object
+        (check-perms-with-fn fn-symb (perms-objects-set object read-or-write))))
+
+  ([fn-symb perms-set]
+   (let [f (resolve fn-symb)]
+     (assert f)
+     (u/prog1 (f (current-user-permissions-set) perms-set)
+       (log/tracef "Perms check: %s -> %s" (pr-str (list fn-symb (current-user-permissions-set) perms-set)) <>)))))
 
 (def ^{:arglists '([read-or-write entity object-id] [read-or-write object] [perms-set])}
-  ^Boolean current-user-has-full-permissions?
+  current-user-has-full-permissions?
   "Implementation of `can-read?`/`can-write?` for the old permissions system. `true` if the current user has *full*
-  permissions for the paths returned by its implementation of `perms-objects-set`. (READ-OR-WRITE is either `:read` or
+  permissions for the paths returned by its implementation of `perms-objects-set`. (`read-or-write` is either `:read` or
   `:write` and passed to `perms-objects-set`; you'll usually want to partially bind it in the implementation map)."
-  (make-perms-check-fn 'metabase.models.permissions/set-has-full-permissions-for-set?))
+  (partial check-perms-with-fn 'metabase.models.permissions/set-has-full-permissions-for-set?))
 
 (def ^{:arglists '([read-or-write entity object-id] [read-or-write object] [perms-set])}
-  ^Boolean current-user-has-partial-permissions?
+  current-user-has-partial-permissions?
   "Implementation of `can-read?`/`can-write?` for the old permissions system. `true` if the current user has *partial*
-  permissions for the paths returned by its implementation of `perms-objects-set`. (READ-OR-WRITE is either `:read` or
+  permissions for the paths returned by its implementation of `perms-objects-set`. (`read-or-write` is either `:read` or
   `:write` and passed to `perms-objects-set`; you'll usually want to partially bind it in the implementation map)."
-  (make-perms-check-fn 'metabase.models.permissions/set-has-partial-permissions-for-set?))
+  (partial check-perms-with-fn 'metabase.models.permissions/set-has-partial-permissions-for-set?))

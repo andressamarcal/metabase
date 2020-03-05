@@ -1,12 +1,14 @@
 (ns metabase.audit.pages.common
   "Shared functions used by audit internal queries across different namespaces."
-  (:require [clojure.string :as str]
+  (:require [clojure.core.async :as a]
+            [clojure.java.jdbc :as jdbc]
+            [clojure.string :as str]
             [honeysql
              [core :as hsql]
              [helpers :as h]]
             [metabase.db :as mdb]
+            [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
             [metabase.driver.sql.query-processor :as sql.qp]
-            [metabase.query-processor.middleware.internal-queries :as internal-queries]
             [metabase.util
              [honeysql-extensions :as hx]
              [urls :as urls]]
@@ -17,13 +19,28 @@
 
 (defn query
   "Run a internal audit query, automatically including limits and offsets for paging."
-  {:style/indent 0}
-  [query-map]
-  (let [{:keys [limit offset]} internal-queries/*additional-query-params*]
-    (db/query (merge
-               {:limit  (or limit default-limit)
-                :offset (or offset 0)}
-               query-map))))
+  ;; TODO - it would be better if we used the `rff` supplied to the QP directly rather than reducing the rows here and
+  ;; then reducing them all a second time using the `rff`. This isn't streaming with the current IMPL, but since the
+  ;; limit is 1000 rows that is less of a concern
+  [honeysql-query]
+  (let [driver         (mdb/db-type)
+        [sql & params] (hsql/format honeysql-query)
+        canceled-chan  (a/promise-chan)]
+    (try
+      (with-open [conn (jdbc/get-connection (db/connection))
+                  stmt (sql-jdbc.execute/prepared-statement driver conn sql params)
+                  rs   (sql-jdbc.execute/execute-query! driver stmt)]
+        (let [rsmeta    (.getMetaData rs)
+              cols      (sql-jdbc.execute/column-metadata driver rsmeta)
+              col-names (mapv (comp keyword :name) cols)]
+          (transduce
+           (map (partial zipmap col-names))
+           conj
+           []
+           (sql-jdbc.execute/reducible-rows driver rs rsmeta canceled-chan))))
+      (catch InterruptedException e
+        (a/>!! canceled-chan :cancel)
+        (throw e)))))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                                   Helper Fns                                                   |

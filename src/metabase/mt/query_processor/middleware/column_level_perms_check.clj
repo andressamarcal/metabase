@@ -3,7 +3,6 @@
             [medley.core :as m]
             [metabase.api.common :refer [*current-user-id*]]
             [metabase.mbql.util :as mbql.u]
-            [metabase.util :as u]
             [metabase.util.i18n :refer [trs tru]]))
 
 (defn- maybe-apply-column-level-perms-check* [{{{source-query-fields :fields} :source-query} :query, :as query}]

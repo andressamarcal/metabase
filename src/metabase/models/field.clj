@@ -169,7 +169,7 @@
     (Field fk_target_field_id)))
 
 (defn values
-  "Return the `FieldValues` associated with this FIELD."
+  "Return the `FieldValues` associated with this `field`."
   [{:keys [id]}]
   (db/select [FieldValues :field_id :values], :field_id id))
 
@@ -185,7 +185,7 @@
                           (db/select model :field_id [:in field-ids])))))
 
 (defn with-values
-  "Efficiently hydrate the `FieldValues` for a collection of FIELDS."
+  "Efficiently hydrate the `FieldValues` for a collection of `fields`."
   {:batched-hydrate :values}
   [fields]
   (let [id->field-values (select-field-id->instance fields FieldValues)]
@@ -193,7 +193,7 @@
       (assoc field :values (get id->field-values (:id field) [])))))
 
 (defn with-normal-values
-  "Efficiently hydrate the `FieldValues` for visibility_type normal FIELDS."
+  "Efficiently hydrate the `FieldValues` for visibility_type normal `fields`."
   {:batched-hydrate :normal_values}
   [fields]
   (let [id->field-values (select-field-id->instance (filter fv/field-should-have-field-values? fields)
@@ -202,7 +202,7 @@
       (assoc field :values (get id->field-values (:id field) [])))))
 
 (defn with-dimensions
-  "Efficiently hydrate the `Dimension` for a collection of FIELDS."
+  "Efficiently hydrate the `Dimension` for a collection of `fields`."
   {:batched-hydrate :dimensions}
   [fields]
   ;; TODO - it looks like we obviously thought this code would return *all* of the Dimensions for a Field, not just
@@ -256,7 +256,7 @@
     (dissoc field :table)))
 
 (defn with-targets
-  "Efficiently hydrate the FK target fields for a collection of FIELDS."
+  "Efficiently hydrate the FK target fields for a collection of `fields`."
   {:batched-hydrate :target}
   [fields]
   (let [target-field-ids (set (for [field fields
@@ -271,7 +271,7 @@
 
 
 (defn qualified-name-components
-  "Return the pieces that represent a path to FIELD, of the form `[table-name parent-fields-name* field-name]`."
+  "Return the pieces that represent a path to `field`, of the form `[table-name parent-fields-name* field-name]`."
   [{field-name :name, table-id :table_id, parent-id :parent_id}]
   (conj (vec (if-let [parent (Field parent-id)]
                (qualified-name-components parent)
@@ -282,7 +282,7 @@
         field-name))
 
 (defn qualified-name
-  "Return a combined qualified name for FIELD, e.g. `table_name.parent_field_name.field_name`."
+  "Return a combined qualified name for `field`, e.g. `table_name.parent_field_name.field_name`."
   [field]
   (str/join \. (qualified-name-components field)))
 
