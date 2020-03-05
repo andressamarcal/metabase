@@ -143,28 +143,38 @@
       (log/error (trs "Error validating token:") (.getMessage e))
       #{})))
 
-(defn hide-embed-branding?
+(defsetting hide-embed-branding?
   "Should we hide the 'Powered by Metabase' attribution on the embedding pages? `true` if we have a valid premium
    embedding token."
-  []
-  (boolean ((token-features) "embedding")))
+  :type       :boolean
+  :visibility :public
+  :setter     :none
+  :getter     (fn [] (boolean ((token-features) "embedding"))))
 
-(defn enable-whitelabeling?
+(defsetting enable-whitelabeling?
   "Should we allow full whitelabel embedding (reskinning the entire interface?)"
-  []
-  (boolean ((token-features) "whitelabel")))
+  :type       :boolean
+  :visibility :public
+  :setter     :none
+  :getter     (fn [] (boolean ((token-features) "whitelabel"))))
 
-(defn enable-audit-app?
+(defsetting enable-audit-app?
   "Should we allow use of the audit app?"
-  []
-  (boolean ((token-features) "audit-app")))
+  :type       :boolean
+  :visibility :public
+  :setter     :none
+  :getter     (fn [] (boolean ((token-features) "audit-app"))))
 
-(defn enable-sandboxes?
+(defsetting enable-sandboxes?
   "Should we enable data sandboxes (row and column-level permissions?"
-  []
-  (boolean ((token-features) "sandboxes")))
+  :type       :boolean
+  :visibility :public
+  :setter     :none
+  :getter     (fn [] (boolean ((token-features) "sandboxes"))))
 
-(defn enable-sso?
+(defsetting enable-sso?
   "Should we enable SAML/JWT sign-in?"
-  []
-  (boolean ((token-features) "sso")))
+  :type       :boolean
+  :visibility :public
+  :setter     :none
+  :getter     (fn [] (boolean ((token-features) "sso"))))

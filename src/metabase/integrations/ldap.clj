@@ -95,12 +95,14 @@
   :default "userPassword,dn,distinguishedName"
   :type    :csv)
 
-(defn ldap-configured?
+(defsetting ldap-configured?
   "Check if LDAP is enabled and that the mandatory settings are configured."
-  []
-  (boolean (and (ldap-enabled)
-                (ldap-host)
-                (ldap-user-base))))
+  :type       :boolean
+  :visibility :public
+  :setter     :none
+  :getter     (fn [] (boolean (and (ldap-enabled)
+                                   (ldap-host)
+                                   (ldap-user-base)))))
 
 (defn- details->ldap-options [{:keys [host port bind-dn password security]}]
   {:host      (str host ":" port)

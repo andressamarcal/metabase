@@ -65,16 +65,10 @@ import { getMetadata } from "metabase/selectors/metadata";
 
 import NativeQuery from "metabase-lib/lib/queries/NativeQuery";
 
-import { fetchDatabases } from "metabase/redux/metadata";
 import { loadMetadataForCard } from "metabase/query_builder/actions";
 
-const mapStateToProps = state => ({
-  metadata: getMetadata(state),
-});
-const mapDispatchToProps = {
-  loadMetadataForCard,
-  fetchDatabases,
-};
+const mapStateToProps = state => ({ metadata: getMetadata(state) });
+const mapDispatchToProps = { loadMetadataForCard };
 
 @connect(
   mapStateToProps,
@@ -82,8 +76,7 @@ const mapDispatchToProps = {
 )
 class QueryBuilderReadOnly extends React.Component {
   componentDidMount() {
-    const { card, fetchDatabases, loadMetadataForCard } = this.props;
-    fetchDatabases();
+    const { card, loadMetadataForCard } = this.props;
     loadMetadataForCard(card);
   }
   render() {

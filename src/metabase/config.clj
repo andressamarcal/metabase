@@ -14,25 +14,30 @@
 
 (def ^:private app-defaults
   "Global application defaults"
-  {:mb-run-mode                "prod"
+  {:mb-run-mode            "prod"
    ;; DB Settings
-   :mb-db-type                 "h2"
-   :mb-db-file                 "metabase.db"
-   :mb-db-automigrate          "true"
-   :mb-db-logging              "true"
+   :mb-db-type             "h2"
+   :mb-db-file             "metabase.db"
+   :mb-db-automigrate      "true"
+   :mb-db-logging          "true"
    ;; Jetty Settings. Full list of options is available here: https://github.com/ring-clojure/ring/blob/master/ring-jetty-adapter/src/ring/adapter/jetty.clj
-   :mb-jetty-port              "3000"
-   :mb-jetty-join              "true"
+   :mb-jetty-port          "3000"
+   :mb-jetty-join          "true"
    ;; other application settings
-   :mb-password-complexity     "normal"
-   :mb-version-info-url        "http://static.metabase.com/version-info.json"
-   :max-session-age            "20160"                                        ; session length in minutes (14 days)
-   :embed-max-session-age      "1440"                                         ; how long a FULL APP EMBED session is valid for. One day, by default
-   :mb-colorize-logs           (str (not is-windows?))                        ; since PowerShell and cmd.exe don't support ANSI color escape codes or emoji,
-   :mb-emoji-in-logs           (str (not is-windows?))                        ; disable them by default when running on Windows. Otherwise they're enabled
-   :mb-qp-cache-backend        "db"
+   :mb-password-complexity "normal"
+   :mb-version-info-url    "http://static.metabase.com/version-info.json"
+   :mb-ns-trace            ""                                             ; comma-separated namespaces to trace
+   :max-session-age        "20160"                                        ; session length in minutes (14 days)
+   :mb-colorize-logs       (str (not is-windows?))                        ; since PowerShell and cmd.exe don't support ANSI color escape codes or emoji,
+   :mb-emoji-in-logs       (str (not is-windows?))                        ; disable them by default when running on Windows. Otherwise they're enabled
+   :mb-qp-cache-backend    "db"})
+
+;; separate map for EE stuff so merge conflicts aren't annoying.
+(def ^:private ee-app-defaults
+  {:embed-max-session-age      "1440"   ; how long a FULL APP EMBED session is valid for. One day, by default
    :mb-session-cookie-samesite "lax"})
 
+(alter-var-root #'app-defaults merge ee-app-defaults)
 
 (defn config-str
   "Retrieve value for a single configuration key.  Accepts either a keyword or a string.

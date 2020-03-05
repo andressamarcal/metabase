@@ -14,8 +14,10 @@
    "install"                           ["with-profile" "+install" "install"]
    "install-for-building-drivers"      ["with-profile" "install-for-building-drivers" "install"]
    "run"                               ["with-profile" "+run" "run"]
+   "run-with-repl"                     ["with-profile" "+run-with-repl" "repl"]
    "ring"                              ["with-profile" "+ring" "ring"]
    "test"                              ["with-profile" "+test" "test"]
+   "eftest"                            ["with-profile" "+test" "with-profile" "+eftest" "eftest"]
    "bikeshed"                          ["with-profile" "+bikeshed" "bikeshed"
                                         "--max-line-length" "205"
                                         ;; see https://github.com/dakrone/lein-bikeshed/issues/41
@@ -29,7 +31,6 @@
    "repl"                              ["with-profile" "+repl" "repl"]
    "strip-and-compress"                ["with-profile" "+strip-and-compress" "run"]
    "compare-h2-dbs"                    ["with-profile" "+compare-h2-dbs" "run"]}
-
 
   ;; !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ;; !!                                   PLEASE KEEP THESE ORGANIZED ALPHABETICALLY                                  !!
@@ -48,6 +49,7 @@
    [org.clojure/math.numeric-tower "0.0.4"]                           ; math functions like `ceil`
    [org.clojure/tools.logging "0.4.1"]                                ; logging framework
    [org.clojure/tools.namespace "0.2.11"]
+   [org.clojure/tools.trace "0.7.10"]                                 ; function tracing
    [amalloy/ring-buffer "1.2.2"
     :exclusions [org.clojure/clojure
                  org.clojure/clojurescript]]                          ; fixed length queue implementation, used in log buffering
@@ -107,7 +109,6 @@
    [me.raynes/fs "1.4.6"]                                             ; Filesystem tools
    [medley "1.2.0"]                                                   ; lightweight lib of useful functions
    [metabase/connection-pool "1.1.1"]                                 ; simple wrapper around C3P0. JDBC connection pools
-   [metabase/mbql "1.4.3"]                                            ; MBQL language schema & util fns
    [metabase/saml20-clj "1.0.2"]                                      ; EE SAML integration
    [metabase/throttle "1.0.2"]                                        ; Tools for throttling access to API endpoints and other code pathways
    [net.redhogs.cronparser/cron-parser-core "3.4"                     ; describe Cron schedule in human-readable language
@@ -159,20 +160,19 @@
   :javac-options
   ["-target" "1.8", "-source" "1.8"]
 
+  :source-paths
+  ["src" "backend/mbql/src" "ee/src"]
+
   :java-source-paths
   ["java"]
 
   :uberjar-name
   "metabase.jar"
 
-  ;; EE-specific code
-  :source-paths ["src" "ee/src"]
-  :test-paths ["test"]
-
   :profiles
   {:dev
    {:source-paths ["dev/src" "local/src"]
-    :test-paths   ["ee/test"]
+    :test-paths   ["test" "backend/mbql/test" "ee/test"]
 
     :dependencies
     [[clj-http-fake "1.0.3" :exclusions [slingshot]]                  ; Library to mock clj-http responses
@@ -203,7 +203,9 @@
     {:init-ns user}} ; starting in the user namespace is a lot faster than metabase.core since it has less deps
 
    :ci
-   {:jvm-opts ["-Xmx2500m"]}
+   {:jvm-opts ["-Xmx2500m"]
+    :eftest   {:report         eftest.report.junit/report
+               :report-to-file "target/test/junit.xml"}}
 
    :install
    {}
@@ -217,6 +219,18 @@
 
    :run
    [:exclude-tests {}]
+
+   :run-with-repl
+   [:exclude-tests
+    :include-all-drivers
+
+    {:env
+     {:mb-jetty-join "false"}
+
+     :repl-options
+     {:init    (do (require 'metabase.core)
+                   (metabase.core/-main))
+      :timeout 60000}}]
 
    ;; start the dev HTTP server with 'lein ring server'
    :ring
@@ -261,6 +275,10 @@
       #=(eval (format "-Dmb.jetty.port=%d" (+ 3001 (rand-int 500))))
       "-Dmb.api.key=test-api-key"
       "-Duser.language=en"]}]
+
+   :eftest
+   {:plugins [[lein-eftest "0.5.9"]]
+    :eftest  {:multithread? false}}
 
    :include-all-drivers
    [:with-include-drivers-middleware
@@ -324,7 +342,7 @@
    :check-namespace-decls
    [:include-all-drivers
     {:plugins               [[lein-check-namespace-decls "1.0.2"]]
-     :source-paths          ^:replace ["src" "test"]
+     :source-paths          ^:replace ["src" "backend/mbql/src" "test" "backend/mbql/test"]
      :check-namespace-decls {:prefix-rewriting true}}]
 
    ;; build the uberjar with `lein uberjar`
