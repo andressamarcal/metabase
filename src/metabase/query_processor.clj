@@ -24,8 +24,6 @@
              [add-source-metadata :as add-source-metadata]
              [add-timezone-info :as add-timezone-info]
              [annotate :as annotate]
-             [async :as async]
-             [async-wait :as async-wait]
              [auto-bucket-datetimes :as bucket-datetime]
              [binning :as binning]
              [cache :as cache]
@@ -143,8 +141,7 @@
 (def ^:private ^:const preprocessing-timeout-ms 10000)
 
 (defn- preprocess-query [query context]
-  (binding [*preprocessing-level*           (inc *preprocessing-level*)
-            async-wait/*disable-async-wait* true]
+  (binding [*preprocessing-level* (inc *preprocessing-level*)]
     ;; record the number of recursive preprocesses taking place to prevent infinite preprocessing loops.
     (log/tracef "*preprocessing-level*: %d" *preprocessing-level*)
     (when (>= *preprocessing-level* max-preprocessing-level)
