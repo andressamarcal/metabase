@@ -21,6 +21,7 @@
              [i18n :refer [deferred-trs tru]]]
             [ring.util.response :as resp]
             [schema.core :as s]
+            [metabase.driver.sql.query-processor :as sql.qp]
             [toucan.db :as db])
   (:import [java.sql Connection PreparedStatement]
            java.time.temporal.Temporal
@@ -180,7 +181,7 @@
   (let [session-max-age-minutes (config/config-int (case session-type
                                                      :normal         :max-session-age
                                                      :full-app-embed :embed-max-session-age))]
-    (driver/date-add (mdb/db-type) :%now (- session-max-age-minutes) :minute)))
+    (sql.qp/add-interval-honeysql-form (mdb/db-type) :%now (- session-max-age-minutes) :minute)))
 
 (defn- fetch-session-honeysql [session-type]
   {:select    [:session.user_id :user.is_superuser]

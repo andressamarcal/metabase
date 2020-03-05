@@ -5,6 +5,7 @@
             [metabase
              [db :as mdb]
              [driver :as driver]]
+            [metabase.driver.sql.query-processor :as sql.qp]
             [metabase.audit.pages.common :as common]
             [metabase.util.honeysql-extensions :as hx]
             [schema.core :as s]))
@@ -27,7 +28,7 @@
                 :from     [[:query_execution :qe]]
                 :left-join [[:core_user :u] [:= :qe.executor_id :u.id]]
                 :where    [:and
-                           [:> :qe.started_at (driver/date-add (mdb/db-type) :%now -30 :day)]
+                           [:> :qe.started_at (sql.qp/add-interval-honeysql-form (mdb/db-type) :%now -30 :day)]
                            (common/query-execution-is-download :qe)]
                 :order-by [[:qe.result_rows :desc]]
                 :limit    1000})})

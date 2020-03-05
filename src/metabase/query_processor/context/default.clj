@@ -53,18 +53,18 @@
   `metabase.query-processor.reducible-test/write-rows-to-file-test` for an example of a custom implementation."
   [rff context metadata reducible-rows]
   {:pre [(fn? rff)]}
-  (let [metadata  (context/metadataf metadata context)]
-    ;; TODO -- how to pass updated metadata to reducedf?
-    (let [rf (rff metadata)]
-      (assert (fn? rf))
-      (when-let [reduced-rows (try
-                                (transduce identity rf reducible-rows)
-                                (catch Throwable e
-                                  (context/raisef (ex-info (tru "Error reducing result rows")
-                                                           {:type error-type/qp}
-                                                           e)
-                                                  context)))]
-        (context/reducedf metadata reduced-rows context)))))
+  (let [metadata (context/metadataf metadata context)
+        ;; TODO -- how to pass updated metadata to reducedf?
+        rf       (rff metadata)]
+    (assert (fn? rf))
+    (when-let [reduced-rows (try
+                              (transduce identity rf reducible-rows)
+                              (catch Throwable e
+                                (context/raisef (ex-info (tru "Error reducing result rows")
+                                                         {:type error-type/qp}
+                                                         e)
+                                                context)))]
+      (context/reducedf metadata reduced-rows context))))
 
 (defn- default-runf [query rf context]
   (try

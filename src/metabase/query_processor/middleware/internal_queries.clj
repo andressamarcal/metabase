@@ -57,14 +57,11 @@
 (s/defn ^:private format-results [{:keys [results metadata]} :- {:results  [su/Map]
                                                                  :metadata ResultsMetadata}]
   (check-results-and-metadata-keys-match results metadata)
-  {:status    :completed
-   :row_count (count results)
-   :data      {:columns (map first metadata)
-               :cols    (for [[k v] metadata]
-                          (assoc v :name (name k)))
-               :rows    (for [row results]
-                          (for [[k] metadata]
-                            (get row (keyword k))))}})
+  {:cols (for [[k v] metadata]
+           (assoc v :name (name k)))
+   :rows (for [row results]
+           (for [[k] metadata]
+             (get row (keyword k))))})
 
 (def InternalQuery
   "Schema for a valid `internal` type query."
@@ -115,14 +112,17 @@
                                    qualified-fn-str)))))
     ;; ok, run the query
     (format-results (binding [*additional-query-params* (dissoc query :fn :args)]
-                      (apply @fn-varr args)))))
+                      (apply @fn-varr context args)))))
 
+(defn- process-internal-query [query xform context]
+  (let [{:keys [cols rows]} (do-internal-query query)
+        metadata            {:cols cols}]
+    (context/reducef (context/rff context) context metadata rows)))
 
 (defn handle-internal-queries
   "Middleware that handles `internal` type queries."
   [qp]
-  (fn [{query-type :type, :as query} respond raise canceled-chan]
+  (fn [{query-type :type, :as query} xform context]
     (if (= :internal (keyword query-type))
-      ;; TODO - consider whether we should make these audit queries async or at least respect query cancelation messages
-      (respond (do-internal-query query))
-      (qp query respond raise canceled-chan))))
+      (process-internal-query query xform context)
+      (qp query xform context))))
