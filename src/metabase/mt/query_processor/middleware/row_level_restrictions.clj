@@ -219,11 +219,11 @@
   "Does the work of swapping the given table the user was querying against with a nested subquery that restricts the
   rows returned. Will return the original query if there are no segmented permissions found"
   [qp]
-  (fn [query]
+  (fn [query rff context]
     (if-let [table-id->gtap (when *current-user-id*
                               (query->table-id->gtap query))]
       (let [query' (-> query
                        (apply-gtaps table-id->gtap)
                        (update :gtap-perms (comp set concat) (gtaps->perms-set (vals table-id->gtap))))]
-        (merge-metadata query (qp query')))
-      (qp query))))
+        (merge-metadata query (qp query' rff context)))
+      (qp query rff context))))

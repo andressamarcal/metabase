@@ -17,7 +17,7 @@
             [metabase.middleware.util :as middleware.u]
             [metabase.models
              [permissions :as perms]
-             [permissions-group :as perms-group
+             [permissions-group :as perms-group]]
             [metabase.query-processor.async :as qp.async]
             [metabase.query-processor.middleware
              [constraints :as constraints]

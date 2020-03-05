@@ -29,6 +29,7 @@
              [log :as tu.log]
              [timezone :as tu.tz]]
             [potemkin :as p]
+            [metabase.mt.test-util :as mt.tu]
             [toucan.util.test :as tt]))
 
 ;; Fool the linters into thinking these namespaces are used! See discussion on
@@ -38,11 +39,12 @@
   datasets/keep-me
   driver/keep-me
   initialize/keep-me
+  mt.tu/keep-me
   qp/keep-me
   qp.test-util/keep-me
   qp.test/keep-me
   sql-jdbc.tu/keep-me
-  [test-users/keep-me]
+  test-users/keep-me
   tt/keep-me
   tu/keep-me
   tu.async/keep-me
@@ -78,6 +80,9 @@
 
  [initialize
   initialize-if-needed!]
+
+ [mt.tu
+  with-gtaps]
 
  [qp
   process-query

@@ -26,6 +26,7 @@
              [string :as str]]
             [metabase.api.common :as api]
             [metabase.public-settings.metastore :as metastore]
+            [metabase.query-processor.context :as context]
             [metabase.util
              [i18n :refer [tru]]
              [schema :as su]]
@@ -96,8 +97,8 @@
        (str (tru "Unable to run internal query function: cannot resolve {0}"
                  qualified-fn-str)))))))
 
-(s/defn ^:private do-internal-query
-  [{qualified-fn-str :fn, args :args, :as query} :- InternalQuery]
+(s/defn ^:private process-internal-query
+  [{qualified-fn-str :fn, args :args, :as query} :- InternalQuery rff context]
   ;; Make sure current user is a superuser
   (api/check-superuser)
   ;; Make sure audit app is enabled (currently the only use case for internal queries). We can figure out a way to
@@ -110,14 +111,10 @@
     (when-not (:internal-query-fn (meta fn-varr))
       (throw (Exception. (str (tru "Invalid internal query function: {0} is not marked as an ^:internal-query-fn"
                                    qualified-fn-str)))))
-    ;; ok, run the query
-    (format-results (binding [*additional-query-params* (dissoc query :fn :args)]
-                      (apply @fn-varr context args)))))
-
-(defn- process-internal-query [query xform context]
-  (let [{:keys [cols rows]} (do-internal-query query)
-        metadata            {:cols cols}]
-    (context/reducef (context/rff context) context metadata rows)))
+    (let [{:keys [cols rows]} (binding [*additional-query-params* (dissoc query :fn :args)]
+                                (apply @fn-varr args))
+          metadata            {:cols cols}]
+      (context/reducef rff context metadata rows))))
 
 (defn handle-internal-queries
   "Middleware that handles `internal` type queries."

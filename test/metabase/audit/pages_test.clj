@@ -45,23 +45,26 @@
         :when    (:internal-query-fn (meta varr))]
     varr))
 
-(defn- test-query [varr {:keys [database table card dash]}]
+(defn- varr->query [varr {:keys [database table card dash]}]
   (let [mta     (meta varr)
         fn-str  (str (ns-name (:ns mta)) "/" (:name mta))
-        arglist (mapv keyword (first (:arglists mta)))
-        query   {:type :internal
-                 :fn   fn-str
-                 :args (for [arg arglist]
-                         (case arg
-                           :datetime-unit "day"
-                           :dashboard-id  (u/get-id dash)
-                           :card-id       (u/get-id card)
-                           :user-id       (mt/user->id :crowberto)
-                           :database-id   (u/get-id database)
-                           :table-id      (u/get-id table)
-                           :model         "card"
-                           :query-hash    (qp-util/query-hash {:database 1, :type :native})))}]
-    (testing fn-str
+        arglist (mapv keyword (first (:arglists mta)))]
+    {:type :internal
+     :fn   fn-str
+     :args (for [arg arglist]
+             (case arg
+               :datetime-unit "day"
+               :dashboard-id  (u/get-id dash)
+               :card-id       (u/get-id card)
+               :user-id       (mt/user->id :crowberto)
+               :database-id   (u/get-id database)
+               :table-id      (u/get-id table)
+               :model         "card"
+               :query-hash    (qp-util/query-hash {:database 1, :type :native})))}))
+
+(defn- test-query [varr objects]
+  (let [query (varr->query varr objects)]
+    (testing (format "%s %s:%d" varr (ns-name (:ns (meta varr))) (:line (meta varr)))
       (testing (format "\nquery = %s" (pr-str query))
         (let [result ((mt/user->client :crowberto) :post 202 "dataset" query)]
           (is (= (:status result)
