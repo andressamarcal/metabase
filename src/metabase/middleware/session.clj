@@ -6,10 +6,10 @@
             [metabase
              [config :as config]
              [db :as mdb]
-             [driver :as driver]
              [util :as u]]
             [metabase.api.common :refer [*current-user* *current-user-id* *current-user-permissions-set* *is-superuser?*]]
             [metabase.core.initialization-status :as init-status]
+            [metabase.driver.sql.query-processor :as sql.qp]
             [metabase.middleware
              [misc :as mw.misc]
              [util :as mw.util]]
@@ -21,7 +21,6 @@
              [i18n :refer [deferred-trs tru]]]
             [ring.util.response :as resp]
             [schema.core :as s]
-            [metabase.driver.sql.query-processor :as sql.qp]
             [toucan.db :as db])
   (:import [java.sql Connection PreparedStatement]
            java.time.temporal.Temporal

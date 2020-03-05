@@ -233,7 +233,7 @@
 (defn- current-user-has-root-permissions? ^Boolean []
   (contains? (current-user-permissions-set) "/"))
 
-(defn check-perms-with-fn
+(defn- check-perms-with-fn
   ([fn-symb read-or-write entity object-id]
    (or (current-user-has-root-permissions?)
        (check-perms-with-fn fn-symb read-or-write (entity object-id))))
