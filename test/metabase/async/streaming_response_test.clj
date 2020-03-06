@@ -46,8 +46,12 @@
   [_ {{{:keys [sleep]} :query} :native, database-id :database} context respond]
   {:pre [(integer? sleep) (integer? database-id)]}
   (let [futur (future
-                (Thread/sleep sleep)
-                (respond {:cols [{:name "Sleep", :base_type :type/Integer}]} [[sleep]]))]
+                (try
+                  (Thread/sleep sleep)
+                  (respond {:cols [{:name "Sleep", :base_type :type/Integer}]} [[sleep]])
+                  (catch InterruptedException e
+                    (reset! canceled? true)
+                    (throw e))))]
     (a/go
       (when (a/<! (context/canceled-chan context))
         (reset! canceled? true)
@@ -88,9 +92,11 @@
             (is (= {:status "ok"} (test-client/client :get 200 "health")))
             (testing "Health endpoint should complete before the first round of queries completes"
               (is (> @remaining (inc (- num-requests thread-pool-size)))))
-            (testing "Health endpoint should complete in under 100ms regardless of how many queries are running"
+            ;; the health endpoint might complete a little slowly because we are running so many threads at the same
+            ;; time on CI. Locally it's usually always under < 100ms
+            (testing "Health endpoint should complete in under 500ms regardless of how many queries are running"
               (let [elapsed-ms (- (System/currentTimeMillis) start-time-ms)]
-                (is (< elapsed-ms 100))))))))))
+                (is (< elapsed-ms 500))))))))))
 
 (deftest newlines-test
   (testing "Keepalive newlines should be written while waiting for a response."
@@ -120,6 +126,15 @@
           (is (future? futur))
           (Thread/sleep 100)
           (future-cancel futur)
-          (Thread/sleep 100)
-          (is (= true
-                 @canceled?)))))))
+          (loop [max-wait 1000]
+            (cond
+              @canceled?
+              (is (= true @canceled?))
+
+              (pos? max-wait)
+              (do
+                (Thread/sleep 100)
+                (recur (- max-wait 100)))
+
+              :else
+              (is (= true @canceled?)))))))))
