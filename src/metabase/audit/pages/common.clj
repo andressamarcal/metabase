@@ -30,7 +30,6 @@
 (defn- reduce-results* [honeysql-query context rff init]
   (let [driver         (mdb/db-type)
         [sql & params] (db/honeysql->sql (add-default-params honeysql-query))
-        _ (println "sql:" sql) ; NOCOMMIT
         canceled-chan  (context/canceled-chan context)]
     (try
       (with-open [conn (jdbc/get-connection (db/connection))
