@@ -12,7 +12,7 @@
   {:metadata [[:users   {:display_name "Users",   :base_type :type/Integer}]
               [:queries {:display_name "Queries", :base_type :type/Integer}]
               [:day     {:display_name "Date",    :base_type :type/Date}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:with     [[:user_qe {:select   [:executor_id
                                                 [:%count.* :executions]
                                                 [(hx/cast :date :started_at) :day]]
@@ -61,7 +61,7 @@
   {:metadata [[:user_id {:display_name "User ID",          :base_type :type/Integer, :remapped_to   :name}]
               [:name    {:display_name "Name",             :base_type :type/Name,    :remapped_from :user_id}]
               [:count   {:display_name "Query Executions", :base_type :type/Integer}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:with      [[:qe_count {:select   [[:%count.* :count]
                                                   :qe.executor_id]
                                        :from     [[:query_execution :qe]]
@@ -86,7 +86,7 @@
   {:metadata [[:user_id   {:display_name "User ID",       :base_type :type/Integer, :remapped_to :user_name}]
               [:user_name {:display_name "Name",          :base_type :type/Name,    :remapped_from :user_id}]
               [:saves     {:display_name "Saved Objects", :base_type :type/Integer}]]
-   :results  (common/query
+   :results  (common/reducible-query
                {:with      [[:card_saves       {:select   [:creator_id
                                                            [:%count.* :count]]
                                                 :from     [:report_card]
@@ -121,7 +121,7 @@
   {:metadata [[:user_id           {:display_name "User ID",                   :base_type :type/Integer, :remapped_to   :name}]
               [:name              {:display_name "Name",                      :base_type :type/Name,    :remapped_from :user_id}]
               [:execution_time_ms {:display_name "Total Execution Time (ms)", :base_type :type/Decimal}]]
-   :results  (common/query
+   :results  (common/reducible-query
                {:with      [[:exec_time {:select   [[:%sum.running_time :execution_time_ms]
                                                     :qe.executor_id]
                                          :from     [[:query_execution :qe]]
@@ -141,10 +141,10 @@
                             [:%lower.u.first_name :asc]]
                 :limit     10})})
 
-
 (s/defn ^:internal-query-fn table
   ([]
    (table nil))
+
   ([query-string :- (s/maybe s/Str)]
    {:metadata [[:user_id          {:display_name "User ID",          :base_type :type/Integer, :remapped_to :name}]
                [:name             {:display_name "Name",             :base_type :type/Name,    :remapped_from :user_id}]
@@ -156,70 +156,70 @@
                [:questions_saved  {:display_name "Questions Saved",  :base_type :type/Integer}]
                [:dashboards_saved {:display_name "Dashboards Saved", :base_type :type/Integer}]
                [:pulses_saved     {:display_name "Pulses Saved",     :base_type :type/Integer}]]
-    :results  (common/query
-                (->
-                 {:with      [[:last_query {:select   [[:executor_id :id]
-                                                       [:%max.started_at :started_at]]
-                                            :from     [:query_execution]
-                                            :group-by [:executor_id]}]
-                              [:groups {:select    [[:u.id :id]
-                                                    [(hsql/call :string_agg :pg.name (hx/literal ", ")) :groups]]
-                                        :from      [[:core_user :u]]
-                                        :left-join [[:permissions_group_membership :pgm] [:= :u.id :pgm.user_id]
-                                                    [:permissions_group :pg]             [:= :pgm.group_id :pg.id]]
-                                        :group-by  [:u.id]}]
-                              [:questions_saved {:select    [[:u.id :id]
+    :results  (common/reducible-query
+               (->
+                {:with      [[:last_query {:select   [[:executor_id :id]
+                                                      [:%max.started_at :started_at]]
+                                           :from     [:query_execution]
+                                           :group-by [:executor_id]}]
+                             [:groups {:select    [[:u.id :id]
+                                                   [(hsql/call :string_agg :pg.name (hx/literal ", ")) :groups]]
+                                       :from      [[:core_user :u]]
+                                       :left-join [[:permissions_group_membership :pgm] [:= :u.id :pgm.user_id]
+                                                   [:permissions_group :pg]             [:= :pgm.group_id :pg.id]]
+                                       :group-by  [:u.id]}]
+                             [:questions_saved {:select    [[:u.id :id]
+                                                            [:%count.* :count]]
+                                                :from      [[:report_card :c]]
+                                                :left-join [[:core_user :u] [:= :u.id :c.creator_id]]
+                                                :group-by  [:u.id]}]
+                             [:dashboards_saved {:select    [[:u.id :id]
                                                              [:%count.* :count]]
-                                                 :from      [[:report_card :c]]
-                                                 :left-join [[:core_user :u] [:= :u.id :c.creator_id]]
+                                                 :from      [[:report_dashboard :d]]
+                                                 :left-join [[:core_user :u] [:= :u.id :d.creator_id]]
                                                  :group-by  [:u.id]}]
-                              [:dashboards_saved {:select    [[:u.id :id]
-                                                              [:%count.* :count]]
-                                                  :from      [[:report_dashboard :d]]
-                                                  :left-join [[:core_user :u] [:= :u.id :d.creator_id]]
-                                                  :group-by  [:u.id]}]
-                              [:pulses_saved {:select    [[:u.id :id]
-                                                          [:%count.* :count]]
-                                              :from      [[:pulse :p]]
-                                              :left-join [[:core_user :u] [:= :u.id :p.creator_id]]
-                                              :group-by  [:u.id]}]
-                              [:users {:select [[(common/user-full-name :u) :name]
-                                                [(hsql/call :case
-                                                   [:= :u.is_superuser true]
-                                                   (hx/literal "Admin")
-                                                   :else
-                                                   (hx/literal "User"))
-                                                 :role]
-                                                :id
-                                                :date_joined
-                                                [(hsql/call :case
-                                                   [:= nil :u.sso_source]
-                                                   (hx/literal "Email")
-                                                   :else
-                                                   :u.sso_source)
-                                                 :signup_method]
-                                                :last_name
-                                                :first_name]
-                                       :from   [[:core_user :u]]}]]
-                  :select    [[:u.id :user_id]
-                              :u.name
-                              :u.role
-                              :groups.groups
-                              :u.date_joined
-                              [:last_query.started_at :last_active]
-                              :u.signup_method
-                              [:questions_saved.count :questions_saved]
-                              [:dashboards_saved.count :dashboards_saved]
-                              [:pulses_saved.count :pulses_saved]]
-                  :from      [[:users :u]]
-                  :left-join [:groups           [:= :u.id :groups.id]
-                              :last_query       [:= :u.id :last_query.id]
-                              :questions_saved  [:= :u.id :questions_saved.id]
-                              :dashboards_saved [:= :u.id :dashboards_saved.id]
-                              :pulses_saved     [:= :u.id :pulses_saved.id]]
-                  :order-by  [[:%lower.u.last_name :asc]
-                              [:%lower.u.first_name :asc]]}
-                 (common/add-search-clause query-string :u.first_name :u.last_name)))}))
+                             [:pulses_saved {:select    [[:u.id :id]
+                                                         [:%count.* :count]]
+                                             :from      [[:pulse :p]]
+                                             :left-join [[:core_user :u] [:= :u.id :p.creator_id]]
+                                             :group-by  [:u.id]}]
+                             [:users {:select [[(common/user-full-name :u) :name]
+                                               [(hsql/call :case
+                                                  [:= :u.is_superuser true]
+                                                  (hx/literal "Admin")
+                                                  :else
+                                                  (hx/literal "User"))
+                                                :role]
+                                               :id
+                                               :date_joined
+                                               [(hsql/call :case
+                                                  [:= nil :u.sso_source]
+                                                  (hx/literal "Email")
+                                                  :else
+                                                  :u.sso_source)
+                                                :signup_method]
+                                               :last_name
+                                               :first_name]
+                                      :from   [[:core_user :u]]}]]
+                 :select    [[:u.id :user_id]
+                             :u.name
+                             :u.role
+                             :groups.groups
+                             :u.date_joined
+                             [:last_query.started_at :last_active]
+                             :u.signup_method
+                             [:questions_saved.count :questions_saved]
+                             [:dashboards_saved.count :dashboards_saved]
+                             [:pulses_saved.count :pulses_saved]]
+                 :from      [[:users :u]]
+                 :left-join [:groups           [:= :u.id :groups.id]
+                             :last_query       [:= :u.id :last_query.id]
+                             :questions_saved  [:= :u.id :questions_saved.id]
+                             :dashboards_saved [:= :u.id :dashboards_saved.id]
+                             :pulses_saved     [:= :u.id :pulses_saved.id]]
+                 :order-by  [[:%lower.u.last_name :asc]
+                             [:%lower.u.first_name :asc]]}
+                (common/add-search-clause query-string :u.first_name :u.last_name)))}))
 
 
 (defn ^:internal-query-fn query-views
@@ -241,32 +241,31 @@
               [:source_db     {:display_name "Source DB",       :base_type :type/Text,    :remapped_from :database_id}]
               [:table_id      {:display_name "Table ID"         :base_type :type/Integer, :remapped_to   :table}]
               [:table         {:display_name "Table",           :base_type :type/Text,    :remapped_from :table_id}]]
-   :results (->> (common/query
-                  {:select    [[:qe.started_at :viewed_on]
-                               [:card.id :card_id]
-                               [(common/card-name-or-ad-hoc :card) :card_name]
-                               [:qe.hash :query_hash]
-                               [(common/native-or-gui :qe) :type]
-                               [:collection.id :collection_id]
-                               [:collection.name :collection]
-                               [:viewer.id :viewed_by_id]
-                               [(common/user-full-name :viewer) :viewed_by]
-                               [:creator.id :saved_by_id]
-                               [(common/user-full-name :creator) :saved_by]
-                               [:db.id :database_id]
-                               [:db.name :source_db]
-                               [:t.id :table_id]
-                               [:t.display_name :table]]
-                   :from      [[:query_execution :qe]]
-                   :join      [[:metabase_database :db] [:= :qe.database_id :db.id]
-                               [:core_user :viewer]     [:= :qe.executor_id :viewer.id]]
-                   :left-join [[:report_card :card]     [:= :qe.card_id :card.id]
-                               :collection              [:= :card.collection_id :collection.id]
-                               [:core_user :creator]    [:= :card.creator_id :creator.id]
-                               [:metabase_table :t]     [:= :card.table_id :t.id]]
-                   :order-by  [[:qe.started_at :desc]]})
-                 (map #(update % :query_hash codec/base64-encode)))})
-
+   :results (common/reducible-query
+             {:select    [[:qe.started_at :viewed_on]
+                          [:card.id :card_id]
+                          [(common/card-name-or-ad-hoc :card) :card_name]
+                          [:qe.hash :query_hash]
+                          [(common/native-or-gui :qe) :type]
+                          [:collection.id :collection_id]
+                          [:collection.name :collection]
+                          [:viewer.id :viewed_by_id]
+                          [(common/user-full-name :viewer) :viewed_by]
+                          [:creator.id :saved_by_id]
+                          [(common/user-full-name :creator) :saved_by]
+                          [:db.id :database_id]
+                          [:db.name :source_db]
+                          [:t.id :table_id]
+                          [:t.display_name :table]]
+              :from      [[:query_execution :qe]]
+              :join      [[:metabase_database :db] [:= :qe.database_id :db.id]
+                          [:core_user :viewer]     [:= :qe.executor_id :viewer.id]]
+              :left-join [[:report_card :card]     [:= :qe.card_id :card.id]
+                          :collection              [:= :card.collection_id :collection.id]
+                          [:core_user :creator]    [:= :card.creator_id :creator.id]
+                          [:metabase_table :t]     [:= :card.table_id :t.id]]
+              :order-by  [[:qe.started_at :desc]]})
+   :xform (map #(update (vec %) 3 codec/base64-encode))})
 
 (defn ^:internal-query-fn dashboard-views
   "Return a log of when all Dashboard views, including the Collection the Dashboard belongs to."
@@ -278,7 +277,7 @@
               [:collection_name {:display_name "Collection",    :base_type :type/Text,    :remapped_from :collection_id}]
               [:user_id         {:display_name "User ID",      :base_type :type/Integer,  :remapped_to   :user_name}]
               [:user_name       {:display_name "Viewed By",    :base_type :type/Text,     :remapped_from :user_id}]]
-   :results (common/query
+   :results (common/reducible-query
              {:select    [:vl.timestamp
                           [:dash.id :dashboard_id]
                           [:dash.name :dashboard_name]

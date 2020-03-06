@@ -25,7 +25,7 @@
   {:metadata [[:date  {:display_name "Date",  :base_type (common/datetime-unit-str->base-type unit)}]
               [:views {:display_name "Views", :base_type :type/Integer}]]
    :results (let [grouped-timestamp (common/grouped-datetime unit :timestamp)]
-              (common/query
+              (common/reducible-query
                {:select   [[grouped-timestamp :date]
                            [:%count.* :views]]
                 :from     [:view_log]
@@ -56,7 +56,7 @@
   {:metadata [[:when    {:display_name "When",    :base_type :type/DateTime}]
               [:user_id {:display_name "User ID", :base_type :type/Integer, :remapped_to   :who}]
               [:who     {:display_name "Who",     :base_type :type/Name,    :remapped_from :user_id}]]
-   :results (common/query
+   :results (common/reducible-query
               {:select    [[:vl.timestamp :when]
                            :vl.user_id
                            [(common/user-full-name :u) :who]]

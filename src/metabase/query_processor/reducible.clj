@@ -116,6 +116,8 @@
 
 ;;; ------------------------------------------------- Other Util Fns -------------------------------------------------
 
+()
+
 (defn reducible-rows
   "Utility function for generating reducible rows when implementing `metabase.driver/execute-reducible-query`.
 

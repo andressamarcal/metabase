@@ -8,11 +8,13 @@
              [driver :as driver]
              [handler :as handler]
              [plugins :as pluguns]
+             [query-processor :as qp]
              [server :as server]
              [test :as mt]
              [util :as u]]
             [metabase.api.common :as api-common]
             [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
+            [metabase.public-settings.metastore-test :as metastore-test]
             [metabase.query-processor.timezone :as qp.timezone]
             [metabase.test.data.impl :as data.impl]))
 
@@ -110,3 +112,15 @@
       (catch InterruptedException e
         (a/>!! canceled-chan :cancel)
         (throw e)))))
+
+(defn run-audit-app-query
+  "Run an audit app (internal) query.
+
+    (run-audit-app-query #'metabase.audit.pages.users/dashboard-views :limit 1)"
+  [varr & {:as additional-query-params}]
+  (mt/with-test-user :crowberto
+    (metastore-test/with-metastore-token-features #{:audit-app}
+      (qp/process-query (merge {:type :internal
+                                :fn   (let [mta (meta varr)]
+                                        (format "%s/%s" (ns-name (:ns mta)) (:name mta)))}
+                               additional-query-params)))))

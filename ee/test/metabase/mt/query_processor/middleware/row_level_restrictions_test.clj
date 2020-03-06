@@ -483,13 +483,13 @@
           (is (= (original-cols-with-correct-ids)
                  (cols)))))
 
-      #_(testing "A query with an equivalent MBQL query sandbox should have the same metadata"
+      (testing "A query with an equivalent MBQL query sandbox should have the same metadata"
         (mt/with-gtaps {:gtaps      {:venues (venues-category-mbql-gtap-def)}
                         :attributes {"cat" 50}}
           (is (= (original-cols-with-correct-ids)
                  (cols)))))
 
-      #_(testing "A query with an equivalent native query sandbox should have the same metadata"
+      (testing "A query with an equivalent native query sandbox should have the same metadata"
         (mt/with-gtaps {:gtaps {:venues {:query (mt/native-query
                                                   {:query
                                                    (str "SELECT ID, NAME, CATEGORY_ID, LATITUDE, LONGITUDE, PRICE "
@@ -503,7 +503,7 @@
           (is (= (original-cols-with-correct-ids)
                  (cols)))))
 
-      #_(testing (str "If columns are added/removed/reordered we should still merge in metadata for the columns we're "
+      (testing (str "If columns are added/removed/reordered we should still merge in metadata for the columns we're "
                     "able to match from the original Table")
         (mt/with-gtaps {:gtaps {:venues {:query (mt/native-query
                                                   {:query

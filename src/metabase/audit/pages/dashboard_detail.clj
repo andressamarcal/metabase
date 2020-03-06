@@ -37,7 +37,7 @@
               [:cache_ttl           {:display_name "Cache TTL",            :base_type :type/Number}]
               [:public_link         {:display_name "Public Link",          :base_type :type/URL}]
               [:total_views         {:display_name "Total Views",          :base_type :type/Integer}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:with      [[:card {:select [:card.*
                                             [:dc.created_at :dashcard_created_at]]
                                    :from   [[:report_dashboardcard :dc]]

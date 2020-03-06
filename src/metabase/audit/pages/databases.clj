@@ -22,7 +22,7 @@
               [:database_name    {:display_name "Database",               :base_type :type/Text,    :remapped_from :database_id}]
               [:queries          {:display_name "Queries",                :base_type :type/Integer}]
               [:avg_running_time {:display_name "Avg. Running Time (ms)", :base_type :type/Decimal}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:select   [[:db.id :database_id]
                           [:db.name :database_name]
                           [:%count.* :queries]
@@ -41,7 +41,7 @@
               [:database_id   {:display_name "Database ID",   :base_type :type/Integer, :remapped_to   :database_name}]
               [:database_name {:display_name "Database Name", :base_type :type/Name,    :remapped_from :database_id}]
               [:count         {:display_name "Count",         :base_type :type/Integer}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:with      [[:qx {:select    [[(common/grouped-datetime datetime-unit :qe.started_at) :date]
                                              :card.database_id
                                              [:%count.* :count]]
@@ -81,23 +81,22 @@
                [:sync_schedule {:display_name "Sync Schedule", :base_type :type/Text}]
                [:schemas       {:display_name "Schemas", :base_type :type/Integer}]
                [:tables        {:display_name "Tables", :base_type :type/Integer}]]
-    :results  (->> (common/query
-                     (->
-                      {:with      [[:counts {:select   [[:db_id :id]
-                                                        [(hsql/call :distinct-count :schema) :schemas]
-                                                        [:%count.* :tables]]
-                                             :from     [:metabase_table]
-                                             :group-by [:db_id]}]]
-                       :select    [[:db.id :database_id]
-                                   [:db.name :title]
-                                   [:db.created_at :added_on]
-                                   [:db.metadata_sync_schedule :sync_schedule]
-                                   [:counts.schemas :schemas]
-                                   [:counts.tables :tables]]
-                       :from      [[:metabase_database :db]]
-                       :left-join [:counts [:= :db.id :counts.id]]
-                       :order-by  [[:%lower.db.name :asc]
-                                   [:database_id :asc]]}
-                      (common/add-search-clause query-string :db.name)))
-                   (map (fn [row]
-                          (update row :sync_schedule cron/describe-cron-string))))}))
+    :results  (common/reducible-query
+               (->
+                {:with      [[:counts {:select   [[:db_id :id]
+                                                  [(hsql/call :distinct-count :schema) :schemas]
+                                                  [:%count.* :tables]]
+                                       :from     [:metabase_table]
+                                       :group-by [:db_id]}]]
+                 :select    [[:db.id :database_id]
+                             [:db.name :title]
+                             [:db.created_at :added_on]
+                             [:db.metadata_sync_schedule :sync_schedule]
+                             [:counts.schemas :schemas]
+                             [:counts.tables :tables]]
+                 :from      [[:metabase_database :db]]
+                 :left-join [:counts [:= :db.id :counts.id]]
+                 :order-by  [[:%lower.db.name :asc]
+                             [:database_id :asc]]}
+                (common/add-search-clause query-string :db.name)))
+    :xform    (map #(update (vec %) 3 cron/describe-cron-string))}))

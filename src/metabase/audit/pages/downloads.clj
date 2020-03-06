@@ -18,7 +18,7 @@
               [:rows      {:display_name "Rows in Query", :base_type :type/Integer}]
               [:user_id   {:display_name "User ID",       :base_type :type/Integer, :remapped_to :user_name}]
               [:user_name {:display_name "User",          :base_type :type/Text,    :remapped_from :user_id}]]
-   :results  (common/query
+   :results  (common/reducible-query
                {:select   [[:qe.started_at :date]
                            [:qe.result_rows :rows]
                            [:qe.executor_id :user_id]
@@ -40,7 +40,7 @@
   {:metadata [[:user_id   {:display_name "User ID",   :base_type :type/Integer, :remapped_to :user_name}]
               [:user_name {:display_name "User",      :base_type :type/Text,    :remapped_from :user_id}]
               [:downloads {:display_name "Downloads", :base_type :type/Integer}]]
-   :results  (common/query
+   :results  (common/reducible-query
                {:with     [[:downloads_by_user
                             {:select   [[:qe.executor_id :user_id]
                                         [:%count.* :downloads]]
@@ -117,7 +117,7 @@
   []
   {:metadata [[:rows      {:display_name "Rows Downloaded", :base_type :type/Text}]
               [:downloads {:display_name "Downloads",       :base_type :type/Integer}]]
-   :results  (common/query
+   :results  (common/reducible-query
                {:with     [[:bucketed_downloads
                             {:select [[rows->bucket-case-expression :rows_bucket_max]]
                              :from   [:query_execution]
@@ -147,7 +147,7 @@
               [:source_table    {:display_name "Source Table",    :base_type :type/Text,    :remapped_from :source_table_id}]
               [:user_id         {:display_name "User ID",         :base_type :type/Integer, :remapped_to :user_name}]
               [:user_name       {:display_name "User",            :base_type :type/Text,    :remapped_from :user_id}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:select    [[:qe.started_at :downloaded_at]
                            [:qe.result_rows :rows_downloaded]
                            [:card.id :card_id]

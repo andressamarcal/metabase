@@ -9,6 +9,7 @@
             [metabase.db :as mdb]
             [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
             [metabase.driver.sql.query-processor :as sql.qp]
+            [metabase.query-processor.context :as context]
             [metabase.util
              [honeysql-extensions :as hx]
              [urls :as urls]]
@@ -17,29 +18,57 @@
 
 (def ^:private ^:const default-limit 1000)
 
-(defn query
-  "Run a internal audit query, automatically including limits and offsets for paging."
-  ;; TODO - it would be better if we used the `rff` supplied to the QP directly rather than reducing the rows here and
-  ;; then reducing them all a second time using the `rff`. This isn't streaming with the current IMPL, but since the
-  ;; limit is 1000 rows that is less of a concern
-  [honeysql-query]
+(defn- add-default-params [honeysql-query]
+  (let [{:keys [limit offset]} internal-queries/*additional-query-params*]
+    (-> honeysql-query
+        (update :limit (fn [query-limit]
+                         (or limit query-limit default-limit)))
+        (update :offset (fn [query-offset]
+                          (or offset query-offset 0))))))
+
+(defn- reduce-results* [honeysql-query context rff init]
   (let [driver         (mdb/db-type)
-        [sql & params] (hsql/format honeysql-query)
-        canceled-chan  (a/promise-chan)]
+        [sql & params] (hsql/format (add-default-params honeysql-query))
+        canceled-chan  (context/canceled-chan context)]
     (try
       (with-open [conn (jdbc/get-connection (db/connection))
                   stmt (sql-jdbc.execute/prepared-statement driver conn sql params)
                   rs   (sql-jdbc.execute/execute-query! driver stmt)]
-        (let [rsmeta    (.getMetaData rs)
-              cols      (sql-jdbc.execute/column-metadata driver rsmeta)
-              col-names (mapv (comp keyword :name) cols)]
-          (transduce
-           (map (partial zipmap col-names))
-           conj
-           []
-           (sql-jdbc.execute/reducible-rows driver rs rsmeta canceled-chan))))
+        (let [rsmeta   (.getMetaData rs)
+              cols     (sql-jdbc.execute/column-metadata driver rsmeta)
+              metadata {:cols cols}
+              rf       (rff metadata)]
+          (reduce rf init (sql-jdbc.execute/reducible-rows driver rs rsmeta canceled-chan))))
       (catch InterruptedException e
         (a/>!! canceled-chan :cancel)
+        (throw e)))))
+
+(defn reducible-query
+  "Return a function with the signature
+
+    (f context) -> IReduceInit
+
+  that, when reduced, runs `honeysql-query` against the application DB, automatically including limits and offsets for
+  paging."
+  [honeysql-query]
+  (bound-fn reducible-query-fn [context]
+    (reify clojure.lang.IReduceInit
+      (reduce [_ rf init]
+        (reduce-results* honeysql-query context (constantly rf) init)))))
+
+(defn query
+  "Run a internal audit query, automatically including limits and offsets for paging. This function returns results
+  directly as a series of maps (the 'legacy results' format as described in
+  `metabase.query-processor.middleware.internal-queries`.)"
+  [honeysql-query]
+  (let [context {:canceled-chan (a/promise-chan)}
+        rff     (fn [{:keys [cols]}]
+                  (let [col-names (mapv (comp keyword :name) cols)]
+                    ((map (partial zipmap col-names)) conj)))]
+    (try
+      (reduce-results* honeysql-query context rff [])
+      (catch InterruptedException e
+        (a/>!! (:canceled-chan context) ::cancel)
         (throw e)))))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+

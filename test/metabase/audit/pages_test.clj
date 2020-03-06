@@ -7,13 +7,14 @@
             [metabase
              [db :as mdb]
              [models :refer [Card Dashboard DashboardCard Database Table]]
+             [query-processor :as qp]
              [test :as mt]
              [util :as u]]
-            [metabase.audit.pages.users :as pages.users]
             [metabase.plugins.classloader :as classloader]
             [metabase.public-settings.metastore-test :as metastore-test]
             [metabase.query-processor.util :as qp-util]
-            [metabase.test.fixtures :as fixtures]))
+            [metabase.test.fixtures :as fixtures]
+            [ring.util.codec :as codec]))
 
 (use-fixtures :once (fixtures/initialize :db))
 
@@ -40,7 +41,8 @@
 
 (defn- all-queries []
   (for [ns-symb  (ns-find/find-namespaces (classpath/system-classpath))
-        :when    (str/starts-with? (name ns-symb) "metabase.audit.pages")
+        :when    (and (str/starts-with? (name ns-symb) "metabase.audit.pages")
+                      (not (str/ends-with? (name ns-symb) "-test")))
         [_ varr] (do (classloader/require ns-symb)
                      (ns-interns ns-symb))
         :when    (:internal-query-fn (meta varr))]
@@ -61,13 +63,15 @@
                :database-id   (u/get-id database)
                :table-id      (u/get-id table)
                :model         "card"
-               :query-hash    (qp-util/query-hash {:database 1, :type :native})))}))
+               :query-hash    (codec/base64-encode (qp-util/query-hash {:database 1, :type :native}))))}))
 
-(defn- run-query [varr objects]
-  (let [query (varr->query varr objects)]
-    (testing (format "%s %s:%d" varr (ns-name (:ns (meta varr))) (:line (meta varr)))
-      (testing (format "\nquery = %s" (pr-str query))
-        ((mt/user->client :crowberto) :post 202 "dataset" query)))))
+(defn- test-varr
+  [varr objects]
+  (testing (format "%s %s:%d" varr (ns-name (:ns (meta varr))) (:line (meta varr)))
+    (let [query (varr->query varr objects)]
+      (testing (format "\nquery =\n%s" (u/pprint-to-str query))
+        (is (= (:status (qp/process-query query))
+               :completed))))))
 
 (defn- do-with-temp-objects [f]
   (mt/with-temp* [Database      [database]
@@ -86,54 +90,8 @@
   ;;
   ;; TODO - come up with a way to test these on CI
   (when-not (= :mysql (mdb/db-type))
-    (with-temp-objects [objects]
-      (metastore-test/with-metastore-token-features #{:audit-app}
-        (doseq [varr (all-queries)
-                :let [result (run-query varr objects)]]
-          (is (= (:status result)
-                 "completed")
-              (format "result = %s" (u/pprint-to-str result))))))))
-
-(deftest results-test
-  (testing "Make sure at least one of the queries gives us correct results."
-    (when-not (= :mysql (mdb/db-type))
-      (metastore-test/with-metastore-token-features #{:audit-app}
-        (let [test-user-ids (set (map mt/user->id [:crowberto :rasta :trashbird :lucky]))
-              result        (run-query #'pages.users/query-execution-time-per-user nil)]
-          (testing "cols"
-            (is (= [{:display_name "User ID", :base_type "type/Integer" :remapped_to "name" :name "user_id"}
-                    {:display_name "Name", :base_type "type/Name" :remapped_from "user_id" :name "name"}
-                    {:display_name "Total Execution Time (ms)", :base_type "type/Decimal" :name "execution_time_ms"}]
-                   (mt/cols result))))
-          (testing "rows"
-            (is (= [[(mt/user->id :crowberto) "Crowberto Corv" true]
-                    [(mt/user->id :lucky)     "Lucky Pigeon" true]
-                    [(mt/user->id :rasta)     "Rasta Toucan" true]
-                    [(mt/user->id :trashbird) "Trash Bird" true]]
-                   (->> (mt/rows result)
-                        (filter #(test-user-ids (first %)))
-                        (sort-by second)
-                        (mt/format-rows-by [identity identity int?]))))))))))
-
-;; NOCOMMIT
-(defn x []
-  (metastore-test/with-metastore-token-features #{:audit-app}
-    (let [expected      (metabase.audit.pages.users/query-execution-time-per-user)
-          expected-cols (for [[k m] (:metadata expected)]
-                          (assoc m :name (name k)))
-          result        (run-query #'pages.users/query-execution-time-per-user nil)
-          test-user-ids (set (map mt/user->id [:crowberto :rasta :trashbird :lucky]))]
-      (testing "cols"
-        (is (= [{:display_name "User ID", :base_type "type/Integer" :remapped_to "name" :name "user_id"}
-                {:display_name "Name", :base_type "type/Name" :remapped_from "user_id" :name "name"}
-                {:display_name "Total Execution Time (ms)", :base_type "type/Decimal" :name "execution_time_ms"}]
-               (mt/cols result))))
-      (testing "rows"
-        (is (= [[(mt/user->id :crowberto) "Crowberto Corv" true]
-                [(mt/user->id :lucky)     "Lucky Pigeon" true]
-                [(mt/user->id :rasta)     "Rasta Toucan" true]
-                [(mt/user->id :trashbird) "Trash Bird" true]]
-               (->> (mt/rows result)
-                    (filter #(test-user-ids (first %)))
-                    (sort-by second)
-                    (mt/format-rows-by [identity identity int?]))))))))
+    (mt/with-test-user :crowberto
+      (with-temp-objects [objects]
+        (metastore-test/with-metastore-token-features #{:audit-app}
+          (doseq [varr (all-queries)]
+            (test-varr varr objects)))))))

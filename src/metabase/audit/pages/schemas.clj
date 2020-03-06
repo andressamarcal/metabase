@@ -27,7 +27,7 @@
   []
   {:metadata [[:schema     {:display_name "Schema",     :base_type :type/Title}]
               [:executions {:display_name "Executions", :base_type :type/Integer}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:with     [[:counts {:select    [[:db.name :db_name]
                                                 [:t.schema :db_schema]]
                                     :from      [[:query_execution :qe]]
@@ -69,7 +69,7 @@
   []
   {:metadata [[:schema           {:display_name "Schema",                    :base_type :type/Title}]
               [:avg_running_time {:display_name "Average Running Time (ms)", :base_type :type/Decimal}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:with     [[:counts {:select    [[:db.name :db_name]
                                                 [:t.schema :db_schema]
                                                 :qe.running_time]
@@ -122,7 +122,7 @@
                [:schema        {:display_name "Schema",        :base_type :type/Title,   :remapped_from :schema_id}]
                [:tables        {:display_name "Tables",        :base_type :type/Integer}]
                [:saved_queries {:display_name "Saved Queries", :base_type :type/Integer}]]
-    :results  (common/query
+    :results  (common/reducible-query
                 (->
                  {:with      [[:cards {:select    [[:t.db_id :database_id]
                                                    :t.schema

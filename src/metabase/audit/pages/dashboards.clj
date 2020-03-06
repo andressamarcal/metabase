@@ -10,7 +10,7 @@
   []
   {:metadata [[:day   {:display_name "Date",  :base_type :type/Date}]
               [:views {:display_name "Views", :base_type :type/Integer}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:select   [[(hx/cast :date :timestamp) :day]
                           [:%count.* :views]]
                :from     [:view_log]
@@ -54,7 +54,7 @@
   {:metadata [[:dashboard_id   {:display_name "Dashboard ID", :base_type :type/Integer, :remapped_to   :dashboard_name}]
               [:dashboard_name {:display_name "Dashboard",    :base_type :type/Title,   :remapped_from :dashboard_id}]
               [:views          {:display_name "Views",        :base_type :type/Integer}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:select    [[:d.id :dashboard_id]
                            [:d.name :dashboard_name]
                            [:%count.* :views]]
@@ -72,7 +72,7 @@
               [:dashboard_name   {:display_name "Dashboard",                    :base_type :type/Title,   :remapped_from :dashboard_id}]
               [:views            {:display_name "Views",                        :base_type :type/Integer}]
               [:avg_running_time {:display_name "Avg. Question Load Time (ms)", :base_type :type/Decimal}]]
-   :results  (common/query
+   :results  (common/reducible-query
                {:with      [[:most_popular {:select    [[:d.id :dashboard_id]
                                                         [:d.name :dashboard_name]
                                                         [:%count.* :views]]
@@ -111,7 +111,7 @@
   {:metadata [[:dashboard_id     {:display_name "Dashboard ID",                 :base_type :type/Integer, :remapped_to   :dashboard_name}]
               [:dashboard_name   {:display_name "Dashboard",                    :base_type :type/Title,   :remapped_from :dashboard_id}]
               [:avg_running_time {:display_name "Avg. Question Load Time (ms)", :base_type :type/Decimal}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:with      [[:card_running_time {:select   [:qe.card_id
                                                            [:%avg.qe.running_time :avg_running_time]]
                                                 :from     [[:query_execution :qe]]
@@ -134,7 +134,7 @@
   {:metadata [[:card_id   {:display_name "Card ID", :base_type :type/Integer, :remapped_to   :card_name}]
               [:card_name {:display_name "Card",    :base_type :type/Title,   :remapped_from :card_id}]
               [:count     {:display_name "Count",   :base_type :type/Integer}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:select   [[:c.id :card_id]
                           [:c.name :card_name]
                           [:%count.* :count]]

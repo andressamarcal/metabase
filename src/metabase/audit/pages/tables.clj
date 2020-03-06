@@ -22,7 +22,7 @@
   {:metadata [[:table_id   {:display_name "Table ID",   :base_type :type/Integer, :remapped_to   :table_name}]
               [:table_name {:display_name "Table",      :base_type :type/Title,   :remapped_from :table_id}]
               [:executions {:display_name "Executions", :base_type :type/Integer}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:with [[:table_executions {:select [[:t.id :table_id]
                                                    [:%count.* :executions]]
                                           :from   [[:query_execution :qe]]
@@ -63,7 +63,7 @@
                [:table_id           {:display_name "Table ID",           :base_type :type/Integer, :remapped_to   :table_name}]
                [:table_name         {:display_name "Table Name in DB",   :base_type :type/Name,    :remapped_from :table_id}]
                [:table_display_name {:display_name "Table Display Name", :base_type :type/Text}]]
-    :results (common/query
+    :results (common/reducible-query
                (->
                 {:select   [[:db.id :database_id]
                             [:db.name :database_name]

@@ -25,7 +25,7 @@
               [:questions_saved  {:display_name "Questions Saved",  :base_type :type/Integer}]
               [:dashboards_saved {:display_name "Dashboards Saved", :base_type :type/Integer}]
               [:pulses_saved     {:display_name "Pulses Saved",     :base_type :type/Integer}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:with   [[:last_query {:select [[:%max.started_at :started_at]]
                                       :from   [:query_execution]
                                       :where  [:= :executor_id user-id]}]
@@ -82,7 +82,7 @@
   {:metadata [[:dashboard_id   {:display_name "Dashboard ID", :base_type :type/Integer, :remapped_to   :dashboard_name}]
               [:dashboard_name {:display_name "Dashboard",    :base_type :type/Name,    :remapped_from :dashboard_id}]
               [:count          {:display_name "Views",        :base_type :type/Integer}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:select    [[:d.id :dashboard_id]
                            [:d.name :dashboard_name]
                            [:%count.* :count]]
@@ -101,7 +101,7 @@
   {:metadata [[:card_id   {:display_name "Card ID", :base_type :type/Integer, :remapped_to   :card_name}]
               [:card_name {:display_name "Query",   :base_type :type/Name,    :remapped_from :card_id}]
               [:count     {:display_name "Views",   :base_type :type/Integer}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:select    [[:d.id :card_id]
                            [:d.name :card_name]
                            [:%count.* :count]]
@@ -129,29 +129,29 @@
               [:source_db     {:display_name "Source DB",      :base_type :type/Text,    :remapped_from :database_id}]
               [:table_id      {:display_name "Table ID"        :base_type :type/Integer, :remapped_to   :table}]
               [:table         {:display_name "Table",          :base_type :type/Text,    :remapped_from :table_id}]]
-   :results (->> (common/query
-                  {:select    [[:qe.started_at :viewed_on]
-                               [:card.id :card_id]
-                               [(common/card-name-or-ad-hoc :card) :card_name]
-                               [:qe.hash :query_hash]
-                               [(common/native-or-gui :qe) :type]
-                               [:collection.id :collection_id]
-                               [:collection.name :collection]
-                               [:u.id :saved_by_id]
-                               [(common/user-full-name :u) :saved_by]
-                               [:db.id :database_id]
-                               [:db.name :source_db]
-                               [:t.id :table_id]
-                               [:t.display_name :table]]
-                   :from      [[:query_execution :qe]]
-                   :join      [[:metabase_database :db] [:= :qe.database_id :db.id]]
-                   :left-join [[:report_card :card]     [:= :qe.card_id :card.id]
-                               :collection              [:= :card.collection_id :collection.id]
-                               [:core_user :u]          [:= :card.creator_id :u.id]
-                               [:metabase_table :t]     [:= :card.table_id :t.id]]
-                   :where     [:= :qe.executor_id user-id]
-                   :order-by  [[:qe.started_at :desc]]})
-                 (map #(update % :query_hash codec/base64-encode)))})
+   :results (common/reducible-query
+             {:select    [[:qe.started_at :viewed_on]
+                          [:card.id :card_id]
+                          [(common/card-name-or-ad-hoc :card) :card_name]
+                          [:qe.hash :query_hash]
+                          [(common/native-or-gui :qe) :type]
+                          [:collection.id :collection_id]
+                          [:collection.name :collection]
+                          [:u.id :saved_by_id]
+                          [(common/user-full-name :u) :saved_by]
+                          [:db.id :database_id]
+                          [:db.name :source_db]
+                          [:t.id :table_id]
+                          [:t.display_name :table]]
+              :from      [[:query_execution :qe]]
+              :join      [[:metabase_database :db] [:= :qe.database_id :db.id]]
+              :left-join [[:report_card :card]     [:= :qe.card_id :card.id]
+                          :collection              [:= :card.collection_id :collection.id]
+                          [:core_user :u]          [:= :card.creator_id :u.id]
+                          [:metabase_table :t]     [:= :card.table_id :t.id]]
+              :where     [:= :qe.executor_id user-id]
+              :order-by  [[:qe.started_at :desc]]})
+   :xform    (map #(update (vec %) 3 codec/base64-encode))})
 
 (s/defn ^:internal-query-fn dashboard-views
   [user-id :- su/IntGreaterThanZero]
@@ -160,7 +160,7 @@
               [:dashboard_name  {:display_name "Dashboard",     :base_type :type/Text,    :remapped_from :dashboard_id}]
               [:collection_id   {:display_name "Collection ID", :base_type :type/Integer, :remapped_to   :collection_name}]
               [:collection_name {:display_name "Collection",    :base_type :type/Text,    :remapped_from :collection_id}]]
-   :results (common/query
+   :results (common/reducible-query
              {:select    [:vl.timestamp
                           [:dash.id :dashboard_id]
                           [:dash.name :dashboard_name]
@@ -179,7 +179,7 @@
   [user-id :- su/IntGreaterThanZero, model :- (s/enum "card" "dashboard"), datetime-unit :- common/DateTimeUnitStr]
   {:metadata [[:date {:display_name "Date",   :base_type (common/datetime-unit-str->base-type datetime-unit)}]
               [:views {:display_name "Views", :base_type :type/Integer}]]
-   :results (common/query
+   :results (common/reducible-query
              {:select   [[(common/grouped-datetime datetime-unit :timestamp) :date]
                          [:%count.* :views]]
               :from     [:view_log]
@@ -210,7 +210,7 @@
               [:cache_ttl           {:display_name "Cache TTL",            :base_type :type/Number}]
               [:public_link         {:display_name "Public Link",          :base_type :type/URL}]
               [:total_views         {:display_name "Total Views",          :base_type :type/Integer}]]
-   :results  (common/query
+   :results  (common/reducible-query
               {:with      [cards/avg-exec-time
                            cards/views]
                :select    [[:card.id :card_id]
@@ -251,7 +251,7 @@
               [:database        {:display_name "Database",        :base_type :type/Text,    :remapped_from :database_id}]
               [:table_id        {:display_name "Table ID",        :base_type :type/Integer, :remapped_to :source_table}]
               [:source_table    {:display_name "Source Table",    :base_type :type/Text,    :remapped_from :table_id}]]
-   :results  (common/query
+   :results  (common/reducible-query
                {:select    [[:qe.started_at :downloaded_at]
                             [:qe.result_rows :rows_downloaded]
                             [:card.id :card_id]

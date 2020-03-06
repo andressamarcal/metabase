@@ -15,7 +15,7 @@
               [:schema     {:display_name "Schema",     :base_type :type/Text}]
               [:table_id   {:display_name "Table ID",   :base_type :type/Integer, :remapped_to   :table}]
               [:table      {:display_name "Table",      :base_type :type/Text,    :remapped_from :table_id}]]
-   :results (->> (common/query
+   :results (common/reducible-query
                   {:select    [:qe.started_at
                                [:card.id :card_id]
                                [:qe.hash :query_hash]
@@ -32,4 +32,4 @@
                    :left-join [[:report_card :card] [:= :qe.card_id :card.id]
                                [:metabase_table :t] [:= :card.table_id :t.id]]
                    :order-by  [[:qe.started_at :desc]]})
-                 (map #(update % :query_hash codec/base64-encode)))})
+   :xform   (map #(update (vec %) 2 codec/base64-encode))})
