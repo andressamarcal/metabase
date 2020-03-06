@@ -95,25 +95,45 @@
               (format "result = %s" (u/pprint-to-str result))))))))
 
 (deftest results-test
-  (testing "Make sure at least one of the queries gives us correct results.")
-  (when-not (= :mysql (mdb/db-type))
-    (metastore-test/with-metastore-token-features #{:audit-app}
-      (let [expected      (metabase.audit.pages.users/query-execution-time-per-user)
-            expected-cols (for [[k m] (:metadata expected)]
-                            (assoc m :name (name k)))
-            result        (run-query #'pages.users/query-execution-time-per-user nil)
-            test-user-ids (set (map mt/user->id [:crowberto :rasta :trashbird :lucky]))]
-        (testing "cols"
-          (is (= [{:display_name "User ID", :base_type "type/Integer" :remapped_to "name" :name "user_id"}
-                  {:display_name "Name", :base_type "type/Name" :remapped_from "user_id" :name "name"}
-                  {:display_name "Total Execution Time (ms)", :base_type "type/Decimal" :name "execution_time_ms"}]
-                 (mt/cols result))))
-        (testing "rows"
-          (is (= [[(mt/user->id :crowberto) "Crowberto Corv" true]
-                  [(mt/user->id :lucky)     "Lucky Pigeon" true]
-                  [(mt/user->id :rasta)     "Rasta Toucan" true]
-                  [(mt/user->id :trashbird) "Trash Bird" true]]
-                 (->> (mt/rows result)
-                      (filter #(test-user-ids (first %)))
-                      (sort-by second)
-                      (mt/format-rows-by [identity identity int?])))))))))
+  (testing "Make sure at least one of the queries gives us correct results."
+    (when-not (= :mysql (mdb/db-type))
+      (metastore-test/with-metastore-token-features #{:audit-app}
+        (let [test-user-ids (set (map mt/user->id [:crowberto :rasta :trashbird :lucky]))
+              result        (run-query #'pages.users/query-execution-time-per-user nil)]
+          (testing "cols"
+            (is (= [{:display_name "User ID", :base_type "type/Integer" :remapped_to "name" :name "user_id"}
+                    {:display_name "Name", :base_type "type/Name" :remapped_from "user_id" :name "name"}
+                    {:display_name "Total Execution Time (ms)", :base_type "type/Decimal" :name "execution_time_ms"}]
+                   (mt/cols result))))
+          (testing "rows"
+            (is (= [[(mt/user->id :crowberto) "Crowberto Corv" true]
+                    [(mt/user->id :lucky)     "Lucky Pigeon" true]
+                    [(mt/user->id :rasta)     "Rasta Toucan" true]
+                    [(mt/user->id :trashbird) "Trash Bird" true]]
+                   (->> (mt/rows result)
+                        (filter #(test-user-ids (first %)))
+                        (sort-by second)
+                        (mt/format-rows-by [identity identity int?]))))))))))
+
+;; NOCOMMIT
+(defn x []
+  (metastore-test/with-metastore-token-features #{:audit-app}
+    (let [expected      (metabase.audit.pages.users/query-execution-time-per-user)
+          expected-cols (for [[k m] (:metadata expected)]
+                          (assoc m :name (name k)))
+          result        (run-query #'pages.users/query-execution-time-per-user nil)
+          test-user-ids (set (map mt/user->id [:crowberto :rasta :trashbird :lucky]))]
+      (testing "cols"
+        (is (= [{:display_name "User ID", :base_type "type/Integer" :remapped_to "name" :name "user_id"}
+                {:display_name "Name", :base_type "type/Name" :remapped_from "user_id" :name "name"}
+                {:display_name "Total Execution Time (ms)", :base_type "type/Decimal" :name "execution_time_ms"}]
+               (mt/cols result))))
+      (testing "rows"
+        (is (= [[(mt/user->id :crowberto) "Crowberto Corv" true]
+                [(mt/user->id :lucky)     "Lucky Pigeon" true]
+                [(mt/user->id :rasta)     "Rasta Toucan" true]
+                [(mt/user->id :trashbird) "Trash Bird" true]]
+               (->> (mt/rows result)
+                    (filter #(test-user-ids (first %)))
+                    (sort-by second)
+                    (mt/format-rows-by [identity identity int?]))))))))
