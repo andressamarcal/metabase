@@ -10,6 +10,7 @@
             [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
             [metabase.driver.sql.query-processor :as sql.qp]
             [metabase.query-processor.context :as context]
+            [metabase.query-processor.middleware.internal-queries :as internal-queries]
             [metabase.util
              [honeysql-extensions :as hx]
              [urls :as urls]]
