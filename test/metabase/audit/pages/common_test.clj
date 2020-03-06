@@ -1,6 +1,7 @@
 (ns metabase.audit.pages.common-test
   (:require [clojure.test :refer :all]
             [metabase
+             [db :as mdb]
              [query-processor :as qp]
              [test :as mt]]
             [metabase.audit.pages.common :as pages.common]
@@ -17,19 +18,20 @@
 
 (defn- ^:private ^:internal-query-fn legacy-format-query-fn
   [a1]
-  {:metadata [[:a {:display_name "A", :base_type :type/DateTime}]
-              [:b {:display_name "B", :base_type :type/Integer}]]
-   :results  (pages.common/query
-              {:union-all [{:select [[a1 :a] [2 :b]]}
-                           {:select [[3 :a] [4 :b]]}]})})
+  (let [h2? (= (mdb/db-type) :h2)]
+    {:metadata [[:A {:display_name "A", :base_type :type/DateTime}]
+                [:B {:display_name "B", :base_type :type/Integer}]]
+     :results  (pages.common/query
+                {:union-all [{:select [[a1 :A] [2 :B]]}
+                             {:select [[3 :A] [4 :B]]}]})}))
 
 (defn- ^:private ^:internal-query-fn reducible-format-query-fn
   [a1]
-  {:metadata [[:a {:display_name "A", :base_type :type/DateTime}]
-              [:b {:display_name "B", :base_type :type/Integer}]]
+  {:metadata [[:A {:display_name "A", :base_type :type/DateTime}]
+              [:B {:display_name "B", :base_type :type/Integer}]]
    :results  (pages.common/reducible-query
-              {:union-all [{:select [[a1 :a] [2 :b]]}
-                           {:select [[3 :a] [4 :b]]}]})
+              {:union-all [{:select [[a1 :A] [2 :B]]}
+                           {:select [[3 :A] [4 :B]]}]})
    :xform    (map #(update (vec %) 0 inc))})
 
 (deftest transform-results-test
@@ -42,8 +44,8 @@
         (testing (format "format = %s" format-name)
           (let [results (delay (run-query varr :args [100]))]
             (testing "cols"
-              (is (= [{:display_name "A", :base_type :type/DateTime, :name "a"}
-                      {:display_name "B", :base_type :type/Integer, :name "b"}]
+              (is (= [{:display_name "A", :base_type :type/DateTime, :name "A"}
+                      {:display_name "B", :base_type :type/Integer, :name "B"}]
                      (mt/cols @results))))
             (testing "rows"
               (is (= expected-rows
