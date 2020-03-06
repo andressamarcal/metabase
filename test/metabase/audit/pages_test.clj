@@ -9,6 +9,7 @@
              [models :refer [Card Dashboard DashboardCard Database Table]]
              [test :as mt]
              [util :as u]]
+            [metabase.audit.pages.users :as pages.users]
             [metabase.plugins.classloader :as classloader]
             [metabase.public-settings.metastore-test :as metastore-test]
             [metabase.query-processor.util :as qp-util]
@@ -62,14 +63,22 @@
                :model         "card"
                :query-hash    (qp-util/query-hash {:database 1, :type :native})))}))
 
-(defn- test-query [varr objects]
+(defn- run-query [varr objects]
   (let [query (varr->query varr objects)]
     (testing (format "%s %s:%d" varr (ns-name (:ns (meta varr))) (:line (meta varr)))
       (testing (format "\nquery = %s" (pr-str query))
-        (let [result ((mt/user->client :crowberto) :post 202 "dataset" query)]
-          (is (= (:status result)
-                 "completed")
-              (format "result = %s" (u/pprint-to-str result))))))))
+        ((mt/user->client :crowberto) :post 202 "dataset" query)))))
+
+(defn- do-with-temp-objects [f]
+  (mt/with-temp* [Database      [database]
+                  Table         [table {:db_id (u/get-id database)}]
+                  Card          [card {:table_id (u/get-id table), :database_id (u/get-id database)}]
+                  Dashboard     [dash]
+                  DashboardCard [_ {:card_id (u/get-id card), :dashboard_id (u/get-id dash)}]]
+    (f {:database database, :table table, :card card, :dash dash})))
+
+(defmacro ^:private with-temp-objects [[objects-binding] & body]
+  `(do-with-temp-objects (fn [~objects-binding] ~@body)))
 
 (deftest all-queries-test
   ;; skip for now with MySQL because we rely heavily on CTEs and MySQL 5.x doesn't support CTEs. We test CI with
@@ -77,11 +86,34 @@
   ;;
   ;; TODO - come up with a way to test these on CI
   (when-not (= :mysql (mdb/db-type))
-    (mt/with-temp* [Database      [database]
-                    Table         [table {:db_id (u/get-id database)}]
-                    Card          [card {:table_id (u/get-id table), :database_id (u/get-id database)}]
-                    Dashboard     [dash]
-                    DashboardCard [_ {:card_id (u/get-id card), :dashboard_id (u/get-id dash)}]]
+    (with-temp-objects [objects]
       (metastore-test/with-metastore-token-features #{:audit-app}
-        (doseq [varr (all-queries)]
-          (test-query varr {:database database, :table table, :card card, :dash dash}))))))
+        (doseq [varr (all-queries)
+                :let [result (run-query varr objects)]]
+          (is (= (:status result)
+                 "completed")
+              (format "result = %s" (u/pprint-to-str result))))))))
+
+(deftest results-test
+  (testing "Make sure at least one of the queries gives us correct results.")
+  (when-not (= :mysql (mdb/db-type))
+    (metastore-test/with-metastore-token-features #{:audit-app}
+      (let [expected      (metabase.audit.pages.users/query-execution-time-per-user)
+            expected-cols (for [[k m] (:metadata expected)]
+                            (assoc m :name (name k)))
+            result        (run-query #'pages.users/query-execution-time-per-user nil)
+            test-user-ids (set (map mt/user->id [:crowberto :rasta :trashbird :lucky]))]
+        (testing "cols"
+          (is (= [{:display_name "User ID", :base_type "type/Integer" :remapped_to "name" :name "user_id"}
+                  {:display_name "Name", :base_type "type/Name" :remapped_from "user_id" :name "name"}
+                  {:display_name "Total Execution Time (ms)", :base_type "type/Decimal" :name "execution_time_ms"}]
+                 (mt/cols result))))
+        (testing "rows"
+          (is (= [[(mt/user->id :crowberto) "Crowberto Corv" true]
+                  [(mt/user->id :lucky)     "Lucky Pigeon" true]
+                  [(mt/user->id :rasta)     "Rasta Toucan" true]
+                  [(mt/user->id :trashbird) "Trash Bird" true]]
+                 (->> (mt/rows result)
+                      (filter #(test-user-ids (first %)))
+                      (sort-by second)
+                      (mt/format-rows-by [identity identity int?])))))))))

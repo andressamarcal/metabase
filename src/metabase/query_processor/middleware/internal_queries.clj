@@ -26,7 +26,9 @@
              [string :as str]]
             [metabase.api.common :as api]
             [metabase.public-settings.metastore :as metastore]
-            [metabase.query-processor.context :as context]
+            [metabase.query-processor
+             [context :as context]
+             [error-type :as error-type]]
             [metabase.util
              [i18n :refer [tru]]
              [schema :as su]]
@@ -104,16 +106,20 @@
   ;; Make sure audit app is enabled (currently the only use case for internal queries). We can figure out a way to
   ;; allow non-audit-app queries if and when we add some
   (when-not (metastore/enable-audit-app?)
-    (throw (Exception. (str (tru "Audit App queries are not enabled on this instance.")))))
+    (throw (ex-info (tru "Audit App queries are not enabled on this instance.")
+                    {:type error-type/invalid-query})))
   ;;now resolve the query
   (let [fn-varr (resolve-internal-query-fn qualified-fn-str)]
     ;; Make sure this is actually allowed to be a internal query fn & has the results metadata we'll need
     (when-not (:internal-query-fn (meta fn-varr))
       (throw (Exception. (str (tru "Invalid internal query function: {0} is not marked as an ^:internal-query-fn"
                                    qualified-fn-str)))))
-    (let [{:keys [cols rows]} (binding [*additional-query-params* (dissoc query :fn :args)]
+    (let [results             (binding [*additional-query-params* (dissoc query :fn :args)]
                                 (apply @fn-varr args))
+          {:keys [cols rows]} (format-results results)
           metadata            {:cols cols}]
+      (assert (some? cols))
+      (assert (some? rows))
       (context/reducef rff context metadata rows))))
 
 (defn handle-internal-queries
