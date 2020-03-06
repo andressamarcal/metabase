@@ -239,10 +239,10 @@ const SSO_PROVIDER = {
 };
 
 PLUGIN_AUTH_PROVIDERS.push(providers => {
-  if (MetabaseSettings.get("other_sso_configured")) {
+  if (MetabaseSettings.get("other-sso-configured")) {
     providers = [SSO_PROVIDER, ...providers];
   }
-  if (!MetabaseSettings.get("enable_password_login")) {
+  if (!MetabaseSettings.get("enable-password-login")) {
     providers = providers.filter(p => p.name !== "password");
   }
   return providers;
@@ -252,5 +252,5 @@ PLUGIN_SHOW_CHANGE_PASSWORD_CONDITIONS.push(
   user =>
     !user.google_auth &&
     !user.ldap_auth &&
-    MetabaseSettings.get("enable_password_login"),
+    MetabaseSettings.get("enable-password-login"),
 );

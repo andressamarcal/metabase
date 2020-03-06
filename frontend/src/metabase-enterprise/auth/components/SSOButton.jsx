@@ -19,7 +19,7 @@ export default class SSOButton extends React.Component {
     MetabaseAnalytics.trackEvent("Auth", "SSO Login Start");
     // use `window.location` instead of `push` since it's not a frontend route
     window.location =
-      MetabaseSettings.get("site_url") +
+      MetabaseSettings.get("site-url") +
       "/auth/sso" +
       (redirect ? "?redirect=" + encodeURIComponent(redirect) : "");
   };
