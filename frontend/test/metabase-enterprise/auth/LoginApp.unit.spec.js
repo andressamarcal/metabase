@@ -17,7 +17,7 @@ describe("LoginApp - Enterprise", () => {
   describe("initial state", () => {
     describe("with Google and password disabled", () => {
       beforeEach(() => {
-        Settings.set("google_auth_client_id", 123);
+        Settings.set("google-auth-client-id", 123);
       });
       it("should show the SSO button without an option to use password", () => {
         const { wrapper } = mountWithStore(<LoginApp params={{}} />);
