@@ -1,4 +1,4 @@
-(ns metabase-enterprise.sandbox.integrations.jwt-test
+(ns metabase-enterprise.sso.integrations.jwt-test
   (:require [buddy.sign
              [jwt :as jwt]
              [util :as buddy-util]]
@@ -11,7 +11,7 @@
              [permissions-group :as group :refer [PermissionsGroup]]
              [permissions-group-membership :refer [PermissionsGroupMembership]]
              [user :refer [User]]]
-            [metabase-enterprise.sandbox.integrations
+            [metabase-enterprise.sso.integrations
              [jwt :as mt.jwt]
              [saml-test :as saml-test]]
             [metabase.test.data.users :as users]
@@ -147,7 +147,7 @@
     (db/select-field :name PermissionsGroup :id [:in group-ids])))
 
 (expect
-  #{"All Users" ":metabase-enterprise.sandbox.integrations.jwt-test/my-group"}
+  #{"All Users" ":metabase-enterprise.sso.integrations.jwt-test/my-group"}
   (with-jwt-default-setup
     (tt/with-temp PermissionsGroup [my-group {:name (str ::my-group)}]
       (tu/with-temporary-setting-values [jwt-group-sync       true

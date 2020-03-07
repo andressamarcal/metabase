@@ -1,4 +1,4 @@
-(ns metabase-enterprise.sandbox.integrations.saml-test
+(ns metabase-enterprise.sso.integrations.saml-test
   (:require [clojure
              [string :as str]
              [test :refer :all]]
@@ -13,7 +13,7 @@
              [permissions-group :as group :refer [PermissionsGroup]]
              [permissions-group-membership :refer [PermissionsGroupMembership]]
              [user :refer [User]]]
-            [metabase-enterprise.sandbox.integrations
+            [metabase-enterprise.sso.integrations
              [saml :as saml :refer :all]
              [sso-settings :as sso-settings]]
             [metabase.public-settings.metastore :as metastore]
@@ -290,7 +290,7 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
                   new-user-id            (db/select-one-id User :email "newuser@metabase.com")]
               (assert (successful-login? response))
               (is (= #{"All Users"
-                       ":metabase-enterprise.sandbox.integrations.saml-test/group-1"}
+                       ":metabase-enterprise.sso.integrations.saml-test/group-1"}
                      (group-memberships new-user-id))))
             (finally
               (db/delete! User :email "newuser@metabase.com"))))))))
@@ -313,8 +313,8 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
                   new-user-id            (db/select-one-id User :email "newuser@metabase.com")]
               (assert (successful-login? response))
               (is (= #{"All Users"
-                       ":metabase-enterprise.sandbox.integrations.saml-test/group-1"
-                       ":metabase-enterprise.sandbox.integrations.saml-test/group-2"}
+                       ":metabase-enterprise.sso.integrations.saml-test/group-1"
+                       ":metabase-enterprise.sso.integrations.saml-test/group-2"}
                      (group-memberships new-user-id))))
             (finally
               (db/delete! User :email "newuser@metabase.com"))))))))

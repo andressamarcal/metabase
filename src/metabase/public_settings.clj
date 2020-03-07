@@ -19,7 +19,7 @@
   (:import java.util.UUID))
 
 (u/ignore-exceptions
-  (classloader/require '[metabase-enterprise.sandbox.integrations.sso-settings :as ee.sandbox.sso-settings]))
+  (classloader/require '[metabase-enterprise.sso.integrations.sso-settings :as ee.sandbox.sso-settings]))
 
 (defn- google-auth-configured? []
   (boolean (setting/get :google-auth-client-id)))

@@ -1,4 +1,4 @@
-(ns metabase.ee.pulse-test
+(ns metabase-enterprise.sandbox.pulse-test
   (:require [clojure.test :refer :all]
             [metabase
              [email-test :as email-test]
