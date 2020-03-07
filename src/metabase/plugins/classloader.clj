@@ -32,7 +32,7 @@
    (or
     (when-let [base-loader (RT/baseLoader)]
       (when (instance? DynamicClassLoader base-loader)
-        (log/debug (deferred-trs "Using Clojure base loader as shared context classloader: {0}" base-loader))
+        (log/trace (deferred-trs "Using Clojure base loader as shared context classloader: {0}" base-loader))
         base-loader))
     ;; Otherwise if we need to create our own go ahead and do it
     ;;
@@ -42,7 +42,7 @@
     ;; context classloaders by giving them this one. No other places in the codebase should be modifying classloaders
     ;; anyway.
     (let [new-classloader (DynamicClassLoader. (.getContextClassLoader (Thread/currentThread)))]
-      (log/debug (deferred-trs "Using NEWLY CREATED classloader as shared context classloader: {0}" new-classloader))
+      (log/trace (deferred-trs "Using NEWLY CREATED classloader as shared context classloader: {0}" new-classloader))
       new-classloader))))
 
 (defn- has-classloader-as-ancestor?

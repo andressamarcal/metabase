@@ -3,6 +3,11 @@ Metabase is the easy, open source way for everyone in your company to ask questi
 
 ![Metabase Product Screenshot](docs/metabase-product-screenshot.png)
 
+[![Latest Release](https://img.shields.io/github/release/metabase/metabase.svg?label=latest%20release)](https://github.com/metabase/metabase/releases)
+[![GitHub license](https://img.shields.io/badge/license-AGPL-05B8CC.svg)](https://raw.githubusercontent.com/metabase/metabase/master/LICENSE.txt)
+[![Circle CI](https://circleci.com/gh/metabase/metabase.svg?style=svg&circle-token=3ccf0aa841028af027f2ac9e8df17ce603e90ef9)](https://circleci.com/gh/metabase/metabase)
+[![Gitter chat](https://badges.gitter.im/metabase/metabase.png)](https://gitter.im/metabase/metabase)
+
 # Features
 - 5 minute [setup](https://metabase.com/docs/latest/setting-up-metabase.html) (We're not kidding)
 - Let anyone on your team [ask questions](https://metabase.com/docs/latest/users-guide/04-asking-questions.html) without knowing SQL
@@ -115,6 +120,8 @@ The button below will deploy the branch where this README.md lives onto Heroku. 
 
 # License
 
-This Edition of Metabase is made available only to those with a fully paid up commerical license from Metabase. Access to this repository does not provide the permission to use the application.
+Unless otherwise noted, all Metabase source files are made available under the terms of the GNU Affero General Public License (AGPL).
 
-Unless otherwise noted, all files © 2019 Metabase, Inc.
+See [LICENSE.txt](https://github.com/metabase/metabase/blob/master/LICENSE.txt) for details and exceptions.
+
+Unless otherwise noted, all files © 2020 Metabase, Inc.

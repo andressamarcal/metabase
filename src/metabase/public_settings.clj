@@ -10,7 +10,6 @@
             [metabase.models
              [common :as common]
              [setting :as setting :refer [defsetting]]]
-            [metabase.mt.integrations.sso-settings :as sso-settings]
             [metabase.plugins.classloader :as classloader]
             [metabase.public-settings.metastore :as metastore]
             [metabase.util
@@ -19,6 +18,9 @@
             [toucan.db :as db])
   (:import java.util.UUID))
 
+(u/ignore-exceptions
+  (classloader/require '[metabase-enterprise.sandbox.integrations.sso-settings :as ee.sandbox.sso-settings]))
+
 (defn- google-auth-configured? []
   (boolean (setting/get :google-auth-client-id)))
 
@@ -26,21 +28,16 @@
   (do (classloader/require 'metabase.integrations.ldap)
       ((resolve 'metabase.integrations.ldap/ldap-configured?))))
 
-(defsetting other-sso-configured?
-  "Are we using an SSO integration other than LDAP or Google Auth? These integrations use the `/auth/sso` endpoint for
-  authorization rather than the normal login form or Google Auth button."
-  :visibility :public
-  :setter     :none
-  :getter     (fn [] (or
-                      (sso-settings/saml-configured?)
-                      (sso-settings/jwt-configured?))))
+(defn- ee-sso-configured? []
+  (when-let [varr (resolve 'ee.sandbox.sso-settings/other-sso-configured?)]
+    (varr)))
 
 (defn- sso-configured?
   "Any SSO provider is configured"
   []
   (or (google-auth-configured?)
       (ldap-configured?)
-      (other-sso-configured?)))
+      (ee-sso-configured?)))
 
 (defsetting check-for-updates
   (deferred-tru "Identify when new versions of Metabase are available.")

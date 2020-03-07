@@ -161,7 +161,7 @@
   ["-target" "1.8", "-source" "1.8"]
 
   :source-paths
-  ["src" "backend/mbql/src" "ee/src"]
+  ["src" "backend/mbql/src"]
 
   :java-source-paths
   ["java"]
@@ -170,9 +170,13 @@
   "metabase.jar"
 
   :profiles
-  {:dev
+  {:ee
+   {:source-paths ["backend/ee/src"]
+    :test-paths   ["backend/ee/test"]}
+
+   :dev
    {:source-paths ["dev/src" "local/src"]
-    :test-paths   ["test" "backend/mbql/test" "ee/test"]
+    :test-paths   ["test" "backend/mbql/test"]
 
     :dependencies
     [[clj-http-fake "1.0.3" :exclusions [slingshot]]                  ; Library to mock clj-http responses
@@ -294,11 +298,13 @@
 
    :bikeshed
    [:include-all-drivers
+    :ee
     {:plugins
      [[lein-bikeshed "0.5.2"]]}]
 
    :eastwood
    [:include-all-drivers
+    :ee
     {:plugins
      [[jonase/eastwood "0.3.6" :exclusions [org.clojure/clojure]]]
 
@@ -316,7 +322,7 @@
                            ;; get them to work
                            #_:unused-fn-args
                            #_:unused-locals]
-      :exclude-linters    [; Turn this off temporarily until we finish removing self-deprecated functions & macros
+      :exclude-linters    [    ; Turn this off temporarily until we finish removing self-deprecated functions & macros
                            :deprecations
                            ;; this has a fit in libs that use Potemin `import-vars` such as `java-time`
                            :implicit-dependencies
@@ -326,11 +332,13 @@
    ;; run ./bin/reflection-linter to check for reflection warnings
    :reflection-warnings
    [:include-all-drivers
+    :ee
     {:global-vars {*warn-on-reflection* true}}]
 
    ;; Check that all public vars have docstrings. Run with 'lein docstring-checker'
    :docstring-checker
    [:include-all-drivers
+    :ee
     {:plugins
      [[docstring-checker "1.1.0"]]
 
@@ -341,6 +349,7 @@
 
    :check-namespace-decls
    [:include-all-drivers
+    :ee
     {:plugins               [[lein-check-namespace-decls "1.0.2"]]
      :source-paths          ^:replace ["src" "backend/mbql/src" "test" "backend/mbql/test"]
      :check-namespace-decls {:prefix-rewriting true}}]

@@ -6,7 +6,7 @@ export const auditLog = (databaseId: number) => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.database-detail/audit-log",
+      fn: "metabase-enterprise.audit.pages.database-detail/audit-log",
       args: [databaseId],
     },
     visualization_settings: {

@@ -29,6 +29,13 @@
             [toucan.db :as db])
   (:import [java.io File IOException]))
 
+(defn- app-name-trs
+  "Return the user configured application name, or Metabase translated
+  via tru if a name isn't configured."
+  []
+  (or (public-settings/application-name)
+      (trs "Metabase")))
+
 ;; Dev only -- disable template caching
 (when config/is-dev?
   (alter-meta! #'stencil.core/render-file assoc :style/indent 1)
@@ -121,7 +128,7 @@
                                :logoHeader   true}
                               (random-quote-context)))]
     (email/send-message!
-      :subject      (str (trs "You''re invited to join {0}''s {1}" company (u/app-name-trs)))
+      :subject      (str (trs "You''re invited to join {0}''s {1}" company (app-name-trs)))
       :recipients   [(:email invited)]
       :message-type :html
       :message      message-body)))
@@ -143,8 +150,8 @@
   (let [recipients (all-admin-recipients)]
     (email/send-message!
       :subject      (str (if google-auth?
-                           (trs "{0} created a {1} account" (:common_name new-user) (u/app-name-trs))
-                           (trs "{0} accepted their {1} invite" (:common_name new-user) (u/app-name-trs))))
+                           (trs "{0} created a {1} account" (:common_name new-user) (app-name-trs))
+                           (trs "{0} accepted their {1} invite" (:common_name new-user) (app-name-trs))))
       :recipients   recipients
       :message-type :html
       :message      (stencil/render-file "metabase/email/user_joined_notification"
@@ -174,7 +181,7 @@
                                :passwordResetUrl password-reset-url
                                :logoHeader       true}))]
     (email/send-message!
-      :subject      (trs "[{0}] Password Reset Request" (u/app-name-trs))
+      :subject      (trs "[{0}] Password Reset Request" (app-name-trs))
       :recipients   [email]
       :message-type :html
       :message      message-body)))
@@ -214,7 +221,7 @@
         message-body (stencil/render-file "metabase/email/notification"
                                           (merge (common-context) context))]
     (email/send-message!
-      :subject      (trs "[{0}] Notification" (u/app-name-trs))
+      :subject      (trs "[{0}] Notification" (app-name-trs))
       :recipients   [email]
       :message-type :html
       :message      message-body)))
@@ -224,8 +231,8 @@
   [email msg-type]
   {:pre [(u/email? email) (contains? #{"abandon" "follow-up"} msg-type)]}
   (let [subject      (str (if (= "abandon" msg-type)
-                            (trs "[{0}] Help make [{0}] better." (u/app-name-trs) (u/app-name-trs))
-                            (trs "[{0}] Tell us how things are going." (u/app-name-trs))))
+                            (trs "[{0}] Help make [{0}] better." (app-name-trs) (app-name-trs))
+                            (trs "[{0}] Tell us how things are going." (app-name-trs))))
         context      (merge notification-context
                             (random-quote-context)
                             (if (= "abandon" msg-type)

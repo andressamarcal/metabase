@@ -1,12 +1,3 @@
-# Run only for ^v.* tags -- see https://circleci.com/docs/2.0/workflows/#executing-workflows-for-a-git-tag
-only-run-job-for-release-tags: &only-run-job-for-release-tags
-  filters:
-    branches:
-      ignore: /.*/
-    tags:
-      only: /^v.*/
-
-
 version: 2.1
 
 ########################################################################################################################
@@ -35,11 +26,6 @@ executors:
     docker:
       - image: circleci/clojure:lein-2.8.1-node-browsers
 
-  default:
-    working_directory: /home/circleci/metabase/metabase/
-    docker:
-      - image: circleci/clojure:lein-2.8.1-node-browsers
-
   build:
     working_directory: /home/circleci/metabase/metabase/
     docker:
@@ -53,7 +39,7 @@ executors:
   postgres-9-6:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1-node-browsers
+      - image: circleci/clojure:lein-2.8.1
         environment:
           MB_DB_TYPE: postgres
           MB_DB_PORT: 5432
@@ -91,7 +77,7 @@ executors:
         default: ""
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1-node-browsers
+      - image: circleci/clojure:lein-2.8.1
         environment:
           MB_DB_TYPE: mysql
           MB_DB_HOST: localhost
@@ -162,13 +148,13 @@ executors:
   sparksql:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1-node-browsers
+      - image: circleci/clojure:lein-2.8.1
       - image: metabase/spark:2.1.1
 
   vertica:
     working_directory: /home/circleci/metabase/metabase/
     docker:
-      - image: circleci/clojure:lein-2.8.1-node-browsers
+      - image: circleci/clojure:lein-2.8.1
       - image: sumitchawla/vertica
 
   sqlserver:
@@ -183,6 +169,7 @@ executors:
         environment:
           ACCEPT_EULA: Y
           SA_PASSWORD: 'P@ssw0rd'
+
 
 
 ########################################################################################################################
@@ -261,7 +248,7 @@ jobs:
 ########################################################################################################################
 
   checkout:
-    executor: default
+    executor: basic
     steps:
       - restore_cache:
           keys:
@@ -307,7 +294,7 @@ jobs:
             - metabase/metabase
 
   yaml-linter:
-    executor: default
+    executor: node
     steps:
       - attach-workspace
       - run:
@@ -320,7 +307,7 @@ jobs:
           no_output_timeout: 2m
 
   verify-i18n-files:
-    executor: default
+    executor: node
     steps:
       - attach-workspace
       - restore-fe-deps-cache
@@ -341,7 +328,7 @@ jobs:
 ########################################################################################################################
 
   be-deps:
-    executor: default
+    executor: clojure
     steps:
       - attach-workspace
       - restore-be-deps-cache
@@ -355,7 +342,7 @@ jobs:
     parameters:
       e:
         type: executor
-        default: default
+        default: clojure
       lein-command:
         type: string
       store-results:
@@ -375,7 +362,7 @@ jobs:
                 path: /home/circleci/metabase/metabase/target/test
 
   be-linter-reflection-warnings:
-    executor: default
+    executor: clojure
     steps:
       - attach-workspace
       - restore-be-deps-cache
@@ -388,7 +375,7 @@ jobs:
     parameters:
       e:
         type: executor
-        default: default
+        default: clojure
       driver:
         type: string
       timeout:
@@ -417,7 +404,7 @@ jobs:
                   DRIVERS: h2,<< parameters.driver >>
                 command: >
                   /home/circleci/metabase/metabase/.circleci/skip-driver-tests.sh << parameters.driver >> ||
-                  lein with-profile +ci test
+                  lein with-profile +ci,ee test
                 no_output_timeout: << parameters.timeout >>
       # This is exactly the same as without auto-retry but will try running the tests a second time if they fail
       - when:
@@ -429,7 +416,7 @@ jobs:
                   DRIVERS: h2,<< parameters.driver >>
                 command: >
                   /home/circleci/metabase/metabase/.circleci/skip-driver-tests.sh << parameters.driver >> ||
-                  lein with-profile +ci test || lein with-profile +ci test
+                  lein with-profile +ci,ee test || lein with-profile +ci,ee test
                 no_output_timeout: << parameters.timeout >>
 
   test-migrate-from-h2:
@@ -457,7 +444,7 @@ jobs:
 ########################################################################################################################
 
   fe-deps:
-    executor: default
+    executor: node
     steps:
       - attach-workspace
       - restore-fe-deps-cache
@@ -481,21 +468,21 @@ jobs:
             - /home/circleci/.cache/Cypress
 
   fe-linter-eslint:
-    executor: default
+    executor: node
     steps:
       - run-yarn-command:
           command-name: Run ESLint linter
           command: lint-eslint
 
   fe-linter-prettier:
-    executor: default
+    executor: node
     steps:
       - run-yarn-command:
           command-name: Run Prettier formatting linter
           command: lint-prettier
 
   fe-linter-flow:
-    executor: default
+    executor: node
     steps:
       - run-yarn-command:
           command-name: Run Flow type checker
@@ -509,21 +496,21 @@ jobs:
           command: lint-docs-links
 
   fe-tests-karma:
-    executor: default
+    executor: node
     steps:
       - run-yarn-command:
           command-name: Run frontend tests (karma)
           command: run test-karma
 
   fe-tests-unit:
-    executor: default
+    executor: node
     steps:
       - run-yarn-command:
           command-name: Run frontend unit tests
           command: run test-unit
 
   fe-tests-integration:
-    executor: default
+    executor: node
     steps:
       - run-yarn-command:
           command-name: Run frontend integration tests
@@ -537,7 +524,7 @@ jobs:
           command: run test-timezones
 
   build-uberjar:
-    executor: default
+    executor: clojure-and-node
     steps:
       - attach-workspace
       - restore-be-deps-cache
@@ -548,7 +535,7 @@ jobs:
           name: Build uberjar if needed
           command: >
             if [ ! -f './target/uberjar/metabase.jar' ];
-              then ./bin/build version frontend uberjar;
+              then ./bin/build version frontend enterprise-uberjar;
             fi
           no_output_timeout: 5m
       - store_artifacts:
@@ -559,7 +546,7 @@ jobs:
             - /home/circleci/metabase/metabase/target/uberjar/metabase.jar
 
   fe-tests-e2e:
-    executor: default
+    executor: clojure-and-node
     steps:
       - run-yarn-command:
           command-name: Run frontend e2e tests
@@ -594,233 +581,11 @@ jobs:
 #                                                   DEPLOYMENT, ETC.                                                   #
 ########################################################################################################################
 
-  start-release-build:
-    executor: default
-    # main idea here is to get everything in one place so we don't
-    # have to restore everything from the cache a million times
+  deploy-master:
+    executor: clojure
     steps:
       - attach-workspace
-      - restore-fe-deps-cache
-      - restore-be-deps-cache
-      - restore_cache:
-          keys:
-            - uberjar-{{ checksum "./backend-checksums.txt" }}
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - metabase/metabase
-            - .m2
-
-  build-release-version-file:
-    executor: default
-    steps:
-      - attach-workspace
-      - run:
-          name: Generate version.properties file
-          command: ./bin/build version
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - metabase/metabase/resources/version.properties
-
-  build-release-frontend:
-    executor: default
-    steps:
-      - attach-workspace
-      - run:
-          name: Build frontend (production)
-          environment:
-            NODE_ENV: production
-          command: ./node_modules/.bin/webpack --bail
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - metabase/metabase/resources/frontend_client/app/dist/
-            - metabase/metabase/resources/frontend_client/index.html
-            - metabase/metabase/resources/frontend_client/public.html
-            - metabase/metabase/resources/frontend_client/embed.html
-
-  build-release-translations:
-    executor: build
-    steps:
-      - attach-workspace
-      - run:
-          name: Build translations
-          command: ./bin/i18n/build-translation-resources
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - metabase/metabase/resources/frontend_client/app/locales/
-            - metabase/metabase/resources/metabase/
-            - metabase/metabase/resources/locales.clj
-
-  install-metabase-locally:
-    executor: default
-    steps:
-      - attach-workspace
-      - run:
-          name: Install Metabase locally for building drivers
-          command: lein install-for-building-drivers
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - .m2/repository/metabase-core/
-
-  install-driver-locally:
-    parameters:
-      driver:
-        type: string
-    executor: default
-    steps:
-      - attach-workspace
-      - run:
-          name: Install << parameters.driver >> driver locally
-          command: >
-            cd modules/drivers/<< parameters.driver >>/ &&
-            lein install-for-building-drivers
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - .m2/repository/metabase/<< parameters.driver >>-driver/
-
-  build-driver:
-    parameters:
-      driver:
-        type: string
-    executor: default
-    steps:
-      - attach-workspace
-      - run:
-          name: Build << parameters.driver >> driver
-          command: ./bin/build-driver.sh << parameters.driver >>
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - metabase/metabase/resources/modules/<< parameters.driver >>.metabase-driver.jar
-
-  build-release-uberjar:
-    executor: default
-    steps:
-      - attach-workspace
-      - run: lein uberjar
-      - persist_to_workspace:
-          root: /home/circleci/
-          paths:
-            - metabase/metabase/target/uberjar/metabase.jar
-
-
-########################################################################################################################
-#                                                       RELEASE                                                        #
-########################################################################################################################
-
-  build-and-publish-docker-image:
-    parameters:
-      tag:
-        type: string
-    executor: default
-    steps:
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - attach-workspace
-      - run: cp target/uberjar/metabase.jar bin/docker/metabase.jar
-      - run:
-          name: Log in to DockerHub
-          command: docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}
-      - run:
-          name: Build Docker image
-          command: docker build -t "<< parameters.tag >>" bin/docker
-      - run:
-          name: Publish Docker image as << parameters.tag >>
-          command: docker push "<< parameters.tag >>"
-
-  push-docker-tag-alias:
-    parameters:
-      original-tag:
-        type: string
-      new-tag:
-        type: string
-    executor: default
-    steps:
-      - setup_remote_docker:
-          docker_layer_caching: true
-      - attach-workspace
-      - run:
-          name: Log in to DockerHub
-          command: docker login -u ${DOCKERHUB_USERNAME} -p ${DOCKERHUB_PASSWORD}
-      - run:
-          name: Pull original image << parameters.original-tag >>
-          command: docker pull "<< parameters.original-tag >>"
-      - run:
-          name: Create new tag << parameters.new-tag >> from << parameters.original-tag >>
-          command: docker tag "<< parameters.original-tag >>" "<< parameters.new-tag >>"
-      - run:
-          name: Publish new tag << parameters.new-tag >>
-          command: docker push "<< parameters.new-tag >>"
-
-  upload-uberjar:
-    parameters:
-      path:
-        type: string
-    executor: build
-    steps:
-      - attach-workspace
-      - run:
-          name: Upload uberjar to s3://downloads.metabase.com/<< parameters.path >>
-          command: aws s3 cp target/uberjar/metabase.jar "s3://downloads.metabase.com/<< parameters.path >>"
-
-  publish-elastic-beanstalk-config:
-    parameters:
-      docker-image:
-        type: string
-      path:
-        type: string
-    executor: build
-    steps:
-      - attach-workspace
-      - run:
-          name: Generate Elastic Beanstalk config file w/ Docker image << parameters.docker-image >>
-          command: >
-            cat .circleci/Dockerrun.aws.json.template |
-            sed "s|{{image}}|<< parameters.docker-image >>|" >
-            Dockerrun.aws.json
-      # For verification / debug pruposes
-      - run: cat Dockerrun.aws.json
-      - run:
-          name: Zip Elastic Beanstalk config
-          command: zip eb.zip Dockerrun.aws.json
-      - run:
-          name: Upload Elastic Beanstalk config file to s3://downloads.metabase.com/<< parameters.path >>
-          command: aws s3 cp eb.zip "s3://downloads.metabase.com/<< parameters.path >>"
-
-  trigger-eb-redeployment:
-    parameters:
-      region:
-        type: string
-        default: us-east-1
-      application:
-        type: string
-      env:
-        type: string
-      version:
-        type: string
-    executor: build
-    steps:
-      - run:
-          name: Generate Elastic Beanstalk config file
-          command: >
-            mkdir .elasticbeanstalk;
-            echo 'global:' > .elasticbeanstalk/config.yml;
-            echo "  application_name: << parameters.application >>" >> .elasticbeanstalk/config.yml;
-            echo "  default_region: << parameters.region >>" >> .elasticbeanstalk/config.yml;
-      - run:
-          name: Redeploy version << parameters.version >> to << parameters.env >>
-          command: eb deploy --verbose --nohang --version "<< parameters.version >>" "<< parameters.env >>"
-
-
-  todo:
-    executor: default
-    steps:
-      - run: echo "TODO"
+      - run: ./bin/deploy-webhook $DEPLOY_WEBHOOK
 
 
 ########################################################################################################################
@@ -851,6 +616,19 @@ workflows:
           requires:
             - be-deps
           lein-command: test
+
+      - lein:
+          name: be-tests-ee
+          requires:
+            - be-deps
+          lein-command: with-profile +ee test
+
+      - lein:
+          name: be-tests-java-11-ee
+          requires:
+            - be-deps
+          e: java-11
+          lein-command: with-profile +ee test
 
       - lein:
           name: be-tests-java-11
@@ -890,25 +668,25 @@ workflows:
       - test-driver:
           name: be-tests-bigquery
           requires:
-            - be-tests
+            - be-tests-ee
           driver: bigquery
 
       - test-driver:
           name: be-tests-druid
           requires:
-            - be-tests
+            - be-tests-ee
           driver: druid
 
       - test-driver:
           name: be-tests-googleanalytics
           requires:
-            - be-tests
+            - be-tests-ee
           driver: googleanalytics
 
       - test-driver:
           name: be-tests-mongo
           requires:
-            - be-tests
+            - be-tests-ee
           e: mongo
           driver: mongo
 
@@ -916,7 +694,7 @@ workflows:
           name: be-tests-mysql
           description: "(MySQL 5.7)"
           requires:
-            - be-tests
+            - be-tests-ee
           e:
             name: mysql-5-7
             encryption-key: Orw0AAyzkO/kPTLJRxiyKoBHXa/d6ZcO+p+gpZO/wSQ=
@@ -926,7 +704,7 @@ workflows:
           name: be-tests-mysql-latest
           description: "(MySQL latest)"
           requires:
-            - be-tests
+            - be-tests-ee
           e:
             name: mysql-latest
           driver: mysql
@@ -935,7 +713,7 @@ workflows:
           name: be-tests-mariadb
           description: "(MariaDB 10.2)"
           requires:
-            - be-tests
+            - be-tests-ee
           e:
             name: mariadb-10-2
           driver: mysql
@@ -944,7 +722,7 @@ workflows:
           name: be-tests-mariadb-latest
           description: "(MariaDB latest)"
           requires:
-            - be-tests
+            - be-tests-ee
           e:
             name: mariadb-latest
           driver: mysql
@@ -952,7 +730,7 @@ workflows:
       - test-driver:
           name: be-tests-oracle
           requires:
-            - be-tests
+            - be-tests-ee
           before-steps:
             - fetch-jdbc-driver:
                 source: ORACLE_JDBC_JAR
@@ -963,7 +741,7 @@ workflows:
           name: be-tests-postgres
           description: "(9.6)"
           requires:
-            - be-tests
+            - be-tests-ee
           e: postgres-9-6
           driver: postgres
 
@@ -971,14 +749,14 @@ workflows:
           name: be-tests-postgres-latest
           description: "(Latest)"
           requires:
-            - be-tests
+            - be-tests-ee
           e: postgres-latest
           driver: postgres
 
       - test-driver:
           name: be-tests-presto
           requires:
-            - be-tests
+            - be-tests-ee
           e: presto
           before-steps:
             - wait-for-port:
@@ -988,21 +766,21 @@ workflows:
       - test-driver:
           name: be-tests-redshift
           requires:
-            - be-tests
+            - be-tests-ee
           driver: redshift
           timeout: 10m
 
       - test-driver:
           name: be-tests-snowflake
           requires:
-            - be-deps
+            - be-tests-ee
           driver: snowflake
           timeout: 15m
 
       - test-driver:
           name: be-tests-sparksql
           requires:
-            - be-tests
+            - be-tests-ee
           e: sparksql
           before-steps:
             - wait-for-port:
@@ -1012,20 +790,20 @@ workflows:
       - test-driver:
           name: be-tests-sqlite
           requires:
-            - be-tests
+            - be-tests-ee
           driver: sqlite
 
       - test-driver:
           name: be-tests-sqlserver
           requires:
-            - be-tests
+            - be-tests-ee
           e: sqlserver
           driver: sqlserver
 
       - test-driver:
           name: be-tests-vertica
           requires:
-            - be-tests
+            - be-tests-ee
           e: vertica
           before-steps:
             - fetch-jdbc-driver:
@@ -1037,14 +815,14 @@ workflows:
       - test-migrate-from-h2:
           name: be-tests-migrate-to-postgres
           requires:
-            - be-tests
+            - be-tests-ee
           e: postgres-9-6
           db-type: postgres
 
       - test-migrate-from-h2:
           name: be-tests-migrate-to-mysql
           requires:
-            - be-tests
+            - be-tests-ee
           e: mysql-5-7
           db-type: mysql
 
@@ -1087,7 +865,7 @@ workflows:
             - build-uberjar
             - fe-deps
 
-      - start-release-build:
+      - deploy-master:
           requires:
             - yaml-linter
             - verify-i18n-files
@@ -1100,6 +878,9 @@ workflows:
 
             - be-tests
             - be-tests-java-11
+
+            - be-tests-ee
+            - be-tests-java-11-ee
 
             - be-tests-bigquery
             - be-tests-druid
@@ -1135,210 +916,4 @@ workflows:
             - fe-tests-unit
           filters:
             branches:
-              only:
-                - enterprise-release-*
-                - improved-bin-version-file
-
-      - build-release-version-file:
-          requires:
-            - start-release-build
-
-      - build-release-frontend:
-          requires:
-            - start-release-build
-
-      - build-release-translations:
-          requires:
-            - start-release-build
-
-      - install-metabase-locally:
-          requires:
-            - start-release-build
-
-      - install-driver-locally:
-          name: install-google-driver-locally
-          requires:
-            - install-metabase-locally
-          driver: google
-
-      - build-driver:
-          name: build-bigquery-driver
-          requires:
-            - install-metabase-locally
-            - install-google-driver-locally
-          driver: bigquery
-
-      - build-driver:
-          name: build-druid-driver
-          requires:
-            - install-metabase-locally
-          driver: druid
-
-      - build-driver:
-          name: build-google-driver
-          requires:
-            - install-metabase-locally
-          driver: google
-
-      - build-driver:
-          name: build-googleanalytics-driver
-          requires:
-            - install-metabase-locally
-            - install-google-driver-locally
-          driver: googleanalytics
-
-      - build-driver:
-          name: build-mongo-driver
-          requires:
-            - install-metabase-locally
-          driver: mongo
-
-      - build-driver:
-          name: build-oracle-driver
-          requires:
-            - install-metabase-locally
-          driver: oracle
-
-      - build-driver:
-          name: build-presto-driver
-          requires:
-            - install-metabase-locally
-          driver: presto
-
-      - build-driver:
-          name: build-redshift-driver
-          requires:
-            - install-metabase-locally
-          driver: redshift
-
-      - build-driver:
-          name: build-snowflake-driver
-          requires:
-            - install-metabase-locally
-          driver: snowflake
-
-      - build-driver:
-          name: build-sparksql-driver
-          requires:
-            - install-metabase-locally
-          driver: sparksql
-
-      - build-driver:
-          name: build-sqlite-driver
-          requires:
-            - install-metabase-locally
-          driver: sqlite
-
-      - build-driver:
-          name: build-sqlserver-driver
-          requires:
-            - install-metabase-locally
-          driver: sqlserver
-
-      - build-driver:
-          name: build-vertica-driver
-          requires:
-            - install-metabase-locally
-          driver: vertica
-
-      - build-release-uberjar:
-          requires:
-            - build-release-version-file
-            - build-release-frontend
-            - build-release-translations
-            - build-bigquery-driver
-            - build-druid-driver
-            - build-google-driver
-            - build-googleanalytics-driver
-            - build-mongo-driver
-            - build-oracle-driver
-            - build-presto-driver
-            - build-redshift-driver
-            - build-snowflake-driver
-            - build-sparksql-driver
-            - build-sqlite-driver
-            - build-sqlserver-driver
-            - build-vertica-driver
-
-##### release steps for tagged *or* untagged releases (any `enterprise-release` commit)
-
-      - build-and-publish-docker-image:
-          requires:
-            - build-release-uberjar
-          tag: "metabase/metabase-enterprise:HEAD"
-
-      - publish-elastic-beanstalk-config:
-          name: publish-eb-head-config
-          requires:
-            - build-and-publish-docker-image
-          docker-image: "metabase/metabase-enterprise:HEAD"
-          path: "enterprise/HEAD/metabase-aws-eb.zip"
-
-      - upload-uberjar:
-          name: upload-head-uberjar
-          requires:
-            - build-release-uberjar
-          path: "enterprise/HEAD/metabase.jar"
-
-      - trigger-eb-redeployment:
-          requires:
-            - build-and-publish-docker-image
-          application: '$ELASTICBEANSTALK_APPLICATION_NAME'
-          env: '$ELASTICBEANSTALK_ENV'
-          version: HEAD
-
-##### tagged-release-only steps
-
-      - publish-release:
-          type: approval
-          requires:
-            - build-release-uberjar
-          <<: *only-run-job-for-release-tags
-
-      - push-docker-tag-alias:
-          name: push-docker-release-tag
-          requires:
-            - publish-release
-            - build-and-publish-docker-image
-          original-tag: "metabase/metabase-enterprise:HEAD"
-          new-tag: "metabase/metabase-enterprise:$(.circleci/version-with-v.sh)"
-          <<: *only-run-job-for-release-tags
-
-      - push-docker-tag-alias:
-          name: push-docker-latest-tag
-          requires:
-            - publish-release
-            - build-and-publish-docker-image
-          original-tag: "metabase/metabase-enterprise:HEAD"
-          new-tag: "metabase/metabase-enterprise:latest"
-          <<: *only-run-job-for-release-tags
-
-      - publish-elastic-beanstalk-config:
-          name: publish-eb-release-config
-          requires:
-            - push-docker-release-tag
-          docker-image: "metabase/metabase-enterprise:$(.circleci/version-with-v.sh)"
-          path: "enterprise/$(.circleci/version-with-v.sh)/metabase-aws-eb.zip"
-          <<: *only-run-job-for-release-tags
-
-      - publish-elastic-beanstalk-config:
-          name: publish-eb-latest-config
-          requires:
-            - push-docker-latest-tag
-          docker-image: "metabase/metabase-enterprise:latest"
-          path: "enterprise/latest/metabase-aws-eb.zip"
-          <<: *only-run-job-for-release-tags
-
-      - upload-uberjar:
-          name: upload-release-uberjar
-          requires:
-            - publish-release
-          path: "enterprise/$(.circleci/version-with-v.sh)/metabase.jar"
-          <<: *only-run-job-for-release-tags
-
-      - upload-uberjar:
-          name: upload-latest-uberjar
-          requires:
-            - publish-release
-          path: "enterprise/latest/metabase.jar"
-          <<: *only-run-job-for-release-tags
+              only: master

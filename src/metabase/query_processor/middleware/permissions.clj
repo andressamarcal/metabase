@@ -40,7 +40,7 @@
   [{:keys [gtap-perms], :as outer-query}]
   ;; *If* we're using a GTAP, the User is obviously allowed to run its source query. So subtract the set of
   ;; perms required to run the source query. (See further discussion in
-  ;; metabase.mt.query-processor.middleware.row-level-restrictions)
+  ;; metabase-enterprise.sandbox.query-processor.middleware.row-level-restrictions)
   (let [required-perms (set/difference
                         (query-perms/perms-set outer-query, :throw-exceptions? true, :already-preprocessed? true)
                         gtap-perms)]

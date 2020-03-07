@@ -18,7 +18,7 @@
              [pulse :as pulse :refer [Pulse]]
              [pulse-channel :refer [channel-types PulseChannel]]
              [pulse-channel-recipient :refer [PulseChannelRecipient]]]
-            [metabase.mt.api.util :as mau]
+            [metabase.plugins.classloader :as classloader]
             [metabase.pulse.render :as render]
             [metabase.util
              [i18n :refer [tru]]
@@ -29,6 +29,8 @@
              [db :as db]
              [hydrate :refer [hydrate]]])
   (:import java.io.ByteArrayInputStream))
+
+(u/ignore-exceptions (classloader/require '[metabase-enterprise.sandbox.api.util :as ee.sandbox.api.u]))
 
 (api/defendpoint GET "/"
   "Fetch all Pulses"
@@ -124,11 +126,14 @@
                        (assoc-in [:slack :configured] (slack/slack-configured?))
                        (assoc-in [:email :configured] (email/email-configured?)))]
     {:channels (cond
-                 (mau/segmented-user?)
+                 (when-let [segmented-user? (some-> (resolve 'ee.sandbox.api.u/segmented-user?) var-get)]
+                   (segmented-user?))
                  (dissoc chan-types :slack)
+
                  ;; no Slack integration, so we are g2g
                  (not (get-in chan-types [:slack :configured]))
                  chan-types
+
                  ;; if we have Slack enabled build a dynamic list of channels/users
                  :else
                  (try

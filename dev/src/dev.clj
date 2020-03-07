@@ -116,7 +116,7 @@
 (defn run-audit-app-query
   "Run an audit app (internal) query.
 
-    (run-audit-app-query #'metabase.audit.pages.users/dashboard-views :limit 1)"
+    (run-audit-app-query #'metabase-enterprise.audit.pages.users/dashboard-views :limit 1)"
   [varr & {:as additional-query-params}]
   (mt/with-test-user :crowberto
     (metastore-test/with-metastore-token-features #{:audit-app}

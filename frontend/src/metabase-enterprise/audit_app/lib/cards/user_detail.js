@@ -6,7 +6,7 @@ export const table = (userId: number) => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.user-detail/table",
+      fn: "metabase-enterprise.audit.pages.user-detail/table",
       args: [userId],
     },
   },
@@ -18,7 +18,7 @@ export const mostViewedDashboards = (userId: number) => ({
     display: "row",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.user-detail/most-viewed-dashboards",
+      fn: "metabase-enterprise.audit.pages.user-detail/most-viewed-dashboards",
       args: [userId],
     },
     visualization_settings: {
@@ -34,7 +34,7 @@ export const mostViewedQuestions = (userId: number) => ({
     display: "row",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.user-detail/most-viewed-questions",
+      fn: "metabase-enterprise.audit.pages.user-detail/most-viewed-questions",
       args: [userId],
     },
     visualization_settings: {
@@ -50,7 +50,7 @@ export const objectViewsByTime = (userId: number) => ({
     display: "line",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.user-detail/object-views-by-time",
+      fn: "metabase-enterprise.audit.pages.user-detail/object-views-by-time",
       args: [userId, "card", "day"],
     },
   },
@@ -60,7 +60,7 @@ export const objectViewsByTime = (userId: number) => ({
       display: "line",
       dataset_query: {
         type: "internal",
-        fn: "metabase.audit.pages.user-detail/object-views-by-time",
+        fn: "metabase-enterprise.audit.pages.user-detail/object-views-by-time",
         args: [userId, "dashboard", "day"],
       },
     },
@@ -73,7 +73,7 @@ export const queryViews = (userId: number) => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.user-detail/query-views",
+      fn: "metabase-enterprise.audit.pages.user-detail/query-views",
       args: [userId],
     },
     visualization_settings: {
@@ -95,7 +95,7 @@ export const dashboardViews = (userId: number) => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.user-detail/dashboard-views",
+      fn: "metabase-enterprise.audit.pages.user-detail/dashboard-views",
       args: [userId],
     },
     visualization_settings: {
@@ -114,7 +114,7 @@ export const createdDashboards = (userId: number) => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.user-detail/created-dashboards",
+      fn: "metabase-enterprise.audit.pages.user-detail/created-dashboards",
       args: [userId],
     },
   },
@@ -126,7 +126,7 @@ export const createdQuestions = (userId: number) => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.user-detail/created-questions",
+      fn: "metabase-enterprise.audit.pages.user-detail/created-questions",
       args: [userId],
     },
   },
@@ -138,7 +138,7 @@ export const downloads = (userId: number) => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.user-detail/downloads",
+      fn: "metabase-enterprise.audit.pages.user-detail/downloads",
       args: [userId],
     },
   },

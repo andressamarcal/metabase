@@ -41,8 +41,11 @@
             [metabase.middleware
              [auth :as middleware.auth]
              [exceptions :as middleware.exceptions]]
-            [metabase.mt.api.routes :as mt-routes]
+            [metabase.plugins.classloader :as classloader]
+            [metabase.util :as u]
             [metabase.util.i18n :refer [deferred-tru]]))
+
+(u/ignore-exceptions (classloader/require '[metabase-enterprise.sandbox.api.routes :as ee.sandbox.routes]))
 
 (def ^:private +generic-exceptions
   "Wrap `routes` so any Exception thrown is just returned as a generic 400, to prevent details from leaking in public
@@ -63,7 +66,9 @@
   middleware.auth/enforce-authentication)
 
 (defroutes ^{:doc "Ring routes for API endpoints."} routes
-  mt-routes/mt-api-routes
+  (or (some-> (resolve 'ee.sandbox.routes/routes) var-get)
+      (fn [_ respond _]
+        (respond nil)))
   (context "/activity"             [] (+auth activity/routes))
   (context "/alert"                [] (+auth alert/routes))
   (context "/automagic-dashboards" [] (+auth magic/routes))

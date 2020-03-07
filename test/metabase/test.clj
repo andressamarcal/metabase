@@ -11,7 +11,7 @@
              [query-processor :as qp]
              [query-processor-test :as qp.test]]
             [metabase.driver.sql-jdbc.test-util :as sql-jdbc.tu]
-            [metabase.mt.test-util :as mt.tu]
+            [metabase.plugins.classloader :as classloader]
             [metabase.query-processor
              [context :as qp.context]
              [reducible :as qp.reducible]
@@ -80,9 +80,6 @@
 
  [initialize
   initialize-if-needed!]
-
- [mt.tu
-  with-gtaps]
 
  [qp
   process-query
@@ -171,6 +168,13 @@
  [tx.env
   set-test-drivers!
   with-test-drivers])
+
+;; ee-only stuff
+(try
+  (classloader/require '[metabase-enterprise.sandbox.test-util :as sandbox.tu])
+  (p/import-vars
+   [sandbox.tu with-gtaps])
+  (catch Throwable _))
 
 (defn do-with-clock [clock thunk]
   (let [clock (cond

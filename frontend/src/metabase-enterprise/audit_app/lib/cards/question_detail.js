@@ -6,7 +6,7 @@ export const viewsByTime = (questionId: number) => ({
     display: "line",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.question-detail/views-by-time",
+      fn: "metabase-enterprise.audit.pages.question-detail/views-by-time",
       args: [questionId, "day"], // FIXME: should this be automatic?
     },
   },
@@ -18,7 +18,7 @@ export const revisionHistory = (questionId: number) => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.question-detail/revision-history",
+      fn: "metabase-enterprise.audit.pages.question-detail/revision-history",
       args: [questionId],
     },
     visualization_settings: {
@@ -38,7 +38,7 @@ export const auditLog = (questionId: number) => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.question-detail/audit-log",
+      fn: "metabase-enterprise.audit.pages.question-detail/audit-log",
       args: [questionId],
     },
     visualization_settings: {
