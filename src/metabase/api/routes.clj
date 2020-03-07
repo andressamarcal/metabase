@@ -2,6 +2,9 @@
   (:require [compojure
              [core :refer [context defroutes]]
              [route :as route]]
+            [metabase
+             [config :as config]
+             [util :as u]]
             [metabase.api
              [activity :as activity]
              [alert :as alert]
@@ -37,12 +40,10 @@
              [transform :as transform]
              [user :as user]
              [util :as util]]
-            [metabase.config :as config]
             [metabase.middleware
              [auth :as middleware.auth]
              [exceptions :as middleware.exceptions]]
             [metabase.plugins.classloader :as classloader]
-            [metabase.util :as u]
             [metabase.util.i18n :refer [deferred-tru]]))
 
 (u/ignore-exceptions (classloader/require '[metabase-enterprise.sandbox.api.routes :as ee.sandbox.routes]))

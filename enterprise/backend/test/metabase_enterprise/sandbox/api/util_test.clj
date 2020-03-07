@@ -1,19 +1,21 @@
 (ns metabase-enterprise.sandbox.api.util-test
-  (:require [expectations :refer [expect]]
+  (:require [clojure.test :refer :all]
             [metabase-enterprise.sandbox.api.util :as mt.api.u]
             [metabase-enterprise.sandbox.test-util :as mt.tu]
+            [metabase.test :as mt]
             [metabase.test.data.users :as test.users]))
 
-;; admins should not be classified as segmented users -- enterprise #147
 (defn- has-segmented-perms-when-segmented-db-exists? [user-kw]
-  (mt.tu/with-copy-of-test-db [db]
-    (mt.tu/add-segmented-perms-for-venues-for-all-users-group! db)
+  (mt/with-temp-copy-of-db
+    (mt.tu/add-segmented-perms-for-venues-for-all-users-group! (mt/db))
     (test.users/with-test-user user-kw
       (mt.api.u/segmented-user?))))
 
-(expect
-  (has-segmented-perms-when-segmented-db-exists? :rasta))
-
-(expect
-  false
-  (has-segmented-perms-when-segmented-db-exists? :crowberto))
+(deftest never-segment-admins-test
+  (testing "Admins should not be classified as segmented users -- enterprise #147"
+    (testing "Non-admin"
+      (is (= true
+             (has-segmented-perms-when-segmented-db-exists? :rasta))))
+    (testing "admin"
+      (is (=  false
+              (has-segmented-perms-when-segmented-db-exists? :crowberto))))))

@@ -1,13 +1,13 @@
 (ns metabase-enterprise.sandbox.test-util
   "Shared test utilities for multi-tenant tests."
-  (:require [metabase.models
+  (:require [metabase-enterprise.sandbox.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
+            [metabase.models
              [card :refer [Card]]
              [permissions :as perms]
              [permissions-group :as perms-group :refer [PermissionsGroup]]
              [permissions-group-membership :refer [PermissionsGroupMembership]]
              [table :refer [Table]]
              [user :refer [User]]]
-            [metabase-enterprise.sandbox.models.group-table-access-policy :refer [GroupTableAccessPolicy]]
             [metabase.test
              [data :as data]
              [util :as tu]]
@@ -105,14 +105,6 @@
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                            DEPRECATED HELPER MACROS                                            |
 ;;; +----------------------------------------------------------------------------------------------------------------+
-
-(defmacro ^:deprecated with-copy-of-test-db
-  "DEPRECATED -- There is a new `with-temp-copy-of-db` macro in the test utils that does the same thing. This will be
-  removed in the near future."
-  [[db-binding] & body]
-  `(data/with-temp-copy-of-db
-     (let [~db-binding (data/db)]
-       ~@body)))
 
 (defn ^:deprecated add-segmented-perms-for-venues-for-all-users-group!
   "Removes the default full permissions for all users and adds segmented and read permissions

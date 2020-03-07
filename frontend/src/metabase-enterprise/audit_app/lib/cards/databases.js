@@ -6,7 +6,8 @@ export const totalQueryExecutionsByDb = () => ({
     display: "bar",
     dataset_query: {
       type: "internal",
-      fn: "metabase-enterprise.audit.pages.databases/total-query-executions-by-db",
+      fn:
+        "metabase-enterprise.audit.pages.databases/total-query-executions-by-db",
       args: [],
     },
     visualization_settings: {
@@ -27,7 +28,8 @@ export const queryExecutionsPerDbPerDay = () => ({
     display: "line",
     dataset_query: {
       type: "internal",
-      fn: "metabase-enterprise.audit.pages.databases/query-executions-per-db-per-day",
+      fn:
+        "metabase-enterprise.audit.pages.databases/query-executions-per-db-per-day",
       args: [],
     },
     visualization_settings: {

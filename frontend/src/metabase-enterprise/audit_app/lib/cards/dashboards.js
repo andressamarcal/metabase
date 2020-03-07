@@ -34,7 +34,8 @@ export const mostPopularAndSpeed = () => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase-enterprise.audit.pages.dashboards/most-popular-with-avg-speed",
+      fn:
+        "metabase-enterprise.audit.pages.dashboards/most-popular-with-avg-speed",
       args: [],
     },
   },

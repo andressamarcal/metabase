@@ -1,13 +1,18 @@
 (ns metabase.query-processor
+  "Primary entrypoints to running Metabase (MBQL) queries.
 
-  "Preprocessor that does simple transformations to all incoming queries, simplifing the driver-specific
-  implementations."
+    (metabase.query-processor/process-query {:type :query, :database 1, :query {:source-table 2}})
+
+  Various REST API endpoints, such as `POST /api/dataset`, return the results of queries; calling one variations of
+  `process-userland-query` (see documentation below)."
   (:require [clojure.tools.logging :as log]
             [metabase
              [config :as config]
-             [driver :as driver]]
+             [driver :as driver]
+             [util :as u]]
             [metabase.driver.util :as driver.u]
             [metabase.mbql.schema :as mbql.s]
+            [metabase.plugins.classloader :as classloader]
             [metabase.query-processor
              [context :as context]
              [error-type :as error-type]
@@ -51,8 +56,6 @@
              [store :as store]
              [validate :as validate]
              [wrap-value-literals :as wrap-value-literals]]
-            [metabase.plugins.classloader :as classloader]
-            [metabase.util :as u]
             [metabase.util.i18n :refer [tru]]
             [schema.core :as s]))
 

@@ -27,7 +27,8 @@ export const activeUsersAndQueriesByDay = () => ({
     display: "line",
     dataset_query: {
       type: "internal",
-      fn: "metabase-enterprise.audit.pages.users/active-users-and-queries-by-day",
+      fn:
+        "metabase-enterprise.audit.pages.users/active-users-and-queries-by-day",
       args: [],
     },
     visualization_settings: {

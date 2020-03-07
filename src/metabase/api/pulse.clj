@@ -30,7 +30,7 @@
              [hydrate :refer [hydrate]]])
   (:import java.io.ByteArrayInputStream))
 
-(u/ignore-exceptions (classloader/require '[metabase-enterprise.sandbox.api.util :as ee.sandbox.api.u]))
+(u/ignore-exceptions (classloader/require 'metabase-enterprise.sandbox.api.util))
 
 (api/defendpoint GET "/"
   "Fetch all Pulses"
@@ -126,7 +126,7 @@
                        (assoc-in [:slack :configured] (slack/slack-configured?))
                        (assoc-in [:email :configured] (email/email-configured?)))]
     {:channels (cond
-                 (when-let [segmented-user? (some-> (resolve 'ee.sandbox.api.u/segmented-user?) var-get)]
+                 (when-let [segmented-user? (resolve 'metabase-enterprise.sandbox.api.util/segmented-user?)]
                    (segmented-user?))
                  (dissoc chan-types :slack)
 
