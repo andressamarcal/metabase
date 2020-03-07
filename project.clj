@@ -171,8 +171,8 @@
 
   :profiles
   {:ee
-   {:source-paths ["backend/ee/src"]
-    :test-paths   ["backend/ee/test"]}
+   {:source-paths ["enterprise/backend/src"]
+    :test-paths   ["enterprise/backend/test"]}
 
    :dev
    {:source-paths ["dev/src" "local/src"]
