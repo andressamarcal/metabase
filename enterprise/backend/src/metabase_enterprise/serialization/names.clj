@@ -1,4 +1,4 @@
-(ns metabase.serialization.names
+(ns metabase-enterprise.serialization.names
   "Consistent instance-independent naming scheme that replaces IDs with human-readable paths."
   (:require [clojure.string :as str]
             [metabase.mbql.schema :as mbql.s]

@@ -1,17 +1,11 @@
-(ns metabase.serialization.names-test
+(ns metabase-enterprise.serialization.names-test
   (:require [expectations :refer :all]
-            [metabase.models
-             [card :refer [Card]]
-             [collection :refer [Collection]]
-             [dashboard :refer [Dashboard]]
-             [database :refer [Database]]
-             [field :refer [Field]]
-             [metric :refer [Metric]]
-             [segment :refer [Segment]]
-             [table :refer [Table]]]
-            [metabase.serialization.names :as names :refer :all]
-            [metabase.test.serialization :as ts]
-            [metabase.util :as u]))
+            [metabase
+             [models :refer [Card Collection Dashboard Database Field Metric Segment Table]]
+             [util :as u]]
+            [metabase-enterprise.serialization
+             [names :as names :refer :all]
+             [test-util :as ts]]))
 
 (expect
   (= (safe-name {:name "foo"}) "foo"))

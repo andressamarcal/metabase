@@ -1,7 +1,10 @@
-(ns metabase.serialization.dump
+(ns metabase-enterprise.serialization.dump
   "Serialize entities into a directory structure of YAMLs."
   (:require [clojure.java.io :as io]
             [clojure.tools.logging :as log]
+            [metabase-enterprise.serialization
+             [names :refer [fully-qualified-name name-for-logging safe-name]]
+             [serialize :as serialize :refer [serialize]]]
             [metabase.config :as config]
             [metabase.models
              [dashboard :refer [Dashboard]]
@@ -15,9 +18,6 @@
              [setting :as setting]
              [table :refer [Table]]
              [user :refer [User]]]
-            [metabase.serialization
-             [names :refer [fully-qualified-name name-for-logging safe-name]]
-             [serialize :as serialize :refer [serialize]]]
             [metabase.util
              [date-2 :as u.date]
              [i18n :as i18n :refer [trs]]]

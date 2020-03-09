@@ -1,7 +1,8 @@
-(ns metabase.serialization.serialize
+(ns metabase-enterprise.serialization.serialize
   "Transform entity into a form suitable for serialization."
   (:require [clojure.string :as str]
             [medley.core :as m]
+            [metabase-enterprise.serialization.names :refer [fully-qualified-name]]
             [metabase.mbql
              [normalize :as mbql.normalize]
              [schema :as mbql.s]
@@ -22,7 +23,6 @@
              [segment :refer [Segment]]
              [table :refer [Table]]
              [user :refer [User]]]
-            [metabase.serialization.names :refer [fully-qualified-name]]
             [metabase.util :as u]
             [toucan.db :as db]))
 

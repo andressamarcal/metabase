@@ -1,30 +1,16 @@
-(ns metabase.serialization.load-test
+(ns metabase-enterprise.serialization.load-test
   (:refer-clojure :exclude [load])
   (:require [clojure.data :as diff]
             [clojure.java.io :as io]
             [expectations :refer [expect]]
-            [metabase.cmd.serialization :refer [dump load]]
-            [metabase.models
-             [card :refer [Card]]
-             [collection :refer [Collection]]
-             [dashboard :refer [Dashboard]]
-             [dashboard-card :refer [DashboardCard]]
-             [dashboard-card-series :refer [DashboardCardSeries]]
-             [database :as database :refer [Database]]
-             [dependency :refer [Dependency]]
-             [dimension :refer [Dimension]]
-             [field :refer [Field]]
-             [field-values :refer [FieldValues]]
-             [metric :refer [Metric]]
-             [pulse :refer [Pulse]]
-             [pulse-card :refer [PulseCard]]
-             [pulse-channel :refer [PulseChannel]]
-             [segment :refer [Segment]]
-             [table :refer [Table]]
-             [user :refer [User]]]
+            [metabase
+             [models :refer [Card Collection Dashboard DashboardCard DashboardCardSeries Database Dependency Dimension
+                             Field FieldValues Metric Pulse PulseCard PulseChannel Segment Table User]]
+             [util :as u]]
+            [metabase-enterprise.serialization
+             [cmd :refer [dump load]]
+             [test-util :as ts]]
             [metabase.test.data.users :as test-users]
-            [metabase.test.serialization :as ts]
-            [metabase.util :as u]
             [toucan.db :as db])
   (:import org.apache.commons.io.FileUtils))
 
@@ -59,18 +45,18 @@
       (delete-directory! dump-dir))
     (let [fingerprint (ts/with-world
                         (dump dump-dir (:email (test-users/fetch-user :crowberto)))
-                        [[Database (Database db-id)]
-                         [Table (Table table-id)]
-                         [Field (Field numeric-field-id)]
-                         [Field (Field category-field-id)]
-                         [Collection (Collection collection-id)]
-                         [Collection (Collection collection-id-nested)]
-                         [Metric (Metric metric-id)]
-                         [Segment (Segment segment-id)]
-                         [Dashboard (Dashboard dashboard-id)]
-                         [Card (Card card-id)]
-                         [Card (Card card-id-root)]
-                         [Card (Card card-id-nested)]
+                        [[Database      (Database db-id)]
+                         [Table         (Table table-id)]
+                         [Field         (Field numeric-field-id)]
+                         [Field         (Field category-field-id)]
+                         [Collection    (Collection collection-id)]
+                         [Collection    (Collection collection-id-nested)]
+                         [Metric        (Metric metric-id)]
+                         [Segment       (Segment segment-id)]
+                         [Dashboard     (Dashboard dashboard-id)]
+                         [Card          (Card card-id)]
+                         [Card          (Card card-id-root)]
+                         [Card          (Card card-id-nested)]
                          [DashboardCard (DashboardCard dashcard-id)]])]
       (with-world-cleanup
         (load dump-dir {:on-error :abort :mode :skip})

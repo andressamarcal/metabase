@@ -1,9 +1,12 @@
-(ns metabase.cmd.serialization
+(ns metabase-enterprise.serialization.cmd
   (:refer-clojure :exclude [load])
   (:require [clojure.tools.logging :as log]
             [metabase
              [db :as mdb]
              [util :as u]]
+            [metabase-enterprise.serialization
+             [dump :as dump]
+             [load :as load]]
             [metabase.models
              [card :refer [Card]]
              [collection :refer [Collection]]
@@ -15,9 +18,6 @@
              [segment :refer [Segment]]
              [table :refer [Table]]
              [user :refer [User]]]
-            [metabase.serialization
-             [dump :as dump]
-             [load :as load]]
             [metabase.util
              [i18n :refer [deferred-trs trs]]
              [schema :as su]]

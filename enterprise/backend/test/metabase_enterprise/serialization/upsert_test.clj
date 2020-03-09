@@ -1,23 +1,14 @@
-(ns metabase.serialization.upsert-test
+(ns metabase-enterprise.serialization.upsert-test
   (:require [clojure.data :as diff]
             [expectations :refer :all]
-            [metabase.models
-             [card :refer [Card]]
-             [collection :refer [Collection]]
-             [dashboard :refer [Dashboard]]
-             [database :refer [Database]]
-             [field :refer [Field]]
-             [metric :refer [Metric]]
-             [pulse :refer [Pulse]]
-             [segment :refer [Segment]]
-             [table :refer [Table]]
-             [user :refer [User]]]
-            [metabase.serialization.upsert :as upsert :refer :all]
+            [metabase
+             [models :refer [Card Collection Dashboard Database Field Metric Pulse Segment Table User]]
+             [util :as u]]
+            [metabase-enterprise.serialization.upsert :as upsert :refer :all]
             [metabase.test
              [data :as data]
              [util :as tu]]
             [metabase.test.data.users :as users]
-            [metabase.util :as u]
             [toucan.db :as db]
             [toucan.util.test :as tt]))
 

@@ -1,17 +1,10 @@
-(ns metabase.serialization.serialize-test
+(ns metabase-enterprise.serialization.serialize-test
   (:require [clojure.string :as str]
             [expectations :refer :all]
-            [metabase.models
-             [card :refer [Card]]
-             [collection :refer [Collection]]
-             [dashboard :refer [Dashboard]]
-             [database :refer [Database]]
-             [field :refer [Field]]
-             [metric :refer [Metric]]
-             [segment :refer [Segment]]
-             [table :refer [Table]]]
-            [metabase.serialization.serialize :as serialize :refer :all]
-            [metabase.test.serialization :as ts]))
+            [metabase-enterprise.serialization
+             [serialize :as serialize :refer :all]
+             [test-util :as ts]]
+            [metabase.models :refer [Card Collection Dashboard Database Field Metric Segment Table]]))
 
 (defn- all-ids-are-fully-qualified-names?
   [m]

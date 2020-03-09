@@ -1,16 +1,7 @@
-(ns metabase.test.serialization
-  (:require [metabase.models
-             [card :refer [Card]]
-             [collection :refer [Collection]]
-             [dashboard :refer [Dashboard]]
-             [dashboard-card :refer [DashboardCard]]
-             [dashboard-card-series :refer [DashboardCardSeries]]
-             [database :refer [Database]]
-             [field :refer [Field]]
-             [metric :refer [Metric]]
-             [segment :refer [Segment]]
-             [table :refer [Table]]]
-            [metabase.serialization.names :as names]
+(ns metabase-enterprise.serialization.test-util
+  (:require [metabase-enterprise.serialization.names :as names]
+            [metabase.models :refer [Card Collection Dashboard DashboardCard DashboardCardSeries Database Field Metric
+                                     Segment Table]]
             [metabase.test.data :as data]
             [toucan.util.test :as tt]))
 

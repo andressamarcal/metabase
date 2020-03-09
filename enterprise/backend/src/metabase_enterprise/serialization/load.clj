@@ -1,5 +1,5 @@
-(ns metabase.serialization.load
-  "Load entities serialized by `metabase.serialization.dump`."
+(ns metabase-enterprise.serialization.load
+  "Load entities serialized by `metabase-enterprise.serialization.dump`."
   (:refer-clojure :exclude [load])
   (:require [clojure.java.io :as io]
             [clojure.string :as str]
@@ -7,6 +7,9 @@
             [metabase
              [config :as config]
              [util :as u]]
+            [metabase-enterprise.serialization
+             [names :refer [fully-qualified-name->context]]
+             [upsert :refer [maybe-upsert-many!]]]
             [metabase.mbql
              [normalize :as mbql.normalize]
              [util :as mbql.util]]
@@ -30,9 +33,6 @@
              [table :refer [Table]]
              [user :refer [User]]]
             [metabase.query-processor.util :as qp.util]
-            [metabase.serialization
-             [names :refer [fully-qualified-name->context]]
-             [upsert :refer [maybe-upsert-many!]]]
             [metabase.util
              [date-2 :as u.date]
              [i18n :refer [trs]]]

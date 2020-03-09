@@ -1,9 +1,10 @@
-(ns metabase.serialization.upsert
+(ns metabase-enterprise.serialization.upsert
   "Upsert-or-skip functionality for our models."
   (:require [cheshire.core :as json]
             [clojure.data :as diff]
             [clojure.tools.logging :as log]
             [medley.core :as m]
+            [metabase-enterprise.serialization.names :refer [name-for-logging]]
             [metabase.models
              [card :refer [Card]]
              [collection :refer [Collection]]
@@ -23,7 +24,6 @@
              [setting :as setting :refer [Setting]]
              [table :refer [Table]]
              [user :refer [User]]]
-            [metabase.serialization.names :refer [name-for-logging]]
             [metabase.util :as u]
             [metabase.util.i18n :as i18n :refer [trs]]
             [toucan

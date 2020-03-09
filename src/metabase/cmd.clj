@@ -23,7 +23,8 @@
              [db :as mdb]
              [util :as u]]
             [metabase.plugins.classloader :as classloader]
-            [metabase.query-processor.util :as qp.util]))
+            [metabase.query-processor.util :as qp.util]
+            [metabase.util.i18n :refer [trs]]))
 
 (defn ^:command migrate
   "Run database migrations. Valid options for `direction` are `up`, `force`, `down-one`, `print`, or `release-locks`."
@@ -117,24 +118,33 @@
         (for [[k v] (partition 2 args)]
           [(qp.util/normalize-token (subs k 2)) v])))
 
+(defn- resolve-enterprise-command [symb]
+  (try
+    (classloader/require (symbol (namespace symb)))
+    (resolve symb)
+    (catch Throwable e
+      (throw (ex-info (trs "The ''{0}'' command is only available in Metabase Enterprise Edition." (name symb))
+                      {:command symb}
+                      e)))))
+
 (defn ^:command load
   "Load serialized metabase instance as created by `dump` command from directory `path`.
 
    `mode` can be one of `:update` (default) or `:skip`."
   ([path] (load path :update))
+
   ([path & args]
-   (classloader/require 'metabase.cmd.serialization)
-   ((resolve 'metabase.cmd.serialization/load) path
-    (->> args
-         cmd-args->map
-         (m/map-vals qp.util/normalize-token)))))
+   (let [cmd (resolve-enterprise-command 'metabase-enterprise.serialization.cmd/load)]
+     (cmd path (->> args
+                    cmd-args->map
+                    (m/map-vals qp.util/normalize-token))))))
 
 (defn ^:command dump
   "Serialized metabase instance into directory `path`."
   [path & args]
-  (classloader/require 'metabase.cmd.serialization)
-  (let [{:keys [user]} (cmd-args->map args)]
-    ((resolve 'metabase.cmd.serialization/dump) path user)))
+  (let [cmd (resolve-enterprise-command 'metabase-enterprise.serialization.cmd/dump)
+        {:keys [user]} (cmd-args->map args)]
+    (cmd path user)))
 
 
 ;;; ------------------------------------------------ Running Commands ------------------------------------------------
