@@ -40,11 +40,11 @@
 
  (str "\n\n"
       (if ee-available?
-        (str (trs "Metabase Enterprise Edition extensions are PRESENT.")
+        (str (deferred-trs "Metabase Enterprise Edition extensions are PRESENT.")
              "\n\n"
-             (trs "Usage of Metabase Enterprise Edition features are subject to the Metabase Commercial License.")
-             (trs "See {0} for details." "https://www.metabase.com/license/commercial/"))
-        (trs "Metabase Enterprise Edition extensions are NOT PRESENT."))))
+             (deferred-trs "Usage of Metabase Enterprise Edition features are subject to the Metabase Commercial License.")
+             (deferred-trs "See {0} for details." "https://www.metabase.com/license/commercial/"))
+        (deferred-trs "Metabase Enterprise Edition extensions are NOT PRESENT."))))
 
 ;;; --------------------------------------------------- Lifecycle ----------------------------------------------------
 
