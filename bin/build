@@ -54,7 +54,7 @@ uberjar() {
 
 enterprise-uberjar() {
     echo "Running 'lein uberjar'..."
-    lein clean && lein with-profile +enterprise uberjar
+    lein clean && lein with-profile +ee uberjar
 }
 
 all() {

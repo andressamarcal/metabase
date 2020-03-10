@@ -261,15 +261,15 @@ jobs:
           paths:
             - .git
       # The basic idea here is to generate a file with checksums for all the backend source files, and save it as
-      # `./backend-checksums.txt`. Then we'll use the checksum of that files for uberjar caching; thus we can reuse
+      # `./backend-checksums.v2.txt`. Then we'll use the checksum of that files for uberjar caching; thus we can reuse
       # the same uberjar for integration tests across any build where the backend files are the same
       - run:
           name: Generate checksums of all backend source files to use as Uberjar cache key
           command: >
             for file in `find ./src ./backend ./enterprise/backend/src -type f -name '*.clj' | sort`;
-              do echo `md5sum $file` >> backend-checksums.txt;
+              do echo `md5sum $file` >> backend-checksums.v2.txt;
             done;
-            echo `md5sum project.clj` >> backend-checksums.txt
+            echo `md5sum project.clj` >> backend-checksums.v2.txt
       # Do the same for the frontend
       - run:
           name: Generate checksums of all frontend source files to use as Uberjar cache key
@@ -530,7 +530,7 @@ jobs:
       - restore-be-deps-cache
       - restore_cache:
           keys:
-            - uberjar-{{ checksum "./backend-checksums.txt" }}-{{ checksum "./frontend-checksums.txt" }}
+            - uberjar-{{ checksum "./backend-checksums.v2.txt" }}-{{ checksum "./frontend-checksums.txt" }}
       - run:
           name: Build uberjar if needed
           command: >
@@ -541,7 +541,7 @@ jobs:
       - store_artifacts:
           path: /home/circleci/metabase/metabase/target/uberjar/metabase.jar
       - save_cache:
-          key: uberjar-{{ checksum "./backend-checksums.txt" }}-{{ checksum "./frontend-checksums.txt" }}
+          key: uberjar-{{ checksum "./backend-checksums.v2.txt" }}-{{ checksum "./frontend-checksums.txt" }}
           paths:
             - /home/circleci/metabase/metabase/target/uberjar/metabase.jar
 
@@ -554,7 +554,7 @@ jobs:
           before-steps:
             - restore_cache:
                 keys:
-                  - uberjar-{{ checksum "./backend-checksums.txt" }}
+                  - uberjar-{{ checksum "./backend-checksums.v2.txt" }}
             - run:
                 name: Generate version file
                 command: ./bin/build version
@@ -568,7 +568,7 @@ jobs:
           before-steps:
             - restore_cache:
                 keys:
-                  - uberjar-{{ checksum "./backend-checksums.txt" }}
+                  - uberjar-{{ checksum "./backend-checksums.v2.txt" }}
             - run:
                 name: Generate version file
                 command: ./bin/build version
