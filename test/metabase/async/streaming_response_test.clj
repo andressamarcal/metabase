@@ -7,7 +7,8 @@
              [driver :as driver]
              [http-client :as test-client]
              [models :refer [Database]]
-             [test :as mt]]
+             [test :as mt]
+             [util :as u]]
             [metabase.async.streaming-response :as streaming-response]
             [metabase.async.streaming-response.thread-pool :as thread-pool]
             [metabase.query-processor.context :as context])
@@ -42,11 +43,26 @@
        (with-streaming-response-thread-pool
          ~@body))))
 
+(def ^:private start-execution-chan
+  "A core.async channel that will get a message when query execution starts."
+  (atom nil))
+
+(defmacro ^:private with-start-execution-chan [[chan-binding] & body]
+  `(mt/with-open-channels [chan# (a/promise-chan)]
+     (try
+       (reset! start-execution-chan chan#)
+       (let [~chan-binding chan#]
+         ~@body)
+       (finally
+         (reset! start-execution-chan nil)))))
+
 (defmethod driver/execute-reducible-query ::test-driver
   [_ {{{:keys [sleep]} :query} :native, database-id :database} context respond]
   {:pre [(integer? sleep) (integer? database-id)]}
   (let [futur (future
                 (try
+                  (when-let [chan @start-execution-chan]
+                    (a/>!! chan ::started))
                   (Thread/sleep sleep)
                   (respond {:cols [{:name "Sleep", :base_type :type/Integer}]} [[sleep]])
                   (catch InterruptedException e
@@ -92,11 +108,10 @@
             (is (= {:status "ok"} (test-client/client :get 200 "health")))
             (testing "Health endpoint should complete before the first round of queries completes"
               (is (> @remaining (inc (- num-requests thread-pool-size)))))
-            ;; the health endpoint might complete a little slowly because we are running so many threads at the same
-            ;; time on CI. Locally it's usually always under < 100ms
             (testing "Health endpoint should complete in under 500ms regardless of how many queries are running"
-              (let [elapsed-ms (- (System/currentTimeMillis) start-time-ms)]
-                (is (< elapsed-ms 500))))))))))
+              (testing "(Usually this is under 100ms but might be a little over if CircleCI is being slow)"
+                (let [elapsed-ms (- (System/currentTimeMillis) start-time-ms)]
+                  (is (< elapsed-ms 500)))))))))))
 
 (deftest newlines-test
   (testing "Keepalive newlines should be written while waiting for a response."
@@ -116,25 +131,18 @@
     (with-redefs [streaming-response/keepalive-interval-ms 50]
       (with-test-driver-db
         (reset! canceled? false)
-        (let [url           (test-client/build-url "dataset" nil)
-              session-token (test-client/authenticate (mt/user->credentials :lucky))
-              request       (test-client/build-request-map session-token
-                                                           {:database (mt/id)
-                                                            :type     "native"
-                                                            :native   {:query {:sleep 5000}}})
-              futur         (http/post url (assoc request :async? true) identity (fn [e] (throw e)))]
-          (is (future? futur))
-          (Thread/sleep 100)
-          (future-cancel futur)
-          (loop [max-wait 1000]
-            (cond
-              @canceled?
-              (is (= true @canceled?))
-
-              (pos? max-wait)
-              (do
-                (Thread/sleep 100)
-                (recur (- max-wait 100)))
-
-              :else
-              (is (= true @canceled?)))))))))
+        (with-start-execution-chan [start-chan]
+          (let [url           (test-client/build-url "dataset" nil)
+                session-token (test-client/authenticate (mt/user->credentials :lucky))
+                request       (test-client/build-request-map session-token
+                                                             {:database (mt/id)
+                                                              :type     "native"
+                                                              :native   {:query {:sleep 5000}}})
+                futur         (http/post url (assoc request :async? true) identity (fn [e] (throw e)))]
+            (is (future? futur))
+            ;; wait a little while for the query to start running -- this should usually happen fairly quickly
+            (mt/wait-for-result start-chan (u/seconds->ms 15))
+            (future-cancel futur)
+            (Thread/sleep 200)
+            (is (= true
+                   @canceled?))))))))

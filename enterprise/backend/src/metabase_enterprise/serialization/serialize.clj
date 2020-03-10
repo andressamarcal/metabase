@@ -64,19 +64,19 @@
 
     map?
     (as-> &match entity
-      (u/update-when entity :database (fn [db-id]
-                                        (if (= db-id mbql.s/saved-questions-virtual-database-id)
-                                          "database/__virtual"
-                                          (fully-qualified-name Database db-id))))
-      (u/update-when entity :card_id (partial fully-qualified-name Card))
-      (u/update-when entity :source-table (fn [source-table]
-                                            (if (and (string? source-table)
-                                                     (str/starts-with? source-table "card__"))
-                                              (fully-qualified-name Card (-> source-table
-                                                                             (str/split #"__")
-                                                                             second
-                                                                             Integer/parseInt))
-                                              (fully-qualified-name Table source-table))))
+      (m/update-existing entity :database (fn [db-id]
+                                            (if (= db-id mbql.s/saved-questions-virtual-database-id)
+                                              "database/__virtual"
+                                              (fully-qualified-name Database db-id))))
+      (m/update-existing entity :card_id (partial fully-qualified-name Card))
+      (m/update-existing entity :source-table (fn [source-table]
+                                                (if (and (string? source-table)
+                                                         (str/starts-with? source-table "card__"))
+                                                  (fully-qualified-name Card (-> source-table
+                                                                                 (str/split #"__")
+                                                                                 second
+                                                                                 Integer/parseInt))
+                                                  (fully-qualified-name Table source-table))))
       (m/map-vals ids->fully-qualified-names entity))))
 
 (defn- strip-crud
@@ -136,7 +136,7 @@
 (defmethod serialize-one (type Card)
   [card]
   (-> card
-      (u/update-when :table_id (partial fully-qualified-name Table))
+      (m/update-existing :table_id (partial fully-qualified-name Table))
       (update :database_id (partial fully-qualified-name Database))))
 
 (defmethod serialize-one (type Pulse)
