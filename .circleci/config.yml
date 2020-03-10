@@ -266,7 +266,7 @@ jobs:
       - run:
           name: Generate checksums of all backend source files to use as Uberjar cache key
           command: >
-            for file in `find ./src -type f -name '*.clj' | sort`;
+            for file in `find ./src ./backend ./enterprise/backend/src -type f -name '*.clj' | sort`;
               do echo `md5sum $file` >> backend-checksums.txt;
             done;
             echo `md5sum project.clj` >> backend-checksums.txt
@@ -274,7 +274,7 @@ jobs:
       - run:
           name: Generate checksums of all frontend source files to use as Uberjar cache key
           command: >
-            for file in `find ./frontend -type f | sort`;
+            for file in `find ./frontend ./enterpise/frontend -type f | sort`;
               do echo `md5sum $file` >> frontend-checksums.txt;
             done;
             echo `md5sum yarn.lock` >> frontend-checksums.txt
