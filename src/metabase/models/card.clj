@@ -161,8 +161,10 @@
   (db/delete! 'DashboardCardSeries :card_id id)
   (db/delete! 'DashboardCard :card_id id)
   (db/delete! 'CardFavorite :card_id id)
-  (classloader/require 'metabase.mt.models.group-table-access-policy)
-  (db/delete! @(resolve 'metabase.mt.models.group-table-access-policy/GroupTableAccessPolicy) :card_id id))
+  (u/ignore-exceptions
+   (classloader/require '[metabase-enterprise.sandbox.models.group-table-access-policy :as ee.sandbox.gtap])
+   (when-let [GroupTableAccessPolicy (some-> (resolve 'ee.sandbox.gtap/GroupTableAccessPolicy) var-get)]
+     (db/delete! GroupTableAccessPolicy :card_id id))))
 
 
 (u/strict-extend (class Card)

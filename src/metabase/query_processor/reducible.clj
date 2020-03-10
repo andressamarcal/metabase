@@ -40,7 +40,9 @@
   [middleware]
   (reduce
    (fn [qp middleware]
-     (middleware qp))
+     (if (some? middleware)
+       (middleware qp)
+       qp))
    pivot
    middleware))
 

@@ -6,7 +6,7 @@ export const activeAndNewByTime = () => ({
     display: "line",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.users/active-and-new-by-time",
+      fn: "metabase-enterprise.audit.pages.users/active-and-new-by-time",
       args: ["day"],
     },
     visualization_settings: {
@@ -27,7 +27,8 @@ export const activeUsersAndQueriesByDay = () => ({
     display: "line",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.users/active-users-and-queries-by-day",
+      fn:
+        "metabase-enterprise.audit.pages.users/active-users-and-queries-by-day",
       args: [],
     },
     visualization_settings: {
@@ -48,7 +49,7 @@ export const mostActive = () => ({
     display: "row",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.users/most-active",
+      fn: "metabase-enterprise.audit.pages.users/most-active",
       args: [],
     },
     visualization_settings: {
@@ -66,7 +67,7 @@ export const mostSaves = () => ({
     display: "row",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.users/most-saves",
+      fn: "metabase-enterprise.audit.pages.users/most-saves",
       args: [],
     },
     visualization_settings: {
@@ -82,7 +83,7 @@ export const queryExecutionTimePerUser = () => ({
     display: "row",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.users/query-execution-time-per-user",
+      fn: "metabase-enterprise.audit.pages.users/query-execution-time-per-user",
       args: [],
     },
   },
@@ -94,7 +95,7 @@ export const table = (searchString?: string) => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.users/table",
+      fn: "metabase-enterprise.audit.pages.users/table",
       args: searchString ? [searchString] : [],
     },
     visualization_settings: {
@@ -115,7 +116,7 @@ export const auditLog = () => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.users/query-views",
+      fn: "metabase-enterprise.audit.pages.users/query-views",
       args: [],
     },
     visualization_settings: {
@@ -136,7 +137,7 @@ export const auditLog = () => ({
       display: "table",
       dataset_query: {
         type: "internal",
-        fn: "metabase.audit.pages.users/dashboard-views",
+        fn: "metabase-enterprise.audit.pages.users/dashboard-views",
         args: [],
       },
     },
@@ -149,7 +150,7 @@ export const dashboardViews = () => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.users/dashboard-views",
+      fn: "metabase-enterprise.audit.pages.users/dashboard-views",
       args: [],
     },
   },

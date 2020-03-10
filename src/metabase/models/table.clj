@@ -39,8 +39,10 @@
   (db/delete! Field       :table_id id)
   (db/delete! 'Card       :table_id id)
   (db/delete! Permissions :object [:like (str (perms/object-path db_id schema id) "%")])
-  (classloader/require 'metabase.mt.models.group-table-access-policy)
-  (db/delete! @(resolve 'metabase.mt.models.group-table-access-policy/GroupTableAccessPolicy) :table_id id))
+  (u/ignore-exceptions
+   (classloader/require '[metabase-enterprise.sandbox.models.group-table-access-policy :as ee.sandbox.gtap])
+   (when-let [GroupTableAccessPolicy (some-> (resolve 'ee.sandbox.gtap/GroupTableAccessPolicy) var-get)]
+     (db/delete! GroupTableAccessPolicy :table_id id))))
 
 (defn- perms-objects-set [table read-or-write]
   ;; To read (e.g., fetch metadata) a Table you (predictably) have read permissions; to write a Table (e.g. update its

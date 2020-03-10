@@ -6,7 +6,8 @@ export const viewsAndAvgExecutionTimeByDay = () => ({
     display: "line",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.queries/views-and-avg-execution-time-by-day",
+      fn:
+        "metabase-enterprise.audit.pages.queries/views-and-avg-execution-time-by-day",
       args: [],
     },
     visualization_settings: {
@@ -26,7 +27,7 @@ export const mostPopular = () => ({
     display: "row",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.queries/most-popular",
+      fn: "metabase-enterprise.audit.pages.queries/most-popular",
       args: [],
     },
     visualization_settings: {
@@ -42,7 +43,7 @@ export const slowest = () => ({
     display: "row",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.queries/slowest",
+      fn: "metabase-enterprise.audit.pages.queries/slowest",
       args: [],
     },
     visualization_settings: {
@@ -58,7 +59,7 @@ export const table = (searchString?: string) => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.queries/table",
+      fn: "metabase-enterprise.audit.pages.queries/table",
       args: searchString ? [searchString] : [],
     },
     visualization_settings: {

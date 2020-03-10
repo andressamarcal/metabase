@@ -11,7 +11,7 @@ const TABLE = {
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.query-detail/details",
+      fn: "metabase-enterprise.audit.pages.query-detail/details",
       args: ["asdf"],
     },
   },

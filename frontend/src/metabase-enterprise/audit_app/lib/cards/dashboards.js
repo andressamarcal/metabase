@@ -7,7 +7,7 @@ export const viewsPerDay = () => ({
     display: "line",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.dashboards/views-per-day",
+      fn: "metabase-enterprise.audit.pages.dashboards/views-per-day",
       args: [],
     },
   },
@@ -19,7 +19,7 @@ export const viewsAndSavesByTime = () => ({
     display: "line",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.dashboards/views-and-saves-by-time",
+      fn: "metabase-enterprise.audit.pages.dashboards/views-and-saves-by-time",
       args: ["day"],
     },
     visualization_settings: {
@@ -34,7 +34,8 @@ export const mostPopularAndSpeed = () => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.dashboards/most-popular-with-avg-speed",
+      fn:
+        "metabase-enterprise.audit.pages.dashboards/most-popular-with-avg-speed",
       args: [],
     },
   },
@@ -46,7 +47,7 @@ export const mostCommonQuestions = () => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.dashboards/most-common-questions",
+      fn: "metabase-enterprise.audit.pages.dashboards/most-common-questions",
       args: [],
     },
   },
@@ -58,7 +59,7 @@ export const table = (searchString?: string) => ({
     display: "table",
     dataset_query: {
       type: "internal",
-      fn: "metabase.audit.pages.dashboards/table",
+      fn: "metabase-enterprise.audit.pages.dashboards/table",
       args: [],
     },
     visualization_settings: {

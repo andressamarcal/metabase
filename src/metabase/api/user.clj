@@ -12,7 +12,7 @@
              [collection :as collection :refer [Collection]]
              [permissions-group :as group]
              [user :as user :refer [User]]]
-            [metabase.mt.api.util :as mau]
+            [metabase.plugins.classloader :as classloader]
             [metabase.util :as u]
             [metabase.util
              [i18n :refer [tru]]
@@ -21,6 +21,8 @@
             [toucan
              [db :as db]
              [hydrate :refer [hydrate]]]))
+
+(u/ignore-exceptions (classloader/require 'metabase-enterprise.sandbox.api.util))
 
 (defn- check-self-or-superuser
   "Check that USER-ID is *current-user-id*` or that `*current-user*` is a superuser, or throw a 403."
@@ -83,8 +85,9 @@
                 (hh/merge-order-by [:%lower.last_name :asc] [:%lower.first_name :asc])
                 (hh/merge-where (when-not include_deactivated
                                   [:= :is_active true]))
-                (hh/merge-where (when (mau/segmented-user?)
-                                  [:= :id api/*current-user-id*]))))
+                (hh/merge-where (when-let [segmented-user? (resolve 'metabase-enterprise.sandbox.api.util/segmented-user?)]
+                                  (when (segmented-user?)
+                                    [:= :id api/*current-user-id*])))))
     ;; For admins, also include the IDs of the  Users' Personal Collections
     api/*is-superuser?* (hydrate :personal_collection_id :group_ids)))
 

@@ -9,9 +9,10 @@
             [metabase
              [driver :as driver]
              [query-processor :as qp]
-             [query-processor-test :as qp.test]]
+             [query-processor-test :as qp.test]
+             [util :as u]]
             [metabase.driver.sql-jdbc.test-util :as sql-jdbc.tu]
-            [metabase.mt.test-util :as mt.tu]
+            [metabase.plugins.classloader :as classloader]
             [metabase.query-processor
              [context :as qp.context]
              [reducible :as qp.reducible]
@@ -80,9 +81,6 @@
 
  [initialize
   initialize-if-needed!]
-
- [mt.tu
-  with-gtaps]
 
  [qp
   process-query
@@ -171,6 +169,13 @@
  [tx.env
   set-test-drivers!
   with-test-drivers])
+
+;; ee-only stuff
+(u/ignore-exceptions
+  (classloader/require 'metabase-enterprise.sandbox.test-util)
+  (eval '(potemkin/import-vars [metabase-enterprise.sandbox.test-util with-gtaps])))
+
+(println "(resolve 'with-gtaps):" (resolve 'with-gtaps)) ; NOCOMMIT
 
 (defn do-with-clock [clock thunk]
   (let [clock (cond
