@@ -1,9 +1,11 @@
-import { signInAsAdmin } from "__support__/cypress";
+import { signInAsAdmin, restore } from "__support__/cypress";
 
 describe("drill through", () => {
+  before(restore);
+
   beforeEach(signInAsAdmin);
   it("sets drill through link for dots in a line graph", () => {
-    cy.visit("/question/1");
+    cy.visit("/question/3");
     cy.contains("Settings").click();
     cy.contains("Drill-through")
       .scrollIntoView()

@@ -118,6 +118,21 @@ function createQuestionAndDashboard() {
     },
   });
 
+  cy.request("POST", "/api/card", {
+    name: "Orders, Count, Grouped by Created At (year)",
+    dataset_query: {
+      type: "query",
+      query: {
+        "source-table": 2,
+        aggregation: [["count"]],
+        breakout: [["datetime-field", ["field-id", 15], "year"]],
+      },
+      database: 1,
+    },
+    display: "line",
+    visualization_settings: {},
+  });
+
   // dashboard 1: Orders in a dashboard
   cy.request("POST", "/api/dashboard", { name: "Orders in a dashboard" });
   cy.request("POST", `/api/dashboard/1/cards`, { cardId: 1 });
