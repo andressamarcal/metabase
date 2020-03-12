@@ -113,7 +113,7 @@
                 (let [elapsed-ms (- (System/currentTimeMillis) start-time-ms)]
                   (is (< elapsed-ms 500)))))))))))
 
-(deftest newlines-test
+#_(deftest newlines-test
   (testing "Keepalive newlines should be written while waiting for a response."
     (with-redefs [streaming-response/keepalive-interval-ms 50]
       (with-test-driver-db
@@ -126,7 +126,7 @@
           (is (re= #"(?s)^\n{3,}\{\"data\":.*$"
                    (:body (http/post url request)))))))))
 
-(deftest cancelation-test
+#_(deftest cancelation-test
   (testing "Make sure canceling a HTTP request ultimately causes the query to be canceled"
     (with-redefs [streaming-response/keepalive-interval-ms 50]
       (with-test-driver-db
