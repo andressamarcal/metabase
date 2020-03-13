@@ -175,8 +175,6 @@
   (classloader/require 'metabase-enterprise.sandbox.test-util)
   (eval '(potemkin/import-vars [metabase-enterprise.sandbox.test-util with-gtaps])))
 
-(println "(resolve 'with-gtaps):" (resolve 'with-gtaps)) ; NOCOMMIT
-
 (defn do-with-clock [clock thunk]
   (let [clock (cond
                 (t/clock? clock)           clock
