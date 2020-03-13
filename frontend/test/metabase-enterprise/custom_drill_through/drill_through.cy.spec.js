@@ -1,4 +1,4 @@
-import { signInAsAdmin, restore } from "__support__/cypress";
+import { signIn, signInAsAdmin, restore, modal } from "__support__/cypress";
 
 describe("drill through", () => {
   before(restore);
@@ -18,8 +18,22 @@ describe("drill through", () => {
       // and Cypress can't see it.
       .type("/?count={{count}}", { parseSpecialCharSequences: false });
     cy.contains("Done").click();
+
+    // save it, so it can be used in the next test
+    cy.contains("Save").click();
+    modal()
+      .find(".Button--primary")
+      .click();
+
     // We need this force because the chart is animating. If we let Cypress wait
     // for actionability, the dot will have been removed before it's clicked.
+    cy.get(".dot:first").click({ force: true });
+    cy.url().should("match", /\?count=744/);
+  });
+
+  it("should allow custom drill through without data permissions", () => {
+    signIn("nodata");
+    cy.visit("/question/3");
     cy.get(".dot:first").click({ force: true });
     cy.url().should("match", /\?count=744/);
   });
