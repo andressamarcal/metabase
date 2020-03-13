@@ -24,7 +24,8 @@
              [db :as backend.db]
              [interface :as i]]
             [metabase.query-processor.middleware.cache.impl :as impl]
-            [metabase.util.i18n :refer [trs]]))
+            [metabase.util.i18n :refer [trs]])
+  (:import org.eclipse.jetty.io.EofException))
 
 (comment backend.db/keep-me)
 
@@ -150,6 +151,9 @@
                     (log/tracef "All cached rows reduced")
                     ::ok))))))
         ::miss)
+    (catch EofException _
+      (log/debug (trs "Request is closed; no one to return cached results to"))
+      ::canceled)
     (catch Throwable e
       (log/error e (trs "Error attempting to fetch cached results for query with hash {0}"
                         (i/short-hex-hash query-hash)))
