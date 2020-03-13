@@ -104,7 +104,7 @@
   nil)
 
 (defn bind-request
-  "Ring middleare that binds `*request*` for the duration of this Ring request."
+  "Ring middleware that binds `*request*` for the duration of this Ring request."
   [handler]
   (fn [request respond raise]
     (binding [*request* request]
