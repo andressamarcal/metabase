@@ -41,7 +41,7 @@
     :else
     (throw (IllegalArgumentException. (str (deferred-trs "Don't know how to wrap:") " " field-id-or-form)))))
 
-(defn- field-ids->param-field-values
+(defn field-ids->param-field-values
   "Given a collection of `param-field-ids` return a map of FieldValues for the Fields they reference. This map is
   returned by various endpoints as `:param_values`."
   [param-field-ids]

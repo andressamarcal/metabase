@@ -14,7 +14,9 @@
              [dashboard :as dashboard :refer [Dashboard]]
              [dashboard-card :refer [DashboardCard delete-dashboard-card!]]
              [dashboard-favorite :refer [DashboardFavorite]]
+             [field-values :as field-values]
              [interface :as mi]
+             [params :as params]
              [query :as query :refer [Query]]
              [revision :as revision]]
             [metabase.query-processor.middleware.constraints :as constraints]
@@ -187,16 +189,31 @@
   [dashboard]
   (update dashboard :ordered_cards add-query-average-duration-to-dashcards))
 
+(defn- field->values
+  [field]
+  {:values   (map vector (field-values/distinct-values field))
+   :field_id (u/get-id field)})
+
+(defn- hydrate-param-values
+  ;; We need to do this manually to ensure sandboxing is respected
+  [{:keys [param_fields] :as dashboard}]
+  ;; If the user doesn't have full read access, assume they are sandboxed
+  (let [{can-hydrate true sandboxed false} (group-by mi/can-read? (vals param_fields))]
+    (assoc dashboard
+      :param_values (merge (params/field-ids->param-field-values (map u/get-id can-hydrate))
+                           (into {} (for [field sandboxed]
+                                      [(u/get-id field) (field->values field)]))))))
 
 (defn- get-dashboard
   "Get Dashboard with ID."
   [id]
   (-> (Dashboard id)
       api/check-404
-      (hydrate [:ordered_cards :card :series] :can_write :param_fields :param_values)
+      (hydrate [:ordered_cards :card :series] :can_write :param_fields)
       api/read-check
       api/check-not-archived
       hide-unreadable-cards
+      hydrate-param-values
       add-query-average-durations))
 
 
