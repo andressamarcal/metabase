@@ -184,9 +184,6 @@ describe("scenarios > question > native", () => {
       metadata_checksum: null,
     }).then(response => {
       cy.visit(`/question/${response.body.id}?created_at=2020-01`);
-      modal()
-        .contains("Okay")
-        .click();
       cy.contains("580");
     });
   });
