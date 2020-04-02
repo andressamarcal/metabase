@@ -343,7 +343,7 @@
 
 (doseq [[unix-timestamp-type bigquery-fn] {:seconds      :timestamp_seconds
                                            :milliseconds :timestamp_millis}]
-  (defmethod sql.qp/unix-timestamp->timestamp [:bigquery unix-timestamp-type]
+  (defmethod sql.qp/unix-timestamp->honeysql [:bigquery unix-timestamp-type]
     [_ _ expr]
     (with-temporal-type (hsql/call bigquery-fn expr) :timestamp)))
 
@@ -351,10 +351,29 @@
   [_ value]
   (hx/cast :float64 value))
 
-
 (defmethod sql.qp/->honeysql [:bigquery :regex-match-first]
   [driver [_ arg pattern]]
   (hsql/call :regexp_extract (sql.qp/->honeysql driver arg) (sql.qp/->honeysql driver pattern)))
+
+(defn- percentile->quantile
+  [x]
+  (loop [x     (double x)
+         power (int 0)]
+    (if (zero? (- x (Math/floor x)))
+      [(Math/round x) (Math/round (Math/pow 10 power))]
+      (recur (* 10 x) (inc power)))))
+
+(defmethod sql.qp/->honeysql [:bigquery :percentile]
+  [driver [_ arg p]]
+  (let [[offset quantiles] (percentile->quantile p)]
+    (hsql/raw (format "APPROX_QUANTILES(%s, %s)[OFFSET(%s)]"
+                      (hformat/to-sql (sql.qp/->honeysql driver arg))
+                      quantiles
+                      offset))))
+
+(defmethod sql.qp/->honeysql [:bigquery :median]
+  [driver [_ arg]]
+  (sql.qp/->honeysql driver [:percentile arg 0.5]))
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
