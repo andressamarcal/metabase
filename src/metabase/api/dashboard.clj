@@ -195,14 +195,15 @@
    :field_id (u/get-id field)})
 
 (defn- hydrate-param-values
-  ;; We need to do this manually to ensure sandboxing is respected
   [{:keys [param_fields] :as dashboard}]
+  ;; We need to do this manually to ensure sandboxing is respected.
   ;; If the user doesn't have full read access, assume they are sandboxed
   (let [{can-hydrate true sandboxed false} (group-by mi/can-read? (vals param_fields))]
     (assoc dashboard
-      :param_values (merge (params/field-ids->param-field-values (map u/get-id can-hydrate))
-                           (into {} (for [field sandboxed]
-                                      [(u/get-id field) (field->values field)]))))))
+      :param_values (not-empty
+                     (merge (params/field-ids->param-field-values (map u/get-id can-hydrate))
+                            (into {} (for [field sandboxed]
+                                       [(u/get-id field) (field->values field)])))))))
 
 (defn- get-dashboard
   "Get Dashboard with ID."
