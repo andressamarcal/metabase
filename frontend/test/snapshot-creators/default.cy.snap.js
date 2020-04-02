@@ -78,6 +78,9 @@ function addUsersAndGroups() {
   );
   cy.request("POST", "/api/user", makeUserObject("none", [ALL_USERS_GROUP]));
 
+  // Make a call to `/api/user` because some things (personal collections) get created there
+  cy.request("GET", "/api/user");
+
   // permissions
   cy.request("PUT", "/api/permissions/graph", {
     revision: 0,
@@ -138,7 +141,7 @@ function createQuestionAndDashboard() {
   cy.request("POST", `/api/dashboard/1/cards`, { cardId: 1 });
 
   // dismiss the "it's ok to play around" modal
-  USERS.map((_, index) =>
+  Object.values(USERS).map((_, index) =>
     cy.request("PUT", `/api/user/${index + 1}/qbnewb`, {}),
   );
 }
