@@ -141,7 +141,7 @@ function createQuestionAndDashboard() {
   cy.request("POST", `/api/dashboard/1/cards`, { cardId: 1 });
 
   // dismiss the "it's ok to play around" modal
-  USERS.map((_, index) =>
+  Object.values(USERS).map((_, index) =>
     cy.request("PUT", `/api/user/${index + 1}/qbnewb`, {}),
   );
 }
