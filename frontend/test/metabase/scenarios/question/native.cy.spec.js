@@ -1,9 +1,4 @@
-import {
-  signInAsNormalUser,
-  restore,
-  popover,
-  modal,
-} from "__support__/cypress";
+import { signInAsNormalUser, restore, popover } from "__support__/cypress";
 
 describe("scenarios > question > native", () => {
   before(restore);
