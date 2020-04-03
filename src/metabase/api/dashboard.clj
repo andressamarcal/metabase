@@ -199,12 +199,12 @@
   ;; We need to do this manually to ensure sandboxing is respected.
   ;; If the user doesn't have full read access, assume they are sandboxed
   (let [{can-hydrate true sandboxed false} (group-by mi/can-read? (vals param_fields))]
-    (assoc dashboard :param_values (merge {}
-                                          (->> can-hydrate
-                                               (map u/get-id)
-                                               params/field-ids->param-field-values)
-                                          (into {} (for [field sandboxed]
-                                                     [(u/get-id field) (field->values field)]))))))
+    (assoc dashboard :param_values (not-empty
+                                    (merge (->> can-hydrate
+                                                (map u/get-id)
+                                                params/field-ids->param-field-values)
+                                           (into {} (for [field sandboxed]
+                                                      [(u/get-id field) (field->values field)])))))))
 
 (defn- get-dashboard
   "Get Dashboard with ID."
