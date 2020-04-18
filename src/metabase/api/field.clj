@@ -1,5 +1,6 @@
 (ns metabase.api.field
-  (:require [clojure.tools.logging :as log]
+  (:require [clojure.core.memoize :as memoize]
+            [clojure.tools.logging :as log]
             [compojure.core :refer [DELETE GET POST PUT]]
             [metabase
              [query-processor :as qp]
@@ -195,10 +196,15 @@
     {:values [], :field_id (:id field)}))
 
 (def ^:private ^{:arglist '([user last-updated field])} fetch-sandboxed-field-values*
-  (memoize
+  (memoize/ttl
    (fn [_ _ field]
      {:values   (map vector (field-values/distinct-values field))
-      :field_id (u/get-id field)})))
+      :field_id (u/get-id field)})
+   ;; Expire entires older than 30 days so we don't have entries for users and/or fields that
+   ;; no longer exists hanging around.
+   ;; (`clojure.core.cache/TTLCacheQ` (which `memoize` uses underneath) evicts all stale entries on
+   ;; every cache miss)
+   :ttl/threshold (* 1000 60 60 24 30)))
 
 (defn- fetch-sandboxed-field-values
   [field]
