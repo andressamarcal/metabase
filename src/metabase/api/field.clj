@@ -194,6 +194,19 @@
         (dissoc :human_readable_values :created_at :updated_at :id))
     {:values [], :field_id (:id field)}))
 
+(def ^:private ^{:arglist '([user last-updated field])} fetch-sandboxed-field-values*
+  (memoize
+   (fn [_ _ field]
+     {:values   (map vector (field-values/distinct-values field))
+      :field_id (u/get-id field)})))
+
+(defn- fetch-sandboxed-field-values
+  [field]
+  (fetch-sandboxed-field-values*
+   api/*current-user-id*
+   (db/select-one-field :updated_at FieldValues :field_id (u/get-id field))
+   field))
+
 (api/defendpoint GET "/:id/values"
   "If a Field's value of `has_field_values` is `list`, return a list of all the distinct values of the Field, and (if
   defined by a User) a map of human-readable remapped values."
@@ -207,10 +220,7 @@
       ;; otherwise if you have Segmented query perms (but not normal read perms) we'll do an ad-hoc query to fetch the
       ;; results, filtered by your GTAP
       (has-segmented-query-permissions? (field/table field))
-      {:values   (for [value (field-values/distinct-values field)]
-                   ;; for whatever reason values are supposed back as a vector of vectors, e.g. [[1] [2] [3] [4]]
-                   [value])
-       :field_id id}
+      (fetch-sandboxed-field-values field)
 
       :else
       (api/throw-403))))
