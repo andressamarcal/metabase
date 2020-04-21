@@ -18,6 +18,9 @@
             [toucan.db :as db])
   (:import java.util.UUID))
 
+;; These modules register settings but are otherwise unused. They still must be imported.
+(comment metabase.public-settings.metastore/keep-me)
+
 (u/ignore-exceptions
   (classloader/require '[metabase-enterprise.sso.integrations.sso-settings :as ee.sandbox.sso-settings]))
 
