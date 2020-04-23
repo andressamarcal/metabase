@@ -1,8 +1,12 @@
 (ns metabase-enterprise.sandbox.api.field-test
   "Tests for special behavior of `/api/metabase/field` endpoints in the Metabase Enterprise Edition."
   (:require [clojure.test :refer :all]
+            [metabase.models
+             [field :refer [Field]]
+             [field-values :as field-values :refer [FieldValues]]]
             [metabase-enterprise.sandbox.test-util :as mt.tu]
-            [metabase.test :as mt]))
+            [metabase.test :as mt]
+            [toucan.db :as db]))
 
 (deftest fetch-field-test
   (testing "GET /api/field/:id"
@@ -62,3 +66,28 @@
                     ["Taqueria Los Coyotes"   "Taqueria Los Coyotes"]
                     ["Taqueria San Francisco" "Taqueria San Francisco"]]
                    ((mt/user->client :rasta) :get 200 url :value "Ta")))))))))
+
+(deftest caching-test
+  (mt.tu/with-segmented-test-setup mt.tu/restricted-column-query
+    (mt.tu/with-user-attributes :rasta {:cat 50}
+      (let [field (Field (mt/id :venues :name))]
+        ;; Make sure FieldValues are populated
+        (field-values/create-field-values-if-needed! field)
+        ;; Warm up the cache
+        ((mt/user->client :rasta) :get 200 (str "field/" (mt/id :venues :name) "/values"))
+        (testing "Do we use cached values when available?"
+          (with-redefs [field-values/distinct-values (fn [_] (assert false "Should not be called"))]
+            (is (some? (:values ((mt/user->client :rasta) :get 200 (str "field/" (mt/id :venues :name) "/values")))))))
+        (testing "Do we invalidate the cache when FieldValues change"
+          (try
+            (let [;; Updating FieldValues which should invalidte the cache
+                  fv-id      (db/select-one-id FieldValues :field_id (mt/id :venues :name))
+                  new-values ["foo" "bar"]]
+              (db/update! FieldValues fv-id
+                {:values new-values})
+              (with-redefs [field-values/distinct-values (fn [_] new-values)]
+                (is (= (map vector new-values)
+                       (:values ((mt/user->client :rasta) :get 200 (str "field/" (mt/id :venues :name) "/values")))))))
+            (finally
+              ;; Put everything back as it was
+              (field-values/create-field-values-if-needed! field))))))))
