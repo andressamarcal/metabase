@@ -1,5 +1,7 @@
 import "@testing-library/cypress/add-commands";
 
+export const version = require("../../../version.json");
+
 export const USERS = {
   admin: {
     first_name: "Bobby",
@@ -68,12 +70,23 @@ export function main() {
   return cy.get("nav").next();
 }
 
+// Metabase utility functions for commonly-used patterns
+
 export function openOrdersTable() {
   cy.visit("/question/new?database=1&table=2");
 }
 
 export function openProductsTable() {
   cy.visit("/question/new?database=1&table=1");
+}
+
+// Find a text field by label text, type it in, then blur the field.
+// Commonly used in our Admin section as we auto-save settings.
+export function typeAndBlurUsingLabel(label, value) {
+  cy.findByLabelText(label)
+    .clear()
+    .type(value)
+    .blur();
 }
 
 Cypress.on("uncaught:exception", (err, runnable) => false);
