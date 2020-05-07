@@ -21,9 +21,6 @@
 ;; These modules register settings but are otherwise unused. They still must be imported.
 (comment metabase.public-settings.metastore/keep-me)
 
-(u/ignore-exceptions
-  (classloader/require '[metabase-enterprise.sso.integrations.sso-settings :as ee.sandbox.sso-settings]))
-
 (defn- google-auth-configured? []
   (boolean (setting/get :google-auth-client-id)))
 
@@ -32,7 +29,9 @@
       ((resolve 'metabase.integrations.ldap/ldap-configured?))))
 
 (defn- ee-sso-configured? []
-  (when-let [varr (resolve 'ee.sandbox.sso-settings/other-sso-configured?)]
+  (u/ignore-exceptions
+    (classloader/require 'metabase-enterprise.sso.integrations.sso-settings))
+  (when-let [varr (resolve 'metabase-enterprise.sso.integrations.sso-settings/other-sso-configured?)]
     (varr)))
 
 (defn- sso-configured?
