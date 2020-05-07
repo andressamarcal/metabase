@@ -26,7 +26,6 @@ import {
 if (hasPremiumFeature("whitelabel")) {
   PLUGIN_LANDING_PAGE.push(() => MetabaseSettings.get("landing-page"));
   PLUGIN_ADMIN_SETTINGS_UPDATES.push(sections => ({
-    ...sections,
     whitelabel: {
       name: "Whitelabel",
       settings: [
@@ -59,6 +58,7 @@ if (hasPremiumFeature("whitelabel")) {
         },
       ],
     },
+    ...sections,
   }));
 
   PLUGIN_APP_INIT_FUCTIONS.push(({ root }) => {
