@@ -1,13 +1,11 @@
 (ns metabase-enterprise.sandbox.api.field-test
   "Tests for special behavior of `/api/metabase/field` endpoints in the Metabase Enterprise Edition."
   (:require [clojure.test :refer :all]
-            [metabase
-             [db :as mdb]
-             [test :as mt]]
             [metabase-enterprise.sandbox.test-util :as mt.tu]
             [metabase.models
              [field :refer [Field]]
              [field-values :as field-values :refer [FieldValues]]]
+            [metabase.test :as mt]
             [toucan.db :as db]))
 
 (deftest fetch-field-test
@@ -87,10 +85,6 @@
                   new-values ["foo" "bar"]]
               (db/update! FieldValues fv-id
                 {:values new-values})
-              ;; MySQL/MariaDB timestamps only have second resolution so wait at least one second for the value of
-              ;; `updated_at` to change, otherwise the cache won't get invalidated.
-              (when (= (mdb/db-type) :mysql)
-                (Thread/sleep 1000))
               (with-redefs [field-values/distinct-values (fn [_] new-values)]
                 (is (= (map vector new-values)
                        (:values ((mt/user->client :rasta) :get 200 (str "field/" (mt/id :venues :name) "/values")))))))

@@ -6335,3 +6335,23 @@ databaseChangeLog:
       changes:
         - dropTable:
             tableName: query_queryexecution
+
+# Change field_values.updated_at from datetime to timestamp [with time zone] to get > second resolution on MySQL.
+
+  - property:
+      name: timestamp_type
+      value: timestamp with time zone
+      dbms: postgresql,h2
+  - property:
+      name: timestamp_type
+      value: timestamp
+      dbms: mysql,mariadb
+  - changeSet:
+      id: 165
+      author: camsaul
+      comment: Added 0.35.4
+      changes:
+        - modifyDataType:
+            tableName: metabase_fieldvalues
+            columnName: updated_at
+            newDataType: ${timestamp_type}
