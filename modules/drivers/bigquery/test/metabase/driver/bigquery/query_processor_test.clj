@@ -574,7 +574,7 @@
                                       (locking f
                                         (testing (format "\nunit = %s" unit)
                                           (is (= expected
-                                                 (f field unit)))))))
+                                                 result))))))
                                   (zipmap units vs)))))
                  (rest table)))))
 
