@@ -80,12 +80,18 @@
             (is (some? (:values ((mt/user->client :rasta) :get 200 (str "field/" (mt/id :venues :name) "/values")))))))
         (testing "Do we invalidate the cache when FieldValues change"
           (try
-            (let [;; Updating FieldValues which should invalidte the cache
-                  fv-id      (db/select-one-id FieldValues :field_id (mt/id :venues :name))
-                  new-values ["foo" "bar"]]
+            (let [;; Updating FieldValues which should invalidate the cache
+                  fv-id          (db/select-one-id FieldValues :field_id (mt/id :venues :name))
+                  old-updated-at (db/select-one-field :updated_at FieldValues :field_id (mt/id :venues :name))
+                  new-values     ["foo" "bar"]]
+              (testing "Sanity check: make sure FieldValues exist"
+                (is (some? fv-id)))
               (db/update! FieldValues fv-id
                 {:values new-values})
-              (with-redefs [field-values/distinct-values (fn [_] new-values)]
+              (testing "Sanity check: make sure updated_at has been updated"
+                (is (not= (db/select-one-field :updated_at FieldValues :field_id (mt/id :venues :name))
+                          old-updated-at)))
+              (with-redefs [field-values/distinct-values (constantly new-values)]
                 (is (= (map vector new-values)
                        (:values ((mt/user->client :rasta) :get 200 (str "field/" (mt/id :venues :name) "/values")))))))
             (finally
