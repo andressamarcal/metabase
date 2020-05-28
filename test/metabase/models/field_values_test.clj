@@ -1,6 +1,7 @@
 (ns metabase.models.field-values-test
   "Tests for specific behavior related to FieldValues and functions in the `metabase.models.field-values` namespace."
   (:require [clojure.java.jdbc :as jdbc]
+            [clojure.test :refer :all]
             [expectations :refer :all]
             [metabase
              [db :as mdb]
@@ -9,7 +10,7 @@
             [metabase.models
              [database :refer [Database]]
              [field :refer [Field]]
-             [field-values :refer :all]
+             [field-values :as field-values :refer :all]
              [table :refer [Table]]]
             [toucan.db :as db]
             [toucan.util.test :as tt]))
@@ -144,3 +145,19 @@
                ;; Test that field values can be removed and the corresponding human_readable_values are removed as well
                (do (jdbc/delete! conn :foo ["id in (?,?,?)" 1 2 3])
                    (sync-and-find-values db field-values-id))]))))))
+
+(deftest values-less-than-total-max-length?-test
+  (testing "values-less-than-total-max-length?"
+    (with-redefs [field-values/total-max-length 10]
+      (is (= true
+             (#'field-values/values-less-than-total-max-length? ["a" "b" "c"])))
+      (is (= false
+             (#'field-values/values-less-than-total-max-length? ["123" "4567" "8901"])))
+      (testing "Should only consume enough values to determine whether length is over limit"
+        (let [realized? (atom false)
+              vs        (lazy-cat ["123" "4567" "8901" "2345"] (do (reset! realized? true) ["Shouldn't get here"]))]
+          (is (= false
+                 (#'field-values/values-less-than-total-max-length? vs)))
+          (testing "Entire lazy seq shouldn't be realized"
+            (is (= false
+                   @realized?))))))))
