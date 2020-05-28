@@ -3,11 +3,15 @@
 
   (Prefer using `metabase.test` to requiring bits and pieces from these various namespaces going forward, since it
   reduces the cognitive load required to write tests.)"
-  (:require [clojure.test :refer :all]
+  (:require [clojure
+             [test :refer :all]
+             [walk :as walk]]
             [java-time :as t]
             [medley.core :as m]
             [metabase
              [driver :as driver]
+             [email-test :as et]
+             [http-client :as http]
              [query-processor :as qp]
              [query-processor-test :as qp.test]
              [util :as u]]
@@ -39,6 +43,8 @@
   data/keep-me
   datasets/keep-me
   driver/keep-me
+  et/keep-me
+  http/keep-me
   initialize/keep-me
   mt.tu/keep-me
   qp/keep-me
@@ -79,6 +85,22 @@
   *driver*
   with-driver]
 
+ [et
+  email-to
+  fake-inbox-email-fn
+  inbox
+  regex-email-bodies
+  reset-inbox!
+  summarize-multipart-email
+  with-expected-messages
+  with-fake-inbox]
+
+ [http
+  authenticate
+  build-url
+  client
+  client-full-response]
+
  [initialize
   initialize-if-needed!]
 
@@ -110,6 +132,7 @@
   sql-jdbc-drivers]
 
  [test-users
+  fetch-user
   user->id
   user->client
   user->credentials
@@ -177,6 +200,8 @@
   (classloader/require 'metabase-enterprise.sandbox.test-util)
   (eval '(potemkin/import-vars [metabase-enterprise.sandbox.test-util with-gtaps])))
 
+;; TODO -- move this stuff into some other namespace and refer to it here
+
 (defn do-with-clock [clock thunk]
   (testing (format "\nsystem clock = %s" (pr-str clock))
     (let [clock (cond
@@ -243,3 +268,13 @@
             :pre      (-> result :data :pre)
             :post     (-> result :data :rows)
             :metadata (update result :data #(dissoc % :pre :rows))}))))))
+
+(defn derecordize
+  "Convert all record types in `form` to plain maps, so tests won't fail."
+  [form]
+  (walk/postwalk
+   (fn [form]
+     (if (record? form)
+       (into {} form)
+       form))
+   form))

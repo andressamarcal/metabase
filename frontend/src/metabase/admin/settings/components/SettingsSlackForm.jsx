@@ -1,9 +1,11 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import PropTypes from "prop-types";
+
 import MetabaseAnalytics from "metabase/lib/analytics";
 import MetabaseUtils from "metabase/lib/utils";
 import SettingsSetting from "./SettingsSetting";
+import { updateSlackSettings } from "../settings";
 
 import Button from "metabase/components/Button";
 import Icon from "metabase/components/Icon";
@@ -13,11 +15,9 @@ import RetinaImage from "react-retina-image";
 import _ from "underscore";
 import { t, jt } from "ttag";
 
-import { updateSlackSettings } from "../settings";
-
 @connect(
   null,
-  { updateSlackSettings },
+  { updateSettings: updateSlackSettings },
 )
 export default class SettingsSlackForm extends Component {
   constructor(props, context) {
@@ -34,7 +34,7 @@ export default class SettingsSlackForm extends Component {
   static propTypes = {
     elements: PropTypes.array,
     formErrors: PropTypes.object,
-    updateSlackSettings: PropTypes.func.isRequired,
+    updateSettings: PropTypes.func.isRequired,
   };
 
   componentWillMount() {
@@ -157,7 +157,7 @@ export default class SettingsSlackForm extends Component {
     const { formData, valid } = this.state;
 
     if (valid) {
-      this.props.updateSlackSettings(formData).then(
+      this.props.updateSettings(formData).then(
         () => {
           this.setState({
             submitting: "success",

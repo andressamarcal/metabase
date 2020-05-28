@@ -195,7 +195,7 @@
         (dissoc :human_readable_values :created_at :updated_at :id))
     {:values [], :field_id (:id field)}))
 
-(def ^:private ^{:arglist '([user last-updated field])} fetch-sandboxed-field-values*
+(def ^:private ^{:arglist '([user-id last-updated field])} fetch-sandboxed-field-values*
   (memoize/ttl
    (fn [_ _ field]
      {:values   (map vector (field-values/distinct-values field))
