@@ -47,8 +47,7 @@
 
 (defmethod format-result :default
   [event]
-  (-> (#'junit-xml/format-result event)
-      (update :content xml/cdata)))
+  (#'junit-xml/format-result event))
 
 (defmethod format-result :fail
   [event]
