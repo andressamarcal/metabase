@@ -313,7 +313,8 @@
       (metabase.plugins/load-plugins!)]}]
 
    :repl
-   [:include-all-drivers
+   [:ee
+    :include-all-drivers
     ;; so running the tests doesn't give you different answers
     {:jvm-opts ["-Duser.timezone=UTC"]}]
 
