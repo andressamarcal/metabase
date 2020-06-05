@@ -201,7 +201,7 @@
    collection_id       (s/maybe su/IntGreaterThanZero)
    collection_position (s/maybe su/IntGreaterThanZero)}
   (check-card-read-permissions cards)
-  (p/send-pulse! body)
+  (p/send-pulse! (assoc body :creator_id api/*current-user-id*))
   {:ok true})
 
 (api/defendpoint DELETE "/:id/subscription/email"

@@ -1,5 +1,10 @@
 (ns metabase.metabot.command-test
-  (:require [expectations :refer [expect]]
+  (:require [clojure.test :refer :all]
+            [expectations :refer [expect]]
+            [metabase
+             [query-processor :as qp]
+             [util :as u]]
+            [metabase.api.common :as api]
             [metabase.metabot
              [command :as metabot.cmd]
              [test-util :as metabot.test.u]]
@@ -11,7 +16,6 @@
             [metabase.test
              [data :as data]
              [util :as tu]]
-            [metabase.util :as u]
             [metabase.util.i18n :refer [tru]]
             [toucan.util.test :as tt]))
 
@@ -51,30 +55,31 @@
    :query    {:source-table (data/id :venues)
               :aggregation  [[:count]]}})
 
-;; Check that when we call the `show` command it passes something resembling what we'd like to the correct `pulse/`
-;; functions
-(expect
-  {:response "Ok, just a second..."
-   :messages `[(~'post-chat-message!
-                nil
-                (~'create-and-upload-slack-attachments!
-                 (~'create-slack-attachment-data
-                  (~{:card   metabase.models.card.CardInstance
-                     :result clojure.lang.PersistentHashMap}))))]}
-  (tt/with-temp Card [{card-id :id} {:dataset_query (venues-count-query)}]
-    (command "show" card-id)))
+(deftest show-card-by-id-test
+  (testing "Check that when we call the `show` command it passes something resembling what we'd like to the correct `pulse/` functions"
+    (tt/with-temp Card [{card-id :id} {:dataset_query (venues-count-query)}]
+      (is (= {:response "Ok, just a second..."
+              :messages `[(~'post-chat-message!
+                           nil
+                           (~'create-and-upload-slack-attachments!
+                            (~'create-slack-attachment-data
+                             (~{:card   metabase.models.card.CardInstance
+                                :result clojure.lang.PersistentHashMap}))))]}
+             (command "show" card-id))))))
 
-;; Show also work when you try to show Card by name
-(expect
-  {:response "Ok, just a second..."
-   :messages `[(~'post-chat-message!
-                nil
-                (~'create-and-upload-slack-attachments!
-                 (~'create-slack-attachment-data
-                  (~{:card   metabase.models.card.CardInstance
-                     :result clojure.lang.PersistentHashMap}))))]}
-  (tt/with-temp Card [_ {:dataset_query (venues-count-query), :name "Cam's Cool MetaBot Card"}]
-    (command "show" "Cam's Cool M")))
+(deftest show-card-by-name-test
+  (testing "Show also work when you try to show Card by name"
+    (tt/with-temp Card [_ {:dataset_query (venues-count-query), :name "Cam's Cool MetaBot Card"}]
+      (is (= {:response "Ok, just a second..."
+              :messages `[(~'post-chat-message!
+                           nil
+                           (~'create-and-upload-slack-attachments!
+                            (~'create-slack-attachment-data
+                             (~{:card   metabase.models.card.CardInstance
+                                :result clojure.lang.PersistentHashMap}))))]}
+             (command "show" "Cam's Cool M"))))))
+
+;; TODO -- the rest of these tests should probably be combined into `show-card-by-id-test` and `show-card-by-name-test`
 
 ;; If you try to show more than one Card by name, it should ask you to be more specific
 (tt/expect-with-temp [Card [{card-1-id :id} {:dataset_query (venues-count-query), :name "Cam's Cool MetaBot Card 1"}]
@@ -125,3 +130,15 @@
   {:response (tru "I don''t know how to `overflow stack`. Here''s what I can do: `help`, `list`, `show`")
    :messages []}
   (command "overflow stack"))
+
+(deftest metabot-permissions-test
+  (testing "When executing a query MetaBot permissions should be bound in the Query Processor"
+    (let [current-user-perms-set (atom ::unknown)]
+      (with-redefs [qp/process-userland-query (fn [& _]
+                                                (reset! current-user-perms-set @api/*current-user-permissions-set*)
+                                                (throw "Done!"))]
+        (tt/with-temp Card [{card-id :id} {:dataset_query (venues-count-query)}]
+          (u/ignore-exceptions
+            (command "show" card-id))
+          (is (= (#'metabot.cmd/metabot-permissions)
+                 @current-user-perms-set)))))))

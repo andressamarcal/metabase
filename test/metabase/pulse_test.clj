@@ -885,15 +885,15 @@
      (pulse/send-pulse! (models.pulse/retrieve-notification pulse-id))
      (et/summarize-multipart-email test-card-regex))))
 
-;; even if Card is saved as `:async?` we shouldn't run the query async
-(tu/expect-schema
-  {:card   (s/pred map?)
-   :result (s/pred map?)}
-  (tt/with-temp Card [card {:dataset_query {:database (data/id)
-                                            :type     :query
-                                            :query    {:source-table (data/id :venues)}
-                                            :async?   true}}]
-    (pulse/execute-card {} card)))
+(deftest run-card-sync-test
+  (testing "even if Card is saved as `:async?` we shouldn't run the query async"
+    (tt/with-temp Card [card {:dataset_query {:database (data/id)
+                                              :type     :query
+                                              :query    {:source-table (data/id :venues)}
+                                              :async?   true}}]
+      (is (schema= {:card   (s/pred map?)
+                    :result (s/pred map?)}
+                   (pulse/execute-card {:creator_id (mt/user->id :rasta)} card))))))
 
 (deftest pulse-permissions-test
   (testing "Pulses should be sent with the Permissions of the user that created them."
