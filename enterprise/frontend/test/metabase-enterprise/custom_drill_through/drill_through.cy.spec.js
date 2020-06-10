@@ -5,6 +5,7 @@ describe("drill through", () => {
 
   beforeEach(signInAsAdmin);
   it("sets drill through link for dots in a line graph", () => {
+    throw new Error("testing enterprise cypress tests");
     cy.visit("/question/3");
     cy.contains("Settings").click();
     cy.contains("Drill-through")

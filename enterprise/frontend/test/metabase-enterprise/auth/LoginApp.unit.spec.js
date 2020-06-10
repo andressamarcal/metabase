@@ -20,6 +20,7 @@ describe("LoginApp - Enterprise", () => {
         Settings.set("google-auth-client-id", 123);
       });
       it("should show the SSO button without an option to use password", () => {
+        throw new Error("testing enterprise unit tests");
         const { wrapper } = mountWithStore(<LoginApp params={{}} />);
         expect(wrapper.find("AuthProviderButton").length).toBe(1);
         expect(wrapper.find(SELECTOR_FOR_EMAIL_LINK).length).toBe(0);
