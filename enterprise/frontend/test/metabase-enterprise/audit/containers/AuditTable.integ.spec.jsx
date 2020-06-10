@@ -24,7 +24,6 @@ describe("AuditTable", () => {
   describe("pagination controls", () => {
     beforeEach(() => {});
     it("should not appear if there's not another page", async () => {
-      throw new Error("testing enterprise integration tests");
       mock.post("/api/dataset", (req, res) =>
         res.json({
           data: { rows: [[0]], cols: [{ name: "x" }] },

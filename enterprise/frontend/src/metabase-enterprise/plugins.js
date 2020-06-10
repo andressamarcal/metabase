@@ -1,5 +1,3 @@
-/* @flow */
-
 import MetabaseSettings from "metabase/lib/settings";
 
 // SETTINGS OVERRIDES:
@@ -24,9 +22,3 @@ import "./whitelabel";
 import "./embedding";
 import "./store";
 import "./formatting";
-
-//NOCOMMIT: breaking change to test eslint, prettier, flow, and 
-     if (false) {
-  foo()
-  MetabaseSettings.docsUrl("enterprise-guide/doesntexist")
-}

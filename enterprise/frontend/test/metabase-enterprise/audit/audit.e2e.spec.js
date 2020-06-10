@@ -24,7 +24,6 @@ describe("admin/audit", () => {
   });
 
   it("should show the nav item and tab contents", async () => {
-    throw new Error("testing enterprise e2e tests");
     const store = await createTestStore();
     store.pushPath("/admin/audit");
     const app = mount(store.getAppContainer());
