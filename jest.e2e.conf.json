@@ -10,11 +10,14 @@
     "<rootDir>/frontend/test/legacy-selenium"
   ],
   "testMatch": [
-    "<rootDir>/frontend/test/**/*.e2e.spec.js?(x)"
+    "<rootDir>/frontend/test/**/*.e2e.spec.js?(x)",
+    "<rootDir>/enterprise/frontend/test/**/*.e2e.spec.js?(x)"
   ],
   "modulePaths": [
     "<rootDir>/frontend/test",
-    "<rootDir>/frontend/src"
+    "<rootDir>/frontend/src",
+    "<rootDir>/enterprise/frontend/test",
+    "<rootDir>/enterprise/frontend/src"
   ],
   "setupFiles": [
     "<rootDir>/frontend/test/jest-setup.js",

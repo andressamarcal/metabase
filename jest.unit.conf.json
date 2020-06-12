@@ -9,8 +9,16 @@
     "<rootDir>/frontend/test/legacy-selenium",
     "<rootDir>/frontend/test/.*/.*.tz.unit.spec.js"
   ],
-  "testMatch": ["<rootDir>/frontend/test/**/*.unit.spec.js?(x)"],
-  "modulePaths": ["<rootDir>/frontend/test", "<rootDir>/frontend/src"],
+  "testMatch": [
+    "<rootDir>/frontend/test/**/*.unit.spec.js?(x)",
+    "<rootDir>/enterprise/frontend/test/**/*.unit.spec.js?(x)"
+  ],
+  "modulePaths": [
+    "<rootDir>/frontend/test",
+    "<rootDir>/frontend/src",
+    "<rootDir>/enterprise/frontend/test",
+    "<rootDir>/enterprise/frontend/src"
+  ],
   "setupFiles": [
     "<rootDir>/frontend/test/jest-setup.js",
     "<rootDir>/frontend/test/enzyme-setup.js",
