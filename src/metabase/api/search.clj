@@ -16,6 +16,7 @@
              [collection :as coll :refer [Collection]]
              [dashboard :refer [Dashboard]]
              [dashboard-favorite :refer [DashboardFavorite]]
+             [interface :as mi]
              [metric :refer [Metric]]
              [permissions :as perms]
              [pulse :refer [Pulse]]
