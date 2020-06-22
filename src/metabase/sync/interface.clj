@@ -11,8 +11,8 @@
 
 (def DatabaseMetadataTable
   "Schema for the expected output of `describe-database` for a Table."
-  {:name          su/NonBlankString
-   :schema        (s/maybe su/NonBlankString)
+  {:name                         su/NonBlankString
+   :schema                       (s/maybe su/NonBlankString)
    (s/optional-key :description) (s/maybe su/NonBlankString)})
 
 (def DatabaseMetadata
@@ -112,10 +112,10 @@
   {(s/optional-key :percent-json)   (s/maybe Percent)
    (s/optional-key :percent-url)    (s/maybe Percent)
    (s/optional-key :percent-email)  (s/maybe Percent)
-   (s/optional-key :average-length) s/Num})
+   (s/optional-key :average-length) (s/maybe s/Num)})
 
-(def DateTimeFingerprint
-  "Schema for fingerprint information for Fields deriving from `:type/DateTime`."
+(def TemporalFingerprint
+  "Schema for fingerprint information for Fields deriving from `:type/Temporal`."
   {(s/optional-key :earliest) (s/maybe s/Str)
    (s/optional-key :latest)   (s/maybe s/Str)})
 
@@ -124,7 +124,9 @@
   (s/constrained
    {(s/optional-key :type/Number)   NumberFingerprint
     (s/optional-key :type/Text)     TextFingerprint
-    (s/optional-key :type/DateTime) DateTimeFingerprint}
+    ;; temporal fingerprints are keyed by `:type/DateTime` for historical reasons. `DateTime` used to be the parent of
+    ;; all temporal MB types.
+    (s/optional-key :type/DateTime) TemporalFingerprint}
    (fn [m]
      (= 1 (count (keys m))))
    "Type-specific fingerprint with exactly one key"))
@@ -165,7 +167,8 @@
    time we do analysis. The highest-numbered entry is considered the latest version of fingerprints."
   {1 #{:type/*}
    2 #{:type/Number}
-   3 #{:type/DateTime}})
+   3 #{:type/DateTime}
+   4 #{:type/*}})
 
 (def latest-fingerprint-version
   "The newest (highest-numbered) version of our Field fingerprints."

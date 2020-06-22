@@ -3,11 +3,11 @@
    See http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html#format for details on cron
    format."
   (:require [clojure.string :as str]
-            [schema.core :as s]
             [metabase.util.schema :as su]
-            [puppetlabs.i18n.core :as i18n])
-  (:import org.quartz.CronExpression
-           net.redhogs.cronparser.CronExpressionDescriptor))
+            [puppetlabs.i18n.core :as i18n]
+            [schema.core :as s])
+  (:import net.redhogs.cronparser.CronExpressionDescriptor
+           org.quartz.CronExpression))
 
 (def CronScheduleString
   "Schema for a valid cron schedule string."

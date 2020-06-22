@@ -58,6 +58,7 @@ type Props = {
     reload: boolean,
     clear: boolean,
   }) => Promise<void>,
+  cancelFetchDashboardCardData: () => Promise<void>,
   setParameterValue: (id: string, value: string) => void,
   setErrorPage: (error: { status: number }) => void,
 
@@ -68,7 +69,10 @@ type Props = {
 };
 
 export default (ComposedComponent: ReactClass<any>) =>
-  connect(mapStateToProps, mapDispatchToProps)(
+  connect(
+    mapStateToProps,
+    mapDispatchToProps,
+  )(
     class DashboardContainer extends Component {
       props: Props;
 
@@ -94,6 +98,10 @@ export default (ComposedComponent: ReactClass<any>) =>
 
       componentWillMount() {
         this.load(this.props);
+      }
+
+      componentWillUnmount() {
+        this.props.cancelFetchDashboardCardData();
       }
 
       componentWillReceiveProps(nextProps: Props) {

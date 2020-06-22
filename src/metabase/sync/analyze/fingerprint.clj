@@ -4,16 +4,18 @@
   (:require [clojure.set :as set]
             [clojure.tools.logging :as log]
             [honeysql.helpers :as h]
-            [metabase.db :as mdb]
-            [metabase.driver :as driver]
+            [metabase
+             [db :as mdb]
+             [util :as u]]
+            [metabase.db.metadata-queries :as metadata-queries]
             [metabase.models.field :refer [Field]]
+            [metabase.query-processor.store :as qp.store]
             [metabase.sync
              [interface :as i]
              [util :as sync-util]]
             [metabase.sync.analyze.fingerprint.fingerprinters :as f]
-            [metabase.util :as u]
             [metabase.util
-             [date :as du]
+             [i18n :refer [trs]]
              [schema :as su]]
             [redux.core :as redux]
             [schema.core :as s]
@@ -21,7 +23,7 @@
 
 (s/defn ^:private save-fingerprint!
   [field :- i/FieldInstance, fingerprint :- (s/maybe i/Fingerprint)]
-  (log/debug (format "Saving fingerprint for %s" (sync-util/name-for-logging field)))
+  (log/debug (trs "Saving fingerprint for {0}" (sync-util/name-for-logging field)))
   ;; All Fields who get new fingerprints should get marked as having the latest fingerprint version, but we'll
   ;; clear their values for `last_analyzed`. This way we know these fields haven't "completed" analysis for the
   ;; latest fingerprints.
@@ -30,7 +32,9 @@
     :fingerprint_version i/latest-fingerprint-version
     :last_analyzed       nil))
 
-(defn- empty-stats-map [fields-count]
+(defn empty-stats-map
+  "The default stats before any fingerprints happen"
+  [fields-count]
   {:no-data-fingerprints   0
    :failed-fingerprints    0
    :updated-fingerprints   0
@@ -56,7 +60,7 @@
                               (update count-info :updated-fingerprints inc))))
                         (empty-stats-map (count fingerprints))
                         (map vector fields fingerprints))))
-             (driver/table-rows-sample table fields)))
+             (metadata-queries/table-rows-sample table fields)))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                    WHICH FIELDS NEED UPDATED FINGERPRINTS?                                     |
@@ -86,7 +90,7 @@
   (->> (for [base-type base-types]
          (cons base-type (descendants base-type)))
        (reduce set/union)
-       (map u/keyword->qualified-name)
+       (map u/qualified-name)
        set))
 
 ;; It's even cooler if we could generate efficient SQL that looks at what types have already
@@ -133,7 +137,7 @@
             [:or
              [:not (mdb/isa :special_type :type/PK)]
              [:= :special_type nil]]
-            [:not= :visibility_type "retired"]
+            [:not-in :visibility_type ["retired" "sensitive"]]
             (cons :or (versions-clauses))]})
 
   ([table :- i/TableInstance]
@@ -147,7 +151,7 @@
 
 (s/defn ^:private fields-to-fingerprint :- (s/maybe [i/FieldInstance])
   "Return a sequences of Fields belonging to TABLE for which we should generate (and save) fingerprints.
-   This should include NEW fields that are active and visibile."
+   This should include NEW fields that are active and visible."
   [table :- i/TableInstance]
   (seq (db/select Field
          (honeysql-for-fields-that-need-fingerprint-updating table))))
@@ -157,7 +161,12 @@
   "Generate and save fingerprints for all the Fields in TABLE that have not been previously analyzed."
   [table :- i/TableInstance]
   (if-let [fields (fields-to-fingerprint table)]
-    (fingerprint-table! table fields)
+    (let [stats (sync-util/with-error-handling
+                  (format "Error fingerprinting %s" (sync-util/name-for-logging table))
+                  (fingerprint-table! table fields))]
+      (if (instance? Exception stats)
+        (empty-stats-map 0)
+        stats))
     (empty-stats-map 0)))
 
 (s/defn fingerprint-fields-for-db!
@@ -165,9 +174,14 @@
   [database :- i/DatabaseInstance
    tables :- [i/TableInstance]
    log-progress-fn]
-  (du/with-effective-timezone database
+  ;; TODO: Maybe the driver should have a function to tell you if it supports fingerprinting?
+  (qp.store/with-store
+    ;; store is bound so DB timezone can be used in date coercion logic
+    (qp.store/store-database! database)
     (apply merge-with + (for [table tables
-                              :let [result (fingerprint-fields! table)]]
+                              :let  [result (if (= :googleanalytics (:engine database))
+                                              (empty-stats-map 0)
+                                              (fingerprint-fields! table))]]
                           (do
                             (log-progress-fn "fingerprint-fields" table)
                             result)))))

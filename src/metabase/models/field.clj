@@ -1,6 +1,7 @@
 (ns metabase.models.field
   (:require [clojure.core.memoize :as memoize]
-            [clojure.string :as s]
+            [clojure.string :as str]
+            [medley.core :as m]
             [metabase.models
              [dimension :refer [Dimension]]
              [field-values :as fv :refer [FieldValues]]
@@ -119,6 +120,22 @@
     ;; otherwise we need to fetch additional info about Field's Table. This is cached for 5 seconds (see above)
     (perms-objects-set* table-id)))
 
+(defn- maybe-parse-special-numeric-values [maybe-double-value]
+  (if (string? maybe-double-value)
+    (u/ignore-exceptions (Double/parseDouble maybe-double-value))
+    maybe-double-value))
+
+(defn- update-special-numeric-values
+  "When fingerprinting decimal columns, NaN and Infinity values are possible. Serializing these values to JSON just
+  yields a string, not a value double. This function will attempt to coerce any of those values to double objects"
+  [fingerprint]
+  (m/update-existing-in fingerprint [:type :type/Number]
+                        (partial m/map-vals maybe-parse-special-numeric-values)))
+
+(models/add-type! :json-for-fingerprints
+  :in  i/json-in
+  :out (comp update-special-numeric-values i/json-out-with-keywordization))
+
 
 (u/strict-extend (class Field)
   models/IModel
@@ -127,9 +144,8 @@
           :types          (constantly {:base_type        :keyword
                                        :special_type     :keyword
                                        :visibility_type  :keyword
-                                       :description      :clob
                                        :has_field_values :keyword
-                                       :fingerprint      :json
+                                       :fingerprint      :json-for-fingerprints
                                        :settings         :json})
           :properties     (constantly {:timestamped? true})
           :pre-insert     pre-insert
@@ -153,7 +169,7 @@
     (Field fk_target_field_id)))
 
 (defn values
-  "Return the `FieldValues` associated with this FIELD."
+  "Return the `FieldValues` associated with this `field`."
   [{:keys [id]}]
   (db/select [FieldValues :field_id :values], :field_id id))
 
@@ -169,7 +185,7 @@
                           (db/select model :field_id [:in field-ids])))))
 
 (defn with-values
-  "Efficiently hydrate the `FieldValues` for a collection of FIELDS."
+  "Efficiently hydrate the `FieldValues` for a collection of `fields`."
   {:batched-hydrate :values}
   [fields]
   (let [id->field-values (select-field-id->instance fields FieldValues)]
@@ -177,7 +193,7 @@
       (assoc field :values (get id->field-values (:id field) [])))))
 
 (defn with-normal-values
-  "Efficiently hydrate the `FieldValues` for visibility_type normal FIELDS."
+  "Efficiently hydrate the `FieldValues` for visibility_type normal `fields`."
   {:batched-hydrate :normal_values}
   [fields]
   (let [id->field-values (select-field-id->instance (filter fv/field-should-have-field-values? fields)
@@ -186,7 +202,7 @@
       (assoc field :values (get id->field-values (:id field) [])))))
 
 (defn with-dimensions
-  "Efficiently hydrate the `Dimension` for a collection of FIELDS."
+  "Efficiently hydrate the `Dimension` for a collection of `fields`."
   {:batched-hydrate :dimensions}
   [fields]
   ;; TODO - it looks like we obviously thought this code would return *all* of the Dimensions for a Field, not just
@@ -240,7 +256,7 @@
     (dissoc field :table)))
 
 (defn with-targets
-  "Efficiently hydrate the FK target fields for a collection of FIELDS."
+  "Efficiently hydrate the FK target fields for a collection of `fields`."
   {:batched-hydrate :target}
   [fields]
   (let [target-field-ids (set (for [field fields
@@ -255,7 +271,7 @@
 
 
 (defn qualified-name-components
-  "Return the pieces that represent a path to FIELD, of the form `[table-name parent-fields-name* field-name]`."
+  "Return the pieces that represent a path to `field`, of the form `[table-name parent-fields-name* field-name]`."
   [{field-name :name, table-id :table_id, parent-id :parent_id}]
   (conj (vec (if-let [parent (Field parent-id)]
                (qualified-name-components parent)
@@ -266,9 +282,9 @@
         field-name))
 
 (defn qualified-name
-  "Return a combined qualified name for FIELD, e.g. `table_name.parent_field_name.field_name`."
+  "Return a combined qualified name for `field`, e.g. `table_name.parent_field_name.field_name`."
   [field]
-  (s/join \. (qualified-name-components field)))
+  (str/join \. (qualified-name-components field)))
 
 (defn table
   "Return the `Table` associated with this `Field`."
@@ -280,4 +296,4 @@
   "Is field a UNIX timestamp?"
   [{:keys [base_type special_type]}]
   (and (isa? base_type :type/Integer)
-       (isa? special_type :type/DateTime)))
+       (isa? special_type :type/Temporal)))

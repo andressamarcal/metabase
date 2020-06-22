@@ -2,9 +2,11 @@
   "Convenience functions for sending templated email messages.  Each function here should represent a single email.
    NOTE: we want to keep this about email formatting, so don't put heavy logic here RE: building data for emails."
   (:require [clojure.core.cache :as cache]
+            [clojure.java.io :as io]
             [clojure.string :as str]
             [clojure.tools.logging :as log]
             [hiccup.core :refer [html]]
+            [java-time :as t]
             [medley.core :as m]
             [metabase
              [config :as config]
@@ -12,10 +14,13 @@
              [public-settings :as public-settings]
              [util :as u]]
             [metabase.pulse.render :as render]
+            [metabase.pulse.render
+             [body :as render.body]
+             [style :as render.style]]
+            [metabase.query-processor.streaming :as qp.streaming]
+            [metabase.query-processor.streaming.interface :as qp.streaming.i]
             [metabase.util
-             [date :as du]
-             [export :as export]
-             [i18n :refer [trs tru]]
+             [i18n :refer [deferred-trs trs tru]]
              [quotation :as quotation]
              [urls :as url]]
             [stencil
@@ -24,16 +29,21 @@
             [toucan.db :as db])
   (:import [java.io File IOException]))
 
-(alter-meta! #'stencil.core/render-file assoc :style/indent 1)
+(defn- app-name-trs
+  "Return the user configured application name, or Metabase translated
+  via tru if a name isn't configured."
+  []
+  (or (public-settings/application-name)
+      (trs "Metabase")))
 
 ;; Dev only -- disable template caching
 (when config/is-dev?
+  (alter-meta! #'stencil.core/render-file assoc :style/indent 1)
   (stencil-loader/set-cache (cache/ttl-cache-factory {} :ttl 0)))
 
 (def ^:private ^:const data-uri-svg-regex #"^data:image/svg\+xml;base64,(.*)$")
 
-(defn- data-uri-svg?
-  [url]
+(defn- data-uri-svg? [url]
   (re-matches data-uri-svg-regex url))
 
 (defn- themed-image-url
@@ -51,6 +61,9 @@
         color (public-settings/application-color)]
     (cond
       (= url "app/assets/img/logo.svg") "http://static.metabase.com/email_logo.png"
+      ;; NOTE: disabling whitelabeled URLs for now since some email clients don't render them correctly
+      ;; We need to extract them and embed as attachments like we do in metabase.pulse.render.image-bundle
+      true                              nil
       (data-uri-svg? url)               (themed-image-url url color)
       :else                             url)))
 
@@ -85,22 +98,22 @@
    :logoHeader true})
 
 (defn- abandonment-context []
-  {:heading      (str (trs "We’d love your feedback."))
-   :callToAction (str (trs "It looks like Metabase wasn’t quite a match for you.")
+  {:heading      (trs "We’d love your feedback.")
+   :callToAction (str (deferred-trs "It looks like Metabase wasn’t quite a match for you.")
                       " "
-                      (trs "Would you mind taking a fast 5 question survey to help the Metabase team understand why and make things better in the future?"))
-   :link         "https://www.metabase.com/feedback/inactive"})
+                      (deferred-trs "Would you mind taking a fast 5 question survey to help the Metabase team understand why and make things better in the future?"))
+   :link         "https://metabase.com/feedback/inactive"})
 
 (defn- follow-up-context []
-  {:heading      (str (trs "We hope you''ve been enjoying Metabase."))
-   :callToAction (str (trs "Would you mind taking a fast 6 question survey to tell us how it’s going?"))
-   :link         "https://www.metabase.com/feedback/active"})
+  {:heading      (trs "We hope you''ve been enjoying Metabase.")
+   :callToAction (trs "Would you mind taking a fast 6 question survey to tell us how it’s going?")
+   :link         "https://metabase.com/feedback/active"})
 
 
 ;;; ### Public Interface
 
 (defn send-new-user-email!
-  "Send an email to INVITIED letting them know INVITOR has invited them to join Metabase."
+  "Send an email to `invitied` letting them know `invitor` has invited them to join Metabase."
   [invited invitor join-url]
   (let [company      (or (public-settings/site-name) "Unknown")
         message-body (stencil/render-file "metabase/email/new_user_invite"
@@ -111,11 +124,11 @@
                                :invitorEmail (:email invitor)
                                :company      company
                                :joinUrl      join-url
-                               :today        (du/format-date "MMM'&nbsp;'dd,'&nbsp;'yyyy")
+                               :today        (t/format "MMM'&nbsp;'dd,'&nbsp;'yyyy" (t/zoned-date-time))
                                :logoHeader   true}
                               (random-quote-context)))]
     (email/send-message!
-      :subject      (str (trs "You''re invited to join {0}''s {1}" company (u/app-name-trs)))
+      :subject      (str (trs "You''re invited to join {0}''s {1}" company (app-name-trs)))
       :recipients   [(:email invited)]
       :message-type :html
       :message      message-body)))
@@ -131,14 +144,14 @@
           (db/select-field :email 'User, :is_superuser true, :is_active true, {:order-by [[:id :asc]]})))
 
 (defn send-user-joined-admin-notification-email!
-  "Send an email to the INVITOR (the Admin who invited NEW-USER) letting them know NEW-USER has joined."
+  "Send an email to the `invitor` (the Admin who invited `new-user`) letting them know `new-user` has joined."
   [new-user & {:keys [google-auth?]}]
   {:pre [(map? new-user)]}
   (let [recipients (all-admin-recipients)]
     (email/send-message!
       :subject      (str (if google-auth?
-                           (trs "{0} created a {1} account" (:common_name new-user) (u/app-name-trs))
-                           (trs "{0} accepted their {1} invite" (:common_name new-user) (u/app-name-trs))))
+                           (trs "{0} created a {1} account" (:common_name new-user) (app-name-trs))
+                           (trs "{0} accepted their {1} invite" (:common_name new-user) (app-name-trs))))
       :recipients   recipients
       :message-type :html
       :message      (stencil/render-file "metabase/email/user_joined_notification"
@@ -147,7 +160,7 @@
                               :joinedUserName    (:first_name new-user)
                               :joinedViaSSO      google-auth?
                               :joinedUserEmail   (:email new-user)
-                              :joinedDate        (du/format-date "EEEE, MMMM d") ; e.g. "Wednesday, July 13". TODO - is this what we want?
+                              :joinedDate        (t/format "EEEE, MMMM d" (t/zoned-date-time)) ; e.g. "Wednesday, July 13". TODO - is this what we want?
                               :adminEmail        (first recipients)
                               :joinedUserEditUrl (str (public-settings/site-url) "/admin/people")}
                              (random-quote-context))))))
@@ -168,7 +181,7 @@
                                :passwordResetUrl password-reset-url
                                :logoHeader       true}))]
     (email/send-message!
-      :subject      (str (trs "[{0}] Password Reset Request" (u/app-name-trs)))
+      :subject      (trs "[{0}] Password Reset Request" (app-name-trs))
       :recipients   [email]
       :message-type :html
       :message      message-body)))
@@ -187,7 +200,7 @@
   (assoc obj :url ((model-name->url-fn model) id)))
 
 (defn- build-dependencies
-  "Build a sequence of dependencies from a MODEL-NAME->DEPENDENCIES map, and add various information such as obj URLs."
+  "Build a sequence of dependencies from a `model-name->dependencies` map, and add various information such as obj URLs."
   [model-name->dependencies]
   (for [model-name (sort (keys model-name->dependencies))
         :let       [user-facing-name (if (= model-name "Card")
@@ -208,7 +221,7 @@
         message-body (stencil/render-file "metabase/email/notification"
                                           (merge (common-context) context))]
     (email/send-message!
-      :subject      (str (trs "[{0}] Notification" (u/app-name-trs)))
+      :subject      (trs "[{0}] Notification" (app-name-trs))
       :recipients   [email]
       :message-type :html
       :message      message-body)))
@@ -218,8 +231,8 @@
   [email msg-type]
   {:pre [(u/email? email) (contains? #{"abandon" "follow-up"} msg-type)]}
   (let [subject      (str (if (= "abandon" msg-type)
-                            (trs "[{0}] Help make Metabase better." (u/app-name-trs))
-                            (trs "[{0}] Tell us how things are going." (u/app-name-trs))))
+                            (trs "[{0}] Help make [{0}] better." (app-name-trs) (app-name-trs))
+                            (trs "[{0}] Tell us how things are going." (app-name-trs))))
         context      (merge notification-context
                             (random-quote-context)
                             (if (= "abandon" msg-type)
@@ -240,10 +253,11 @@
    :content      url})
 
 (defn- pulse-context [pulse]
-  (merge {:emailType    "pulse"
+  (merge (common-context)
+         {:emailType    "pulse"
           :pulseName    (:name pulse)
-          :sectionStyle (render/style (render/section-style))
-          :colorGrey4   render/color-gray-4
+          :sectionStyle (render.style/style (render.style/section-style))
+          :colorGrey4   render.style/color-gray-4
           :logoFooter   true}
          (random-quote-context)))
 
@@ -259,38 +273,70 @@
   (try
     (create-temp-file suffix)
     (catch IOException e
-      (let [ex-msg (str (tru "Unable to create temp file in `{0}` for email attachments "
-                             (System/getProperty "java.io.tmpdir")))]
+      (let [ex-msg (tru "Unable to create temp file in `{0}` for email attachments "
+                        (System/getProperty "java.io.tmpdir"))]
         (throw (IOException. ex-msg e))))))
 
 (defn- create-result-attachment-map [export-type card-name ^File attachment-file]
-  (let [{:keys [content-type ext]} (get export/export-formats export-type)]
+  (let [{:keys [content-type]} (qp.streaming.i/stream-options export-type)]
     {:type         :attachment
      :content-type content-type
-     :file-name    (format "%s.%s" card-name ext)
+     :file-name    (format "%s.%s" card-name (name export-type))
      :content      (-> attachment-file .toURI .toURL)
      :description  (format "More results for '%s'" card-name)}))
 
-(defn- result-attachments [results]
-  (remove nil?
-          (apply concat
-                 (for [{{card-name :name, :as card} :card :as result} results
-                       :let [{:keys [rows] :as result-data} (get-in result [:result :data])]
-                       :when (seq rows)]
-                   [(when-let [temp-file (and (render/include-csv-attachment? card result-data)
-                                              (create-temp-file-or-throw "csv"))]
-                      (export/export-to-csv-writer temp-file result)
-                      (create-result-attachment-map "csv" card-name temp-file))
+(defn- include-csv-attachment?
+  "Should this `card` and `results` include a CSV attachment?"
+  [{include-csv? :include_csv, include-xls? :include_xls, card-name :name, :as card} {:keys [cols rows], :as result-data}]
+  (letfn [(yes [reason & args]
+            (log/tracef "Including CSV attachement for Card %s because %s" (pr-str card-name) (apply format reason args))
+            true)
+          (no [reason & args]
+            (log/tracef "NOT including CSV attachement for Card %s because %s" (pr-str card-name) (apply format reason args))
+            false)]
+    (cond
+      include-csv?
+      (yes "it has `:include_csv`")
 
-                    (when-let [temp-file (and (:include_xls card)
-                                              (create-temp-file-or-throw "xlsx"))]
-                      (export/export-to-xlsx-file temp-file result)
-                      (create-result-attachment-map "xlsx" card-name temp-file))]))))
+      include-xls?
+      (no "it has `:include_xls`")
+
+      (some (complement render.body/show-in-table?) cols)
+      (yes "some columns are not included in rendered results")
+
+      (not= :table (render/detect-pulse-chart-type card result-data))
+      (no "we've determined it should not be rendered as a table")
+
+      (= (count (take render.body/cols-limit cols)) render.body/cols-limit)
+      (yes "the results have >= %d columns" render.body/cols-limit)
+
+      (= (count (take render.body/rows-limit rows)) render.body/rows-limit)
+      (yes "the results have >= %d rows" render.body/rows-limit)
+
+      :else
+      (no "less than %d columns, %d rows in results" render.body/cols-limit render.body/rows-limit))))
+
+(defn- result-attachment
+  [{{card-name :name, :as card} :card, {{:keys [rows], :as result-data} :data, :as result} :result}]
+  (when (seq rows)
+    [(when-let [temp-file (and (include-csv-attachment? card result-data)
+                               (create-temp-file-or-throw "csv"))]
+       (with-open [os (io/output-stream temp-file)]
+         (qp.streaming/stream-api-results-to-export-format :csv os result))
+       (create-result-attachment-map "csv" card-name temp-file))
+     (when-let [temp-file (and (:include_xls card)
+                               (create-temp-file-or-throw "xlsx"))]
+       (with-open [os (io/output-stream temp-file)]
+         (qp.streaming/stream-api-results-to-export-format :xlsx os result))
+       (create-result-attachment-map "xlsx" card-name temp-file))]))
+
+(defn- result-attachments [results]
+  (filter some? (mapcat result-attachment results)))
 
 (defn- render-message-body [message-template message-context timezone results]
   (let [rendered-cards (binding [render/*include-title* true]
                          ;; doall to ensure we haven't exited the binding before the valures are created
-                         (doall (map #(render/render-pulse-section timezone %) results)))
+                         (mapv #(render/render-pulse-section timezone %) results))
         message-body   (assoc message-context :pulse (html (vec (cons :div (map :content rendered-cards)))))
         attachments    (apply merge (map :attachments rendered-cards))]
     (vec (concat [{:type "text/html; charset=utf-8" :content (stencil/render-file message-template message-body)}]
@@ -308,7 +354,7 @@
   (render-message-body "metabase/email/pulse" (pulse-context pulse) timezone (assoc-attachment-booleans pulse results)))
 
 (defn pulse->alert-condition-kwd
-  "Given an `ALERT` return a keyword representing what kind of goal needs to be met."
+  "Given an `alert` return a keyword representing what kind of goal needs to be met."
   [{:keys [alert_above_goal alert_condition card creator] :as alert}]
   (if (= "goal" alert_condition)
     (if (true? alert_above_goal)
@@ -331,8 +377,8 @@
      (merge {:questionURL (url/card-url card-id)
              :questionName card-name
              :emailType    "alert"
-             :sectionStyle (render/section-style)
-             :colorGrey4   render/color-gray-4
+             :sectionStyle (render.style/section-style)
+             :colorGrey4   render.style/color-gray-4
              :logoFooter   true}
             (random-quote-context)
             (when alert-condition-map
@@ -374,34 +420,34 @@
   (str "metabase/email/" template-name ".mustache"))
 
 ;; Paths to the templates for all of the alerts emails
-(def ^:private new-alert-template (template-path "alert_new_confirmation"))
-(def ^:private you-unsubscribed-template (template-path "alert_unsubscribed"))
+(def ^:private new-alert-template          (template-path "alert_new_confirmation"))
+(def ^:private you-unsubscribed-template   (template-path "alert_unsubscribed"))
 (def ^:private admin-unsubscribed-template (template-path "alert_admin_unsubscribed_you"))
-(def ^:private added-template (template-path "alert_you_were_added"))
-(def ^:private stopped-template (template-path "alert_stopped_working"))
-(def ^:private deleted-template (template-path "alert_was_deleted"))
+(def ^:private added-template              (template-path "alert_you_were_added"))
+(def ^:private stopped-template            (template-path "alert_stopped_working"))
+(def ^:private deleted-template            (template-path "alert_was_deleted"))
 
 (defn send-new-alert-email!
-  "Send out the initial 'new alert' email to the `CREATOR` of the alert"
+  "Send out the initial 'new alert' email to the `creator` of the alert"
   [{:keys [creator] :as alert}]
   (send-email! creator "You set up an alert" new-alert-template
                (default-alert-context alert alert-condition-text)))
 
 (defn send-you-unsubscribed-alert-email!
-  "Send an email to `WHO-UNSUBSCRIBED` letting them know they've unsubscribed themselves from `ALERT`"
+  "Send an email to `who-unsubscribed` letting them know they've unsubscribed themselves from `alert`"
   [alert who-unsubscribed]
   (send-email! who-unsubscribed "You unsubscribed from an alert" you-unsubscribed-template
                (default-alert-context alert)))
 
 (defn send-admin-unsubscribed-alert-email!
-  "Send an email to `USER-ADDED` letting them know `ADMIN` has unsubscribed them from `ALERT`"
+  "Send an email to `user-added` letting them know `admin` has unsubscribed them from `alert`"
   [alert user-added {:keys [first_name last_name] :as admin}]
   (let [admin-name (format "%s %s" first_name last_name)]
     (send-email! user-added "You’ve been unsubscribed from an alert" admin-unsubscribed-template
                  (assoc (default-alert-context alert) :adminName admin-name))))
 
 (defn send-you-were-added-alert-email!
-  "Send an email to `USER-ADDED` letting them know `ADMIN-ADDER` has added them to `ALERT`"
+  "Send an email to `user-added` letting them know `admin-adder` has added them to `alert`"
   [alert user-added {:keys [first_name last_name] :as admin-adder}]
   (let [subject (format "%s %s added you to an alert" first_name last_name)]
     (send-email! user-added subject added-template (default-alert-context alert alert-condition-text))))

@@ -11,7 +11,7 @@
              [util :as u]]
             [metabase.models.setting :as setting :refer [defsetting]]
             [metabase.util
-             [i18n :refer [trs tru]]
+             [i18n :refer [deferred-tru trs tru]]
              [schema :as su]]
             [schema.core :as s]))
 
@@ -76,7 +76,9 @@
                 :status        (tru "Unable to validate token")
                 :error-details (.getMessage e)})))))
    fetch-token-status-timeout-ms
-   {:valid false, :status (tru "Unable to validate token"), :error-details (tru "Token validation timed out.")}))
+   {:valid         false
+    :status        (tru "Unable to validate token")
+    :error-details (tru "Token validation timed out.")}))
 
 (def ^{:arglists '([token])} fetch-token-status
   "TTL-memoized version of `fetch-token-status*`. Caches API responses for 5 minutes. This is important to avoid making
@@ -113,14 +115,14 @@
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
 (defsetting premium-embedding-token     ; TODO - rename this to premium-features-token?
-  (tru "Token for premium features. Go to the MetaStore to get yours!")
+  (deferred-tru "Token for premium features. Go to the MetaStore to get yours!")
   :setter
   (fn [new-value]
     ;; validate the new value if we're not unsetting it
     (try
       (when (seq new-value)
         (when (s/check ValidToken new-value)
-          (throw (ex-info (str (tru "Token format is invalid."))
+          (throw (ex-info (tru "Token format is invalid.")
                    {:status-code 400, :error-details "Token should be 64 hexadecimal characters."})))
         (valid-token->features new-value)
         (log/info (trs "Token is valid.")))
@@ -141,28 +143,38 @@
       (log/error (trs "Error validating token:") (.getMessage e))
       #{})))
 
-(defn hide-embed-branding?
+(defsetting hide-embed-branding?
   "Should we hide the 'Powered by Metabase' attribution on the embedding pages? `true` if we have a valid premium
    embedding token."
-  []
-  (boolean ((token-features) "embedding")))
+  :type       :boolean
+  :visibility :public
+  :setter     :none
+  :getter     (fn [] (boolean ((token-features) "embedding"))))
 
-(defn enable-whitelabeling?
+(defsetting enable-whitelabeling?
   "Should we allow full whitelabel embedding (reskinning the entire interface?)"
-  []
-  (boolean ((token-features) "whitelabel")))
+  :type       :boolean
+  :visibility :public
+  :setter     :none
+  :getter     (fn [] (boolean ((token-features) "whitelabel"))))
 
-(defn enable-audit-app?
+(defsetting enable-audit-app?
   "Should we allow use of the audit app?"
-  []
-  (boolean ((token-features) "audit-app")))
+  :type       :boolean
+  :visibility :public
+  :setter     :none
+  :getter     (fn [] (boolean ((token-features) "audit-app"))))
 
-(defn enable-sandboxes?
+(defsetting enable-sandboxes?
   "Should we enable data sandboxes (row and column-level permissions?"
-  []
-  (boolean ((token-features) "sandboxes")))
+  :type       :boolean
+  :visibility :public
+  :setter     :none
+  :getter     (fn [] (boolean ((token-features) "sandboxes"))))
 
-(defn enable-sso?
+(defsetting enable-sso?
   "Should we enable SAML/JWT sign-in?"
-  []
-  (boolean ((token-features) "sso")))
+  :type       :boolean
+  :visibility :public
+  :setter     :none
+  :getter     (fn [] (boolean ((token-features) "sso"))))

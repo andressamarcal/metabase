@@ -3,7 +3,7 @@
 import React from "react";
 import LogoIcon from "metabase/components/LogoIcon";
 
-import { t, jt } from "c-3po";
+import { t, jt } from "ttag";
 
 type Props = {
   dark: boolean,
@@ -11,7 +11,7 @@ type Props = {
 
 const LogoBadge = ({ dark }: Props) => (
   <a
-    href="http://www.metabase.com/"
+    href="https://metabase.com/"
     target="_blank"
     className="h4 flex text-bold align-center no-decoration"
   >

@@ -2,8 +2,8 @@
 
 import React from "react";
 
-import AccordianList from "metabase/components/AccordianList.jsx";
-import Icon from "metabase/components/Icon.jsx";
+import AccordionList from "metabase/components/AccordionList";
+import Icon from "metabase/components/Icon";
 
 import _ from "underscore";
 
@@ -26,7 +26,7 @@ export default class ParameterTargetList extends React.Component {
 
     const mappingOptionSections = _.groupBy(mappingOptions, "sectionName");
 
-    const hasFkOption = _.any(mappingOptions, o => !!o.isFk);
+    const hasForeignOption = _.any(mappingOptions, o => !!o.isForeign);
 
     const sections = _.map(mappingOptionSections, options => ({
       name: options[0].sectionName,
@@ -34,7 +34,7 @@ export default class ParameterTargetList extends React.Component {
     }));
 
     return (
-      <AccordianList
+      <AccordionList
         className="text-brand"
         maxHeight={this.props.maxHeight || 600}
         sections={sections}
@@ -44,7 +44,7 @@ export default class ParameterTargetList extends React.Component {
           <Icon name={item.icon || "unknown"} size={18} />
         )}
         alwaysExpanded={true}
-        hideSingleSectionTitle={!hasFkOption}
+        hideSingleSectionTitle={!hasForeignOption}
       />
     );
   }

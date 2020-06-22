@@ -1,6 +1,7 @@
 /* @flow weak */
 
-import "babel-polyfill";
+import "core-js/stable";
+import "regenerator-runtime/runtime";
 
 // Use of classList.add and .remove in Background and FitViewPort Hocs requires
 // this polyfill so that those work in older browsers
@@ -18,12 +19,16 @@ import "metabase/lib/i18n";
 // NOTE: why do we need to load this here?
 import "metabase/lib/colors";
 
-import { updateColors, updateColorsJS } from "metabase/lib/whitelabel";
-// Update the JS colors to ensure components that use a color statically get the
-// whitelabeled color (though this doesn't help if the admin changes a color and
-// doesn't refresh)
-// Don't update CSS colors yet since all the CSS hasn't been loaded yet
-updateColorsJS();
+// NOTE: this loads all builtin plugins
+import "metabase/plugins/builtin";
+
+// NOTE: this loads all the enterprise plugins
+// eslint-disable-next-line no-restricted-imports
+import "metabase-enterprise/plugins";
+
+import { PLUGIN_APP_INIT_FUCTIONS } from "metabase/plugins";
+
+import registerVisualizations from "metabase/visualizations/register";
 
 import React from "react";
 import ReactDOM from "react-dom";
@@ -36,6 +41,7 @@ import MetabaseAnalytics, {
 import MetabaseSettings from "metabase/lib/settings";
 
 import api from "metabase/lib/api";
+import { initializeEmbedding } from "metabase/lib/embed";
 
 import { getStore } from "./store";
 
@@ -85,25 +91,26 @@ function _init(reducers, getRoutes, callback) {
     MetabaseAnalytics.trackPageView(location.pathname);
   });
 
+  registerVisualizations();
+
+  initializeEmbedding(store);
+
   registerAnalyticsClickListener();
 
   store.dispatch(refreshSiteSettings());
 
   // enable / disable GA based on opt-out of anonymous tracking
-  MetabaseSettings.on("anon_tracking_enabled", () => {
+  MetabaseSettings.on("anon-tracking-enabled", () => {
     window[
-      "ga-disable-" + MetabaseSettings.get("ga_code")
+      "ga-disable-" + MetabaseSettings.get("ga-code")
     ] = MetabaseSettings.isTrackingEnabled() ? null : true;
   });
 
-  MetabaseSettings.on("application-colors", updateColors);
-  MetabaseSettings.on("application-colors", () => {
-    root.forceUpdate();
-  });
-  updateColors();
+  PLUGIN_APP_INIT_FUCTIONS.forEach(init => init({ root }));
 
   window.Metabase = window.Metabase || {};
   window.Metabase.store = store;
+  window.Metabase.settings = MetabaseSettings;
 
   if (callback) {
     callback(store);
@@ -111,7 +118,7 @@ function _init(reducers, getRoutes, callback) {
 }
 
 export function init(...args) {
-  if (document.readyState != "loading") {
+  if (document.readyState !== "loading") {
     _init(...args);
   } else {
     document.addEventListener("DOMContentLoaded", () => _init(...args));

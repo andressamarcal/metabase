@@ -3,11 +3,12 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { connect } from "react-redux";
-import { t } from "c-3po";
+import { t } from "ttag";
 import S from "./DashCardCardParameterMapper.css";
 
-import Icon from "metabase/components/Icon.jsx";
-import Tooltip from "metabase/components/Tooltip.jsx";
+import Icon from "metabase/components/Icon";
+import Tooltip from "metabase/components/Tooltip";
+
 import ParameterTargetWidget from "metabase/parameters/components/ParameterTargetWidget";
 
 import { fetchDatabaseMetadata } from "metabase/redux/metadata";
@@ -52,7 +53,10 @@ const mapDispatchToProps = {
   fetchDatabaseMetadata,
 };
 
-@connect(makeMapStateToProps, mapDispatchToProps)
+@connect(
+  makeMapStateToProps,
+  mapDispatchToProps,
+)
 export default class DashCardCardParameterMapper extends Component {
   props: {
     card: Card,
@@ -110,25 +114,32 @@ export default class DashCardCardParameterMapper extends Component {
       mapping.overlapMax === 1
     );
 
+    let selectedFieldWarning = null;
+    if (
+      // variable targets can't accept an list of values like dimension targets
+      target &&
+      target[0] === "variable" &&
+      // date parameters only accept a single value anyways, so hide the warning
+      !parameter.type.startsWith("date/")
+    ) {
+      selectedFieldWarning = t`This field only accepts a single value because it's used in a SQL query.`;
+    }
+
     return (
-      <div
-        className="mx1 flex flex-column align-center"
-        onMouseDown={e => e.stopPropagation()}
-      >
-        {dashcard.series &&
-          dashcard.series.length > 0 && (
-            <div
-              className="h5 mb1 text-bold"
-              style={{
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                overflowX: "hidden",
-                maxWidth: 100,
-              }}
-            >
-              {card.name}
-            </div>
-          )}
+      <div className="mx1 flex flex-column align-center drag-disabled">
+        {dashcard.series && dashcard.series.length > 0 && (
+          <div
+            className="h5 mb1 text-bold"
+            style={{
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              overflowX: "hidden",
+              maxWidth: 100,
+            }}
+          >
+            {card.name}
+          </div>
+        )}
 
         <ParameterTargetWidget
           target={target}
@@ -141,8 +152,8 @@ export default class DashCardCardParameterMapper extends Component {
                 disabled
                   ? "This card doesn't have any fields or parameters that can be mapped to this parameter type."
                   : noOverlap
-                    ? "The values in this field don't overlap with the values of any other fields you've chosen."
-                    : null
+                  ? "The values in this field don't overlap with the values of any other fields you've chosen."
+                  : null
               }
               verticalAttachments={["bottom", "top"]}
             >
@@ -160,7 +171,9 @@ export default class DashCardCardParameterMapper extends Component {
                 <span className="text-centered mr1">
                   {disabled
                     ? t`No valid fields`
-                    : selected ? selected.name : t`Select…`}
+                    : selected
+                    ? selected.name
+                    : t`Select…`}
                 </span>
                 {selected ? (
                   <Icon
@@ -183,6 +196,11 @@ export default class DashCardCardParameterMapper extends Component {
             </Tooltip>
           )}
         </ParameterTargetWidget>
+        {selectedFieldWarning && (
+          <span style={{ height: 0 }} className="mt1 mbn1 px4 text-centered">
+            {selectedFieldWarning}
+          </span>
+        )}
       </div>
     );
   }

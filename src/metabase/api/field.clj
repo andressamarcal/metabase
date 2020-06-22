@@ -1,5 +1,7 @@
 (ns metabase.api.field
-  (:require [compojure.core :refer [DELETE GET POST PUT]]
+  (:require [clojure.core.memoize :as memoize]
+            [clojure.tools.logging :as log]
+            [compojure.core :refer [DELETE GET POST PUT]]
             [metabase
              [query-processor :as qp]
              [related :as related]
@@ -14,7 +16,7 @@
              [permissions :as perms]
              [table :refer [Table]]]
             [metabase.util
-             [i18n :refer [tru]]
+             [i18n :refer [trs]]
              [schema :as su]]
             [schema.core :as s]
             [toucan
@@ -193,6 +195,24 @@
         (dissoc :human_readable_values :created_at :updated_at :id))
     {:values [], :field_id (:id field)}))
 
+(def ^:private ^{:arglist '([user-id last-updated field])} fetch-sandboxed-field-values*
+  (memoize/ttl
+   (fn [_ _ field]
+     {:values   (map vector (field-values/distinct-values field))
+      :field_id (u/get-id field)})
+   ;; Expire entires older than 30 days so we don't have entries for users and/or fields that
+   ;; no longer exists hanging around.
+   ;; (`clojure.core.cache/TTLCacheQ` (which `memoize` uses underneath) evicts all stale entries on
+   ;; every cache miss)
+   :ttl/threshold (* 1000 60 60 24 30)))
+
+(defn- fetch-sandboxed-field-values
+  [field]
+  (fetch-sandboxed-field-values*
+   api/*current-user-id*
+   (db/select-one-field :updated_at FieldValues :field_id (u/get-id field))
+   field))
+
 (api/defendpoint GET "/:id/values"
   "If a Field's value of `has_field_values` is `list`, return a list of all the distinct values of the Field, and (if
   defined by a User) a map of human-readable remapped values."
@@ -206,10 +226,7 @@
       ;; otherwise if you have Segmented query perms (but not normal read perms) we'll do an ad-hoc query to fetch the
       ;; results, filtered by your GTAP
       (has-segmented-query-permissions? (field/table field))
-      {:values   (for [value (field-values/distinct-values field)]
-                   ;; for whatever reason values are supposed back as a vector of vectors, e.g. [[1] [2] [3] [4]]
-                   [value])
-       :field_id id}
+      (fetch-sandboxed-field-values field)
 
       :else
       (api/throw-403))))
@@ -335,20 +352,22 @@
              (36 \"Margot Farrell\")
              (48 \"Maryam Douglas\"))"
   [field search-field value & [limit]]
-  (let [field   (follow-fks field)
-        results (qp/process-query (search-values-query field search-field value limit))
-        rows    (get-in results [:data :rows])]
-    (when (= (:status results) :failed)
-      (throw (ex-info (str (tru "Error searching values."))
-               (assoc results :status-code 500))))
-    ;; if the two Fields are different, we'll get results like [[v1 v2] [v1 v2]]. That is the expected format and we can
-    ;; return them as-is
-    (if-not (= (u/get-id field) (u/get-id search-field))
-      rows
-      ;; However if the Fields are both the same results will be in the format [[v1] [v1]] so we need to double the
-      ;; value to get the format the frontend expects
-      (for [[result] rows]
-        [result result]))))
+  (try
+    (let [field   (follow-fks field)
+          results (qp/process-query (search-values-query field search-field value limit))
+          rows    (get-in results [:data :rows])]
+      ;; if the two Fields are different, we'll get results like [[v1 v2] [v1 v2]]. That is the expected format and we can
+      ;; return them as-is
+      (if-not (= (u/get-id field) (u/get-id search-field))
+        rows
+        ;; However if the Fields are both the same results will be in the format [[v1] [v1]] so we need to double the
+        ;; value to get the format the frontend expects
+        (for [[result] rows]
+          [result result])))
+    ;; this Exception is usually one that can be ignored which is why I gave it log level debug
+    (catch Throwable e
+      (log/debug e (trs "Error searching field values"))
+      nil)))
 
 (api/defendpoint GET "/:id/search/:search-id"
   "Search for values of a Field with `search-id` that start with `value`. See docstring for
@@ -375,17 +394,22 @@
       (remapped-value <PEOPLE.ID Field> <PEOPLE.NAME Field> 20)
       ;; -> [20 \"Peter Watsica\"]"
   [field remapped-field value]
-  (let [field   (follow-fks field)
-        results (qp/process-query
-                  {:database (db-id field)
-                   :type     :query
-                   :query    {:source-table (table-id field)
-                              :filter       [:= [:field-id (u/get-id field)] value]
-                              :fields       [[:field-id (u/get-id field)]
-                                             [:field-id (u/get-id remapped-field)]]
-                              :limit        1}})]
-    ;; return first row if it exists
-    (first (get-in results [:data :rows]))))
+  (try
+    (let [field   (follow-fks field)
+          results (qp/process-query
+                   {:database (db-id field)
+                    :type     :query
+                    :query    {:source-table (table-id field)
+                               :filter       [:= [:field-id (u/get-id field)] value]
+                               :fields       [[:field-id (u/get-id field)]
+                                              [:field-id (u/get-id remapped-field)]]
+                               :limit        1}})]
+      ;; return first row if it exists
+      (first (get-in results [:data :rows])))
+    ;; as with fn above this error can usually be safely ignored which is why log level is log/debug
+    (catch Throwable e
+      (log/debug e (trs "Error searching for remapping"))
+      nil)))
 
 (defn parse-query-param-value-for-field
   "Parse a `value` passed as a URL query param in a way appropriate for the `field` it belongs to. E.g. for text Fields

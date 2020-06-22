@@ -19,11 +19,11 @@ export const withBackground = className => ComposedComponent => {
 };
 
 import { connect } from "react-redux";
-import { getHasCustomLogo } from "metabase/selectors/settings";
+import { PLUGIN_SELECTORS } from "metabase/plugins";
 
 export const withLogoBackground = ComposedComponent => {
   const mapStateToProps = (state, props) => ({
-    bgClassName: getHasCustomLogo(state, props) ? "bg-brand" : "bg-white",
+    bgClassName: PLUGIN_SELECTORS.getLogoBackgroundClass(state, props),
   });
   return connect(mapStateToProps)(
     class extends Component {

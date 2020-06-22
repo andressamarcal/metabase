@@ -3,7 +3,7 @@
 import React, { Component } from "react";
 import { withRouter } from "react-router";
 
-import { IFRAMED } from "metabase/lib/dom";
+import { IFRAMED, initializeIframeResizer } from "metabase/lib/dom";
 import { parseHashOptions } from "metabase/lib/browser";
 
 import MetabaseSettings from "metabase/lib/settings";
@@ -46,38 +46,7 @@ export default class EmbedFrame extends Component {
   };
 
   componentWillMount() {
-    // Make iFrameResizer avaliable so that embed users can
-    // have their embeds autosize to their content
-    if (window.iFrameResizer) {
-      console.error("iFrameResizer resizer already defined.");
-    } else {
-      window.iFrameResizer = {
-        autoResize: true,
-        heightCalculationMethod: "bodyScroll",
-        readyCallback: () => {
-          this.setState({ innerScroll: false });
-        },
-      };
-
-      // FIXME: Crimes
-      // This is needed so the FE test framework which runs in node
-      // without the avaliability of require.ensure skips over this part
-      // which is for external purposes only.
-      //
-      // Ideally that should happen in the test config, but it doesn't
-      // seem to want to play nice when messing with require
-      if (typeof require.ensure !== "function") {
-        // $FlowFixMe: flow doesn't seem to like returning false here
-        return false;
-      }
-
-      // Make iframe-resizer avaliable to the embed
-      // We only care about contentWindow so require that minified file
-
-      require.ensure([], require => {
-        require("iframe-resizer/js/iframeResizer.contentWindow.min.js");
-      });
-    }
+    initializeIframeResizer(() => this.setState({ innerScroll: false }));
   }
 
   render() {
@@ -93,10 +62,10 @@ export default class EmbedFrame extends Component {
     const { innerScroll } = this.state;
 
     const showFooter =
-      !MetabaseSettings.hasPremiumFeature("embedding") ||
-      (actionButtons && actionButtons.length !== 0);
+      !MetabaseSettings.hideEmbedBranding() ||
+      (actionButtons && actionButtons.length > 0);
 
-    const { bordered, titled, theme } = {
+    const { bordered, titled, theme, hide_parameters } = {
       ...DEFAULT_OPTIONS,
       ...parseHashOptions(location.hash),
     };
@@ -129,6 +98,7 @@ export default class EmbedFrame extends Component {
                     query={location.query}
                     setParameterValue={setParameterValue}
                     syncQueryString
+                    hideParameters={hide_parameters}
                     isQB
                   />
                 </div>
@@ -141,7 +111,7 @@ export default class EmbedFrame extends Component {
         </div>
         {showFooter && (
           <div className="EmbedFrame-footer p1 md-p2 lg-p3 border-top flex-no-shrink flex align-center">
-            {!MetabaseSettings.hasPremiumFeature("embedding") && (
+            {!MetabaseSettings.hideEmbedBranding() && (
               <LogoBadge dark={theme} />
             )}
             {actionButtons && (
