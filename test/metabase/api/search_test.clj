@@ -219,20 +219,19 @@
                            {:name "segment test2 segment", :description "Lookin' for a blueberry", :model "segment"}])))
                    (search-request :rasta :q "test"))))))))
 
-  ;; (testing "Metrics on tables for which the user does not have access to should not show up in results"
-  ;;   (mt/with-temp* [Metric  [_ {:table_id (mt/id :checkins)
-  ;;                               :name     "test metric"}]]
-  ;;     (perms/revoke-permissions! (group/all-users) (mt/id))
-  ;;     (is (= []
-  ;;            (search-request :rasta :q "test")))))
+  (testing "Metrics on tables for which the user does not have access to should not show up in results"
+    (mt/with-temp* [Metric  [_ {:table_id (mt/id :checkins)
+                                :name     "test metric"}]]
+      (perms/revoke-permissions! (group/all-users) (mt/id))
+      (is (= []
+             (search-request :rasta :q "test")))))
 
-  ;; (testing "Segments on tables for which the user does not have access to should not show up in results"
-  ;;   (mt/with-temp* [Segment [_ {:table_id (mt/id :checkins)
-  ;;                               :name     "test segment"}]]
-  ;;     (perms/revoke-permissions! (group/all-users) (mt/id))
-  ;;     (is (= []
-  ;;            (search-request :rasta :q "test")))))
-  )
+  (testing "Segments on tables for which the user does not have access to should not show up in results"
+    (mt/with-temp* [Segment [_ {:table_id (mt/id :checkins)
+                                :name     "test segment"}]]
+      (perms/revoke-permissions! (group/all-users) (mt/id))
+      (is (= []
+             (search-request :rasta :q "test"))))))
 
 (deftest favorites-test
   (testing "Favorites are per user, so other user's favorites don't cause search results to be favorited"
