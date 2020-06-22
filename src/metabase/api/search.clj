@@ -16,7 +16,7 @@
              [collection :as coll :refer [Collection]]
              [dashboard :refer [Dashboard]]
              [dashboard-favorite :refer [DashboardFavorite]]
-         ;    [interface :as mi]
+             [interface :as mi]
              [metric :refer [Metric]]
              [permissions :as perms]
              [pulse :refer [Pulse]]
@@ -347,13 +347,13 @@
   ;; We filter what we can (ie. everything that is in a collection) out already when querying
   true)
 
-;; (defmethod check-permissions-for-model :metric
-;;   [{:keys [id]}]
-;;   (-> id Metric mi/can-read?))
+(defmethod check-permissions-for-model :metric
+  [{:keys [id]}]
+  (-> id Metric mi/can-read?))
 
-;; (defmethod check-permissions-for-model :segment
-;;   [{:keys [id]}]
-;;   (-> id Segment mi/can-read?))
+(defmethod check-permissions-for-model :segment
+  [{:keys [id]}]
+  (-> id Segment mi/can-read?))
 
 (s/defn ^:private search
   "Builds a search query that includes all of the searchable entities and runs it"
@@ -372,8 +372,7 @@
                                       :name)
                                 (db/query search-query :max-rows search-max-results))]
       (for [row results
-        ;    :when (check-permissions-for-model row)
-            ]
+            :when (check-permissions-for-model row)]
         ;; MySQL returns `:favorite` and `:archived` as `1` or `0` so convert those to boolean as needed
         (-> row
             (update :favorite bit->boolean)
