@@ -372,7 +372,8 @@
                                       :name)
                                 (db/query search-query :max-rows search-max-results))]
       (for [row results
-            :when (check-permissions-for-model row)]
+        ;    :when (check-permissions-for-model row)
+            ]
         ;; MySQL returns `:favorite` and `:archived` as `1` or `0` so convert those to boolean as needed
         (-> row
             (update :favorite bit->boolean)
