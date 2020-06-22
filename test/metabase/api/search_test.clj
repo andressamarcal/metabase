@@ -1,7 +1,8 @@
 (ns metabase.api.search-test
   (:require [clojure
              [set :as set]
-             [string :as str]]
+             [string :as str]
+             [test :refer [deftest testing is]]]
             [expectations :refer :all]
             [metabase.models
              [card :refer [Card]]
@@ -15,6 +16,7 @@
              [permissions-group-membership :refer [PermissionsGroupMembership]]
              [pulse :refer [Pulse]]
              [segment :refer [Segment]]]
+            [metabase.test.data :as data]
             [metabase.test.data.users :refer :all]
             [metabase.test.util :as tu]
             [metabase.util :as u]
@@ -169,6 +171,20 @@
                         PermissionsGroupMembership [_ {:user_id (user->id :rasta), :group_id (u/get-id group)}]]
           (perms/grant-collection-read-permissions! group (u/get-id coll-1))
           (search-request :rasta :q "test"))))))
+
+(deftest metrics+segments-permissions-test
+  (testing "Metrics on tables for which the user does not have access to should not show up in results"
+    (tt/with-temp* [Metric  [_ {:table_id (data/id :checkins)
+                                :name     "test metric"}]]
+      (perms/revoke-permissions! (group/all-users) (data/id))
+      (is (= []
+             (search-request :rasta :q "test")))))
+  (testing "Segments on tables for which the user does not have access to should not show up in results"
+    (tt/with-temp* [Segment [_ {:table_id (data/id :checkins)
+                                :name     "test segment"}]]
+      (perms/revoke-permissions! (group/all-users) (data/id))
+      (is (= []
+             (search-request :rasta :q "test"))))))
 
 ;; Favorites are per user, so other user's favorites don't cause search results to be favorited
 (expect

@@ -187,14 +187,33 @@
                               (not (zero? fav-value))))
     row))
 
+(defmulti ^:private check-permissions-for-model
+  {:arglists '([search-result])}
+  (comp keyword :model))
+
+(defmethod check-permissions-for-model :default
+  [_]
+  ;; We filter what we can (ie. everything that is in a collection) out already when querying
+  true)
+
+(defmethod check-permissions-for-model :metric
+  [{:keys [id]}]
+  (-> id Metric mi/can-read?))
+
+(defmethod check-permissions-for-model :segment
+  [{:keys [id]}]
+  (-> id Segment mi/can-read?))
+
 (s/defn ^:private search
   "Builds a search query that includes all of the searchable entities and runs it"
   [search-ctx :- SearchContext]
-  (map favorited->boolean
-       (db/query {:union-all (for [entity [:card :collection :dashboard :pulse :segment :metric]
+  (->> {:union-all (for [entity [:card :collection :dashboard :pulse :segment :metric]
                                    :let [query-map (create-search-query entity search-ctx)]
                                    :when query-map]
-                               query-map)})))
+                     query-map)}
+       db/query
+       (filter check-permissions-for-model)
+       (map favorited->boolean)))
 
 (s/defn ^:private make-search-context :- SearchContext
   [search-string :- (s/maybe su/NonBlankString)
