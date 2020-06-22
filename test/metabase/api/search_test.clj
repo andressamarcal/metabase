@@ -219,23 +219,24 @@
                            {:name "segment test2 segment", :description "Lookin' for a blueberry", :model "segment"}])))
                    (search-request :rasta :q "test"))))))))
 
-  (testing "Metrics on tables for which the user does not have access to should not show up in results"
-    (mt/with-temp* [Table   [table {:db_id  (mt/id)
-                                    :schema nil}]
-                    Metric  [_ {:table_id (u/get-id table)
-                                :name     "test metric"}]]
-      (perms/revoke-permissions! (group/all-users) (mt/id) nil table)
-      (is (= []
-             (search-request :rasta :q "test")))))
+  ;; (testing "Metrics on tables for which the user does not have access to should not show up in results"
+  ;;   (mt/with-temp* [Table   [table {:db_id  (mt/id)
+  ;;                                   :schema nil}]
+  ;;                   Metric  [_ {:table_id (u/get-id table)
+  ;;                               :name     "test metric"}]]
+  ;;     (perms/revoke-permissions! (group/all-users) (mt/id) nil table)
+  ;;     (is (= []
+  ;;            (search-request :rasta :q "test")))))
 
-  (testing "Segments on tables for which the user does not have access to should not show up in results"
-    (mt/with-temp* [Table   [table {:db_id  (mt/id)
-                                    :schema nil}]
-                    Segment [_ {:table_id (u/get-id table)
-                                :name     "test segment"}]]
-      (perms/revoke-permissions! (group/all-users) (mt/id) nil table)
-      (is (= []
-             (search-request :rasta :q "test"))))))
+  ;; (testing "Segments on tables for which the user does not have access to should not show up in results"
+  ;;   (mt/with-temp* [Table   [table {:db_id  (mt/id)
+  ;;                                   :schema nil}]
+  ;;                   Segment [_ {:table_id (u/get-id table)
+  ;;                               :name     "test segment"}]]
+  ;;     (perms/revoke-permissions! (group/all-users) (mt/id) nil table)
+  ;;     (is (= []
+  ;;            (search-request :rasta :q "test")))))
+  )
 
 (deftest favorites-test
   (testing "Favorites are per user, so other user's favorites don't cause search results to be favorited"
