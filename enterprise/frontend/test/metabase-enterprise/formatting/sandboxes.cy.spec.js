@@ -142,6 +142,7 @@ describe("formatting > sandboxes", () => {
     });
 
     it("should filter on saved SQL question", () => {
+      // *** Test fails (Issue #403)
       cy.visit("/question/4");
       cy.get(".TableInteractive-cellWrapper--firstColumn").should(
         "have.length",
