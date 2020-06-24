@@ -109,7 +109,7 @@ describe("audit > auditing", () => {
       cy.findAllByText("admin test q").should("have.length", 1);
       cy.findAllByText("Sample Dataset").should("have.length", 8);
       cy.findByText(users[1] + " test dash").should("not.exist");
-      
+
       // *** Uncomment when page works correctly:
       // cy.findByText(users[1] + " test dash");
     });
