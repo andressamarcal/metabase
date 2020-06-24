@@ -123,12 +123,11 @@ import {
   
         // Table filter
         cy.wait(3000)
-          .get(".cellData")
-          .eq(17)
+          .get(".TableInteractive-cellWrapper--lastColumn")
           .contains("1")
           .should("not.exist");
-        cy.get(".cellData")
-          .eq(17)
+        cy.get(".TableInteractive-cellWrapper--lastColumn")
+          .last()
           .contains("3");
   
         // Notebook filter
@@ -144,9 +143,8 @@ import {
   
       it("should filter on saved SQL question", () => {
         cy.visit("/question/4");
-        cy.get(".cellData")
-          .eq("31")
-          .contains("3");
+        cy.get(".TableInteractive-cellWrapper--firstColumn")
+          .should("have.length", 11)
       });
   
       it("should filter on a JOINed table", () => {
@@ -154,9 +152,8 @@ import {
   
         // Table filter
         cy.wait(2000)
-          .get(".cellData")
-          .eq("30")
-          .contains("3");
+          .get(".TableInteractive-cellWrapper--firstColumn")
+          .should("have.length", 11);
   
         // Notebook filter
         cy.get(".Icon-notebook").click();
@@ -172,9 +169,8 @@ import {
         cy.findByText("Add filter").click();
         cy.findByText("Visualize").click();
         cy.wait(2000)
-          .get(".cellData")
-          .eq("20")
-          .contains("3");
+          .get(".TableInteractive-cellWrapper--firstColumn")
+          .should("have.length", 7);
       });
     });
   });
