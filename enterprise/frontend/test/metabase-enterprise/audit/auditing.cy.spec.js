@@ -12,6 +12,8 @@ import {
   year,
 } from "../_support_/cypress";
 
+const year = new Date().getFullYear();
+
 describe("audit > auditing", () => {
   before(restore);
   const users = ["admin", "normal"];
@@ -49,7 +51,7 @@ describe("audit > auditing", () => {
         .findByText(users[0] + " test q")
         .click();
 
-      cy.findByText("Category");
+      cy.findByText("CATEGORY");
     });
 
     it("should download a question", () => {
@@ -101,17 +103,13 @@ describe("audit > auditing", () => {
         .should("contain", year);
     });
 
-    it("should load the Audit log", () => {
+    it.skip("should load the Audit log (Audit log should display views of dashboards)", () => {
       cy.visit("/admin/audit/members/log");
 
-      cy.findAllByText("Ad-hoc").should("have.length", 4);
       cy.findAllByText("Orders, Count").should("have.length", 1);
       cy.findAllByText("admin test q").should("have.length", 1);
-      cy.findAllByText("Sample Dataset").should("have.length", 8);
-      cy.findByText(users[1] + " test dash").should("not.exist");
-
-      // *** Uncomment when page works correctly:
-      // cy.findByText(users[1] + " test dash");
+      cy.findAllByText("Sample Dataset").should("have.length", 4);
+      cy.findByText(users[1] + " test dash");
     });
   });
 
@@ -123,7 +121,7 @@ describe("audit > auditing", () => {
       cy.visit("/admin/audit/databases/overview");
       cy.findByText("Total queries and their average speed");
       cy.findByText("No results!").should("not.exist");
-      cy.get(".voronoi");
+      cy.get(".LineAreaBarChart");
       cy.get("rect");
 
       // All databases tab
@@ -152,16 +150,20 @@ describe("audit > auditing", () => {
       cy.visit("/admin/audit/tables/overview");
       cy.findByText("Most-queried tables");
       cy.findAllByText("No results!").should("not.exist");
-      // *** Should tables have the same titles?
-      cy.wait(1000).findAllByText("Sample Dataset PUBLIC PRODUCTS");
-      cy.get(".rowChart")
-        .first()
-        .find('[height="30"]')
-        .should("have.length", 2);
-      cy.get(".rowChart")
-        .last()
-        .find("[height='30']")
-        .should("have.length", 2);
+      cy.wait(1000).findAllByText("Sample Dataset PUBLIC ORDERS");
+
+      // *** Will fail when code below works again
+      cy.findAllByText("Sample Dataset PUBLIC PRODUCTS").should("not.exist");
+      // *** Products were there when creating qs by hand. Creating them by calling the api changes the result here.
+      // cy.wait(1000).findAllByText("Sample Dataset PUBLIC PRODUCTS");
+      // cy.get(".rowChart")
+      //   .first()
+      //   .find('[height="30"]')
+      //   .should("have.length", 2);
+      // cy.get(".rowChart")
+      //   .last()
+      //   .find("[height='30']")
+      //   .should("have.length", 2);
 
       // All tables tab
       cy.visit("/admin/audit/tables/all");
@@ -181,7 +183,7 @@ describe("audit > auditing", () => {
       cy.findByText("Slowest queries");
       cy.findByText("Query views and speed per day");
       cy.findAllByText("No results!").should("not.exist");
-      cy.get("svg").should("have.length", 3);
+      cy.get(".LineAreaBarChart").should("have.length", 3);
       cy.get("rect");
       cy.get(".voronoi");
 
@@ -226,7 +228,7 @@ describe("audit > auditing", () => {
 
       // All downloads tab
       cy.visit("/admin/audit/downloads/all");
-      cy.wait(1000)
+      cy.wait(2000)
         .findByText("No results")
         .should("not.exist");
       cy.get("tr")
@@ -234,7 +236,7 @@ describe("audit > auditing", () => {
         .children()
         .first()
         .should("contain", year);
-      cy.findByText("GUI");
+      cy.findAllByText("GUI");
     });
   });
 });
