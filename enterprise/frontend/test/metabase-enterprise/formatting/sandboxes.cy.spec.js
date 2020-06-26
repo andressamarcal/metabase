@@ -4,9 +4,8 @@ import {
   openOrdersTable,
   signInAsNormalUser,
   signOut,
+  signIn,
 } from "../../../../../frontend/test/__support__/cypress";
-
-import { changePermissionsforSandbox } from "../_support_/cypress";
 
 const new_user = {
   first_name: "Barb",
@@ -15,6 +14,40 @@ const new_user = {
 };
 
 let questionId;
+
+function changePermissionsforSandbox(
+  location,
+  permission_type,
+  column,
+  user_attribute,
+  first,
+) {
+  cy.findByText("Data permissions");
+  cy.get(".ReactVirtualized__Grid__innerScrollContainer")
+    .children()
+    .eq(location)
+    .click();
+  cy.findByText("Grant sandboxed access").click();
+  if (first == "first") {
+    cy.findByText("Change").click();
+  };
+  if (permission_type == "sql param") {
+    cy.findByText("Use a saved question to create a custom view for this table").click();
+    cy.findByText(permission_type).click()
+  };
+  cy.get(".Icon-chevrondown")
+    .first()
+    .click();
+  cy.findByText(column).click();
+  cy.get(".Icon-chevrondown")
+    .last()
+    .click();
+  cy.findAllByText(user_attribute)
+    .last()
+    .click();
+  cy.findByText("Save").click();
+}
+
 
 describe("formatting > sandboxes", () => {
   before(restore);
@@ -29,24 +62,25 @@ describe("formatting > sandboxes", () => {
           type: "native",
           native: {
             query:
-              "select * from products join orders on products.id = orders.product_id where orders.created_at > dateadd(year,-5,getdate())",
+              "select id,name,address,email from people where {{cid}}",
+              "template-tags": {
+                cid: {
+                  id: "6b8b10ef-0104-1047-1e1b-2492d5954555",
+                  name: "cid",
+                  "display-name": "CID",
+                  type: "dimension",
+                  dimension: ["field-id", 21],
+                  "widget-type": "id",
+                },
+              }
           },
           database: 1,
         },
-        display: "scalar",
+        display: "table",
         visualization_settings: {},
       }).then(({ body }) => {
         questionId = body.id;
       });
-
-      cy.visit("/collection/root");
-      cy.wait(2000)
-        .findByText("sql param")
-        .click();
-      cy.findByText("Save").click();
-      cy.findAllByText("Save")
-        .last()
-        .click();
     });
 
     it("should make a JOINs table", () => {
@@ -103,11 +137,6 @@ describe("formatting > sandboxes", () => {
       cy.findByPlaceholderText("Value").type("1");
       cy.findAllByText("Create").click();
       cy.findByText("Done").click();
-      cy.pause()
-    });
-
-    it("should change the sandbox configuration to use saved questions", () => {
-
     });
 
     it("should change sandbox permissions as admin", () => {
@@ -115,14 +144,14 @@ describe("formatting > sandboxes", () => {
       signInAsAdmin();
 
       cy.visit("/admin/permissions/databases/1/schemas/PUBLIC/tables");
-      changePermissionsforSandbox(13, "User ID", "User ID", "first");
-      changePermissionsforSandbox(18, "ID", "User ID", "second");
+      changePermissionsforSandbox(13, "column", "User ID", "User ID", "first");
+      changePermissionsforSandbox(18, "sql param", "ID",  "User ID", "second");
       cy.findByText("Save Changes").click();
       cy.findByText("Yes").click();
       cy.findByText("Save Changes").should("not.exist");
     });
 
-    it("should filter on normal tables", () => {
+    it("should filter by id on normal tables", () => {
       cy.visit("/browse/1");
       cy.findByText("Orders").click();
 
@@ -146,16 +175,14 @@ describe("formatting > sandboxes", () => {
       cy.findByText("10");
     });
 
-    it("should filter on saved SQL question", () => {
+    it("should filter categories on saved SQL question", () => {
       // *** Test fails (Issue #403)
       cy.visit("/question/4");
-      cy.get(".TableInteractive-cellWrapper--firstColumn").should(
-        "have.length",
-        11,
-      );
+      cy.get(".TableInteractive-headerCellData")
+        .should("have.length", 4);
     });
 
-    it("should filter on a JOINed table", () => {
+    it("should filter by id on a JOINed table", () => {
       cy.visit("/question/5");
 
       // Table filter
@@ -180,5 +207,14 @@ describe("formatting > sandboxes", () => {
         .get(".TableInteractive-cellWrapper--firstColumn")
         .should("have.length", 7);
     });
+
+    it("should filter by id and categories on specified table", () => {
+      cy.visit("/question/new?database=1&table=3")
+      cy.get(".TableInteractive-cellWrapper--firstColumn")
+        .should("have.length", 2)
+      cy.get(".TableInteractive-headerCellData")
+        .should("have.length", 4)
+    });
+    
   });
 });

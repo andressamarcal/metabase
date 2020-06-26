@@ -16,33 +16,6 @@ export function changeThemeColor(location, colorhex) {
   cy.get(`div[title='#${colorhex}']`).click();
   cy.findByText("Done").click();
 }
-export function changePermissionsforSandbox(
-  location,
-  column,
-  user_attribute,
-  first,
-) {
-  cy.findByText("Data permissions");
-  cy.get(".ReactVirtualized__Grid__innerScrollContainer")
-    .children()
-    .eq(location)
-    .click();
-  cy.findByText("Grant sandboxed access").click();
-  if (first == "first") {
-    cy.findByText("Change").click();
-  }
-  cy.get(".Icon-chevrondown")
-    .first()
-    .click();
-  cy.findByText(column).click();
-  cy.get(".Icon-chevrondown")
-    .last()
-    .click();
-  cy.findAllByText(user_attribute)
-    .last()
-    .click();
-  cy.findByText("Save").click();
-}
 
 // Generate information like questions, dashboards, etc.
 
