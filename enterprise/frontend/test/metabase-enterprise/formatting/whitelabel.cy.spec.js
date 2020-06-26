@@ -39,7 +39,7 @@ import {
   describe("formatting > whitelabel", () => {
     before(restore);
   
-    describe("Changes to company name work", () => {
+    describe.skip("Changes to company name work", () => {
       beforeEach(signOut);
   
       it("should change company name", () => {
@@ -75,7 +75,7 @@ import {
       });
     });
   
-    describe("Changes to theme colors work", () => {
+    describe.skip("Changes to theme colors work", () => {
       it("should change theme colors in admin panel", () => {
         signInAsAdmin();
         cy.visit("/admin/settings/whitelabel");
@@ -165,7 +165,7 @@ import {
       });
     });
   
-    describe("Changes to logo work", () => {
+    describe.skip("Changes to logo work", () => {
       it("should add a logo", () => {
         signInAsAdmin();
         cy.visit("/admin/settings/whitelabel");
@@ -227,17 +227,16 @@ import {
         checkFavicon();
       });
   
-      it("should reflect favicon change on admin's dashboard", () => {
+      it("should reflect favicon change in API", () => {
         signInAsAdmin();
         cy.visit("/");
         checkFavicon();
       });
   
-      it("should reflect favicon change on user's dashboard", () => {
+      it("should reflect favicon change in HTML", () => {
         signInAsNormalUser();
         cy.visit("/");
-        // *** How to check user's favicon without using API call?
-        //   checkFavicon();
+        cy.get('head link[rel="icon"]').get('[href="https://cdn.ecosia.org/assets/images/ico/favicon.ico"]').should('have.length', 1)
       });
     });
   });
