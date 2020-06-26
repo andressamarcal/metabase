@@ -176,7 +176,6 @@ describe("formatting > sandboxes", () => {
     });
 
     it("should filter categories on saved SQL question", () => {
-      // *** Test fails (Issue #403)
       cy.visit("/question/4");
       cy.get(".TableInteractive-headerCellData").should("have.length", 4);
     });
