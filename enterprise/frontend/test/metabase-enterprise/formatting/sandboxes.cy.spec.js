@@ -103,6 +103,11 @@ describe("formatting > sandboxes", () => {
       cy.findByPlaceholderText("Value").type("1");
       cy.findAllByText("Create").click();
       cy.findByText("Done").click();
+      cy.pause()
+    });
+
+    it("should change the sandbox configuration to use saved questions", () => {
+
     });
 
     it("should change sandbox permissions as admin", () => {
