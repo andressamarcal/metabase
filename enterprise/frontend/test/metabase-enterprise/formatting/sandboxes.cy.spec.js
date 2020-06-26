@@ -30,11 +30,13 @@ function changePermissionsforSandbox(
   cy.findByText("Grant sandboxed access").click();
   if (first == "first") {
     cy.findByText("Change").click();
-  };
+  }
   if (permission_type == "sql param") {
-    cy.findByText("Use a saved question to create a custom view for this table").click();
-    cy.findByText(permission_type).click()
-  };
+    cy.findByText(
+      "Use a saved question to create a custom view for this table",
+    ).click();
+    cy.findByText(permission_type).click();
+  }
   cy.get(".Icon-chevrondown")
     .first()
     .click();
@@ -48,7 +50,6 @@ function changePermissionsforSandbox(
   cy.findByText("Save").click();
 }
 
-
 describe("formatting > sandboxes", () => {
   before(restore);
 
@@ -61,18 +62,17 @@ describe("formatting > sandboxes", () => {
         dataset_query: {
           type: "native",
           native: {
-            query:
-              "select id,name,address,email from people where {{cid}}",
-              "template-tags": {
-                cid: {
-                  id: "6b8b10ef-0104-1047-1e1b-2492d5954555",
-                  name: "cid",
-                  "display-name": "CID",
-                  type: "dimension",
-                  dimension: ["field-id", 21],
-                  "widget-type": "id",
-                },
-              }
+            query: "select id,name,address,email from people where {{cid}}",
+            "template-tags": {
+              cid: {
+                id: "6b8b10ef-0104-1047-1e1b-2492d5954555",
+                name: "cid",
+                "display-name": "CID",
+                type: "dimension",
+                dimension: ["field-id", 21],
+                "widget-type": "id",
+              },
+            },
           },
           database: 1,
         },
@@ -145,7 +145,7 @@ describe("formatting > sandboxes", () => {
 
       cy.visit("/admin/permissions/databases/1/schemas/PUBLIC/tables");
       changePermissionsforSandbox(13, "column", "User ID", "User ID", "first");
-      changePermissionsforSandbox(18, "sql param", "ID",  "User ID", "second");
+      changePermissionsforSandbox(18, "sql param", "ID", "User ID", "second");
       cy.findByText("Save Changes").click();
       cy.findByText("Yes").click();
       cy.findByText("Save Changes").should("not.exist");
@@ -178,8 +178,7 @@ describe("formatting > sandboxes", () => {
     it("should filter categories on saved SQL question", () => {
       // *** Test fails (Issue #403)
       cy.visit("/question/4");
-      cy.get(".TableInteractive-headerCellData")
-        .should("have.length", 4);
+      cy.get(".TableInteractive-headerCellData").should("have.length", 4);
     });
 
     it("should filter by id on a JOINed table", () => {
@@ -209,12 +208,12 @@ describe("formatting > sandboxes", () => {
     });
 
     it("should filter by id and categories on specified table", () => {
-      cy.visit("/question/new?database=1&table=3")
-      cy.get(".TableInteractive-cellWrapper--firstColumn")
-        .should("have.length", 2)
-      cy.get(".TableInteractive-headerCellData")
-        .should("have.length", 4)
+      cy.visit("/question/new?database=1&table=3");
+      cy.get(".TableInteractive-cellWrapper--firstColumn").should(
+        "have.length",
+        2,
+      );
+      cy.get(".TableInteractive-headerCellData").should("have.length", 4);
     });
-    
   });
 });
