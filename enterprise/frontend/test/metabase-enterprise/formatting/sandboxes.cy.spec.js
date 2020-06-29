@@ -175,15 +175,6 @@ describe("formatting > sandboxes", () => {
       cy.findByText("10");
     });
 
-    it("should filter categories on saved SQL question", () => {
-      cy.visit("/question/4");
-      cy.get(".TableInteractive-headerCellData").should("have.length", 4);
-      cy.get(".TableInteractive-cellWrapper--firstColumn").should(
-        "not.have.length",
-        2,
-      );
-    });
-
     it("should filter by id on a JOINed table", () => {
       cy.visit("/question/5");
 
