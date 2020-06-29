@@ -206,12 +206,16 @@ describe("formatting > sandboxes", () => {
         .should("have.length", 7);
     });
 
-    it("should filter categories on saved SQL question (for a new question)", () => {
+    it("should filter categories on saved SQL question (for a new question - column number)", () => {
       cy.visit("/question/new?database=1&table=3");
       cy.get(".TableInteractive-cellWrapper--firstColumn").should(
         "have.length",
         2,
       );
+    });
+
+    it("should filter categories on saved SQL question (for a new question - row number)", () => {
+      cy.visit("/question/new?database=1&table=3");
       cy.get(".TableInteractive-headerCellData").should("have.length", 4);
     });
   });
