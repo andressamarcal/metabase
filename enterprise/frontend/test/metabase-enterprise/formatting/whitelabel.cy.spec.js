@@ -165,7 +165,7 @@ describe("formatting > whitelabel", () => {
     });
   });
 
-  describe.skip("Changes to logo work", () => {
+  describe("Changes to logo work", () => {
     it("should add a logo", () => {
       signInAsAdmin();
       cy.visit("/admin/settings/whitelabel");
