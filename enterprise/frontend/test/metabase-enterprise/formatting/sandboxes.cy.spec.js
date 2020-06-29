@@ -144,14 +144,16 @@ describe("formatting > sandboxes", () => {
       signInAsAdmin();
 
       cy.visit("/admin/permissions/databases/1/schemas/PUBLIC/tables");
+      // Changes Orders permssions to use filter
       changePermissionsforSandbox(13, "column", "User ID", "User ID", "first");
+      // Changes People permissions to use saved sql q
       changePermissionsforSandbox(18, "sql param", "ID", "User ID", "second");
       cy.findByText("Save Changes").click();
       cy.findByText("Yes").click();
       cy.findByText("Save Changes").should("not.exist");
     });
 
-    it("should filter by id on normal tables", () => {
+    it("should be sandboxed with a filter (on normal table)", () => {
       cy.visit("/browse/1");
       cy.findByText("Orders").click();
 
@@ -175,13 +177,16 @@ describe("formatting > sandboxes", () => {
       cy.findByText("10");
     });
 
-    it("should filter by id on a JOINed table", () => {
+    it("should be sandboxed with a filter (on a saved JOINed question)", () => {
       cy.visit("/question/5");
 
-      // Table filter
       cy.wait(2000)
         .get(".TableInteractive-cellWrapper--firstColumn")
         .should("have.length", 11);
+    });
+
+    it("should be sandbox with a filter (after applying a filter to a JOINed question)", () => {
+      cy.visit("/question/5");
 
       // Notebook filter
       cy.get(".Icon-notebook").click();
@@ -201,7 +206,7 @@ describe("formatting > sandboxes", () => {
         .should("have.length", 7);
     });
 
-    it("should filter by id and categories on specified table", () => {
+    it("should filter categories on saved SQL question (for a new question)", () => {
       cy.visit("/question/new?database=1&table=3");
       cy.get(".TableInteractive-cellWrapper--firstColumn").should(
         "have.length",
