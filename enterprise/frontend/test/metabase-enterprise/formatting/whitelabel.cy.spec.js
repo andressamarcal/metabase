@@ -39,7 +39,7 @@ function checkLogo() {
 describe("formatting > whitelabel", () => {
   before(restore);
 
-  describe.skip("Changes to company name work", () => {
+  describe("Changes to company name work", () => {
     beforeEach(signOut);
 
     it("should change company name", () => {
