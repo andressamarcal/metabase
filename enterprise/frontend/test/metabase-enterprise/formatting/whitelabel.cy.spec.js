@@ -75,7 +75,7 @@ describe("formatting > whitelabel", () => {
     });
   });
 
-  describe.skip("Changes to theme colors work", () => {
+  describe("Changes to theme colors work", () => {
     it("should change theme colors in admin panel", () => {
       signInAsAdmin();
       cy.visit("/admin/settings/whitelabel");
