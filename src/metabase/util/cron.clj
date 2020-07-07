@@ -4,7 +4,7 @@
    format."
   (:require [clojure.string :as str]
             [metabase.util.schema :as su]
-            [puppetlabs.i18n.core :as i18n]
+            [metabase.util.i18n :as i18n]
             [schema.core :as s])
   (:import net.redhogs.cronparser.CronExpressionDescriptor
            org.quartz.CronExpression))

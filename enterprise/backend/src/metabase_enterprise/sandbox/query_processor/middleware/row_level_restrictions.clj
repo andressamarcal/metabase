@@ -19,7 +19,7 @@
              [annotate :as annotate]
              [fetch-source-query :as fetch-source-query]]
             [metabase.util :as u]
-            [puppetlabs.i18n.core :refer [tru]]
+            [metabase.util.i18n :refer [tru]]
             [schema.core :as s]
             [toucan.db :as db]))
 

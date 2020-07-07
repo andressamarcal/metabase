@@ -16,7 +16,7 @@
              [session :as session]]
             [metabase.integrations.common :as integrations.common]
             [metabase.middleware.session :as mw.session]
-            [puppetlabs.i18n.core :refer [trs tru]]
+            [metabase.util.i18n :refer [trs tru]]
             [ring.util
              [codec :as codec]
              [response :as resp]]
