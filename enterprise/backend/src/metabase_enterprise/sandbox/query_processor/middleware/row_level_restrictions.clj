@@ -18,7 +18,9 @@
              [annotate :as annotate]
              [fetch-source-query :as fetch-source-query]]
             [metabase.util :as u]
-            [metabase.util.i18n :refer [tru]]
+            [metabase.util
+             [i18n :refer [tru]]
+             [schema :as su]]
             [schema.core :as s]
             [toucan.db :as db]))
 
@@ -88,11 +90,14 @@
 ;;; |                                                Applying a GTAP                                                 |
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
-(defn- target->type
-  "Get the base type of the Field associated with a `field-clause` (e.g. `[:field-id 1]`) if non-nil."
-  [[_ field-clause]]
-  (let [field-id (mbql.u/field-clause->id-or-literal field-clause)]
+(s/defn ^:private target-field->base-type :- (s/maybe su/FieldType)
+  "If the `:target` of a parameter contains a `:field-id` clause, return the base type corresponding to the Field it
+  references. Otherwise returns `nil`."
+  [[_ target-field-clause]]
+  (when-let [field-id (u/ignore-exceptions (mbql.u/field-clause->id-or-literal target-field-clause))]
     (when (integer? field-id)
+      ;; TODO -- we should be using the QP store for this. But when trying to change this I ran into "QP Store is not
+      ;; initialized" errors. We should figure out why that's the case and then fix this
       (db/select-one-field :base_type Field :id field-id))))
 
 (defn- attr-value->param-value
@@ -112,14 +117,14 @@
       attr-value)))
 
 (defn- attr-remapping->parameter [login-attributes [attr-name target]]
-  (let [attr-value       (get login-attributes attr-name ::not-found)
-        maybe-field-type (target->type target)]
+  (let [attr-value      (get login-attributes attr-name ::not-found)
+        field-base-type (target-field->base-type target)]
     (when (= attr-value ::not-found)
       (throw (ex-info (tru "Query requires user attribute `{0}`" (name attr-name))
                       {:type qp.error-type/missing-required-parameter})))
     {:type   :category
      :target target
-     :value  (attr-value->param-value maybe-field-type attr-value)}))
+     :value  (attr-value->param-value field-base-type attr-value)}))
 
 (defn- gtap->parameters [{attribute-remappings :attribute_remappings}]
   (mapv (partial attr-remapping->parameter (:login_attributes @*current-user*))
@@ -180,7 +185,10 @@
    (dissoc m :source-table :source-query)
    (gtap->source gtap)))
 
-(defn- apply-gtaps [m table-id->gtap]
+(defn- apply-gtaps
+  "Replace `:source-table` entries that refer to Tables for which we have applicable GTAPs with `:source-query` entries
+  from their GTAPs."
+  [m table-id->gtap]
   ;; replace maps that have `:source-table` key and a matching entry in `table-id->gtap`, but do not have `:gtap?` key
   (mbql.u/replace m
     (_ :guard (every-pred map? (complement :gtap?) :source-table #(get table-id->gtap (:source-table %))))
@@ -210,28 +218,35 @@
        {:source :fields}))))
 
 (defn- merge-metadata
-  "Merge column metadata from the source Table into the results Metadata. This way the column Metadata matches what we'd
-  get if the query was not running with a GTAP."
+  "Merge column metadata from the source Table into the current results `metadata`. This way the final results metadata
+  coming back matches what we'd get if the query was not running with a GTAP."
   [query metadata]
   (let [source-table-id      (mbql.u/query->source-table-id query)
         field-name->id-delay (delay
                                (u/prog1 (when source-table-id
                                           (db/select-field->id :name Field :table_id source-table-id))
-                                 (qp.store/fetch-and-store-fields! (vals <>))))
-        update-col-metadata* (partial update-col-metadata query field-name->id-delay)]
-    (update metadata :cols (partial mapv update-col-metadata*))))
+                                 (qp.store/fetch-and-store-fields! (vals <>))))]
+    (update metadata :cols (fn [cols]
+                             (mapv (partial update-col-metadata query field-name->id-delay) cols)))))
+
+(defn- gtapped-query
+  "Apply GTAPs to `query` and return the updated version of `query`."
+  [query table-id->gtap]
+  (-> query
+      (apply-gtaps table-id->gtap)
+      (update :gtap-perms (fn [perms]
+                            (into (set perms) (gtaps->perms-set (vals table-id->gtap)))))))
 
 (defn apply-row-level-permissions
   "Does the work of swapping the given table the user was querying against with a nested subquery that restricts the
-  rows returned. Will return the original query if there are no segmented permissions found"
+  rows returned. Will return the original query if there are no segmented permissions found."
   [qp]
   (fn [query rff context]
     (if-let [table-id->gtap (when *current-user-id*
                               (query->table-id->gtap query))]
-      (let [query* (-> query
-                       (apply-gtaps table-id->gtap)
-                       (update :gtap-perms (comp set concat) (gtaps->perms-set (vals table-id->gtap))))
-            rff* (fn [metadata]
-                   (rff (merge-metadata query metadata)))]
-        (qp query* rff* context))
+      (qp
+       (gtapped-query query table-id->gtap)
+       (fn [metadata]
+         (rff (merge-metadata query metadata)))
+       context)
       (qp query rff context))))

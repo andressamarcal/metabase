@@ -65,7 +65,7 @@
         session      (session/create-session! :sso user)
         redirect-url (or redirect (URLEncoder/encode "/"))]
     (sync-groups! user jwt-data)
-    (mw.session/set-session-cookie (resp/redirect redirect-url) session)))
+    (mw.session/set-session-cookie request (resp/redirect redirect-url) session)))
 
 (defn- check-jwt-enabled []
   (api/check (sso-settings/jwt-configured?)

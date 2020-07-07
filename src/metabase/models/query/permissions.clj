@@ -22,23 +22,23 @@
 ;; Is calculating permissions for queries complicated? Some would say so. Refer to this handy flow chart to see how
 ;; things get calculated.
 ;;
-;;                   perms-set
-;;                        |
-;;                        |
-;;                        |
-;;   native query? <------+-----> mbql query?
-;;         ↓                           ↓
-;; adhoc-native-query-path     mbql-perms-path-set
-;;                                      |
-;;                no source card <------+----> has source card
-;;                        ↓                          ↓
-;;          tables->permissions-path-set   source-card-read-perms
-;;                        ↓
-;;                 table-query-path
+;;                      perms-set
+;;                           |
+;;                           |
+;;                           |
+;;      native query? <------+-----> mbql query?
+;;            ↓                           ↓
+;;    adhoc-native-query-path     mbql-perms-path-set
+;;                                         |
+;;                   no source card <------+----> has source card
+;;                           ↓                          ↓
+;;             tables->permissions-path-set   source-card-read-perms
+;;                           ↓
+;;                    table-query-path
 ;;
-;; segmented-perms-set follows the same graph as above, but instead of table-query-path, it returns
-;; table-segmented-query-path. perms-set will require full access to the tables, segmented-perms-set will only require
-;; segmented access
+;; `segmented-perms-set` follows the same graph as above, but instead of `table-query-path`, it returns
+;; `table-segmented-query-path`. `perms-set` will require full access to the tables, `segmented-perms-set` will only
+;; require segmented access
 
 (s/defn ^:private query->source-table-ids :- #{(s/cond-pre (s/eq ::native) su/IntGreaterThanZero)}
   "Return a sequence of all Table IDs referenced by `query`."

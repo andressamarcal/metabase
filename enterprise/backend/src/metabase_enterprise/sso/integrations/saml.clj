@@ -202,4 +202,4 @@
         groups        (get attrs (sso-settings/saml-attribute-group))
         session       (saml-auth-fetch-or-create-user! first-name last-name email groups attrs)
         response      (resp/redirect (or continue-url (public-settings/site-url)))]
-    (mw.session/set-session-cookie response session)))
+    (mw.session/set-session-cookie request response session)))

@@ -5,8 +5,9 @@
             [metabase.api.common :as api]
             [metabase.public-settings.metastore :as metastore]
             [metabase.util :as u]
-            [metabase.util.schema :as su]
-            [metabase.util.i18n :refer [tru]]
+            [metabase.util
+             [i18n :refer [tru]]
+             [schema :as su]]
             [schema.core :as s]
             [toucan.db :as db]))
 

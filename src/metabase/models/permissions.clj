@@ -189,12 +189,12 @@
 ;;; -------------------------------------------- Permissions Checking Fns --------------------------------------------
 
 (defn is-permissions-for-object?
-  "Does `permissions`-PATH grant *full* access for OBJECT-PATH?"
+  "Does `permissions-path` grant *full* access for `object-path`?"
   [permissions-path object-path]
   (str/starts-with? object-path permissions-path))
 
 (defn is-partial-permissions-for-object?
-  "Does `permissions`-PATH grant access full access for OBJECT-PATH *or* for a descendant of OBJECT-PATH?"
+  "Does `permissions-path` grant access full access for `object-path` *or* for a descendant of `object-path`?"
   [permissions-path object-path]
   (or (is-permissions-for-object? permissions-path object-path)
       (str/starts-with? permissions-path object-path)))
@@ -269,14 +269,16 @@
 (defn- pre-insert [permissions]
   (u/prog1 permissions
     (assert-valid permissions)
-    (log/debug (u/format-color 'green "Granting permissions for group %d: %s" (:group_id permissions) (:object permissions)))))
+    (log/debug (u/colorize 'green (trs "Granting permissions for group {0}: {1}" (:group_id permissions) (:object permissions))))))
 
 (defn- pre-update [_]
-  (throw (Exception. (str (deferred-tru "You cannot update a permissions entry!")
-                          (deferred-tru "Delete it and create a new one.")))))
+  (throw (ex-info (str (deferred-tru "You cannot update a permissions entry!")
+                       " "
+                       (deferred-tru "Delete it and create a new one."))
+                  {:status-code 400})))
 
 (defn- pre-delete [permissions]
-  (log/debug (u/format-color 'red "Revoking permissions for group %d: %s" (:group_id permissions) (:object permissions)))
+  (log/debug (u/colorize 'red (trs "Revoking permissions for group {0}: {1}" (:group_id permissions) (:object permissions))))
   (assert-not-admin-group permissions))
 
 
@@ -345,8 +347,8 @@
     :ok
     (match [native schemas]
       [:write :all]  :ok
-      [:write _]     (log/warn "Invalid DB permissions: if you have write access for native queries, you must have full data access.")
-      [:read  :none] (log/warn "Invalid DB permissions: if you have readonly native query access, you must also have data access.")
+      [:write _]     (log/warn (trs "Invalid DB permissions: if you have write access for native queries, you must have full data access."))
+      [:read  :none] (log/warn (trs "Invalid DB permissions: if you have readonly native query access, you must also have data access."))
       [_      _]     :ok)))
 
 (def ^:private StrictDBPermissionsGraph
@@ -597,7 +599,6 @@
     :write (grant-native-readwrite-permissions! group-id db-id)
     :none  nil))
 
-
 (s/defn ^:private update-db-permissions!
   [group-id :- su/IntGreaterThanZero, db-id :- su/IntGreaterThanZero, new-db-perms :- StrictDBPermissionsGraph]
   (when-let [new-native-perms (:native new-db-perms)]
@@ -615,12 +616,10 @@
   (doseq [[db-id new-db-perms] new-group-perms]
     (update-db-permissions! group-id db-id new-db-perms)))
 
-
 (defn check-revision-numbers
-  "Check that the revision number coming in as part of NEW-GRAPH matches the one from OLD-GRAPH.
-   This way we can make sure people don't submit a new graph based on something out of date,
-   which would otherwise stomp over changes made in the interim.
-   Return a 409 (Conflict) if the numbers don't match up."
+  "Check that the revision number coming in as part of `new-graph` matches the one from `old-graph`. This way we can
+  make sure people don't submit a new graph based on something out of date, which would otherwise stomp over changes
+  made in the interim. Return a 409 (Conflict) if the numbers don't match up."
   [old-graph new-graph]
   (when (not= (:revision old-graph) (:revision new-graph))
     (throw (ex-info (str (deferred-tru "Looks like someone else edited the permissions and your data is out of date.")
@@ -629,8 +628,8 @@
              {:status-code 409}))))
 
 (defn- save-perms-revision!
-  "Save changes made to the permissions graph for logging/auditing purposes.
-   This doesn't do anything if `*current-user-id*` is unset (e.g. for testing or REPL usage)."
+  "Save changes made to the permissions graph for logging/auditing purposes. This doesn't do anything if
+  `*current-user-id*` is unset (e.g. for testing or REPL usage)."
   [current-revision old new]
   (when *current-user-id*
     (db/insert! PermissionsRevision
@@ -645,16 +644,16 @@
   "Log changes to the permissions graph."
   [old new]
   (log/debug
-   (trs "Changing permissions")
-   "\n" (trs "FROM:") (u/pprint-to-str 'magenta old)
-   "\n" (trs "TO:")   (u/pprint-to-str 'blue    new)))
+   (trs "Changing permissions from: {1} to: {2}"
+        (str (u/pprint-to-str 'magenta old) "\n")
+        (u/pprint-to-str 'blue new))))
 
 (s/defn update-graph!
-  "Update the permissions graph, making any changes necessary to make it match NEW-GRAPH.
-   This should take in a graph that is exactly the same as the one obtained by `graph` with any changes made as
-   needed. The graph is revisioned, so if it has been updated by a third party since you fetched it this function will
-   fail and return a 409 (Conflict) exception. If nothing needs to be done, this function returns `nil`; otherwise it
-   returns the newly created `PermissionsRevision` entry."
+  "Update the permissions graph, making any changes necessary to make it match `new-graph`. This should take in a graph
+  that is exactly the same as the one obtained by `graph` with any changes made as needed. The graph is revisioned, so
+  if it has been updated by a third party since you fetched it this function will fail and return a 409 (Conflict)
+  exception. If nothing needs to be done, this function returns `nil`; otherwise it returns the newly created
+  `PermissionsRevision` entry."
   ([new-graph :- StrictPermissionsGraph]
    (let [old-graph (graph)
          [old new] (data/diff (:groups old-graph) (:groups new-graph))

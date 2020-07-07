@@ -11,7 +11,6 @@
              [driver :as driver]
              [util :as u]]
             [metabase.driver.util :as driver.u]
-            [metabase.mbql.schema :as mbql.s]
             [metabase.plugins.classloader :as classloader]
             [metabase.query-processor
              [context :as context]
@@ -64,10 +63,10 @@
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
 (u/ignore-exceptions
- (classloader/require '[metabase-enterprise.audit.query-processor.middleware.handle-audit-queries :as ee.audit]
-                      '[metabase-enterprise.sandbox.query-processor.middleware
-                        [column-level-perms-check :as ee.sandbox.columns]
-                        [row-level-restrictions :as ee.sandbox.rows]]))
+  (classloader/require '[metabase-enterprise.audit.query-processor.middleware.handle-audit-queries :as ee.audit]
+                       '[metabase-enterprise.sandbox.query-processor.middleware
+                         [column-level-perms-check :as ee.sandbox.columns]
+                         [row-level-restrictions :as ee.sandbox.rows]]))
 
 ;; ▼▼▼ POST-PROCESSING ▼▼▼  happens from TOP-TO-BOTTOM, e.g. the results of `f` are (eventually) passed to `limit`
 (def default-middleware

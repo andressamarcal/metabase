@@ -54,15 +54,16 @@
     query-metadata-response))
 
 (api/defendpoint GET "/:id/query_metadata"
-  "This endpoint essentially acts as a wrapper for the OSS version of this route. When a user has segmented
+  "This endpoint essentially acts as a wrapper for the CE version of this route. When a user has segmented
   permissions that only gives them access to a subset of columns for a given table, those inaccessable columns should
   also be excluded from what is show in the query builder. When the user has full permissions (or no permissions) this
-  route doesn't add/change anything from the OSS version. See the docs on the OSS version of the endpoint for more
+  route doesn't add/change anything from the CE version. See the docs on the CE version of the endpoint for more
   information."
-  [id include_sensitive_fields]
-  {include_sensitive_fields (s/maybe su/BooleanString)}
+  [id include_sensitive_fields include_hidden_fields]
+  {include_sensitive_fields (s/maybe su/BooleanString)
+   include_hidden_fields    (s/maybe su/BooleanString)}
   ;; Permissions checking for table is done in `fetch-query-metadata`
   (let [table (Table id)]
-    (maybe-filter-fields table (table-api/fetch-query-metadata table include_sensitive_fields))))
+    (maybe-filter-fields table (table-api/fetch-query-metadata table include_sensitive_fields include_hidden_fields))))
 
 (api/define-routes)

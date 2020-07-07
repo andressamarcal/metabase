@@ -166,7 +166,8 @@
                                                               $user_id
                                                               [:value 5 {:base_type     :type/Integer
                                                                          :special_type  :type/FK
-                                                                         :database_type "INTEGER"}]]]
+                                                                         :database_type "INTEGER"
+                                                                         :name          "USER_ID"}]]]
                                               :gtap?        true}
                                :joins        [{:source-query
                                                {:source-table $$venues
@@ -176,7 +177,8 @@
                                                                $venues.price
                                                                [:value 1 {:base_type     :type/Integer
                                                                           :special_type  :type/Category
-                                                                          :database_type "INTEGER"}]]
+                                                                          :database_type "INTEGER"
+                                                                          :name          "PRICE"}]]
                                                 :gtap?        true}
                                                :alias     "v"
                                                :strategy  :left-join
@@ -403,10 +405,10 @@
                           :breakout    [$venue_id->venues.price $user_id->users.name]}))))))))))))
 
 (defn- run-query-returning-remark [run-query-fn]
-  (let [remark        (atom nil)
-        query->remark qputil/query->remark]
-    (with-redefs [qputil/query->remark (fn [outer-query]
-                                         (u/prog1 (query->remark outer-query)
+  (let [remark (atom nil)
+        orig   qputil/query->remark]
+    (with-redefs [qputil/query->remark (fn [driver outer-query]
+                                         (u/prog1 (orig driver outer-query)
                                            (reset! remark <>)))]
       (let [results (run-query-fn)]
         (or (some-> @remark (str/replace #"queryHash: \w+" "queryHash: <hash>"))
@@ -462,32 +464,32 @@
 (deftest correct-metadata-test
   (testing (str "We should return the same metadata as the original Table when running a query against a sandboxed "
                 "Table (#390)\n")
-    (let [cols                           (fn []
-                                           (mt/cols
-                                             (mt/run-mbql-query venues
-                                               {:order-by [[:asc $id]]
-                                                :limit    2})))
-          original-cols*                 (cols)
-          ;; `with-gtaps` copies the test DB so this function will update the IDs in `original-cols*` so they'll match
+    (let [cols          (fn []
+                          (mt/cols
+                            (mt/run-mbql-query venues
+                              {:order-by [[:asc $id]]
+                               :limit    2})))
+          original-cols (cols)
+          ;; `with-gtaps` copies the test DB so this function will update the IDs in `original-cols` so they'll match
           ;; up with the current copy
-          original-cols-with-correct-ids (fn []
-                                           (for [col  original-cols*
-                                                 :let [id (mt/id :venues (keyword (str/lower-case (:name col))))]]
-                                             (assoc col
-                                                    :id id
-                                                    :table_id (mt/id :venues)
-                                                    :field_ref [:field-id id])))]
+          expected-cols (fn []
+                          (for [col  original-cols
+                                :let [id (mt/id :venues (keyword (str/lower-case (:name col))))]]
+                            (assoc col
+                                   :id id
+                                   :table_id (mt/id :venues)
+                                   :field_ref [:field-id id])))]
       (testing "A query with a simple attributes-based sandbox should have the same metadata"
         (mt/with-gtaps {:gtaps      {:venues (dissoc (venues-category-mbql-gtap-def) :query)}
                         :attributes {"cat" 50}}
-          (is (= (original-cols-with-correct-ids)
-                 (cols)))))
+            (is (= (expected-cols)
+                   (cols)))))
 
       (testing "A query with an equivalent MBQL query sandbox should have the same metadata"
         (mt/with-gtaps {:gtaps      {:venues (venues-category-mbql-gtap-def)}
                         :attributes {"cat" 50}}
-          (is (= (original-cols-with-correct-ids)
-                 (cols)))))
+            (is (= (expected-cols)
+                   (cols)))))
 
       (testing "A query with an equivalent native query sandbox should have the same metadata"
         (mt/with-gtaps {:gtaps {:venues {:query (mt/native-query
@@ -500,11 +502,11 @@
                                                    {:cat {:name "cat" :display_name "cat" :type "number" :required true}}})
                                          :remappings {:cat ["variable" ["template-tag" "cat"]]}}}
                         :attributes {"cat" 50}}
-          (is (= (original-cols-with-correct-ids)
+          (is (= (expected-cols)
                  (cols)))))
 
       (testing (str "If columns are added/removed/reordered we should still merge in metadata for the columns we're "
-                    "able to match from the original Table")
+                      "able to match from the original Table")
         (mt/with-gtaps {:gtaps {:venues {:query (mt/native-query
                                                   {:query
                                                    (str "SELECT NAME, ID, LONGITUDE, PRICE, 1 AS ONE "
@@ -515,11 +517,11 @@
                                                    {:cat {:name "cat" :display_name "cat" :type "number" :required true}}})
                                          :remappings {:cat ["variable" ["template-tag" "cat"]]}}}
                         :attributes {"cat" 50}}
-          (let [[id-col name-col _ _ longitude-col price-col] (original-cols-with-correct-ids)
+          (let [[id-col name-col _ _ longitude-col price-col] (expected-cols)
                 one-col                                       {:name         "ONE"
                                                                :display_name "ONE"
                                                                :base_type    :type/Integer
                                                                :source       :fields
                                                                :field_ref    [:field-literal "ONE" :type/Integer]}]
-            (is (= [name-col id-col longitude-col price-col one-col]
-                   (cols)))))))))
+              (is (= [name-col id-col longitude-col price-col one-col]
+                     (cols)))))))))
