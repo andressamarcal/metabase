@@ -7,7 +7,6 @@
             [metabase.models
              [card :refer [Card]]
              [field :refer [Field]]
-             [params :as params]
              [permissions :as perms]
              [permissions-group-membership :refer [PermissionsGroupMembership]]
              [table :refer [Table]]]
@@ -90,11 +89,11 @@
 ;;; +----------------------------------------------------------------------------------------------------------------+
 
 (defn- target->type
-  "Attempt to expand `maybe-field` to find its `id`. This might not be a field and instead a template tag or something
-  else. Return the field id if we can, otherwise nil"
-  [[_ maybe-field]]
-  (when-let [field-id (u/ignore-exceptions (params/field-form->id maybe-field))]
-    (db/select-one-field :base_type Field :id field-id)))
+  "Get the base type of the Field associated with a `field-clause` (e.g. `[:field-id 1]`) if non-nil."
+  [[_ field-clause]]
+  (let [field-id (mbql.u/field-clause->id-or-literal field-clause)]
+    (when (integer? field-id)
+      (db/select-one-field :base_type Field :id field-id))))
 
 (defn- attr-value->param-value
   "Take an `attr-value` with a desired `target-type` and coerce to that type if need be. If not type is given or it's

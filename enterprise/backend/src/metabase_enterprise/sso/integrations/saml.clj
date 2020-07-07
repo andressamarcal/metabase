@@ -149,7 +149,7 @@
           [valid-relay-state? continue-url] (saml-routes/valid-hmac-relay-state? secret-key-spec relay-state)]
       (if valid-relay-state?
         continue-url
-        (log/warn (trs "RelayState is invalid. Don't know where to redirect to after log in. RelayState: {0}"
+        (log/warn (trs "RelayState is invalid. Don''t know where to redirect to after log in. RelayState: {0}"
                        (u/pprint-to-str 'red relay-state)))))))
 
 (defn- validate-signature [saml-response]
