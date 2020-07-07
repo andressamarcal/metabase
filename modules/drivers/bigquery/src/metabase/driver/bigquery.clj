@@ -3,6 +3,7 @@
              [set :as set]
              [string :as str]]
             [clojure.tools.logging :as log]
+            [medley.core :as m]
             [metabase
              [driver :as driver]
              [util :as u]]
@@ -49,6 +50,11 @@
 (def ^:private ^{:arglists '([database])} ^Bigquery database->client
   (comp credential->client database->credential))
 
+(defn find-project-id
+  "Select the user specified project-id or the one from the credential, in the case of a service account"
+  [project-id ^GoogleCredential credential]
+  (or project-id
+      (.getServiceAccountProjectId credential)))
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                                      Sync                                                      |
@@ -62,7 +68,15 @@
    (list-tables database nil))
 
   ([{{:keys [project-id dataset-id]} :details, :as database}, ^String page-token-or-nil]
-   (list-tables (database->client database) project-id dataset-id page-token-or-nil))
+   ;; RAR 2020-May-11 - this gets messy, because this function is used to determine if we
+   ;; can connect to the database. If a service account JSON is being used, the project ID
+   ;; field isn't required in the admin page because it's embedded in that JSON. During the
+   ;; initial save, the database entry doesn't exist yet, so we haven't pulled the project ID
+   ;; from that JSON. In this case, we need to go look it up in the credentials.
+   ;; TODO: maybe handle this better in `driver/can-connect? :bigquery`
+   (let [db-client (database->client database)
+         proj-id (find-project-id project-id (database->credential database))]
+    (list-tables db-client proj-id dataset-id page-token-or-nil)))
 
   ([^Bigquery client, ^String project-id, ^String dataset-id, ^String page-token-or-nil]
    {:pre [client (seq project-id) (seq dataset-id)]}
@@ -90,7 +104,7 @@
 
 (s/defn get-table :- Table
   ([{{:keys [project-id dataset-id]} :details, :as database} table-id]
-   (get-table (database->client database) project-id dataset-id table-id))
+   (get-table (database->client database) (find-project-id project-id (database->credential database)) dataset-id table-id))
 
   ([client :- Bigquery, project-id :- su/NonBlankString, dataset-id :- su/NonBlankString, table-id :- su/NonBlankString]
    (google/execute (.get (.tables client) project-id dataset-id table-id))))
@@ -111,10 +125,11 @@
 
 (s/defn ^:private table-schema->metabase-field-info
   [schema :- TableSchema]
-  (for [^TableFieldSchema field (.getFields schema)]
-    {:name          (.getName field)
-     :database-type (.getType field)
-     :base-type     (bigquery-type->base-type (.getType field))}))
+  (for [[idx ^TableFieldSchema field] (m/indexed (.getFields schema))]
+    {:name              (.getName field)
+     :database-type     (.getType field)
+     :base-type         (bigquery-type->base-type (.getType field))
+     :database-position idx}))
 
 (defmethod driver/describe-table :bigquery
   [_ database {table-name :name}]
@@ -161,7 +176,10 @@
       ~@body)))
 
 (defn- post-process-native
-  "Parse results of a BigQuery query."
+  "Parse results of a BigQuery query. `respond` is the same function passed to
+  `metabase.driver/execute-reducible-query`, and has the signature
+
+    (respond results-metadata rows)"
   [respond ^QueryResponse resp]
   (with-finished-response [response resp]
     (let [^TableSchema schema
@@ -178,7 +196,7 @@
           (for [column (table-schema->metabase-field-info schema)]
             (-> column
                 (set/rename-keys {:base-type :base_type})
-                (dissoc :database-type)))]
+                (dissoc :database-type :database-position)))]
       (respond
        {:cols columns}
        (for [^TableRow row (.getRows response)]
@@ -192,7 +210,7 @@
 
 (defn- ^QueryResponse execute-bigquery
   ([{{:keys [project-id]} :details, :as database} sql parameters]
-   (execute-bigquery (database->client database) project-id sql parameters))
+   (execute-bigquery (database->client database) (find-project-id project-id (database->credential database)) sql parameters))
 
   ([^Bigquery client ^String project-id ^String sql parameters]
    {:pre [client (seq project-id) (seq sql)]}
@@ -227,7 +245,7 @@
   (let [database (qp.store/database)]
     (binding [bigquery.common/*bigquery-timezone-id* (effective-query-timezone-id database)]
       (log/tracef "Running BigQuery query in %s timezone" bigquery.common/*bigquery-timezone-id*)
-      (let [sql (str "-- " (qputil/query->remark outer-query) "\n" sql)]
+      (let [sql (str "-- " (qputil/query->remark driver outer-query) "\n" sql)]
         (process-native* respond database sql params)))))
 
 

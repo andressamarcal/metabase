@@ -1,12 +1,20 @@
-import { signInAsAdmin, restore } from "__support__/cypress";
+import {
+  signInAsAdmin,
+  restore,
+  popover,
+  visitAlias,
+  withSampleDataset,
+} from "__support__/cypress";
 
 const SAMPLE_DB_URL = "/admin/datamodel/database/1";
-const ORDERS_URL = `${SAMPLE_DB_URL}/table/2`;
 
 describe("scenarios > admin > datamodel > table", () => {
   beforeEach(() => {
     restore();
     signInAsAdmin();
+    withSampleDataset(({ ORDERS_ID }) => {
+      cy.wrap(`${SAMPLE_DB_URL}/table/${ORDERS_ID}`).as(`ORDERS_URL`);
+    });
     cy.server();
     cy.route("PUT", "/api/table/*").as("tableUpdate");
     cy.route("PUT", "/api/field/*").as("fieldUpdate");
@@ -14,15 +22,22 @@ describe("scenarios > admin > datamodel > table", () => {
 
   describe("data model editor", () => {
     it("should allow editing of the name and description", () => {
-      cy.visit(ORDERS_URL);
+      cy.route(
+        "GET",
+        "/api/table/2/query_metadata?include_sensitive_fields=true",
+      ).as("tableMetadataFetch");
+      visitAlias("@ORDERS_URL");
 
       cy.get('input[name="display_name"]').as("display_name");
       cy.get('input[name="description"]').as("description");
+
+      cy.wait("@tableMetadataFetch");
 
       // update the name
       cy.get("@display_name")
         .should("have.value", "Orders")
         .clear()
+        .should("have.value", "")
         .type("new display_name")
         .blur();
       cy.wait("@tableUpdate");
@@ -34,6 +49,7 @@ describe("scenarios > admin > datamodel > table", () => {
           "This is a confirmed order for a product from a user.",
         )
         .clear()
+        .should("have.value", "")
         .type("new description")
         .blur();
       cy.wait("@tableUpdate");
@@ -45,7 +61,7 @@ describe("scenarios > admin > datamodel > table", () => {
     });
 
     it("shouild allow changing the visibility and reason", () => {
-      cy.visit(ORDERS_URL);
+      visitAlias("@ORDERS_URL");
 
       // visibility
       cy.contains(/^Queryable$/).should("have.class", "text-brand");
@@ -83,7 +99,7 @@ describe("scenarios > admin > datamodel > table", () => {
       cy.get(alias)
         .contains(initialOption)
         .click({ force: true });
-      cy.get(".PopoverBody")
+      popover()
         .contains(desiredOption)
         .click({ force: true });
       cy.get(alias).contains(desiredOption);
@@ -95,14 +111,14 @@ describe("scenarios > admin > datamodel > table", () => {
     }
 
     it("should allow hiding of columns outside of detail views", () => {
-      cy.visit(ORDERS_URL);
+      visitAlias("@ORDERS_URL");
 
       field("Created At").as("created_at");
       testSelect("@created_at", "Everywhere", "Only in detail views");
     });
 
     it("should allow hiding of columns entirely", () => {
-      cy.visit(ORDERS_URL);
+      visitAlias("@ORDERS_URL");
 
       field("Created At").as("created_at");
       testSelect("@created_at", "Everywhere", "Do not include");
@@ -117,7 +133,7 @@ describe("scenarios > admin > datamodel > table", () => {
     });
 
     it("should allow changing of special type and currency", () => {
-      cy.visit(ORDERS_URL);
+      visitAlias("@ORDERS_URL");
 
       field("Tax").as("tax");
       testSelect("@tax", "No special type", "Currency");
@@ -125,57 +141,53 @@ describe("scenarios > admin > datamodel > table", () => {
     });
 
     it("should allow changing of foreign key target", () => {
-      cy.visit(ORDERS_URL);
+      visitAlias("@ORDERS_URL");
 
       field("User ID").as("user_id");
       testSelect("@user_id", "People → ID", "Products → ID");
     });
 
-    it("should allow creating segments", () => {
-      cy.visit(ORDERS_URL);
+    it("should allow sorting columns", () => {
+      visitAlias("@ORDERS_URL");
+      cy.contains("Column order:").click();
 
-      cy.contains("Add a Segment").click();
+      // switch to alphabetical ordering
+      popover()
+        .contains("Alphabetical")
+        .click({ force: true });
 
-      cy.url().should("include", "/admin/datamodel/segment/create?table=2");
+      // move product_id to the top
+      cy.route("PUT", "/api/table/2/fields/order").as("fieldReorder");
+      cy.get(".Grabber")
+        .eq(3)
+        .trigger("mousedown", 0, 0);
+      cy.get("#ColumnsList")
+        .trigger("mousemove", 10, 10)
+        .trigger("mouseup", 10, 10);
 
-      cy.contains("Add filters to narrow your answer").click();
-      cy.contains("Product ID").click();
-      cy.get(`input[placeholder="Enter an ID"]`)
-        .type("1")
-        .blur();
-      cy.contains("button", "Add filter").click();
-      cy.contains("93 rows");
-      cy.get(`input[placeholder^="Something descriptive"]`).type(
-        "User 1's Orders",
-      );
-      cy.get(`textarea[placeholder^="This is a good place"]`).type(
-        "Segment containing only user 1's orders",
-      );
-      cy.contains("button", "Save changes").click();
+      // wait for request to complete
+      cy.wait("@fieldReorder");
 
-      cy.url().should("include", "/admin/datamodel/database/1/table/2");
-      cy.contains("User 1's Orders");
+      // check that new order is obeyed in queries
+      cy.request("POST", "/api/dataset", {
+        database: 1,
+        query: { "source-table": 2 },
+        type: "query",
+      }).then(resp => {
+        expect(resp.body.data.cols[0].name).to.eq("PRODUCT_ID");
+      });
     });
 
-    it("should allow creating metrics", () => {
-      cy.visit(ORDERS_URL);
+    it("should allow bulk hiding tables", () => {
+      cy.route("GET", `**/api/table/*/query_metadata*`).as("tableMetadata");
+      visitAlias("@ORDERS_URL");
+      cy.wait(["@tableMetadata", "@tableMetadata", "@tableMetadata"]); // wait for these api calls to finish to avoid them overwriting later PUT calls
 
-      cy.contains("Add a Metric").click();
-
-      cy.url().should("include", "/admin/datamodel/metric/create?table=2");
-
-      cy.contains("Count of rows").click();
-      cy.contains("Sum of").click();
-      cy.contains("Subtotal").click();
-      cy.contains("Result: 1448188");
-      cy.get(`input[placeholder^="Something descriptive"]`).type("Revenue");
-      cy.get(`textarea[placeholder^="This is a good place"]`).type(
-        "Total revenue",
-      );
-      cy.contains("button", "Save changes").click();
-
-      cy.url().should("include", "/admin/datamodel/database/1/table/2");
-      cy.contains("Revenue");
+      cy.contains("4 Queryable Tables");
+      cy.get(".AdminList-section .Icon-eye_crossed_out").click();
+      cy.contains("4 Hidden Tables");
+      cy.get(".AdminList-section .Icon-eye").click();
+      cy.contains("4 Queryable Tables");
     });
   });
 });

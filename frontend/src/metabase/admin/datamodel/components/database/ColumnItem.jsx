@@ -1,11 +1,11 @@
 import React, { Component } from "react";
 import PropTypes from "prop-types";
 import { Link, withRouter } from "react-router";
+import { t } from "ttag";
 
 import InputBlurChange from "metabase/components/InputBlurChange";
 import Select, { Option } from "metabase/components/Select";
-import Icon from "metabase/components/Icon";
-import { t } from "ttag";
+import Button from "metabase/components/Button";
 import * as MetabaseCore from "metabase/lib/core";
 import { isNumericBaseType, isCurrency } from "metabase/lib/schema_metadata";
 import { TYPE, isa, isFK } from "metabase/lib/types";
@@ -24,13 +24,11 @@ export default class Column extends Component {
     field: PropTypes.object,
     idfields: PropTypes.array.isRequired,
     updateField: PropTypes.func.isRequired,
+    dragHandle: PropTypes.node,
   };
 
   updateField = properties => {
-    this.props.updateField({
-      ...this.props.field.getPlainObject(),
-      ...properties,
-    });
+    this.props.updateField({ ...this.props.field, ...properties });
   };
 
   handleChangeName = ({ target: { value: display_name } }) => {
@@ -47,10 +45,10 @@ export default class Column extends Component {
   };
 
   render() {
-    const { field, idfields } = this.props;
+    const { field, idfields, dragHandle } = this.props;
 
     return (
-      <li className="mt1 mb3 flex">
+      <div className="p1 mt1 mb3 flex bordered rounded">
         <div className="flex flex-column flex-auto">
           <div>
             <InputBlurChange
@@ -62,7 +60,7 @@ export default class Column extends Component {
             />
             <div className="clearfix">
               <div className="flex flex-auto">
-                <div className="flex-auto pl1">
+                <div className="pl1 flex-auto">
                   <FieldVisibilityPicker
                     className="block"
                     field={field}
@@ -77,6 +75,12 @@ export default class Column extends Component {
                     idfields={idfields}
                   />
                 </div>
+                <Link
+                  to={`${this.props.location.pathname}/${this.props.field.id}`}
+                  className="text-brand-hover mr1"
+                >
+                  <Button icon="gear" style={{ padding: 10 }} />
+                </Link>
               </div>
             </div>
           </div>
@@ -90,13 +94,8 @@ export default class Column extends Component {
             />
           </div>
         </div>
-        <Link
-          to={`${this.props.location.pathname}/${this.props.field.id}`}
-          className="text-brand-hover mx2 mt1"
-        >
-          <Icon name="gear" />
-        </Link>
-      </li>
+        {dragHandle}
+      </div>
     );
   }
 }
@@ -210,7 +209,7 @@ export class SpecialTypeAndTargetPicker extends Component {
     );
 
     return (
-      <div>
+      <div className={cx(selectSeparator ? "flex align-center" : null)}>
         <Select
           className={cx("TableEditor-field-special-type mt0", className)}
           value={field.special_type}
@@ -227,7 +226,11 @@ export class SpecialTypeAndTargetPicker extends Component {
         // handle a "secondary" input more elegantly
         showCurrencyTypeSelect && (
           <Select
-            className={cx("TableEditor-field-target inline-block", className)}
+            className={cx(
+              "TableEditor-field-target inline-block",
+              selectSeparator ? "mt0" : "mt1",
+              className,
+            )}
             value={
               (field.settings && field.settings.currency) ||
               getGlobalSettingsForColumn(field).currency ||
@@ -251,7 +254,11 @@ export class SpecialTypeAndTargetPicker extends Component {
         {showFKTargetSelect && selectSeparator}
         {showFKTargetSelect && (
           <Select
-            className={cx("TableEditor-field-target text-wrap", className)}
+            className={cx(
+              "TableEditor-field-target text-wrap",
+              selectSeparator ? "mt0" : "mt1",
+              className,
+            )}
             placeholder={t`Select a target`}
             searchProp="name"
             value={field.fk_target_field_id}

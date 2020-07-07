@@ -273,6 +273,14 @@
   dispatch-on-driver-with-test-extensions
   :hierarchy #'driver/hierarchy)
 
+(defmulti destroy-db!
+  "Destroy the database created for `database-definition`, if one exists. This is only called if loading data fails for
+  one reason or another, to revert the changes made thus far; implementations should clean up everything related to
+  the database in question."
+  {:arglists '([driver database-definition])}
+  dispatch-on-driver-with-test-extensions
+  :hierarchy #'driver/hierarchy)
+
 
 (defmulti format-name
   "Transform a lowercase string Table or Field name in a way appropriate for this dataset (e.g., `h2` would want to
@@ -343,14 +351,14 @@
 (defmulti count-with-template-tag-query
   "Generate a native query for the count of rows in `table` matching a set of conditions where `field-name` is equal to
   a param `value`."
-  ^{:arglists '([driver table-name field-name param-type])}
+  {:arglists '([driver table-name field-name param-type])}
   dispatch-on-driver-with-test-extensions
   :hierarchy #'driver/hierarchy)
 
 (defmulti count-with-field-filter-query
   "Generate a native query that returns the count of a Table with `table-name` with a field filter against a Field with
   `field-name`."
-  ^{:arglists '([driver table-name field-name])}
+  {:arglists '([driver table-name field-name])}
   dispatch-on-driver-with-test-extensions
   :hierarchy #'driver/hierarchy)
 
