@@ -39,7 +39,7 @@ type Props = {
 
   supportMultipleAggregations?: boolean,
 
-  setDatasetQuery: (datasetQuery: DatasetQuery) => void,
+  setDatasetQuery?: (datasetQuery: DatasetQuery) => void,
 
   isShowingDataReference?: boolean,
 };
