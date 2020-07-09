@@ -3,6 +3,7 @@ import {
   restore,
   openOrdersTable,
   version,
+  popover,
 } from "__support__/cypress";
 
 describe("scenarios > admin > settings", () => {
