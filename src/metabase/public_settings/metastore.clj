@@ -13,7 +13,8 @@
             [metabase.util
              [i18n :refer [deferred-tru trs tru]]
              [schema :as su]]
-            [schema.core :as s]))
+            [schema.core :as s]
+            [toucan.db :as db]))
 
 (def ^:private ValidToken
   "Schema for a valid metastore token. Must be 64 lower-case hex characters."
@@ -34,6 +35,11 @@
 ;;; +----------------------------------------------------------------------------------------------------------------+
 ;;; |                                                TOKEN VALIDATION                                                |
 ;;; +----------------------------------------------------------------------------------------------------------------+
+
+(defn- active-user-count []
+  ;; NOTE: models.user imports public settings, which imports this namespace,
+  ;; so we can't import the User model here.
+  (db/count 'User :is_active true))
 
 (defn- token-status-url [token]
   (when (seq token)
@@ -61,7 +67,7 @@
    (future
      (log/info (u/format-color 'green (trs "Using this URL to check token: {0}" (token-status-url token))))
      (try (some-> (token-status-url token)
-                  http/get
+                  (http/get {:query-params {:users (active-user-count)}})
                   :body
                   (json/parse-string keyword))
           ;; if there was an error fetching the token, log it and return a generic message about the
