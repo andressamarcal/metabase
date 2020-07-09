@@ -1,7 +1,7 @@
 (ns metabase.driver
   "Metabase Drivers handle various things we need to do with connected data warehouse databases, including things like
   introspecting their schemas and processing and running MBQL queries. Drivers must implement some or all of the
-  multimethods defined below, and register themselves with a call to `regsiter!`.
+  multimethods defined below, and register themselves with a call to `register!`.
 
   SQL-based drivers can use the `:sql` driver as a parent, and JDBC-based SQL drivers can use `:sql-jdbc`. Both of
   these drivers define additional multimethods that child drivers should implement; see `metabase.driver.sql` and
@@ -283,7 +283,8 @@
     :display-name su/NonBlankString
 
     ;; Type of this property. Defaults to `:string` if unspecified.
-    (s/optional-key :type) (s/enum :string :integer :boolean :password)
+    ;; `:select` is a `String` in the backend.
+    (s/optional-key :type) (s/enum :string :integer :boolean :password :select :text)
 
     ;; A default value for this field if the user hasn't set an explicit value. This is shown in the UI as a
     ;; placeholder.
@@ -295,7 +296,10 @@
     (s/optional-key :placeholder) s/Any
 
     ;; Is this property required? Defaults to `false`.
-    (s/optional-key :required?) s/Bool}
+    (s/optional-key :required?) s/Bool
+
+    ;; Any options for `:select` types
+    (s/optional-key :options) {s/Keyword s/Str}}
 
    (complement (every-pred #(contains? % :default) #(contains? % :placeholder)))
    "connection details that does not have both default and placeholder"))
@@ -325,7 +329,6 @@
   You can use `qp.reducible/reducible-rows` to create reducible, streaming results.
 
   Example impl:
-
 
     (defmethod reducible-query :my-driver
       [_ query context respond]
@@ -591,3 +594,11 @@
   {:arglists '([driver inner-query])}
   dispatch-on-initialized-driver
   :hierarchy #'hierarchy)
+
+(defmulti default-field-order
+  "Return how fields should be sorted by default for this database."
+  {:added "0.36.0" :arglists '([driver])}
+  dispatch-on-initialized-driver
+  :hierarchy #'hierarchy)
+
+(defmethod default-field-order ::driver [_] :database)

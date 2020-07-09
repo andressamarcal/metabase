@@ -196,6 +196,7 @@
                                       vals
                                       (filter mi/can-read?)
                                       (map u/get-id)
+                                      set
                                       params/field-ids->param-field-values
                                       not-empty)))
 

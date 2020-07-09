@@ -155,7 +155,7 @@
         do-login (fn []
                    (let [{session-uuid :id, :as session} (login username password)
                          response                        {:id (str session-uuid)}]
-                     (mw.session/set-session-cookie response session)))]
+                     (mw.session/set-session-cookie request response session)))]
     (if throttling-disabled?
       (do-login)
       (http-400-on-error
@@ -221,7 +221,7 @@
 
 (api/defendpoint POST "/reset_password"
   "Reset password with a reset token."
-  [:as {{:keys [token password]} :body}]
+  [:as {{:keys [token password]} :body, :as request}]
   {token    su/NonBlankString
    password su/ComplexPassword}
   (or (when-let [{user-id :id, :as user} (valid-reset-token->user token)]
@@ -234,16 +234,14 @@
         (let [{session-uuid :id, :as session} (create-session! :password user)
               response                        {:success    true
                                                :session_id (str session-uuid)}]
-          (mw.session/set-session-cookie response session)))
+          (mw.session/set-session-cookie request response session)))
       (api/throw-invalid-param-exception :password (tru "Invalid reset token"))))
-
 
 (api/defendpoint GET "/password_reset_token_valid"
   "Check is a password reset token is valid and isn't expired."
   [token]
   {token s/Str}
   {:valid (boolean (valid-reset-token->user token))})
-
 
 (api/defendpoint GET "/properties"
   "Get all global properties and their values. These are the specific `Settings` which are meant to be public."
@@ -326,14 +324,14 @@
                                                      :email      email}))]
     (create-session! :sso user)))
 
-(defn- do-google-auth [{{:keys [token]} :body}]
+(defn- do-google-auth [{{:keys [token]} :body, :as request}]
   (let [token-info-response                    (http/post (format google-auth-token-info-url token))
         {:keys [given_name family_name email]} (google-auth-token-info token-info-response)]
     (log/info (trs "Successfully authenticated Google Auth token for: {0} {1}" given_name family_name))
     (let [{session-uuid :id, :as session} (api/check-500
                                            (google-auth-fetch-or-create-user! given_name family_name email))
           response                        {:id (str session-uuid)}]
-      (mw.session/set-session-cookie response session))))
+      (mw.session/set-session-cookie request response session))))
 
 (api/defendpoint POST "/google_auth"
   "Login with Google Auth."

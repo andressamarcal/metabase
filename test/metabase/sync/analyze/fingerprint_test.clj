@@ -4,6 +4,7 @@
             [expectations :refer :all]
             [metabase
              [db :as mdb]
+             [test :as mt]
              [util :as u]]
             [metabase.db.metadata-queries :as metadata-queries]
             [metabase.models
@@ -13,6 +14,7 @@
             [metabase.sync.analyze.fingerprint.fingerprinters :as fingerprinters]
             [metabase.sync.interface :as i]
             [metabase.test.data :as data]
+            [schema.core :as s]
             [toucan.db :as db]
             [toucan.util.test :as tt]))
 
@@ -239,3 +241,17 @@
       (with-redefs [fingerprint/fingerprint-table! (fn [_] (throw (Exception. "this should not be called!")))]
         (is (= (fingerprint/empty-stats-map 0)
                (fingerprint/fingerprint-fields-for-db! fake-db [(Table (data/id :venues))] (fn [_ _]))))))))
+
+(deftest fingerprint-test
+  (mt/test-drivers (mt/normal-drivers)
+    (testing "Fingerprints should actually get saved with the correct values"
+      (testing "Text fingerprints"
+        (is (schema= {:global {:distinct-count (s/eq 100)
+                               :nil%           (s/eq 0.0)}
+                      :type   {:type/Text {:percent-json   (s/eq 0.0)
+                                           :percent-url    (s/eq 0.0)
+                                           :percent-email  (s/eq 0.0)
+                                           :average-length (s/pred #(< 15 % 16) "between 15 and 16")}}}
+                     (db/select-one-field :fingerprint Field :id (mt/id :venues :name)))))
+
+      (testing "(other kinds of fingerprints)"))))

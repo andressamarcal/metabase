@@ -8,15 +8,15 @@
              [http-client :as http]
              [public-settings :as public-settings]
              [util :as u]]
+            [metabase-enterprise.sso.integrations
+             [saml :as saml :refer :all]
+             [sso-settings :as sso-settings]]
             [metabase.middleware.session :as mw.session]
             [metabase.models
              [permissions-group :as group :refer [PermissionsGroup]]
              [permissions-group-membership :refer [PermissionsGroupMembership]]
              [user :refer [User]]]
-            [metabase-enterprise.sso.integrations
-             [saml :as saml :refer :all]
-             [sso-settings :as sso-settings]]
-            [metabase.public-settings.metastore :as metastore]
+            [metabase.public-settings.metastore-test :as metastore-test]
             [metabase.test
              [fixtures :as fixtures]
              [util :as tu]]
@@ -33,7 +33,7 @@
   "Stubs the `metastore/enable-sso?` function to simulate a valid token. This needs to be included to test any of the
   SSO features"
   [& body]
-  `(with-redefs [metastore/enable-sso? (constantly true)]
+  `(metastore-test/with-metastore-token-features #{:sso}
      ~@body))
 
 (defn client
@@ -86,9 +86,11 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
   (with-valid-metastore-token
     (client :get 400 "/auth/sso")))
 
-;; SSO requests fail if they don't have a valid metastore token
-(expect
-  (client :get 403 "/auth/sso"))
+(deftest require-valid-metastore-token-test
+  (testing "SSO requests fail if they don't have a valid metastore token"
+    (metastore-test/with-metastore-token-features #{}
+      (is (= "SSO requires a valid token"
+             (client :get 403 "/auth/sso"))))))
 
 ;; SSO requests fail if SAML is enabled but hasn't been configured
 (expect

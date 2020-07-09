@@ -11,6 +11,7 @@
              [normalize :as normalize]
              [util :as mbql.u]]
             [metabase.models
+             [collection :as collection]
              [dependency :as dependency]
              [field-values :as field-values]
              [interface :as i]
@@ -118,7 +119,8 @@
         (throw (Exception. (tru "You do not have permissions to run ad-hoc native queries against Database {0}."
                                 (:database query))))))
     ;; make sure this Card doesn't have circular source query references
-    (check-for-circular-source-query-references card)))
+    (check-for-circular-source-query-references card)
+    (collection/check-collection-namespace Card (:collection_id card))))
 
 (defn- post-insert [card]
   ;; if this Card has any native template tag parameters we need to update FieldValues for any Fields that are
@@ -152,7 +154,8 @@
             (field-values/update-field-values-for-on-demand-dbs! newly-added-param-field-ids)))))
     ;; make sure this Card doesn't have circular source query references if we're updating the query
     (when (:dataset_query card)
-      (check-for-circular-source-query-references card))))
+      (check-for-circular-source-query-references card))
+    (collection/check-collection-namespace Card (:collection_id card))))
 
 ;; Cards don't normally get deleted (they get archived instead) so this mostly affects tests
 (defn- pre-delete [{:keys [id]}]
@@ -165,7 +168,6 @@
    (classloader/require '[metabase-enterprise.sandbox.models.group-table-access-policy :as ee.sandbox.gtap])
    (when-let [GroupTableAccessPolicy (some-> (resolve 'ee.sandbox.gtap/GroupTableAccessPolicy) var-get)]
      (db/delete! GroupTableAccessPolicy :card_id id))))
-
 
 (u/strict-extend (class Card)
   models/IModel

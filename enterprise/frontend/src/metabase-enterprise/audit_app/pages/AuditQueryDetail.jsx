@@ -101,6 +101,7 @@ class QueryBuilderReadOnly extends React.Component {
           datasetQuery={card.dataset_query}
           query={query}
           databases={tableMetadata && [tableMetadata.db]}
+          setDatasetQuery={() => {}} // no-op to appease flow
           readOnly
         />
       ) : null;

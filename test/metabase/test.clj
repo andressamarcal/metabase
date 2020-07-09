@@ -4,6 +4,7 @@
   (Prefer using `metabase.test` to requiring bits and pieces from these various namespaces going forward, since it
   reduces the cognitive load required to write tests.)"
   (:require [clojure
+             data
              [test :refer :all]
              [walk :as walk]]
             [java-time :as t]
@@ -32,9 +33,11 @@
              [users :as test-users]]
             [metabase.test.util
              [async :as tu.async]
+             [i18n :as i18n.tu]
              [log :as tu.log]
              [timezone :as tu.tz]]
             [potemkin :as p]
+            [toucan.db :as db]
             [toucan.util.test :as tt]))
 
 ;; Fool the linters into thinking these namespaces are used! See discussion on
@@ -45,6 +48,7 @@
   driver/keep-me
   et/keep-me
   http/keep-me
+  i18n.tu/keep-me
   initialize/keep-me
   mt.tu/keep-me
   qp/keep-me
@@ -101,6 +105,10 @@
   client
   client-full-response]
 
+ [i18n.tu
+  with-mock-i18n-bundles
+  with-user-locale]
+
  [initialize
   initialize-if-needed!]
 
@@ -133,6 +141,7 @@
 
  [test-users
   fetch-user
+  test-user?
   user->id
   user->client
   user->credentials
@@ -149,6 +158,7 @@
   doall-recursive
   is-uuid-string?
   metabase-logger
+  obj->json->obj
   postwalk-pred
   random-email
   random-name
@@ -278,3 +288,28 @@
        (into {} form)
        form))
    form))
+
+(def ^{:arglists '([toucan-model])} object-defaults
+  "Return the default values for columns in an instance of a `toucan-model`, excluding ones that differ between
+  instances such as `:id`, `:name`, or `:created_at`. Useful for writing tests and comparing objects from the
+  application DB. Example usage:
+
+    (deftest update-user-first-name-test
+      (mt/with-temp User [user]
+        (update-user-first-name! user \"Cam\")
+        (is (= (merge (mt/object-defaults User)
+                      (select-keys user [:id :last_name :created_at :updated_at])
+                      {:name \"Cam\"})
+               (mt/decrecordize (db/select-one User :id (:id user)))))))"
+  (comp
+   (memoize
+    (fn [toucan-model]
+      (with-temp* [toucan-model [x]
+                   toucan-model [y]]
+        (let [[_ _ things-in-both] (clojure.data/diff x y)]
+          ;; don't include created_at/updated_at even if they're the exactly the same, as might be the case with MySQL
+          ;; TIMESTAMP columns (which only have second resolution by default)
+          (dissoc things-in-both :created_at :updated_at)))))
+   (fn [toucan-model]
+     (initialize/initialize-if-needed! :db)
+     (db/resolve-model toucan-model))))
