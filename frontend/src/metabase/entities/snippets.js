@@ -31,6 +31,10 @@ export default createEntity({
         placeholder: t`It's optional but oh, so helpful`,
         validate: validate.maxLength(500),
       },
+      {
+        name: "collection_id",
+        hidden: true,
+      },
     ],
   },
 });

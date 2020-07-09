@@ -2,7 +2,7 @@ import React from "react";
 
 import { t } from "ttag";
 
-import colors from "metabase/lib/colors";
+import Icon from "metabase/components/Icon";
 import Modal from "metabase/components/Modal";
 import Link from "metabase/components/Link";
 import Snippets from "metabase/entities/snippets";
@@ -29,18 +29,20 @@ export default class SnippetModal extends React.Component {
             closeModal();
           }}
           onClose={closeModal} // the "x" button
-          onCance={closeModal} // the cancel button
           submitTitle={t`Save`}
           footerExtraButtons={
             // only display archive for saved snippets
             snippet.id != null ? (
               <Link
-                style={{ color: colors.error }}
                 onClick={async () => {
                   await snippet.update({ archived: true });
                   closeModal();
                 }}
-              >{t`Archive`}</Link>
+                className="flex align-center text-medium text-bold"
+              >
+                <Icon name="archive" className="mr1" />
+                {t`Archive`}
+              </Link>
             ) : null
           }
         />

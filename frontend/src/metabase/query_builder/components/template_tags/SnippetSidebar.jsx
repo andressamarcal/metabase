@@ -5,14 +5,20 @@ import PropTypes from "prop-types";
 
 import { t } from "ttag";
 import cx from "classnames";
+import _ from "underscore";
 
 import Icon from "metabase/components/Icon";
 import Button from "metabase/components/Button";
+import Modal from "metabase/components/Modal";
+import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
+import AccordionList from "metabase/components/AccordionList";
 import SidebarContent from "metabase/query_builder/components/SidebarContent";
 import SidebarHeader from "metabase/query_builder/components/SidebarHeader";
 import { color } from "metabase/lib/colors";
 
 import Snippets from "metabase/entities/snippets";
+import SnippetCollections from "metabase/entities/snippet-collections";
+import Search from "metabase/entities/search";
 
 import type { Snippet } from "metabase/meta/types/Snippet";
 
@@ -34,7 +40,19 @@ const ICON_SIZE = 16;
 const HEADER_ICON_SIZE = 18;
 const MIN_SNIPPETS_FOR_SEARCH = 15;
 
+@SnippetCollections.load({
+  id: (state, props) =>
+    props.snippetCollectionId === null ? "root" : props.snippetCollectionId,
+})
 @Snippets.loadList({ wrapped: true })
+@Search.loadList({
+  query: (state, props) => ({
+    collection:
+      props.snippetCollectionId === null ? "root" : props.snippetCollectionId,
+    namespace: "snippets",
+  }),
+  wrapped: true,
+})
 export default class SnippetSidebar extends React.Component {
   props: Props;
   state: State = {
@@ -79,12 +97,22 @@ export default class SnippetSidebar extends React.Component {
   );
 
   render() {
-    const { snippets, openSnippetModalWithSelectedText } = this.props;
-    const { showSearch, searchString, showArchived } = this.state;
-    const filteredSnippets = snippets.filter(
-      snippet =>
-        !showSearch ||
-        snippet.name.toLowerCase().includes(searchString.toLowerCase()),
+    const {
+      snippets,
+      openSnippetModalWithSelectedText,
+      snippetCollection,
+      search,
+    } = this.props;
+    const { collectionId, showSearch, searchString, showArchived } = this.state;
+    const snippetsById = _.indexBy(snippets, "id");
+    const items = _.sortBy(search, "model"); // relies on "collection" sorting before "snippet"
+
+    const filteredSnippets = items.filter(item =>
+      item.model === "snippet"
+        ? snippetsById[item.id] &&
+          (!showSearch ||
+            item.name.toLowerCase().includes(searchString.toLowerCase()))
+        : !showSearch,
     );
 
     if (showArchived) {
@@ -97,7 +125,7 @@ export default class SnippetSidebar extends React.Component {
 
     return (
       <SidebarContent footer={this.footer()}>
-        {snippets.length === 0 ? (
+        {items.length === 0 && snippetCollection.id === "root" ? (
           <div className="px3 flex flex-column align-center">
             <svg
               viewBox="0 0 10 10"
@@ -143,12 +171,26 @@ export default class SnippetSidebar extends React.Component {
                     }}
                   />
                 </div>
-                <span
-                  className={cx({ hide: showSearch }, "text-heavy h3")}
-                >{t`Snippets`}</span>
+                <span className={cx({ hide: showSearch }, "text-heavy h3")}>
+                  {snippetCollection.id !== "root" ? (
+                    <span
+                      className="text-brand-hover cursor-pointer"
+                      onClick={() =>
+                        this.props.setSnippetCollectionId(
+                          snippetCollection.parent_id,
+                        )
+                      }
+                    >
+                      <Icon name="chevronleft" className="mr1" />
+                      {snippetCollection.name}
+                    </span>
+                  ) : (
+                    t`Snippets`
+                  )}
+                </span>
               </div>
               <div className="flex-align-right text-medium no-decoration">
-                {snippets.length >= MIN_SNIPPETS_FOR_SEARCH && (
+                {items.length >= MIN_SNIPPETS_FOR_SEARCH && (
                   <Icon
                     className={cx(
                       { hide: showSearch },
@@ -159,15 +201,53 @@ export default class SnippetSidebar extends React.Component {
                     size={HEADER_ICON_SIZE}
                   />
                 )}
-                <Icon
-                  className={cx(
-                    { hide: showSearch },
-                    "text-brand bg-light-hover rounded p1 cursor-pointer",
+
+                <PopoverWithTrigger
+                  triggerElement={
+                    <Icon
+                      className={cx(
+                        { hide: showSearch },
+                        "text-brand bg-light-hover rounded p1 cursor-pointer",
+                      )}
+                      name="add"
+                      size={HEADER_ICON_SIZE}
+                    />
+                  }
+                >
+                  {({ onClose }) => (
+                    <div className="flex flex-column">
+                      {[
+                        {
+                          icon: "snippet",
+                          name: t`New snippet`,
+                          onClick: () =>
+                            openSnippetModalWithSelectedText({ collectionId }),
+                        },
+                        {
+                          icon: "folder",
+                          name: t`New folder`,
+                          onClick: () =>
+                            this.setState({
+                              modalSnippetCollection: {
+                                parent_id: snippetCollection.id,
+                              },
+                            }),
+                        },
+                      ].map(({ icon, name, onClick }) => (
+                        <div
+                          className="p2 bg-medium-hover flex cursor-pointer text-brand-hover"
+                          onClick={() => {
+                            onClick();
+                            onClose();
+                          }}
+                        >
+                          <Icon name={icon} size={ICON_SIZE} className="mr1" />
+                          <h4>{name}</h4>
+                        </div>
+                      ))}
+                    </div>
                   )}
-                  onClick={openSnippetModalWithSelectedText}
-                  name="add"
-                  size={HEADER_ICON_SIZE}
-                />
+                </PopoverWithTrigger>
                 <Icon
                   className={cx(
                     { hide: !showSearch },
@@ -180,16 +260,41 @@ export default class SnippetSidebar extends React.Component {
               </div>
             </div>
             <div className="flex-full">
-              {filteredSnippets.map(snippet => (
-                <SnippetRow
-                  key={snippet.id}
-                  snippet={snippet}
-                  insertSnippet={this.props.insertSnippet}
-                  setModalSnippet={this.props.setModalSnippet}
-                />
-              ))}
+              {items.length > 0
+                ? filteredSnippets.map(item =>
+                    item.model === "collection" ? (
+                      <CollectionRow
+                        key={"collection-" + item.id}
+                        collection={item}
+                        onSelectCollection={() =>
+                          this.props.setSnippetCollectionId(item.id)
+                        }
+                        onEdit={collection =>
+                          this.setState({ modalSnippetCollection: collection })
+                        }
+                      />
+                    ) : (
+                      <SnippetRow
+                        key={"snippet-" + item.id}
+                        snippet={snippetsById[item.id]}
+                        insertSnippet={this.props.insertSnippet}
+                        setModalSnippet={this.props.setModalSnippet}
+                      />
+                    ),
+                  )
+                : null}
             </div>
           </div>
+        )}
+        {this.state.modalSnippetCollection && (
+          <SnippetCollectionModal
+            collection={this.state.modalSnippetCollection}
+            onClose={() => this.setState({ modalSnippetCollection: null })}
+            onSaved={() => {
+              this.setState({ modalSnippetCollection: null });
+              this.props.reload();
+            }}
+          />
         )}
       </SidebarContent>
     );
@@ -219,6 +324,7 @@ class ArchivedSnippets extends React.Component {
     );
   }
 }
+
 class SnippetRow extends React.Component {
   state: { isOpen: boolean };
 
@@ -244,7 +350,7 @@ class SnippetRow extends React.Component {
         )}
       >
         <div
-          className="cursor-pointer bg-light-hover text-bold flex align-center justify-between py2 px3 hover-parent hover--display"
+          className="cursor-pointer bg-light-hover text-bold flex align-center justify-between p2 hover-parent hover--display"
           onClick={() => this.setState({ isOpen: !isOpen })}
         >
           <div
@@ -301,6 +407,88 @@ class SnippetRow extends React.Component {
           </div>
         )}
       </div>
+    );
+  }
+}
+
+class CollectionRow extends React.Component {
+  render() {
+    const { collection, onSelectCollection, onEdit } = this.props;
+    return (
+      <div
+        className="hover-parent hover--visibility flex align-center p2 text-brand bg-light-hover cursor-pointer"
+        onClick={onSelectCollection}
+      >
+        <Icon name="folder" size={ICON_SIZE} style={{ opacity: 0.25 }} />
+        <span className="flex-full ml1 text-bold">{collection.name}</span>
+        <div
+          // prevent the ellipsis click from selecting the folder also
+          onClick={e => e.stopPropagation()}
+          // cap the large ellipsis so it doesn't increase the row height
+          style={{ height: ICON_SIZE }}
+        >
+          <PopoverWithTrigger
+            triggerElement={
+              <Icon name="ellipsis" size={20} className="hover-child" />
+            }
+          >
+            {({ onClose }) => (
+              <AccordionList
+                className="text-brand"
+                sections={[
+                  {
+                    items: [
+                      {
+                        name: t`Edit`,
+                        onClick: () => onEdit(collection),
+                      },
+                      {
+                        name: t`Change permissions`,
+                        onClick: () => alert("not implemented"),
+                      },
+                      {
+                        name: t`Archive`,
+                        onClick: () => collection.setArchived(true),
+                      },
+                    ],
+                  },
+                ]}
+                onChange={item => {
+                  item.onClick();
+                  onClose();
+                }}
+              />
+            )}
+          </PopoverWithTrigger>
+        </div>
+      </div>
+    );
+  }
+}
+
+@SnippetCollections.load({ id: (state, props) => props.collection.id })
+class SnippetCollectionModal extends React.Component {
+  render() {
+    const {
+      snippetCollection,
+      collection: passedCollection,
+      onClose,
+      onSaved,
+    } = this.props;
+    const collection = snippetCollection || passedCollection;
+    return (
+      <Modal onClose={onClose}>
+        <SnippetCollections.ModalForm
+          title={
+            collection.id == null
+              ? t`Create your new folder`
+              : t`Editing ${collection.name}`
+          }
+          snippetCollection={collection}
+          onClose={onClose}
+          onSaved={onSaved}
+        />
+      </Modal>
     );
   }
 }
