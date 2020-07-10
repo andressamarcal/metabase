@@ -692,7 +692,6 @@
   [& body]
   `(do-with-non-admin-groups-no-root-collection-perms (fn [] ~@body)))
 
-
 (defn doall-recursive
   "Like `doall`, but recursively calls doall on map values and nested sequences, giving you a fully non-lazy object.
   Useful for tests when you need the entire object to be realized in the body of a `binding`, `with-redefs`, or
