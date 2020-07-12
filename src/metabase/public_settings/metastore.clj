@@ -146,7 +146,7 @@
     (or (some-> (premium-embedding-token) valid-token->features)
         #{})
     (catch Throwable e
-      (log/error (trs "Error validating token:") (.getMessage e))
+      (log/error e (trs "Error validating token"))
       #{})))
 
 (defsetting hide-embed-branding?
@@ -184,3 +184,16 @@
   :visibility :public
   :setter     :none
   :getter     (fn [] (boolean ((token-features) "sso"))))
+
+;; `enhancements` are not currently a specific "feature" that EE tokens can have or not have. Instead, it's a
+;; catch-all term for various bits of EE functionality that we assume all EE licenses include. (This may change in the
+;; future.)
+;;
+;; By checking whether `(token-features)` is non-empty we can see whether we have a valid EE token. If the token is
+;; valid, we can enable EE enhancements.
+(defsetting enable-enhancements?
+  "Should we various other enhancements, e.g. NativeQuerySnippet collection permissions?"
+  :type       :boolean
+  :visibility :public
+  :setter     :none
+  :getter     (fn [] (boolean (seq (token-features)))))

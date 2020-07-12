@@ -188,37 +188,46 @@
 (p.types/defprotocol+ IObjectPermissions
   "Methods for determining whether the current user has read/write permissions for a given object."
 
-  (perms-objects-set [this, ^clojure.lang.Keyword read-or-write]
+  (perms-objects-set [this ^clojure.lang.Keyword read-or-write]
     "Return a set of permissions object paths that a user must have access to in order to access this object. This
     should be something like #{\"/db/1/schema/public/table/20/\"}. READ-OR-WRITE will be either `:read` or `:write`,
     depending on which permissions set we're fetching (these will be the same sets for most models; they can ignore
     this param).")
 
-  (can-read? ^Boolean [instance], ^Boolean [entity, ^Integer id]
+  (can-read? [instance] [entity ^Integer id]
     "Return whether `*current-user*` has *read* permissions for an object. You should use one of these implmentations:
 
-     *  `(constantly true)`
-     *  `superuser?`
-     *  `(partial current-user-has-full-permissions? :read)` (you must also implement `perms-objects-set` to use this)
-     *  `(partial current-user-has-partial-permissions? :read)` (you must also implement `perms-objects-set` to use
-        this)")
+  *  `(constantly true)`
+  *  `superuser?`
+  *  `(partial current-user-has-full-permissions? :read)` (you must also implement `perms-objects-set` to use this)
+  *  `(partial current-user-has-partial-permissions? :read)` (you must also implement `perms-objects-set` to use
+     this)")
 
-  (^{:hydrate :can_write} can-write? ^Boolean [instance], ^Boolean [entity, ^Integer id]
+  (^{:hydrate :can_write} can-write? [instance] [entity ^Integer id]
    "Return whether `*current-user*` has *write* permissions for an object. You should use one of these implmentations:
 
-     *  `(constantly true)`
-     *  `superuser?`
-     *  `(partial current-user-has-full-permissions? :write)` (you must also implement `perms-objects-set` to use this)
-     *  `(partial current-user-has-partial-permissions? :write)` (you must also implement `perms-objects-set` to use
-        this)")
+  *  `(constantly true)`
+  *  `superuser?`
+  *  `(partial current-user-has-full-permissions? :write)` (you must also implement `perms-objects-set` to use this)
+  *  `(partial current-user-has-partial-permissions? :write)` (you must also implement `perms-objects-set` to use
+      this)")
 
-  (^{:added "0.32.0"} can-create? ^Boolean [entity m]
+  (^{:added "0.32.0"} can-create? [entity m]
     "NEW! Check whether or not current user is allowed to CREATE a new instance of `entity` with properties in map
     `m`.
 
-    Because this method was added YEARS after `can-read?` and `can-write?`, most models do not have an implementation
-    for this method, and instead `POST` API endpoints themselves contain the appropriate permissions logic (ick).
-    Implement this method as you come across models that are missing it."))
+  Because this method was added YEARS after `can-read?` and `can-write?`, most models do not have an implementation
+  for this method, and instead `POST` API endpoints themselves contain the appropriate permissions logic (ick).
+  Implement this method as you come across models that are missing it.")
+
+  (^{:added "0.36.0"} can-update? [instance changes]
+   "NEW! Check whether or not the current user is allowed to update an object and by updating properties to values in
+   the `changes` map. This is equivalent to checking whether you're allowed to perform `(toucan.db/update! entity id
+   changes)`.
+
+  This method is appropriate for powering `PUT` API endpoints. Like `can-create?` this method was added YEARS after
+  most of the current API endpoints were written, so it is used in very few places, and this logic is determined
+  ad-hoc in the API endpoints themselves. Use this method going forward!"))
 
 (def IObjectPermissionsDefaults
   "Default implementations for `IObjectPermissions`."
@@ -229,19 +238,27 @@
    (fn [entity _]
      (throw
       (NoSuchMethodException.
-       (format "%s does not yet have an implementation for `can-create?`. Feel free to add one!" (name entity)))))})
+       (str (format "%s does not yet have an implementation for `can-create?`. " (name entity))
+            "Please consider adding one. See dox for `can-create?` for more details."))))
+
+   :can-update?
+   (fn
+     [instance _]
+     (throw
+      (NoSuchMethodException.
+       (str (format "%s does not yet have an implementation for `can-update?`. " (name instance))
+            "Please consider adding one. See dox for `can-update?` for more details."))))})
 
 (defn superuser?
   "Is `*current-user*` is a superuser? Ignores args.
    Intended for use as an implementation of `can-read?` and/or `can-write?`."
   [& _]
-  @(resolve 'metabase.api.common/*is-superuser?*))
-
+  @(requiring-resolve 'metabase.api.common/*is-superuser?*))
 
 (defn- current-user-permissions-set []
-  @@(resolve 'metabase.api.common/*current-user-permissions-set*))
+  @@(requiring-resolve 'metabase.api.common/*current-user-permissions-set*))
 
-(defn- current-user-has-root-permissions? ^Boolean []
+(defn- current-user-has-root-permissions? []
   (contains? (current-user-permissions-set) "/"))
 
 (defn- check-perms-with-fn
@@ -254,7 +271,7 @@
         (check-perms-with-fn fn-symb (perms-objects-set object read-or-write))))
 
   ([fn-symb perms-set]
-   (let [f (resolve fn-symb)]
+   (let [f (requiring-resolve fn-symb)]
      (assert f)
      (u/prog1 (f (current-user-permissions-set) perms-set)
        (log/tracef "Perms check: %s -> %s" (pr-str (list fn-symb (current-user-permissions-set) perms-set)) <>)))))
