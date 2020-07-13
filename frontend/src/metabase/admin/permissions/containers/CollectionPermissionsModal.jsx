@@ -6,10 +6,10 @@ import ModalContent from "metabase/components/ModalContent";
 import Button from "metabase/components/Button";
 import Link from "metabase/components/Link";
 import PermissionsGrid from "../components/PermissionsGrid";
-import fitViewport from "metabase/hoc/FitViewPort";
 
 import { CollectionsApi } from "metabase/services";
 import Collections from "metabase/entities/collections";
+import SnippetCollections from "metabase/entities/snippet-collections";
 
 import {
   getCollectionsPermissionsGrid,
@@ -23,6 +23,7 @@ const mapStateToProps = (state, props) => {
     grid: getCollectionsPermissionsGrid(state, {
       collectionId: props.params.collectionId,
       singleCollectionMode: true,
+      namespace: props.namespace,
     }),
     isDirty: getIsDirty(state, props),
     diff: getDiff(state, props),
@@ -32,6 +33,7 @@ const mapStateToProps = (state, props) => {
 const mapDispatchToProps = {
   initialize,
   loadCollections: Collections.actions.fetchList,
+  loadSnippetCollections: SnippetCollections.actions.fetchList,
   onUpdatePermission: updatePermission,
   onSave: savePermissions,
 };
@@ -40,22 +42,44 @@ const mapDispatchToProps = {
   mapStateToProps,
   mapDispatchToProps,
 )
-@fitViewport
 export default class CollectionPermissionsModal extends Component {
   componentWillMount() {
-    this.props.initialize(CollectionsApi.graph, CollectionsApi.updateGraph);
-    this.props.loadCollections();
+    const { namespace, initialize } = this.props;
+    initialize(
+      () => CollectionsApi.graph({ namespace }),
+      graph => CollectionsApi.updateGraph({ ...graph, namespace }),
+    );
+    (namespace === "snippets"
+      ? this.props.loadSnippetCollections
+      : this.props.loadCollections)();
   }
   render() {
-    const { grid, onUpdatePermission, isDirty, onClose, onSave } = this.props;
+    const {
+      grid,
+      onUpdatePermission,
+      isDirty,
+      onClose,
+      onSave,
+      namespace,
+    } = this.props;
     return (
       <ModalContent
-        title={t`Permissions for this collection`}
+        title={
+          namespace === "snippets"
+            ? t`Permissions for this folder`
+            : t`Permissions for this collection`
+        }
         onClose={onClose}
         footer={[
-          <Link className="link" to="/admin/permissions/collections">
-            {t`See all collection permissions`}
-          </Link>,
+          namespace === "snippets" ? (
+            <Link className="link" to="/admin/permissions/snippets">
+              {t`See all folder permissions`}
+            </Link>
+          ) : (
+            <Link className="link" to="/admin/permissions/collections">
+              {t`See all collection permissions`}
+            </Link>
+          ),
           <Button onClick={onClose}>{t`Cancel`}</Button>,
           <Button
             primary

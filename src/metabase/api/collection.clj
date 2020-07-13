@@ -333,12 +333,14 @@
 
 (api/defendpoint PUT "/graph"
   "Do a batch update of Collections Permissions by passing in a modified graph."
-  [namespace :as {body :body}]
-  {body      su/Map
-   namespace (s/maybe su/NonBlankString)}
+  [:as {body :body}]
+  {body      su/Map}
   (api/check-superuser)
-  (collection.graph/update-graph! namespace (dejsonify-graph body))
-  (collection.graph/graph namespace))
+  (let [namespace (:namespace body)]
+    (->> (dissoc body :namespace)
+         dejsonify-graph
+         (collection.graph/update-graph! namespace))
+    (collection.graph/graph namespace)))
 
 
 (api/define-routes)

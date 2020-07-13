@@ -14,6 +14,7 @@ import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
 import AccordionList from "metabase/components/AccordionList";
 import SidebarContent from "metabase/query_builder/components/SidebarContent";
 import SidebarHeader from "metabase/query_builder/components/SidebarHeader";
+import CollectionPermissionsModal from "metabase/admin/permissions/containers/CollectionPermissionsModal";
 import { color } from "metabase/lib/colors";
 
 import Snippets from "metabase/entities/snippets";
@@ -272,6 +273,12 @@ export default class SnippetSidebar extends React.Component {
                         onEdit={collection =>
                           this.setState({ modalSnippetCollection: collection })
                         }
+                        showChangePermissions={this.props.user.is_superuser}
+                        onEditCollectionPermissions={() =>
+                          this.setState({
+                            permissionsModalCollectionId: item.id,
+                          })
+                        }
                       />
                     ) : (
                       <SnippetRow
@@ -295,6 +302,21 @@ export default class SnippetSidebar extends React.Component {
               this.props.reload();
             }}
           />
+        )}
+        {this.state.permissionsModalCollectionId != null && (
+          <Modal
+            onClose={() =>
+              this.setState({ permissionsModalCollectionId: null })
+            }
+          >
+            <CollectionPermissionsModal
+              params={{ collectionId: this.state.permissionsModalCollectionId }}
+              onClose={() =>
+                this.setState({ permissionsModalCollectionId: null })
+              }
+              namespace="snippets"
+            />
+          </Modal>
         )}
       </SidebarContent>
     );
@@ -413,7 +435,13 @@ class SnippetRow extends React.Component {
 
 class CollectionRow extends React.Component {
   render() {
-    const { collection, onSelectCollection, onEdit } = this.props;
+    const {
+      collection,
+      onSelectCollection,
+      showChangePermissions,
+      onEditCollectionPermissions,
+      onEdit,
+    } = this.props;
     return (
       <div
         className="hover-parent hover--visibility flex align-center p2 text-brand bg-light-hover cursor-pointer"
@@ -442,10 +470,14 @@ class CollectionRow extends React.Component {
                         name: t`Edit`,
                         onClick: () => onEdit(collection),
                       },
-                      {
-                        name: t`Change permissions`,
-                        onClick: () => alert("not implemented"),
-                      },
+                      ...(showChangePermissions
+                        ? [
+                            {
+                              name: t`Change permissions`,
+                              onClick: onEditCollectionPermissions,
+                            },
+                          ]
+                        : []),
                       {
                         name: t`Archive`,
                         onClick: () => collection.setArchived(true),

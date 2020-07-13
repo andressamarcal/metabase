@@ -292,6 +292,18 @@ const OPTION_COLLECTION_READ = {
   tooltip: t`Can view items in this collection`,
 };
 
+const OPTION_SNIPPET_COLLECTION_WRITE = {
+  ...OPTION_COLLECTION_WRITE,
+  title: t`Edit`,
+  tooltip: t`Modify snippets in this folder`,
+};
+
+const OPTION_SNIPPET_COLLECTION_NONE = {
+  ...OPTION_NONE,
+  title: t`Revoke access`,
+  tooltip: t`Can't view or insert snippets`,
+};
+
 export const getTablesPermissionsGrid = createSelector(
   getMetadata,
   getGroups,
@@ -683,6 +695,7 @@ export const getDatabasesPermissionsGrid = createSelector(
 );
 
 import Collections from "metabase/entities/collections";
+import SnippetCollections from "metabase/entities/snippet-collections";
 
 const getCollectionId = (state, props) => props && props.collectionId;
 
@@ -691,9 +704,19 @@ const getSingleCollectionPermissionsMode = (state, props) =>
 
 const permissionsCollectionFilter = collection => !collection.is_personal;
 
+const getNamespace = (state, props) => props.namespace;
+
+const getExpandedCollectionsById = (state, props) =>
+  props.namespace === "snippets"
+    ? _.chain(SnippetCollections.selectors.getList(state, props))
+        .map(c => ({ ...c, children: [] }))
+        .indexBy("id")
+        .value()
+    : Collections.selectors.getExpandedCollectionsById(state, props);
+
 const getCollections = createSelector(
   [
-    Collections.selectors.getExpandedCollectionsById,
+    getExpandedCollectionsById,
     getCollectionId,
     getSingleCollectionPermissionsMode,
   ],
@@ -726,11 +749,13 @@ export const getCollectionsPermissionsGrid = createSelector(
   getGroups,
   getPermissions,
   getPropagatePermissions,
+  getNamespace,
   (
     collections,
     groups: Array<GroupType>,
     permissions: GroupsPermissions,
     propagatePermissions: boolean,
+    namespace: string,
   ) => {
     if (!groups || groups.length === 0 || !permissions || !collections) {
       return null;
@@ -764,11 +789,12 @@ export const getCollectionsPermissionsGrid = createSelector(
         access: {
           header: t`Collection Access`,
           options(groupId, entityId) {
-            return [
-              OPTION_COLLECTION_WRITE,
-              OPTION_COLLECTION_READ,
-              OPTION_NONE,
-            ];
+            return namespace === "snippets"
+              ? [
+                  OPTION_SNIPPET_COLLECTION_WRITE,
+                  OPTION_SNIPPET_COLLECTION_NONE,
+                ]
+              : [OPTION_COLLECTION_WRITE, OPTION_COLLECTION_READ, OPTION_NONE];
           },
           actions(groupId, { collectionId }) {
             const collection = _.findWhere(collections, {
