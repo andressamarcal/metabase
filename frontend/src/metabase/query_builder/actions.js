@@ -574,10 +574,7 @@ export const SET_SNIPPET_COLLECTION_ID =
   "metabase/qb/SET_SNIPPET_COLLECTION_ID";
 export const setSnippetCollectionId = createAction(SET_SNIPPET_COLLECTION_ID);
 
-export const openSnippetModalWithSelectedText = ({ collectionId = null }) => (
-  dispatch,
-  getState,
-) => {
+export const openSnippetModalWithSelectedText = () => (dispatch, getState) => {
   const state = getState();
   const content = getNativeEditorSelectedText(state);
   const collection_id = getSnippetCollectionId(state);

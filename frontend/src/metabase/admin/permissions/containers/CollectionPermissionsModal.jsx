@@ -71,15 +71,13 @@ export default class CollectionPermissionsModal extends Component {
         }
         onClose={onClose}
         footer={[
-          namespace === "snippets" ? (
-            <Link className="link" to="/admin/permissions/snippets">
-              {t`See all folder permissions`}
-            </Link>
-          ) : (
-            <Link className="link" to="/admin/permissions/collections">
-              {t`See all collection permissions`}
-            </Link>
-          ),
+          ...(namespace === "snippets"
+            ? []
+            : [
+                <Link className="link" to="/admin/permissions/collections">
+                  {t`See all collection permissions`}
+                </Link>,
+              ]),
           <Button onClick={onClose}>{t`Cancel`}</Button>,
           <Button
             primary

@@ -31,6 +31,9 @@ type Props = {
   openSnippetModalWithSelectedText: () => void,
   insertSnippet: () => void,
   snippets: Snippet[],
+  snippetCollection: any,
+  search: any[],
+  setSnippetCollectionId: () => void,
 };
 
 type State = {
@@ -106,7 +109,7 @@ export default class SnippetSidebar extends React.Component {
       snippetCollection,
       search,
     } = this.props;
-    const { collectionId, showSearch, searchString, showArchived } = this.state;
+    const { showSearch, searchString, showArchived } = this.state;
     const snippetsById = _.indexBy(snippets, "id");
     const items = _.sortBy(search, "model"); // relies on "collection" sorting before "snippet"
 
@@ -223,8 +226,7 @@ export default class SnippetSidebar extends React.Component {
                         {
                           icon: "snippet",
                           name: t`New snippet`,
-                          onClick: () =>
-                            openSnippetModalWithSelectedText({ collectionId }),
+                          onClick: openSnippetModalWithSelectedText,
                         },
                         ...PLUGIN_SNIPPET_SIDEBAR_PLUS_MENU_OPTIONS.map(f =>
                           f(this),
