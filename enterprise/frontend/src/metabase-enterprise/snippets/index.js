@@ -34,7 +34,6 @@ PLUGIN_SNIPPET_SIDEBAR_MODALS.push(
         }
         onSaved={() => {
           snippetSidebar.setState({ modalSnippetCollection: null });
-          snippetSidebar.props.reload();
         }}
       />
     ),

@@ -95,7 +95,7 @@ export default class SnippetSidebar extends React.Component {
         name="archive"
         size={ICON_SIZE}
       />
-      p {t`Archived snippets`}
+      {t`Archived snippets`}
     </div>
   );
 
@@ -290,7 +290,8 @@ class ArchivedSnippets extends React.Component {
         {snippets.map(snippet => (
           <SnippetRow
             key={snippet.id}
-            snippet={snippet}
+            item={snippet}
+            snippets={snippets}
             unarchiveSnippet={() => snippet.update({ archived: false })}
           />
         ))}
@@ -301,9 +302,7 @@ class ArchivedSnippets extends React.Component {
 
 function Row(props) {
   const Component = {
-    snippet: ({ item, snippets, ...rest }) => (
-      <SnippetRow snippet={snippets.find(s => s.id === item.id)} {...rest} />
-    ),
+    snippet: SnippetRow,
     ...PLUGIN_SNIPPET_SIDEBAR_ROW_RENDERERS,
   }[props.item.model];
   return Component ? <Component {...props} /> : null;
@@ -319,11 +318,13 @@ class SnippetRow extends React.Component {
 
   render() {
     const {
-      snippet,
+      snippets,
+      item,
       insertSnippet,
       setModalSnippet,
       unarchiveSnippet,
     } = this.props;
+    const snippet = snippets.find(s => s.id === item.id);
 
     const { description, content } = snippet;
     const { isOpen } = this.state;
