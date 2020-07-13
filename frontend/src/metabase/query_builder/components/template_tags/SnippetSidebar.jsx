@@ -7,14 +7,16 @@ import { t } from "ttag";
 import cx from "classnames";
 import _ from "underscore";
 
+import {
+  PLUGIN_SNIPPET_SIDEBAR_PLUS_MENU_OPTIONS,
+  PLUGIN_SNIPPET_SIDEBAR_ROW_RENDERERS,
+  PLUGIN_SNIPPET_SIDEBAR_MODALS,
+} from "metabase/plugins";
 import Icon from "metabase/components/Icon";
 import Button from "metabase/components/Button";
-import Modal from "metabase/components/Modal";
 import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
-import AccordionList from "metabase/components/AccordionList";
 import SidebarContent from "metabase/query_builder/components/SidebarContent";
 import SidebarHeader from "metabase/query_builder/components/SidebarHeader";
-import CollectionPermissionsModal from "metabase/admin/permissions/containers/CollectionPermissionsModal";
 import { color } from "metabase/lib/colors";
 
 import Snippets from "metabase/entities/snippets";
@@ -93,7 +95,7 @@ export default class SnippetSidebar extends React.Component {
         name="archive"
         size={ICON_SIZE}
       />
-      {t`Archived snippets`}
+      p {t`Archived snippets`}
     </div>
   );
 
@@ -224,16 +226,9 @@ export default class SnippetSidebar extends React.Component {
                           onClick: () =>
                             openSnippetModalWithSelectedText({ collectionId }),
                         },
-                        {
-                          icon: "folder",
-                          name: t`New folder`,
-                          onClick: () =>
-                            this.setState({
-                              modalSnippetCollection: {
-                                parent_id: snippetCollection.id,
-                              },
-                            }),
-                        },
+                        ...PLUGIN_SNIPPET_SIDEBAR_PLUS_MENU_OPTIONS.map(f =>
+                          f(this),
+                        ),
                       ].map(({ icon, name, onClick }) => (
                         <div
                           className="p2 bg-medium-hover flex cursor-pointer text-brand-hover"
@@ -262,62 +257,19 @@ export default class SnippetSidebar extends React.Component {
             </div>
             <div className="flex-full">
               {items.length > 0
-                ? filteredSnippets.map(item =>
-                    item.model === "collection" ? (
-                      <CollectionRow
-                        key={"collection-" + item.id}
-                        collection={item}
-                        onSelectCollection={() =>
-                          this.props.setSnippetCollectionId(item.id)
-                        }
-                        onEdit={collection =>
-                          this.setState({ modalSnippetCollection: collection })
-                        }
-                        showChangePermissions={this.props.user.is_superuser}
-                        onEditCollectionPermissions={() =>
-                          this.setState({
-                            permissionsModalCollectionId: item.id,
-                          })
-                        }
-                      />
-                    ) : (
-                      <SnippetRow
-                        key={"snippet-" + item.id}
-                        snippet={snippetsById[item.id]}
-                        insertSnippet={this.props.insertSnippet}
-                        setModalSnippet={this.props.setModalSnippet}
-                      />
-                    ),
-                  )
+                ? filteredSnippets.map(item => (
+                    <Row
+                      key={`${item.model}-${item.id}`}
+                      item={item}
+                      setSidebarState={this.setState.bind(this)}
+                      {...this.props}
+                    />
+                  ))
                 : null}
             </div>
           </div>
         )}
-        {this.state.modalSnippetCollection && (
-          <SnippetCollectionModal
-            collection={this.state.modalSnippetCollection}
-            onClose={() => this.setState({ modalSnippetCollection: null })}
-            onSaved={() => {
-              this.setState({ modalSnippetCollection: null });
-              this.props.reload();
-            }}
-          />
-        )}
-        {this.state.permissionsModalCollectionId != null && (
-          <Modal
-            onClose={() =>
-              this.setState({ permissionsModalCollectionId: null })
-            }
-          >
-            <CollectionPermissionsModal
-              params={{ collectionId: this.state.permissionsModalCollectionId }}
-              onClose={() =>
-                this.setState({ permissionsModalCollectionId: null })
-              }
-              namespace="snippets"
-            />
-          </Modal>
-        )}
+        {PLUGIN_SNIPPET_SIDEBAR_MODALS.map(f => f(this))}
       </SidebarContent>
     );
   }
@@ -347,6 +299,16 @@ class ArchivedSnippets extends React.Component {
   }
 }
 
+function Row(props) {
+  const Component = {
+    snippet: ({ item, snippets, ...rest }) => (
+      <SnippetRow snippet={snippets.find(s => s.id === item.id)} {...rest} />
+    ),
+    ...PLUGIN_SNIPPET_SIDEBAR_ROW_RENDERERS,
+  }[props.item.model];
+  return Component ? <Component {...props} /> : null;
+}
+
 class SnippetRow extends React.Component {
   state: { isOpen: boolean };
 
@@ -362,6 +324,7 @@ class SnippetRow extends React.Component {
       setModalSnippet,
       unarchiveSnippet,
     } = this.props;
+
     const { description, content } = snippet;
     const { isOpen } = this.state;
     return (
@@ -429,98 +392,6 @@ class SnippetRow extends React.Component {
           </div>
         )}
       </div>
-    );
-  }
-}
-
-class CollectionRow extends React.Component {
-  render() {
-    const {
-      collection,
-      onSelectCollection,
-      showChangePermissions,
-      onEditCollectionPermissions,
-      onEdit,
-    } = this.props;
-    return (
-      <div
-        className="hover-parent hover--visibility flex align-center p2 text-brand bg-light-hover cursor-pointer"
-        onClick={onSelectCollection}
-      >
-        <Icon name="folder" size={ICON_SIZE} style={{ opacity: 0.25 }} />
-        <span className="flex-full ml1 text-bold">{collection.name}</span>
-        <div
-          // prevent the ellipsis click from selecting the folder also
-          onClick={e => e.stopPropagation()}
-          // cap the large ellipsis so it doesn't increase the row height
-          style={{ height: ICON_SIZE }}
-        >
-          <PopoverWithTrigger
-            triggerElement={
-              <Icon name="ellipsis" size={20} className="hover-child" />
-            }
-          >
-            {({ onClose }) => (
-              <AccordionList
-                className="text-brand"
-                sections={[
-                  {
-                    items: [
-                      {
-                        name: t`Edit`,
-                        onClick: () => onEdit(collection),
-                      },
-                      ...(showChangePermissions
-                        ? [
-                            {
-                              name: t`Change permissions`,
-                              onClick: onEditCollectionPermissions,
-                            },
-                          ]
-                        : []),
-                      {
-                        name: t`Archive`,
-                        onClick: () => collection.setArchived(true),
-                      },
-                    ],
-                  },
-                ]}
-                onChange={item => {
-                  item.onClick();
-                  onClose();
-                }}
-              />
-            )}
-          </PopoverWithTrigger>
-        </div>
-      </div>
-    );
-  }
-}
-
-@SnippetCollections.load({ id: (state, props) => props.collection.id })
-class SnippetCollectionModal extends React.Component {
-  render() {
-    const {
-      snippetCollection,
-      collection: passedCollection,
-      onClose,
-      onSaved,
-    } = this.props;
-    const collection = snippetCollection || passedCollection;
-    return (
-      <Modal onClose={onClose}>
-        <SnippetCollections.ModalForm
-          title={
-            collection.id == null
-              ? t`Create your new folder`
-              : t`Editing ${collection.name}`
-          }
-          snippetCollection={collection}
-          onClose={onClose}
-          onSaved={onSaved}
-        />
-      </Modal>
     );
   }
 }

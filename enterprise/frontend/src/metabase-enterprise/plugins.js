@@ -22,3 +22,4 @@ import "./whitelabel";
 import "./embedding";
 import "./store";
 import "./formatting";
+import "./snippets";
