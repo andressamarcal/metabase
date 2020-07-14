@@ -41,11 +41,7 @@ const Collections = createEntity({
   },
 
   form: {
-    fields: (
-      values = {
-        color: color("brand"),
-      },
-    ) => [
+    fields: [
       {
         name: "name",
         title: t`Give your folder a name`,

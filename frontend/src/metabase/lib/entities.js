@@ -605,7 +605,6 @@ export function createEntity(def: EntityDefinition): Entity {
     // reset all list request states when creating, deleting, or updating
     // to force a reload
     if (entity.actionShouldInvalidateLists(action)) {
-      console.log("should invalidate!", entity.name, action);
       return requestsReducer(
         state,
         setRequestUnloaded(["entities", entity.name + "_list"]),

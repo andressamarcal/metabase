@@ -6,14 +6,28 @@ import Icon from "metabase/components/Icon";
 import Modal from "metabase/components/Modal";
 import Link from "metabase/components/Link";
 import Snippets from "metabase/entities/snippets";
+import SnippetCollections from "metabase/entities/snippet-collections";
 
+@SnippetCollections.loadList()
 export default class SnippetModal extends React.Component {
   render() {
-    const { insertSnippet, onSnippetUpdate, closeModal, snippet } = this.props;
+    const {
+      insertSnippet,
+      onSnippetUpdate,
+      closeModal,
+      snippet,
+      snippetCollections,
+    } = this.props;
+
     return (
       <Modal onClose={closeModal}>
         <Snippets.ModalForm
           snippet={snippet}
+          form={
+            snippetCollections.length <= 1
+              ? Snippets.forms.withoutVisibleCollectionPicker
+              : Snippets.forms.withVisibleCollectionPicker
+          }
           title={
             snippet.id != null
               ? t`Editing ${snippet.name}`
