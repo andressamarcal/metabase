@@ -110,16 +110,6 @@ export default class SnippetSidebar extends React.Component {
       search,
     } = this.props;
     const { showSearch, searchString, showArchived } = this.state;
-    const snippetsById = _.indexBy(snippets, "id");
-    const items = _.sortBy(search, "model"); // relies on "collection" sorting before "snippet"
-
-    const filteredSnippets = items.filter(item =>
-      item.model === "snippet"
-        ? snippetsById[item.id] &&
-          (!showSearch ||
-            item.name.toLowerCase().includes(searchString.toLowerCase()))
-        : !showSearch,
-    );
 
     if (showArchived) {
       return (
@@ -129,9 +119,17 @@ export default class SnippetSidebar extends React.Component {
       );
     }
 
+    const displayedItems = showSearch
+      ? snippets.filter(snippet =>
+          snippet.name.toLowerCase().includes(searchString.toLowerCase()),
+        )
+      : _.sortBy(search, "model"); // relies on "collection" sorting before "snippet";
+
     return (
       <SidebarContent footer={this.footer()}>
-        {items.length === 0 && snippetCollection.id === "root" ? (
+        {!showSearch &&
+        displayedItems.length === 0 &&
+        snippetCollection.id === "root" ? (
           <div className="px3 flex flex-column align-center">
             <svg
               viewBox="0 0 10 10"
@@ -161,7 +159,7 @@ export default class SnippetSidebar extends React.Component {
                   /* Hide the search input by collapsing dimensions rather than `display: none`.
                      This allows us to immediately focus on it when showSearch is set to true.*/
                   style={showSearch ? {} : { width: 0, height: 0 }}
-                  className="overflow-hidden"
+                  className="text-heavy h3 overflow-hidden"
                 >
                   <input
                     className="input input--borderless p0"
@@ -178,7 +176,9 @@ export default class SnippetSidebar extends React.Component {
                   />
                 </div>
                 <span className={cx({ hide: showSearch }, "text-heavy h3")}>
-                  {snippetCollection.id !== "root" ? (
+                  {snippetCollection.id === "root" ? (
+                    t`Snippets`
+                  ) : (
                     <span
                       className="text-brand-hover cursor-pointer"
                       onClick={() =>
@@ -190,13 +190,11 @@ export default class SnippetSidebar extends React.Component {
                       <Icon name="chevronleft" className="mr1" />
                       {snippetCollection.name}
                     </span>
-                  ) : (
-                    t`Snippets`
                   )}
                 </span>
               </div>
-              <div className="flex-align-right text-medium no-decoration">
-                {items.length >= MIN_SNIPPETS_FOR_SEARCH && (
+              <div className="flex-align-right flex align-center text-medium no-decoration">
+                {snippets.length >= MIN_SNIPPETS_FOR_SEARCH && (
                   <Icon
                     className={cx(
                       { hide: showSearch },
@@ -209,6 +207,7 @@ export default class SnippetSidebar extends React.Component {
                 )}
 
                 <PopoverWithTrigger
+                  triggerClasses="flex"
                   triggerElement={
                     <Icon
                       className={cx(
@@ -249,7 +248,7 @@ export default class SnippetSidebar extends React.Component {
                 <Icon
                   className={cx(
                     { hide: !showSearch },
-                    "text-brand-hover cursor-pointer",
+                    "p1 text-brand-hover cursor-pointer",
                   )}
                   onClick={this.hideSearch}
                   name="close"
@@ -258,10 +257,10 @@ export default class SnippetSidebar extends React.Component {
               </div>
             </div>
             <div className="flex-full">
-              {items.length > 0
-                ? filteredSnippets.map(item => (
+              {displayedItems.length > 0
+                ? displayedItems.map(item => (
                     <Row
-                      key={`${item.model}-${item.id}`}
+                      key={`${item.model || "snippet"}-${item.id}`}
                       item={item}
                       setSidebarState={this.setState.bind(this)}
                       {...this.props}
