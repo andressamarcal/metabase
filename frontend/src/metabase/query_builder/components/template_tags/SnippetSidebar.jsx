@@ -21,6 +21,7 @@ import { color } from "metabase/lib/colors";
 
 import Snippets from "metabase/entities/snippets";
 import SnippetCollections from "metabase/entities/snippet-collections";
+import { canonicalCollectionId } from "metabase/entities/collections";
 import Search from "metabase/entities/search";
 
 import type { Snippet } from "metabase/meta/types/Snippet";
@@ -263,6 +264,7 @@ export default class SnippetSidebar extends React.Component {
                       key={`${item.model || "snippet"}-${item.id}`}
                       item={item}
                       setSidebarState={this.setState.bind(this)}
+                      canWrite={snippetCollection.can_write}
                       {...this.props}
                     />
                   ))
@@ -276,10 +278,14 @@ export default class SnippetSidebar extends React.Component {
   }
 }
 
+@SnippetCollections.loadList()
 @Snippets.loadList({ query: { archived: true }, wrapped: true })
 class ArchivedSnippets extends React.Component {
   render() {
-    const { onBack, snippets } = this.props;
+    const { onBack, snippets, snippetCollections } = this.props;
+    const collectionsById = _.indexBy(snippetCollections, c =>
+      canonicalCollectionId(c.id),
+    );
     return (
       <SidebarContent>
         <SidebarHeader
@@ -294,6 +300,10 @@ class ArchivedSnippets extends React.Component {
             item={snippet}
             snippets={snippets}
             unarchiveSnippet={() => snippet.update({ archived: false })}
+            canWrite={
+              collectionsById[canonicalCollectionId(snippet.collection_id)]
+                .can_write
+            }
           />
         ))}
       </SidebarContent>
@@ -324,6 +334,7 @@ class SnippetRow extends React.Component {
       insertSnippet,
       setModalSnippet,
       unarchiveSnippet,
+      canWrite,
     } = this.props;
     const snippet = snippets.find(s => s.id === item.id);
 
@@ -378,19 +389,21 @@ class SnippetRow extends React.Component {
             >
               {content}
             </pre>
-            <Button
-              onClick={
-                unarchiveSnippet
-                  ? unarchiveSnippet
-                  : () => setModalSnippet(snippet)
-              }
-              borderless
-              medium
-              className="text-brand text-white-hover bg-light bg-brand-hover mt1"
-              icon={unarchiveSnippet ? "unarchive" : "pencil"}
-            >
-              {unarchiveSnippet ? t`Unarchive` : t`Edit`}
-            </Button>
+            {canWrite && (
+              <Button
+                onClick={
+                  unarchiveSnippet
+                    ? unarchiveSnippet
+                    : () => setModalSnippet(snippet)
+                }
+                borderless
+                medium
+                className="text-brand text-white-hover bg-light bg-brand-hover mt1"
+                icon={unarchiveSnippet ? "unarchive" : "pencil"}
+              >
+                {unarchiveSnippet ? t`Unarchive` : t`Edit`}
+              </Button>
+            )}
           </div>
         )}
       </div>
