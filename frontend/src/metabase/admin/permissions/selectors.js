@@ -298,6 +298,12 @@ const OPTION_SNIPPET_COLLECTION_WRITE = {
   tooltip: t`Modify snippets in this folder`,
 };
 
+const OPTION_SNIPPET_COLLECTION_READ = {
+  ...OPTION_COLLECTION_READ,
+  title: t`Execute`,
+  tooltip: t`Can insert and use snippets, but can't update the SQL they contain`,
+};
+
 const OPTION_SNIPPET_COLLECTION_NONE = {
   ...OPTION_NONE,
   title: t`Revoke access`,
@@ -707,12 +713,10 @@ const permissionsCollectionFilter = collection => !collection.is_personal;
 const getNamespace = (state, props) => props.namespace;
 
 const getExpandedCollectionsById = (state, props) =>
-  props.namespace === "snippets"
-    ? _.chain(SnippetCollections.selectors.getList(state, props))
-        .map(c => ({ ...c, children: [] }))
-        .indexBy("id")
-        .value()
-    : Collections.selectors.getExpandedCollectionsById(state, props);
+  (props.namespace === "snippets"
+    ? SnippetCollections
+    : Collections
+  ).selectors.getExpandedCollectionsById(state, props);
 
 const getCollections = createSelector(
   [
@@ -792,6 +796,7 @@ export const getCollectionsPermissionsGrid = createSelector(
             return namespace === "snippets"
               ? [
                   OPTION_SNIPPET_COLLECTION_WRITE,
+                  OPTION_SNIPPET_COLLECTION_READ,
                   OPTION_SNIPPET_COLLECTION_NONE,
                 ]
               : [OPTION_COLLECTION_WRITE, OPTION_COLLECTION_READ, OPTION_NONE];
