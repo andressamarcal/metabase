@@ -1,17 +1,19 @@
 /* @flow */
 import _ from "underscore";
 import { t } from "ttag";
+import { createSelector } from "reselect";
 
 import { color } from "metabase/lib/colors";
 import { createEntity, undo } from "metabase/lib/entities";
-import { CollectionSchema } from "metabase/schema";
+import { SnippetCollectionSchema } from "metabase/schema";
 import NormalCollections, {
   canonicalCollectionId,
+  getExpandedCollectionsById,
 } from "metabase/entities/collections";
 
-const Collections = createEntity({
+const SnippetCollections = createEntity({
   name: "snippetCollections",
-  schema: CollectionSchema,
+  schema: SnippetCollectionSchema,
 
   api: _.mapObject(NormalCollections.api, f => (first, ...rest) =>
     f({ ...first, namespace: "snippets" }, ...rest),
@@ -22,14 +24,14 @@ const Collections = createEntity({
 
   objectActions: {
     setArchived: ({ id }, archived, opts) =>
-      Collections.actions.update(
+      SnippetCollections.actions.update(
         { id },
         { archived },
         undo(opts, "snippetCollection", archived ? "archived" : "unarchived"),
       ),
 
     setCollection: ({ id }, collection, opts) =>
-      Collections.actions.update(
+      SnippetCollections.actions.update(
         { id },
         { parent_id: canonicalCollectionId(collection && collection.id) },
         undo(opts, "snippetCollection", "moved"),
@@ -38,6 +40,20 @@ const Collections = createEntity({
     // NOTE: DELETE not currently implemented
     // $FlowFixMe: no official way to disable builtin actions yet
     delete: null,
+  },
+
+  selectors: {
+    getExpandedCollectionsById: createSelector(
+      [
+        state => state.entities.snippetCollections,
+        state => state.entities.snippetCollections_list[null] || [],
+      ],
+      (collections, collectionsIds) =>
+        getExpandedCollectionsById(
+          collectionsIds.map(id => collections[id]),
+          null,
+        ),
+    ),
   },
 
   form: {
@@ -78,4 +94,4 @@ const Collections = createEntity({
   },
 });
 
-export default Collections;
+export default SnippetCollections;

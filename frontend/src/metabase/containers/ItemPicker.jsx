@@ -24,11 +24,15 @@ const COLLECTION_ICON_COLOR = color("text-light");
 const isRoot = collection => collection.id === "root" || collection.id == null;
 
 @entityListLoader({
-  entityType: "collections",
+  entityType: (state, props) => {
+    return props.entity ? props.entity.name : "collections";
+  },
   loadingAndErrorWrapper: false,
 })
 @connect((state, props) => ({
-  collectionsById: Collections.selectors.getExpandedCollectionsById(state),
+  collectionsById: (
+    props.entity || Collections
+  ).selectors.getExpandedCollectionsById(state),
 }))
 export default class ItemPicker extends React.Component {
   constructor(props) {
