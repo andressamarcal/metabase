@@ -47,7 +47,7 @@
       ;; include Root Collection at beginning or results if archived isn't `true`
       (if archived?
         collections
-        (cons (root-collection) collections))
+        (cons (root-collection namespace) collections))
       (hydrate collections :can_write)
       ;; remove the :metabase.models.collection.root/is-root? tag since FE doesn't need it
       (for [collection collections]
@@ -163,13 +163,14 @@
 
 ;;; -------------------------------------------- GET /api/collection/root --------------------------------------------
 
-(defn- root-collection []
-  (collection-detail (collection/root-collection-with-ui-details)))
+(defn- root-collection [collection-namespace]
+  (collection-detail (collection/root-collection-with-ui-details collection-namespace)))
 
 (api/defendpoint GET "/root"
   "Return the 'Root' Collection object with standard details added"
-  []
-  (dissoc (root-collection) ::collection.root/is-root?))
+  [namespace]
+  {namespace (s/maybe su/NonBlankString)}
+  (dissoc (root-collection namespace) ::collection.root/is-root?))
 
 (api/defendpoint GET "/root/items"
   "Fetch objects that the current user should see at their root level. As mentioned elsewhere, the 'Root' Collection

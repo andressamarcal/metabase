@@ -173,9 +173,11 @@
 
 (defn root-collection-with-ui-details
   "The special Root Collection placeholder object with some extra details to facilitate displaying it on the FE."
-  []
+  [collection-namespace]
   (assoc root-collection
-         :name (tru "Our analytics")
+         :name (case (keyword collection-namespace)
+                 :snippets (tru "Top folder")
+                 (tru "Our analytics"))
          :id   "root"))
 
 (def ^:private CollectionWithLocationOrRoot
@@ -336,7 +338,7 @@
   [collection :- CollectionWithLocationAndIDOrRoot]
   (if (collection.root/is-root-collection? collection)
     []
-    (filter i/can-read? (cons (root-collection-with-ui-details) (ancestors collection)))))
+    (filter i/can-read? (cons (root-collection-with-ui-details (:namespace collection)) (ancestors collection)))))
 
 (s/defn parent-id :- (s/maybe su/IntGreaterThanZero)
   "Get the immediate parent `collection` id, if set."

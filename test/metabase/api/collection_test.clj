@@ -99,7 +99,14 @@
 
             (testing "?namespace=stamps"
               (is (= []
-                     (collection-names ((mt/user->client :rasta) :get 200 "collection?namespace=stamps")))))))))))
+                     (collection-names ((mt/user->client :rasta) :get 200 "collection?namespace=stamps")))))
+
+            (testing "Root Collection should have a different name for the 'snippets' Collection"
+              (is (= "Top folder"
+                     (some (fn [{collection-id :id, collection-name :name}]
+                             (when (= collection-id "root")
+                               collection-name))
+                           ((mt/user->client :crowberto) :get 200 "collection?namespace=snippets")))))))))))
 
 
 ;;; +----------------------------------------------------------------------------------------------------------------+
@@ -412,15 +419,21 @@
 
 (deftest fetch-root-collection-test
   (testing "GET /api/collection/root"
-    (testing "Check that we can see stuff that isn't in any Collection -- meaning they're in the so-called \"Root\" Collection"
-      (is (= {:name                "Our analytics"
-              :id                  "root"
-              :can_write           true
-              :effective_location  nil
-              :effective_ancestors []
-              :parent_id           nil}
-             (with-some-children-of-collection nil
-               ((mt/user->client :crowberto) :get 200 "collection/root")))))
+    (testing "\nCheck that we can see stuff that isn't in any Collection -- meaning they're in the so-called \"Root\" Collection"
+      (doseq [collection-namespace [nil "snippets"]]
+        (testing (format "namespace = %s" (pr-str collection-namespace))
+          (is (= {:name                (case collection-namespace
+                                         ;; Snippets use a different name for the Root Collection
+                                         "snippets" "Top folder"
+                                         "Our analytics")
+                  :id                  "root"
+                  :can_write           true
+                  :effective_location  nil
+                  :effective_ancestors []
+                  :parent_id           nil}
+                 (with-some-children-of-collection nil
+                   ((mt/user->client :crowberto) :get 200
+                    (str "collection/root" (when collection-namespace (str "?namespace=" collection-namespace))))))))))
 
     (testing "Make sure you can see everything for Users that can see everything"
       (is (= [(default-item {:name "Birthday Card", :description nil, :favorite false, :model "card", :display "table"})
