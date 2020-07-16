@@ -158,35 +158,6 @@ describe("scenarios > question > native", () => {
     cy.contains("18,760");
   });
 
-  it("should let you create and use a snippet", () => {
-    signInAsAdmin();
-    cy.visit("/question/new");
-    cy.contains("Native query").click();
-
-    // type a query and highlight some of the text
-    cy.get(".ace_content").as("ace");
-    cy.get("@ace").type(
-      "select 'stuff'" + "{shift}{leftarrow}".repeat("'stuff'".length),
-    );
-
-    // add a snippet of that text
-    cy.get(".Icon-snippet").click();
-    cy.contains("Create a snippet").click();
-    modal()
-      .find("input[name=name]")
-      .type("stuff-snippet");
-    modal()
-      .contains("Save")
-      .click();
-
-    // SQL editor should get updated automatically
-    cy.get("@ace").contains("select {{snippet: stuff-snippet}}");
-
-    // run the query and check the displayed scalar
-    cy.get(".NativeQueryEditor .Icon-play").click();
-    cy.get(".ScalarValue").contains("stuff");
-  });
-
   it("can load a question with a date filter (from issue metabase#12228)", () => {
     withSampleDataset(({ ORDERS }) => {
       cy.request("POST", "/api/card", {
