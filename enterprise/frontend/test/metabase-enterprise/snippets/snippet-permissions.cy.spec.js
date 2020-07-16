@@ -64,8 +64,12 @@ describe("scenarios > question > snippets", () => {
     cy.visit("/question/new");
     cy.contains("Native query").click();
     cy.get(".Icon-snippet").click();
+
     sidebar()
-      .get(".Icon-ellipsis")
+      .findByText("my favorite snippets")
+      .parent()
+      .parent()
+      .find(".Icon-ellipsis")
       .click({ force: true });
     popover().within(() => cy.findByText("Change permissions").click());
     modal().within(() => {
