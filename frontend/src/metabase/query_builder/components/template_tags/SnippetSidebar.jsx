@@ -323,8 +323,10 @@ class ArchivedSnippets extends React.Component {
             item={snippet}
             type="snippet"
             canWrite={
-              collectionsById[canonicalCollectionId(snippet.collection_id)]
-                .can_write
+              collectionsById[
+                // `String` used to appease flow
+                String(canonicalCollectionId(snippet.collection_id))
+              ].can_write
             }
           />
         ))}
