@@ -13,6 +13,7 @@ const CollectionSelect = ItemSelect(
 const FormSnippetCollectionWidget = ({ field }) => (
   <CollectionSelect
     entity={SnippetCollections}
+    showSearch={false} // seems that search endpoint doesn't support namespace yet
     {...field}
     value={field.value || "root"} // needed so SnippetCollections.Name finds the right collection
   />

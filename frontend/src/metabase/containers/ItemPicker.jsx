@@ -50,6 +50,7 @@ export default class ItemPicker extends React.Component {
     // number = non-root collection id
     value: PropTypes.number,
     types: PropTypes.array,
+    showSearch: PropTypes.boolean,
   };
 
   // returns a list of "crumbs" starting with the "root" collection
@@ -74,7 +75,14 @@ export default class ItemPicker extends React.Component {
   }
 
   render() {
-    const { value, onChange, collectionsById, style, className } = this.props;
+    const {
+      value,
+      onChange,
+      collectionsById,
+      style,
+      className,
+      showSearch = true,
+    } = this.props;
     const { parentId, searchMode, searchString } = this.state;
 
     const models = new Set(this.props.models);
@@ -135,11 +143,13 @@ export default class ItemPicker extends React.Component {
           ) : (
             <Box pb={1} mb={2} className="border-bottom flex align-center">
               <Breadcrumbs crumbs={crumbs} />
-              <Icon
-                name="search"
-                className="ml-auto pl2 text-light text-medium-hover cursor-pointer"
-                onClick={() => this.setState({ searchMode: true })}
-              />
+              {showSearch && (
+                <Icon
+                  name="search"
+                  className="ml-auto pl2 text-light text-medium-hover cursor-pointer"
+                  onClick={() => this.setState({ searchMode: true })}
+                />
+              )}
             </Box>
           )}
           <Box className="scroll-y">
