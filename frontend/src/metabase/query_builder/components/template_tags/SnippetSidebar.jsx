@@ -2,7 +2,7 @@
 
 import React from "react";
 import PropTypes from "prop-types";
-
+import { connect } from "react-redux";
 import { t } from "ttag";
 import cx from "classnames";
 import _ from "underscore";
@@ -13,10 +13,10 @@ import {
   PLUGIN_SNIPPET_SIDEBAR_MODALS,
 } from "metabase/plugins";
 import Icon from "metabase/components/Icon";
-import Button from "metabase/components/Button";
 import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
 import SidebarContent from "metabase/query_builder/components/SidebarContent";
 import SidebarHeader from "metabase/query_builder/components/SidebarHeader";
+import SnippetRow from "./snippet-sidebar/SnippetRow";
 import { color } from "metabase/lib/colors";
 
 import Snippets from "metabase/entities/snippets";
@@ -263,6 +263,7 @@ export default class SnippetSidebar extends React.Component {
                     <Row
                       key={`${item.model || "snippet"}-${item.id}`}
                       item={item}
+                      type={item.model}
                       setSidebarState={this.setState.bind(this)}
                       canWrite={snippetCollection.can_write}
                       {...this.props}
@@ -278,14 +279,23 @@ export default class SnippetSidebar extends React.Component {
   }
 }
 
+@SnippetCollections.loadList({ query: { archived: true }, wrapped: true })
+@connect((state, { list }) => ({ archivedSnippetCollections: list }))
 @SnippetCollections.loadList()
 @Snippets.loadList({ query: { archived: true }, wrapped: true })
 class ArchivedSnippets extends React.Component {
   render() {
-    const { onBack, snippets, snippetCollections } = this.props;
-    const collectionsById = _.indexBy(snippetCollections, c =>
-      canonicalCollectionId(c.id),
+    const {
+      onBack,
+      snippets,
+      snippetCollections,
+      archivedSnippetCollections,
+    } = this.props;
+    const collectionsById = _.indexBy(
+      snippetCollections.concat(archivedSnippetCollections),
+      c => canonicalCollectionId(c.id),
     );
+
     return (
       <SidebarContent>
         <SidebarHeader
@@ -294,12 +304,18 @@ class ArchivedSnippets extends React.Component {
           onBack={onBack}
         />
 
+        {archivedSnippetCollections.map(collection => (
+          <Row
+            key={`collection-${collection.id}`}
+            item={collection}
+            type="collection"
+          />
+        ))}
         {snippets.map(snippet => (
-          <SnippetRow
-            key={snippet.id}
+          <Row
+            key={`snippet-${snippet.id}`}
             item={snippet}
-            snippets={snippets}
-            unarchiveSnippet={() => snippet.update({ archived: false })}
+            type="snippet"
             canWrite={
               collectionsById[canonicalCollectionId(snippet.collection_id)]
                 .can_write
@@ -315,98 +331,6 @@ function Row(props) {
   const Component = {
     snippet: SnippetRow,
     ...PLUGIN_SNIPPET_SIDEBAR_ROW_RENDERERS,
-  }[props.item.model];
+  }[props.type];
   return Component ? <Component {...props} /> : null;
-}
-
-class SnippetRow extends React.Component {
-  state: { isOpen: boolean };
-
-  constructor(props) {
-    super(props);
-    this.state = { isOpen: false };
-  }
-
-  render() {
-    const {
-      snippets,
-      item,
-      insertSnippet,
-      setModalSnippet,
-      unarchiveSnippet,
-      canWrite,
-    } = this.props;
-    const snippet = snippets.find(s => s.id === item.id);
-
-    const { description, content } = snippet;
-    const { isOpen } = this.state;
-    return (
-      <div
-        className={cx(
-          { "border-transparent": !isOpen },
-          "border-bottom border-top",
-        )}
-      >
-        <div
-          className="cursor-pointer bg-light-hover text-bold flex align-center justify-between p2 hover-parent hover--display"
-          onClick={() => this.setState({ isOpen: !isOpen })}
-        >
-          <div
-            className="flex text-brand-hover"
-            onClick={
-              unarchiveSnippet
-                ? () => this.setState({ isOpen: true })
-                : e => {
-                    e.stopPropagation();
-                    insertSnippet(snippet);
-                  }
-            }
-          >
-            <Icon
-              name="snippet"
-              size={ICON_SIZE}
-              className="hover-child--hidden text-light"
-            />
-            <Icon
-              name={insertSnippet ? "arrow_left_to_line" : "snippet"}
-              size={ICON_SIZE}
-              className="hover-child"
-            />
-            <span className="flex-full ml1">{snippet.name}</span>
-          </div>
-          <Icon
-            name={isOpen ? "chevronup" : "chevrondown"}
-            size={ICON_SIZE}
-            className={cx({ "hover-child": !isOpen })}
-          />
-        </div>
-        {isOpen && (
-          <div className="px3 pb2 pt1">
-            {description && <p className="text-medium mt0">{description}</p>}
-            <pre
-              className="bg-light bordered rounded p1 text-monospace text-small text-pre-wrap overflow-scroll overflow-x-scroll"
-              style={{ maxHeight: 320 }}
-            >
-              {content}
-            </pre>
-            {canWrite && (
-              <Button
-                onClick={
-                  unarchiveSnippet
-                    ? unarchiveSnippet
-                    : () => setModalSnippet(snippet)
-                }
-                borderless
-                medium
-                className="text-brand text-white-hover bg-light bg-brand-hover mt1"
-                icon={unarchiveSnippet ? "unarchive" : "pencil"}
-              >
-                {unarchiveSnippet ? t`Unarchive` : t`Edit`}
-              </Button>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
 }

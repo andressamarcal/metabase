@@ -1,5 +1,6 @@
 import React from "react";
 import { t } from "ttag";
+import cx from "classnames";
 
 import Icon from "metabase/components/Icon";
 import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
@@ -9,22 +10,16 @@ const ICON_SIZE = 16;
 
 export default class CollectionRow extends React.Component {
   render() {
-    const {
-      item: collection,
-      setSnippetCollectionId,
-      setSidebarState,
-      user,
-    } = this.props;
+    const { item: collection, setSnippetCollectionId } = this.props;
     const onSelectCollection = () => setSnippetCollectionId(collection.id);
-    const onEdit = collection =>
-      setSidebarState({ modalSnippetCollection: collection });
-    const onEditCollectionPermissions = () =>
-      setSidebarState({ permissionsModalCollectionId: collection.id });
 
     return (
       <div
-        className="hover-parent hover--visibility flex align-center p2 text-brand bg-light-hover cursor-pointer"
-        onClick={onSelectCollection}
+        className={cx(
+          { "bg-light-hover cursor-pointer": !collection.archived },
+          "hover-parent hover--visibility flex align-center p2 text-brand",
+        )}
+        {...(collection.archived ? undefined : { onClick: onSelectCollection })}
       >
         <Icon name="folder" size={ICON_SIZE} style={{ opacity: 0.25 }} />
         <span className="flex-full ml1 text-bold">{collection.name}</span>
@@ -45,24 +40,7 @@ export default class CollectionRow extends React.Component {
                   className="text-brand"
                   sections={[
                     {
-                      items: [
-                        {
-                          name: t`Edit`,
-                          onClick: () => onEdit(collection),
-                        },
-                        ...(user.is_superuser
-                          ? [
-                              {
-                                name: t`Change permissions`,
-                                onClick: onEditCollectionPermissions,
-                              },
-                            ]
-                          : []),
-                        {
-                          name: t`Archive`,
-                          onClick: () => collection.setArchived(true),
-                        },
-                      ],
+                      items: this.popoverOptions(),
                     },
                   ]}
                   onChange={item => {
@@ -77,4 +55,39 @@ export default class CollectionRow extends React.Component {
       </div>
     );
   }
+
+  popoverOptions = () => {
+    const { item: collection, setSidebarState, user } = this.props;
+    if (collection.archived) {
+      return [
+        {
+          name: t`Unarchive`,
+          onClick: () => collection.setArchived(false),
+        },
+      ];
+    }
+    const onEdit = collection =>
+      setSidebarState({ modalSnippetCollection: collection });
+    const onEditCollectionPermissions = () =>
+      setSidebarState({ permissionsModalCollectionId: collection.id });
+
+    return [
+      {
+        name: t`Edit`,
+        onClick: () => onEdit(collection),
+      },
+      ...(user.is_superuser
+        ? [
+            {
+              name: t`Change permissions`,
+              onClick: onEditCollectionPermissions,
+            },
+          ]
+        : []),
+      {
+        name: t`Archive`,
+        onClick: () => collection.setArchived(true),
+      },
+    ];
+  };
 }

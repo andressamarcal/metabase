@@ -29,10 +29,14 @@ const formFields = [
   },
 ];
 
-export default createEntity({
+const Snippets = createEntity({
   name: "snippets",
   nameOne: "snippet",
   path: "/api/native-query-snippet",
+  createSelectors: ({ getObject, getFetched }) => ({
+    getFetched: (state, props) =>
+      getFetched(state, props) || getObject(state, props),
+  }),
   forms: {
     withoutVisibleCollectionPicker: {
       fields: [
@@ -56,3 +60,5 @@ export default createEntity({
     },
   },
 });
+
+export default Snippets;
