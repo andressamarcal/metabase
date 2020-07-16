@@ -36,8 +36,7 @@ function checkLogo() {
   });
 }
 
-// skipped until we include a licence key in CI https://github.com/metabase/metabase-enterprise/issues/438
-describe.skip("formatting > whitelabel", () => {
+describe("formatting > whitelabel", () => {
   before(restore);
 
   describe("Changes to company name work", () => {
