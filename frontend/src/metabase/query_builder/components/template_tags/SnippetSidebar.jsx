@@ -48,18 +48,19 @@ const ICON_SIZE = 16;
 const HEADER_ICON_SIZE = 18;
 const MIN_SNIPPETS_FOR_SEARCH = 15;
 
+@Snippets.loadList()
+@SnippetCollections.loadList()
 @SnippetCollections.load({
   id: (state, props) =>
     props.snippetCollectionId === null ? "root" : props.snippetCollectionId,
+  wrapped: true,
 })
-@Snippets.loadList({ wrapped: true })
 @Search.loadList({
   query: (state, props) => ({
     collection:
       props.snippetCollectionId === null ? "root" : props.snippetCollectionId,
     namespace: "snippets",
   }),
-  wrapped: true,
 })
 export default class SnippetSidebar extends React.Component {
   props: Props;

@@ -27,14 +27,14 @@ const SnippetCollections = createEntity({
       SnippetCollections.actions.update(
         { id },
         { archived },
-        undo(opts, "snippetCollection", archived ? "archived" : "unarchived"),
+        undo(opts, "folder", archived ? "archived" : "unarchived"),
       ),
 
     setCollection: ({ id }, collection, opts) =>
       SnippetCollections.actions.update(
         { id },
         { parent_id: canonicalCollectionId(collection && collection.id) },
-        undo(opts, "snippetCollection", "moved"),
+        undo(opts, "folder", "moved"),
       ),
 
     // NOTE: DELETE not currently implemented
@@ -55,6 +55,11 @@ const SnippetCollections = createEntity({
         ),
     ),
   },
+
+  createSelectors: ({ getObject, getFetched }) => ({
+    getFetched: (state, props) =>
+      getFetched(state, props) || getObject(state, props),
+  }),
 
   form: {
     fields: [
