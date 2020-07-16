@@ -11,6 +11,7 @@ import {
   PLUGIN_SNIPPET_SIDEBAR_PLUS_MENU_OPTIONS,
   PLUGIN_SNIPPET_SIDEBAR_ROW_RENDERERS,
   PLUGIN_SNIPPET_SIDEBAR_MODALS,
+  PLUGIN_SNIPPET_SIDEBAR_HEADER_BUTTONS,
 } from "metabase/plugins";
 import Icon from "metabase/components/Icon";
 import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
@@ -195,11 +196,16 @@ export default class SnippetSidebar extends React.Component {
                 </span>
               </div>
               <div className="flex-align-right flex align-center text-medium no-decoration">
+                {[
+                  ...PLUGIN_SNIPPET_SIDEBAR_HEADER_BUTTONS.map(f =>
+                    f(this, { className: "mr2" }),
+                  ),
+                ]}
                 {snippets.length >= MIN_SNIPPETS_FOR_SEARCH && (
                   <Icon
                     className={cx(
                       { hide: showSearch },
-                      "text-brand-hover cursor-pointer mr2",
+                      "text-brand-hover cursor-pointer mr1",
                     )}
                     onClick={this.showSearch}
                     name="search"
@@ -239,7 +245,7 @@ export default class SnippetSidebar extends React.Component {
                             onClose();
                           }}
                         >
-                          <Icon name={icon} size={ICON_SIZE} className="mr1" />
+                          <Icon name={icon} size={ICON_SIZE} className="mr2" />
                           <h4>{name}</h4>
                         </div>
                       ))}
@@ -263,7 +269,7 @@ export default class SnippetSidebar extends React.Component {
                     <Row
                       key={`${item.model || "snippet"}-${item.id}`}
                       item={item}
-                      type={item.model}
+                      type={item.model || "snippet"}
                       setSidebarState={this.setState.bind(this)}
                       canWrite={snippetCollection.can_write}
                       {...this.props}
