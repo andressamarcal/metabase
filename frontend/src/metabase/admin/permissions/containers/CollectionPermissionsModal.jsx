@@ -11,7 +11,6 @@ import PermissionsGrid from "../components/PermissionsGrid";
 import { CollectionsApi } from "metabase/services";
 import Collections from "metabase/entities/collections";
 import SnippetCollections from "metabase/entities/snippet-collections";
-import getCollectionEntityForNamespace from "metabase/entities";
 
 import {
   getCollectionsPermissionsGrid,
