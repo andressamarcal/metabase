@@ -70,7 +70,7 @@ export default class CollectionOptionsButton extends React.Component {
         onClick: () => onEdit(collection),
       });
     }
-    if (user.is_superuser) {
+    if (user && user.is_superuser) {
       options.push({
         name: t`Change permissions`,
         onClick: onEditCollectionPermissions,

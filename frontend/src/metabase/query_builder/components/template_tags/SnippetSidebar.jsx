@@ -222,45 +222,51 @@ export default class SnippetSidebar extends React.Component {
                   />
                 )}
 
-                <PopoverWithTrigger
-                  triggerClasses="flex"
-                  triggerElement={
-                    <Icon
-                      className={cx(
-                        { hide: showSearch },
-                        "text-brand bg-light-hover rounded p1 cursor-pointer",
-                      )}
-                      name="add"
-                      size={HEADER_ICON_SIZE}
-                    />
-                  }
-                >
-                  {({ onClose }) => (
-                    <div className="flex flex-column">
-                      {[
-                        {
-                          icon: "snippet",
-                          name: t`New snippet`,
-                          onClick: openSnippetModalWithSelectedText,
-                        },
-                        ...PLUGIN_SNIPPET_SIDEBAR_PLUS_MENU_OPTIONS.map(f =>
-                          f(this),
-                        ),
-                      ].map(({ icon, name, onClick }) => (
-                        <div
-                          className="p2 bg-medium-hover flex cursor-pointer text-brand-hover"
-                          onClick={() => {
-                            onClick();
-                            onClose();
-                          }}
-                        >
-                          <Icon name={icon} size={ICON_SIZE} className="mr2" />
-                          <h4>{name}</h4>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </PopoverWithTrigger>
+                {snippetCollection.can_write && (
+                  <PopoverWithTrigger
+                    triggerClasses="flex"
+                    triggerElement={
+                      <Icon
+                        className={cx(
+                          { hide: showSearch },
+                          "text-brand bg-light-hover rounded p1 cursor-pointer",
+                        )}
+                        name="add"
+                        size={HEADER_ICON_SIZE}
+                      />
+                    }
+                  >
+                    {({ onClose }) => (
+                      <div className="flex flex-column">
+                        {[
+                          {
+                            icon: "snippet",
+                            name: t`New snippet`,
+                            onClick: openSnippetModalWithSelectedText,
+                          },
+                          ...PLUGIN_SNIPPET_SIDEBAR_PLUS_MENU_OPTIONS.map(f =>
+                            f(this),
+                          ),
+                        ].map(({ icon, name, onClick }) => (
+                          <div
+                            className="p2 bg-medium-hover flex cursor-pointer text-brand-hover"
+                            onClick={() => {
+                              onClick();
+                              onClose();
+                            }}
+                          >
+                            <Icon
+                              name={icon}
+                              size={ICON_SIZE}
+                              className="mr2"
+                            />
+                            <h4>{name}</h4>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </PopoverWithTrigger>
+                )}
                 <Icon
                   className={cx(
                     { hide: !showSearch },
