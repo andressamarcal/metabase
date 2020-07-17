@@ -21,7 +21,7 @@ export default class CollectionRow extends React.Component {
       <div
         className={cx(
           { "bg-light-hover cursor-pointer": !collection.archived },
-          "hover-parent hover--visibility flex align-center p2 text-brand",
+          "hover-parent hover--visibility flex align-center py2 px3 text-brand",
         )}
         {...(collection.archived ? undefined : { onClick: onSelectCollection })}
       >

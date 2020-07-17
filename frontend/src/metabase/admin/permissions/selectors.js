@@ -294,20 +294,20 @@ const OPTION_COLLECTION_READ = {
 
 const OPTION_SNIPPET_COLLECTION_WRITE = {
   ...OPTION_COLLECTION_WRITE,
-  title: t`Edit`,
-  tooltip: t`Modify snippets in this folder`,
+  title: t`Grant Edit access`,
+  tooltip: t`Can modify snippets in this folder`,
 };
 
 const OPTION_SNIPPET_COLLECTION_READ = {
   ...OPTION_COLLECTION_READ,
-  title: t`Execute`,
-  tooltip: t`Can insert and use snippets, but can't update the SQL they contain`,
+  title: t`Grant View access`,
+  tooltip: t`Can insert and use snippets in this folder, but can't edit the SQL they contain`,
 };
 
 const OPTION_SNIPPET_COLLECTION_NONE = {
   ...OPTION_NONE,
   title: t`Revoke access`,
-  tooltip: t`Can't view or insert snippets`,
+  tooltip: t`Can't view or insert snippets in this folder`,
 };
 
 export const getTablesPermissionsGrid = createSelector(

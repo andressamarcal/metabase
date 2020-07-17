@@ -156,7 +156,7 @@ export default class SnippetSidebar extends React.Component {
           <div>
             <div
               className="flex align-center pl3 pr2"
-              style={{ paddingTop: 10, paddingBottom: 8 }}
+              style={{ paddingTop: 10, paddingBottom: 11 }}
             >
               <div className="flex-full">
                 <div

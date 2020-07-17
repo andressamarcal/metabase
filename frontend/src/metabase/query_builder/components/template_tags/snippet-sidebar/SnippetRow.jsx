@@ -33,7 +33,7 @@ class SnippetRow extends React.Component {
         )}
       >
         <div
-          className="cursor-pointer bg-light-hover text-bold flex align-center justify-between p2 hover-parent hover--display"
+          className="cursor-pointer bg-light-hover text-bold flex align-center justify-between py2 px3 hover-parent hover--display"
           onClick={() => this.setState({ isOpen: !isOpen })}
         >
           <div
