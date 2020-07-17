@@ -1,6 +1,7 @@
 import React, { Component } from "react";
 import { connect } from "react-redux";
 import { t } from "ttag";
+import _ from "underscore";
 
 import ModalContent from "metabase/components/ModalContent";
 import Button from "metabase/components/Button";
@@ -10,6 +11,7 @@ import PermissionsGrid from "../components/PermissionsGrid";
 import { CollectionsApi } from "metabase/services";
 import Collections from "metabase/entities/collections";
 import SnippetCollections from "metabase/entities/snippet-collections";
+import getCollectionEntityForNamespace from "metabase/entities";
 
 import {
   getCollectionsPermissionsGrid,
@@ -18,25 +20,35 @@ import {
 } from "../selectors";
 import { initialize, updatePermission, savePermissions } from "../permissions";
 
+const getCollectionEntity = props =>
+  props.namespace === "snippets" ? SnippetCollections : Collections;
+
 const mapStateToProps = (state, props) => {
+  const { collectionId } = props.params;
   return {
     grid: getCollectionsPermissionsGrid(state, {
-      collectionId: props.params.collectionId,
+      collectionId,
       singleCollectionMode: true,
       namespace: props.namespace,
     }),
     isDirty: getIsDirty(state, props),
     diff: getDiff(state, props),
+    collection: getCollectionEntity(props).selectors.getObject(state, {
+      entityId: collectionId,
+    }),
   };
 };
 
-const mapDispatchToProps = {
-  initialize,
-  loadCollections: Collections.actions.fetchList,
-  loadSnippetCollections: SnippetCollections.actions.fetchList,
-  onUpdatePermission: updatePermission,
-  onSave: savePermissions,
-};
+const mapDispatchToProps = (dispatch, props) =>
+  _.mapObject(
+    {
+      initialize,
+      loadCollections: getCollectionEntity(props).actions.fetchList,
+      onUpdatePermission: updatePermission,
+      onSave: savePermissions,
+    },
+    f => (...args) => dispatch(f(...args)),
+  );
 
 @connect(
   mapStateToProps,
@@ -44,14 +56,12 @@ const mapDispatchToProps = {
 )
 export default class CollectionPermissionsModal extends Component {
   componentWillMount() {
-    const { namespace, initialize } = this.props;
+    const { namespace, loadCollections, initialize } = this.props;
     initialize(
       () => CollectionsApi.graph({ namespace }),
       graph => CollectionsApi.updateGraph({ ...graph, namespace }),
     );
-    (namespace === "snippets"
-      ? this.props.loadSnippetCollections
-      : this.props.loadCollections)();
+    loadCollections();
   }
   render() {
     const {
@@ -61,11 +71,14 @@ export default class CollectionPermissionsModal extends Component {
       onClose,
       onSave,
       namespace,
+      collection,
     } = this.props;
     return (
       <ModalContent
         title={
-          namespace === "snippets"
+          collection && collection.name
+            ? t`Permissions for ${collection.name}`
+            : namespace === "snippets"
             ? t`Permissions for this folder`
             : t`Permissions for this collection`
         }
