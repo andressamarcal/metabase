@@ -184,11 +184,19 @@ export default class SnippetSidebar extends React.Component {
                   ) : (
                     <span
                       className="text-brand-hover cursor-pointer"
-                      onClick={() =>
+                      onClick={() => {
+                        const parentId = snippetCollection.parent_id;
                         this.props.setSnippetCollectionId(
-                          snippetCollection.parent_id,
-                        )
-                      }
+                          // if this collection's parent isn't in the list, we don't have perms to see it, return to the root instead
+                          this.props.snippetCollections.some(
+                            sc =>
+                              canonicalCollectionId(sc.id) ===
+                              canonicalCollectionId(parentId),
+                          )
+                            ? parentId
+                            : null,
+                        );
+                      }}
                     >
                       <Icon name="chevronleft" className="mr1" />
                       {snippetCollection.name}
