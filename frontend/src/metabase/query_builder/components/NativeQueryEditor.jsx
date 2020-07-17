@@ -112,6 +112,7 @@ type Props = {
   insertSnippet: () => void,
   closeSnippetModal: () => void,
   snippets: { name: string }[],
+  snippetCollections: { can_write: boolean }[],
 };
 type State = {
   initialHeight: number,

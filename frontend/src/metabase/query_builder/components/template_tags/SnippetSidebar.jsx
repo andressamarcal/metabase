@@ -34,6 +34,7 @@ type Props = {
   insertSnippet: () => void,
   snippets: Snippet[],
   snippetCollection: any,
+  snippetCollections: any[],
   search: any[],
   setSnippetCollectionId: () => void,
 };

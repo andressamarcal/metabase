@@ -694,11 +694,12 @@
       (mt/with-temp Collection [collection]
         (is (= (merge
                 (mt/object-defaults Collection)
-                {:id       (u/get-id collection)
-                 :name     "My Beautiful Collection"
-                 :slug     "my_beautiful_collection"
-                 :color    "#ABCDEF"
-                 :location "/"})
+                {:id        (u/get-id collection)
+                 :name      "My Beautiful Collection"
+                 :slug      "my_beautiful_collection"
+                 :color     "#ABCDEF"
+                 :location  "/"
+                 :parent_id nil})
                ((mt/user->client :crowberto) :put 200 (str "collection/" (u/get-id collection))
                 {:name "My Beautiful Collection", :color "#ABCDEF"})))))
 
@@ -765,11 +766,12 @@
       (with-collection-hierarchy [a b e]
         (is (= (merge
                 (mt/object-defaults Collection)
-                {:id       true
-                 :name     "E"
-                 :slug     "e"
-                 :color    "#ABCDEF"
-                 :location "/A/B/"})
+                {:id        true
+                 :name      "E"
+                 :slug      "e"
+                 :color     "#ABCDEF"
+                 :location  "/A/B/"
+                 :parent_id (u/get-id b)})
                (-> ((mt/user->client :crowberto) :put 200 (str "collection/" (u/get-id e))
                     {:parent_id (u/get-id b)})
                    (update :location collection-test/location-path-ids->names)
@@ -877,12 +879,16 @@
 
         (testing "Should be able to update the graph for a non-default namespace.\n"
           (testing "Should ignore updates to Collections outside of the namespace"
-            (let [response ((mt/user->client :crowberto) :put 200 "collection/graph?namespace=currency"
-                            (assoc (graph/graph) :groups {group-id {default-a :write, currency-a :write}}))]
+            (let [response ((mt/user->client :crowberto) :put 200 "collection/graph"
+                            (assoc (graph/graph)
+                                   :groups {group-id {default-a :write, currency-a :write}}
+                                   :namespace :currency))]
               (is (= {"Currency A" "write", "Currency A -> B" "read"}
                      (nice-graph response))))))
 
         (testing "have to be a superuser"
           (is (= "You don't have permissions to do that."
-                 ((mt/user->client :rasta) :put 403 "collection/graph?namespace=currency"
-                  (assoc (graph/graph) :groups {group-id {default-a :write, currency-a :write}})))))))))
+                 ((mt/user->client :rasta) :put 403 "collection/graph"
+                  (assoc (graph/graph)
+                         :groups {group-id {default-a :write, currency-a :write}}
+                         :namespace :currency)))))))))
