@@ -806,7 +806,15 @@ export const getCollectionsPermissionsGrid = createSelector(
               id: collectionId,
             });
             if (collection && collection.children.length > 0) {
-              return [TogglePropagateAction];
+              return [
+                () =>
+                  TogglePropagateAction({
+                    message:
+                      namespace === "snippets"
+                        ? t`Also change sub-folders`
+                        : t`Also change sub-collections`,
+                  }),
+              ];
             } else {
               return [];
             }
