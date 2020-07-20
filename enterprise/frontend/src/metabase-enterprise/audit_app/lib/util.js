@@ -4,7 +4,10 @@ import _ from "underscore";
 
 import Question from "metabase-lib/lib/Question";
 
-import type { ClickObject, QueryMode } from "metabase/meta/types/Visualization";
+import type {
+  ClickObject,
+  QueryMode,
+} from "metabase-types/types/Visualization";
 
 const columnNameToUrl = {
   user_id: value => `/admin/audit/member/${value}`,
