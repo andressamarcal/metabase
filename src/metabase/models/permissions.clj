@@ -281,7 +281,6 @@
   (log/debug (u/colorize 'red (trs "Revoking permissions for group {0}: {1}" (:group_id permissions) (:object permissions))))
   (assert-not-admin-group permissions))
 
-
 (u/strict-extend (class Permissions)
   models/IModel (merge models/IModelDefaults
                    {:pre-insert         pre-insert
@@ -644,7 +643,7 @@
   "Log changes to the permissions graph."
   [old new]
   (log/debug
-   (trs "Changing permissions from: {1} to: {2}"
+   (trs "Changing permissions from: {0} to: {1}"
         (str (u/pprint-to-str 'magenta old) "\n")
         (u/pprint-to-str 'blue new))))
 

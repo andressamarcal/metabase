@@ -30,8 +30,8 @@ import type {
   DashboardWithCards,
   DashCard,
   DashCardId,
-} from "metabase/meta/types/Dashboard";
-import type { CardId } from "metabase/meta/types/Card";
+} from "metabase-types/types/Dashboard";
+import type { CardId } from "metabase-types/types/Card";
 
 import Utils from "metabase/lib/utils";
 import { getPositionForNewDashCard } from "metabase/lib/dashboard_grid";
@@ -1165,9 +1165,12 @@ const loadingDashCards = handleActions(
 
 const loadMetadataForDashboard = dashCards => (dispatch, getState) => {
   const metadata = getMetadata(getState());
+
   const queries = dashCards
-    .flatMap(dc => [dc.card].concat(dc.series))
+    .filter(dc => !isVirtualDashCard(dc))
+    .flatMap(dc => [dc.card].concat(dc.series || []))
     .map(card => new Question(card, metadata).query());
+
   return dispatch(loadMetadataForQueries(queries));
 };
 

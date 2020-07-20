@@ -1,6 +1,6 @@
 /* @flow */
 
-import type { Card } from "metabase/meta/types/Card";
+import type { Card } from "metabase-types/types/Card";
 
 export type AuditDashCard = {
   card: Card,
