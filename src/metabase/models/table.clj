@@ -13,7 +13,6 @@
              [metric :refer [Metric retrieve-metrics]]
              [permissions :as perms :refer [Permissions]]
              [segment :refer [retrieve-segments Segment]]]
-            [metabase.plugins.classloader :as classloader]
             [toucan
              [db :as db]
              [models :as models]]))
@@ -30,7 +29,8 @@
   `:database`     - use the same order as in the table definition in the DB;
   `:alphabetical` - order alphabetically by name;
   `:custom`       - the user manually set the order in the data model
-  `:smart`        - Try to be smart and order like you'd usually want it: first PK, followed by `:type/Name`s, then `:type/Temporal`s, and from there on in alphabetical order."
+  `:smart`        - Try to be smart and order like you'd usually want it: first PK, followed by `:type/Name`s, then
+                    `:type/Temporal`s, and from there on in alphabetical order."
   #{:database :alphabetical :custom :smart})
 
 
@@ -45,15 +45,7 @@
     (merge defaults table)))
 
 (defn- pre-delete [{:keys [db_id schema id]}]
-  (db/delete! Segment     :table_id id)
-  (db/delete! Metric      :table_id id)
-  (db/delete! Field       :table_id id)
-  (db/delete! 'Card       :table_id id)
-  (db/delete! Permissions :object [:like (str (perms/object-path db_id schema id) "%")])
-  (u/ignore-exceptions
-   (classloader/require '[metabase-enterprise.sandbox.models.group-table-access-policy :as ee.sandbox.gtap])
-   (when-let [GroupTableAccessPolicy (some-> (resolve 'ee.sandbox.gtap/GroupTableAccessPolicy) var-get)]
-     (db/delete! GroupTableAccessPolicy :table_id id))))
+  (db/delete! Permissions :object [:like (str (perms/object-path db_id schema id) "%")]))
 
 (defn- perms-objects-set [table read-or-write]
   ;; To read (e.g., fetch metadata) a Table you (predictably) have read permissions; to write a Table (e.g. update its

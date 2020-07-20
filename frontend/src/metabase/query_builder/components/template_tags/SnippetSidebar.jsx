@@ -25,7 +25,7 @@ import SnippetCollections from "metabase/entities/snippet-collections";
 import { canonicalCollectionId } from "metabase/entities/collections";
 import Search from "metabase/entities/search";
 
-import type { Snippet } from "metabase/meta/types/Snippet";
+import type { Snippet } from "metabase-types/types/Snippet";
 
 type Props = {
   onClose: () => void,

@@ -7,7 +7,7 @@ import { QuestionLoaderHOC } from "metabase/containers/QuestionLoader";
 
 import * as Dashboard from "metabase/meta/Dashboard";
 
-import type { ParameterTarget } from "metabase/meta/types/Parameter";
+import type { ParameterTarget } from "metabase-types/types/Parameter";
 
 type Props = {
   questionObject?: any, // FIXME: minimal card
