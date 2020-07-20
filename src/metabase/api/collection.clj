@@ -73,7 +73,8 @@
 
   *  `collection` will be either a CollectionInstance, or the Root Collection special placeholder object, so do not use
      `u/get-id` on it! Use `:id`, which will return `nil` for the Root Collection, which is exactly what we want."
-  (fn [model collection options] model))
+  {:arglists '([model collection options])}
+  (fn [model _ _] (keyword model)))
 
 (defmethod fetch-collection-children :card
   [_ collection {:keys [archived?]}]
@@ -192,12 +193,13 @@
    namespace (s/maybe su/NonBlankString)}
   ;; Return collection contents, including Collections that have an effective location of being in the Root
   ;; Collection for the Current User.
-  (collection-children
-   (assoc collection/root-collection :namespace namespace)
-   {:model     (if (mi/can-read? collection/root-collection)
-                 (keyword model)
-                 :collection)
-    :archived? (Boolean/parseBoolean archived)}))
+  (let [root-collection (assoc collection/root-collection :namespace namespace)]
+    (collection-children
+     root-collection
+     {:model     (if (mi/can-read? root-collection)
+                   (keyword model)
+                   :collection)
+      :archived? (Boolean/parseBoolean archived)})))
 
 
 ;;; ----------------------------------------- Creating/Editing a Collection ------------------------------------------
@@ -276,7 +278,6 @@
     (when-let [alerts (seq (apply pulse/retrieve-alerts-for-cards (db/select-ids Card
                                                                     :collection_id (u/get-id collection-before-update))))]
         (card-api/delete-alert-and-notify-archived! alerts))))
-
 
 (api/defendpoint PUT "/:id"
   "Modify an existing Collection, including archiving or unarchiving it, or moving it."

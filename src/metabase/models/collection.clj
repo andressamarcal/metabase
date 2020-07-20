@@ -12,6 +12,7 @@
              [interface :as i]
              [permissions :as perms :refer [Permissions]]]
             [metabase.models.collection.root :as collection.root]
+            [metabase.public-settings.metastore :as settings.metastore]
             [metabase.util :as u]
             [metabase.util
              [i18n :as ui18n :refer [trs tru]]
@@ -793,12 +794,7 @@
   false)
 
 (defn- pre-delete [collection]
-  ;; unset the collection_id for Cards/Pulses in this collection. This is mostly for the sake of tests since IRL we
-  ;; shouldn't be deleting Collections, but rather archiving them instead
-  (doseq [model ['Card 'Pulse 'Dashboard]]
-    (db/update-where! model {:collection_id (u/get-id collection)}
-      :collection_id nil))
-  ;; Now delete all the Children of this Collection
+  ;; Delete all the Children of this Collection
   (db/delete! Collection :location (children-location collection))
   ;; You can't delete a Personal Collection! Unless we enable it because we are simultaneously deleting the User
   (when-not *allow-deleting-personal-collections*
@@ -816,12 +812,18 @@
 (defn perms-objects-set
   "Return the required set of permissions to `read-or-write` `collection-or-id`."
   [collection-or-id read-or-write]
-  ;; This is not entirely accurate as you need to be a superuser to modifiy a collection itself (e.g., changing its
-  ;; name) but if you have write perms you can add/remove cards
-  #{(case read-or-write
-      :read  (perms/collection-read-path collection-or-id)
-      :write (perms/collection-readwrite-path collection-or-id))})
-
+  (let [collection (if (integer? collection-or-id)
+                     (db/select-one [Collection :id :namespace] :id (collection-or-id))
+                     collection-or-id)]
+    ;; HACK Collections in the "snippets" namespace have no-op permissions unless EE enhancements are enabled
+    (if (and (= (u/qualified-name (:namespace collection)) "snippets")
+             (not (settings.metastore/enable-enhancements?)))
+      #{}
+      ;; This is not entirely accurate as you need to be a superuser to modifiy a collection itself (e.g., changing its
+      ;; name) but if you have write perms you can add/remove cards
+      #{(case read-or-write
+          :read  (perms/collection-read-path collection-or-id)
+          :write (perms/collection-readwrite-path collection-or-id))})))
 
 (u/strict-extend (class Collection)
   models/IModel

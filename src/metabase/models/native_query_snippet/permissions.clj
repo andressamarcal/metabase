@@ -6,7 +6,8 @@
   The default implementation is defined below and can be swapped out at runtime with the more advanced EE
   implementation."
   (:require [potemkin.types :as p.types]
-            [pretty.core :refer [PrettyPrintable]]))
+            [pretty.core :refer [PrettyPrintable]]
+            [clojure.tools.logging :as log]))
 
 (p.types/defprotocol+ PermissionsImpl
   "Protocol for implementing the permissions logic for NativeQuerySnippets."
@@ -25,7 +26,7 @@
   "Change the implementation used for NativeQuerySnippet permissions. `new-impl` must satisfy the `PermissionsImpl`
   protocol defined above."
   [new-impl]
-  (println (format "NativeQueryPermissions impl set to %s" (pr-str new-impl))) ; NOCOMMIT
+  (log/debugf "NativeQueryPermissions impl set to %s" (pr-str new-impl))
   (reset! impl new-impl))
 
 (def default-impl
