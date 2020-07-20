@@ -8,6 +8,7 @@ import {
   PLUGIN_SNIPPET_SIDEBAR_HEADER_BUTTONS,
 } from "metabase/plugins";
 
+import MetabaseSettings from "metabase/lib/settings";
 import CollectionPermissionsModal from "metabase/admin/permissions/containers/CollectionPermissionsModal";
 import Modal from "metabase/components/Modal";
 
@@ -15,16 +16,18 @@ import CollectionRow from "./components/CollectionRow";
 import SnippetCollectionModal from "./components/SnippetCollectionModal";
 import CollectionOptionsButton from "./components/CollectionOptionsButton";
 
-PLUGIN_SNIPPET_SIDEBAR_PLUS_MENU_OPTIONS.push(snippetSidebar => ({
-  icon: "folder",
-  name: t`New folder`,
-  onClick: () =>
-    snippetSidebar.setState({
-      modalSnippetCollection: {
-        parent_id: snippetSidebar.props.snippetCollection.id,
-      },
-    }),
-}));
+if (MetabaseSettings.enhancementsEnabled()) {
+  PLUGIN_SNIPPET_SIDEBAR_PLUS_MENU_OPTIONS.push(snippetSidebar => ({
+    icon: "folder",
+    name: t`New folder`,
+    onClick: () =>
+      snippetSidebar.setState({
+        modalSnippetCollection: {
+          parent_id: snippetSidebar.props.snippetCollection.id,
+        },
+      }),
+  }));
+}
 
 PLUGIN_SNIPPET_SIDEBAR_MODALS.push(
   snippetSidebar =>
