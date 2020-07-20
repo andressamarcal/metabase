@@ -138,8 +138,9 @@
     (when-not (env/env :drivers)
       (t/testing "Don't write any new tests using expect!"
         (let [ee? (u/ignore-exceptions (require 'metabase-enterprise.core) true)]
-          (t/is (<= total-expect-forms (if ee? 1623 1555)))
-          (t/is (<= total-namespaces-using-expect (if ee? 116 108))))))))
+          ;; TODO - update the numbers for EE
+          (t/is (<= total-expect-forms (if ee? 1623 1084)))
+          (t/is (<= total-namespaces-using-expect (if ee? 116 97))))))))
 
 (defmacro ^:deprecated expect
   "Simple macro that simulates converts an Expectations-style `expect` form into a `clojure.test` `deftest` form."

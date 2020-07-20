@@ -281,7 +281,6 @@
   (log/debug (u/colorize 'red (trs "Revoking permissions for group {0}: {1}" (:group_id permissions) (:object permissions))))
   (assert-not-admin-group permissions))
 
-
 (u/strict-extend (class Permissions)
   models/IModel (merge models/IModelDefaults
                    {:pre-insert         pre-insert
