@@ -45,21 +45,44 @@
 
 (def segmented-perm-regex
   "Regex that matches a segmented permission"
-  #"^/db/(\d+)/schema/([^\\/]*)/table/(\d+)/query/segmented/$")
+  #"^/db/\d+/schema/(?:[^/]|(?:(?<=\\)/))*/table/\d+/query/segmented/$")
 
 (def ^:private valid-object-path-patterns
-  [#"^/db/(\d+)/$"                                        ; permissions for the entire DB -- native and all schemas
-   #"^/db/(\d+)/native/$"                                 ; permissions to create new native queries for the DB
-   #"^/db/(\d+)/schema/$"                                 ; permissions for all schemas in the DB
-   #"^/db/(\d+)/schema/([^/]*)/$"                         ; permissions for a specific schema
-   #"^/db/(\d+)/schema/([^/]*)/table/(\d+)/$"             ; FULL permissions for a specific table
-   #"^/db/(\d+)/schema/([^/]*)/table/(\d+)/read/$"        ; Permissions to fetch the Metadata for a specific Table
-   #"^/db/(\d+)/schema/([^/]*)/table/(\d+)/query/$"       ; Permissions to run any sort of query against a Table
-   segmented-perm-regex                                   ; Permissions to run a query against a Table using GTAP
-   #"^/collection/(\d+)/$"                                ; readwrite permissions for a collection
-   #"^/collection/(\d+)/read/$"                           ; read permissions for a collection
-   #"^/collection/root/$"                                 ; readwrite permissions for the 'Root' Collection (things with `nil` collection_id)
-   #"^/collection/root/read/$"])                          ; read permissions for the 'Root' Collection
+  [;; permissions for the entire DB -- native and all schemas
+   #"^/db/\d+/$"
+   ;; permissions to create new native queries for the DB
+   #"^/db/\d+/native/$"
+   ;; permissions for all schemas in the DB
+   #"^/db/\d+/schema/$"
+   ;; permissions for a specific schema
+   #"^/db/\d+/schema/(?:[^/]|(?:(?<=\\)/))*/$"
+   ;; FULL permissions for a specific table
+   #"^/db/\d+/schema/(?:[^/]|(?:(?<=\\)/))*/table/\d+/$"
+   ;; Permissions to fetch the Metadata for a specific Table
+   #"^/db/\d+/schema/(?:[^/]|(?:(?<=\\)/))*/table/\d+/read/$"
+   ;; Permissions to run any sort of query against a Table
+   #"^/db/\d+/schema/(?:[^/]|(?:(?<=\\)/))*/table/\d+/query/$"
+   ;; Permissions to run a query against a Table using GTAP
+   segmented-perm-regex
+   ;; readwrite permissions for a collection
+   #"^/collection/\d+/$"
+   ;; read permissions for a collection
+   #"^/collection/\d+/read/$"
+   ;; readwrite permissions for the 'Root' Collection in a non-default namespace
+   #"^/collection/namespace/(?:[^/]|(?:(?<=\\)/))+/root/$"
+   ;; read permissions for the 'Root' Collection in a non-default namespace
+   #"^/collection/namespace/(?:[^/]|(?:(?<=\\)/))+/root/read/$"
+   ;; readwrite permissions for the 'Root' Collection in the default namespace (things with `nil` collection_id)
+   #"^/collection/root/$"
+   ;; read permissions for the 'Root' Collection in the default namespace
+   #"^/collection/root/read/$"])
+
+(defn- escape-path-component
+  "Escape any forward slashes in the string part of a permissions path.
+
+    (escape-path-component \"a/b\") ;-> \"a\\/b\""
+  [s]
+  (some-> s (str/replace #"/" "\\\\/")))
 
 (defn valid-object-path?
   "Does `object-path` follow a known, allowed format to an *object*? (The root path, \"/\", is not considered an object;
@@ -147,11 +170,11 @@
 (s/defn collection-readwrite-path :- ObjectPath
   "Return the permissions path for *readwrite* access for a `collection-or-id`."
   [collection-or-id :- MapOrID]
-  (str "/collection/"
-       (if (get collection-or-id :metabase.models.collection.root/is-root?)
-         "root"
-         (u/get-id collection-or-id))
-       "/"))
+  (if-not (get collection-or-id :metabase.models.collection.root/is-root?)
+    (format "/collection/%d/" (u/get-id collection-or-id))
+    (if-let [collection-namespace (:namespace collection-or-id)]
+      (format "/collection/namespace/%s/root/" (escape-path-component (u/qualified-name collection-namespace)))
+      "/collection/root/")))
 
 (s/defn collection-read-path :- ObjectPath
   "Return the permissions path for *read* access for a `collection-or-id`."
@@ -236,16 +259,21 @@
   "Implementation of `IModel` `perms-objects-set` for models with a `collection_id`, such as Card, Dashboard, or Pulse.
   This simply returns the `perms-objects-set` of the parent Collection (based on `collection_id`), or for the Root
   Collection if `collection_id` is `nil`."
-  [this          :- {:collection_id (s/maybe su/IntGreaterThanZero), s/Keyword s/Any}
-   read-or-write :- (s/enum :read :write)]
-  ;; based on value of read-or-write determine the approprite function used to calculate the perms path
-  (let [path-fn (case read-or-write
-                  :read  collection-read-path
-                  :write collection-readwrite-path)]
-    ;; now pass that function our collection_id if we have one, or if not, pass it an object representing the Root
-    ;; Collection
-    #{(path-fn (or (:collection_id this)
-                   {:metabase.models.collection.root/is-root? true}))}))
+  ([this read-or-write]
+   (perms-objects-set-for-parent-collection nil this read-or-write))
+
+  ([collection-namespace :- (s/maybe su/KeywordOrString)
+    this                 :- {:collection_id (s/maybe su/IntGreaterThanZero), s/Keyword s/Any}
+    read-or-write        :- (s/enum :read :write)]
+   ;; based on value of read-or-write determine the approprite function used to calculate the perms path
+   (let [path-fn (case read-or-write
+                   :read  collection-read-path
+                   :write collection-readwrite-path)]
+     ;; now pass that function our collection_id if we have one, or if not, pass it an object representing the Root
+     ;; Collection
+     #{(path-fn (or (:collection_id this)
+                    {:metabase.models.collection.root/is-root? true
+                     :namespace                                collection-namespace}))})))
 
 (def IObjectPermissionsForParentCollection
   "Implementation of `IObjectPermissions` for objects that have a `collection_id`, and thus, a parent Collection.

@@ -1119,38 +1119,48 @@
            collections)
    (db/select-field :object Permissions :group_id (u/get-id perms-group))))
 
-;; Make sure that when creating a new Collection at the Root Level, we copy the group permissions for the Root
-;; Collection
-(expect
-  #{"/collection/{new}/"
-    "/collection/root/"}
-  (mt/with-temp PermissionsGroup [group]
-    (perms/grant-collection-readwrite-permissions! group collection/root-collection)
-    (mt/with-temp Collection [collection {:name "{new}"}]
-      (group->perms [collection] group))))
+(deftest copy-root-collection-perms-test
+  (testing (str "Make sure that when creating a new Collection at the Root Level, we copy the group permissions for "
+                "the Root Collection\n")
+    (doseq [collection-namespace [nil "currency"]
+            :let                 [root-collection       (assoc collection/root-collection :namespace collection-namespace)
+                                  other-namespace      (if collection-namespace nil "currency")
+                                  other-root-collection (assoc collection/root-collection :namespace other-namespace)]]
+      (testing (format "Collection namespace = %s\n" (pr-str collection-namespace))
+        (mt/with-temp PermissionsGroup [group]
+          (testing "no perms beforehand = no perms after"
+            (mt/with-temp Collection [collection {:name "{new}", :namespace collection-namespace}]
+              (is (= #{}
+                     (group->perms [collection] group)))))
 
-(expect
-  #{"/collection/{new}/read/"
-    "/collection/root/read/"}
-  (mt/with-temp PermissionsGroup [group]
-    (perms/grant-collection-read-permissions! group collection/root-collection)
-    (mt/with-temp Collection [collection {:name "{new}"}]
-      (group->perms [collection] group))))
+          (perms/grant-collection-read-permissions! group root-collection)
+          (mt/with-temp Collection [collection {:name "{new}", :namespace collection-namespace}]
+            (testing "copy read perms"
+              (is (= #{"/collection/{new}/read/"
+                       (perms/collection-read-path root-collection)}
+                     (group->perms [collection] group))))
 
-;; Needless to say, no perms before hand = no perms after
-(expect
-  #{}
-  (mt/with-temp PermissionsGroup [group]
-    (mt/with-temp Collection [collection {:name "{new}"}]
-      (group->perms [collection] group))))
+            (testing "revoking root collection perms shouldn't affect perms of existing children"
+              (perms/revoke-collection-permissions! group root-collection)
+              (is (= #{"/collection/{new}/read/"}
+                     (group->perms [collection] group))))
 
-;; ...and granting perms after shouldn't affect Collections already created
-(expect
-  #{"/collection/root/read/"}
-  (mt/with-temp* [PermissionsGroup [group]
-                  Collection [collection {:name "{new}"}]]
-    (perms/grant-collection-read-permissions! group collection/root-collection)
-    (group->perms [collection] group)))
+            (testing "granting new root collection perms shouldn't affect perms of existing children"
+              (perms/grant-collection-readwrite-permissions! group root-collection)
+              (is (= #{(perms/collection-readwrite-path root-collection) "/collection/{new}/read/"}
+                     (group->perms [collection] group)))))
+
+          (testing "copy readwrite perms"
+            (mt/with-temp Collection [collection {:name "{new}", :namespace collection-namespace}]
+              (is (= #{"/collection/{new}/"
+                       (perms/collection-readwrite-path root-collection)}
+                     (group->perms [collection] group)))))
+
+          (testing (format "Perms for Root Collection in %s namespace should not affect Collections in %s namespace"
+                           (pr-str collection-namespace) (pr-str other-namespace))
+            (mt/with-temp Collection [collection {:name "{new}", :namespace other-namespace}]
+              (is (= #{(perms/collection-readwrite-path root-collection)}
+                     (group->perms [collection] group))))))))))
 
 ;; Make sure that when creating a new Collection as a child of another, we copy the group permissions for its parent
 (expect

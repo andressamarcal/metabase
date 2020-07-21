@@ -11,7 +11,7 @@
 
 (deftest ee-disabled-snippets-graph-test
   (testing "GET /api/collection/root/items?namespace=snippets"
-    (mt/with-non-admin-groups-no-root-collection-perms
+    (mt/with-non-admin-groups-no-root-collection-for-namespace-perms "snippets"
       (mt/with-temp NativeQuerySnippet [snippet]
         (letfn [(can-see-snippet? []
                   (let [response ((mt/user->client :rasta) :get "collection/root/items?namespace=snippets")]

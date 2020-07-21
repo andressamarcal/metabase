@@ -11,13 +11,13 @@
             [metabase.public-settings.metastore-test :as metastore-test]
             [toucan.db :as db]))
 
-(def ^:private root-collection (assoc collection/root-collection :name "Root Collection"))
+(def ^:private root-collection (assoc collection/root-collection :name "Root Collection", :namespace "snippets"))
 
 (defn- test-perms
   "Test whether we have permissions to see/edit/etc. a Snippet by calling `(has-perms? snippet)`. `required-perms` is
   the permissions we *should* need, either `:read` or `:write`."
   [required-perms has-perms?]
-  (mt/with-non-admin-groups-no-root-collection-perms
+  (mt/with-non-admin-groups-no-root-collection-for-namespace-perms "snippets"
     (mt/with-temp Collection [normal-collection {:name "Normal Collection", :namespace "snippets"}]
       ;; run tests with both a normal Collection and the Root Collection
       (doseq [{collection-name :name, :as collection} [normal-collection root-collection]]
@@ -26,37 +26,40 @@
             (testing "\nShould be allowed regardless if EE features aren't enabled"
               (metastore-test/with-metastore-token-features #{}
                 (is (= true
-                       (has-perms? snippet)))))
+                       (has-perms? snippet))
+                    "allowed?")))
             (testing "\nWith EE features enabled"
               (metastore-test/with-metastore-token-features #{:enhancements}
-                (testing (format "\nShould be disallowed with no perms for %s" collection-name)
+                (testing (format "\nShould not be allowed with no perms for %s" collection-name)
                   (is (= false
-                         (has-perms? snippet))))
+                         (has-perms? snippet))
+                      "allowed?"))
                 (perms/grant-collection-read-permissions! (group/all-users) collection)
                 (testing (format "\nShould %s allowed if we have read perms for %s"
                                  (case required-perms :read "be" :write "NOT be")
                                  collection-name)
                   (is (= (case required-perms
-                           :read true
+                           :read  true
                            :write false)
-                         (has-perms? snippet))))
+                         (has-perms? snippet))
+                      "allowed?"))
                 (perms/grant-collection-readwrite-permissions! (group/all-users) collection)
                 (testing (format "\nShould be allowed if we have write perms for %s" collection-name)
                   (is (= true
-                         (has-perms? snippet))))))))))))
+                         (has-perms? snippet))
+                      "allowed?"))))))))))
 
 (deftest list-test
   (testing "GET /api/native-query-snippet"
-    (mt/with-non-admin-groups-no-root-collection-perms
-      (testing "\nShould only see Snippet if you have parent Collection perms"
-        (test-perms
-         :read
-         (fn [snippet]
-           (boolean
-            (some
-             (fn [a-snippet]
-               (= (u/get-id a-snippet) (u/get-id snippet)))
-             ((mt/user->client :rasta) :get "native-query-snippet")))))))))
+    (testing "\nShould only see Snippet if you have parent Collection perms"
+      (test-perms
+       :read
+       (fn [snippet]
+         (boolean
+          (some
+           (fn [a-snippet]
+             (= (u/get-id a-snippet) (u/get-id snippet)))
+           ((mt/user->client :rasta) :get "native-query-snippet"))))))))
 
 (deftest fetch-test
   (testing "GET /api/native-query-snippet/:id"
@@ -94,7 +97,7 @@
 (deftest move-perms-test
   (testing "PUT /api/native-query-snippet/:id"
     (testing "\nPerms for moving a Snippet"
-      (mt/with-non-admin-groups-no-root-collection-perms
+      (mt/with-non-admin-groups-no-root-collection-for-namespace-perms "snippets"
         (mt/with-temp* [Collection [source {:name "Current Parent Collection", :namespace "snippets"}]
                         Collection [dest   {:name "New Parent Collection", :namespace "snippets"}]]
           (doseq [source-collection [source root-collection]]

@@ -4,7 +4,8 @@
              [string :as str]
              [test :refer :all]]
             [metabase
-             [models :refer [Card Collection Dashboard NativeQuerySnippet PermissionsGroup PermissionsGroupMembership Pulse PulseCard PulseChannel PulseChannelRecipient]]
+             [models :refer [Card Collection Dashboard NativeQuerySnippet Permissions PermissionsGroup
+                             PermissionsGroupMembership Pulse PulseCard PulseChannel PulseChannelRecipient]]
              [test :as mt]
              [util :as u]]
             [metabase.models
@@ -67,6 +68,12 @@
                   "Rasta Toucan's Personal Collection"]
                  (map :name ((mt/user->client :rasta) :get 200 "collection")))))))
 
+    (testing "sanity check: All Users should have Root Collection readwrite perms"
+      (is (= true
+             (db/exists? Permissions
+               :group_id (u/get-id (group/all-users))
+               :object (perms/collection-readwrite-path collection/root-collection)))))
+
     (testing "check that we don't see collections if they're archived"
       (mt/with-temp* [Collection [collection-1 {:name "Archived Collection", :archived true}]
                       Collection [collection-2 {:name "Regular Collection"}]]
@@ -81,7 +88,7 @@
         (is (= ["Archived Collection"]
                (map :name ((mt/user->client :rasta) :get 200 "collection" :archived :true))))))
 
-    (testing "?namespace= parameter"
+    (testing "?namespace= parameter\n"
       (mt/with-temp* [Collection [{normal-id :id} {:name "Normal Collection"}]
                       Collection [{coins-id  :id} {:name "Coin Collection", :namespace "currency"}]]
         (letfn [(collection-names [collections]
@@ -89,13 +96,21 @@
                        (filter #(#{normal-id coins-id} (:id %)))
                        (map :name)))]
           (testing "shouldn't show Collections of a different `:namespace` by default"
-            (is (= ["Normal Collection"]
-                   (collection-names ((mt/user->client :rasta) :get 200 "collection")))))
+            (mt/with-discarded-collections-perms-changes coins-id
+              (perms/grant-collection-read-permissions! (group/all-users) coins-id)
+              (is (= ["Normal Collection"]
+                     (collection-names ((mt/user->client :rasta) :get 200 "collection"))))))
 
-          (testing "By passing `:namespace` we should be able to see Collections of that `:namespace`"
-            (testing "?namespace=currency"
-              (is (= ["Coin Collection"]
-                     (collection-names ((mt/user->client :rasta) :get 200 "collection?namespace=currency")))))
+          (testing "By passing `:namespace` we should be able to see Collections of that `:namespace`\n"
+            (testing "?namespace=currency\n"
+              (testing "w/o permissions"
+                (is (= []
+                       (collection-names ((mt/user->client :rasta) :get 200 "collection?namespace=currency")))))
+
+              (perms/grant-collection-read-permissions! (group/all-users) coins-id)
+              (testing "w/ permissions"
+                (is (= ["Coin Collection"]
+                       (collection-names ((mt/user->client :rasta) :get 200 "collection?namespace=currency"))))))
 
             (testing "?namespace=stamps"
               (is (= []
@@ -551,9 +566,10 @@
           (is (= [(collection-item "A")]
                  (api-get-root-collection-children :archived true))))))
 
-    (testing "\n?namespace= parameter"
+    (testing "\n?namespace= parameter\n"
       (mt/with-temp* [Collection [{normal-id :id} {:name "Normal Collection"}]
                       Collection [{coins-id :id}  {:name "Coin Collection", :namespace "currency"}]]
+        (perms/grant-collection-read-permissions! (group/all-users) coins-id)
         (letfn [(collection-names [items]
                   (->> items
                        (filter #(and (= (:model %) "collection")

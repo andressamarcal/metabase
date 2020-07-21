@@ -5,9 +5,9 @@
   The code in this namespace provides sort of a strategy pattern interface to the underlying permissions operations.
   The default implementation is defined below and can be swapped out at runtime with the more advanced EE
   implementation."
-  (:require [potemkin.types :as p.types]
-            [pretty.core :refer [PrettyPrintable]]
-            [clojure.tools.logging :as log]))
+  (:require [clojure.tools.logging :as log]
+            [potemkin.types :as p.types]
+            [pretty.core :refer [PrettyPrintable]]))
 
 (p.types/defprotocol+ PermissionsImpl
   "Protocol for implementing the permissions logic for NativeQuerySnippets."

@@ -47,4 +47,5 @@
 (defn is-root-collection?
   "Is `x` the special placeholder object representing the Root Collection?"
   [x]
+  ;; TODO -- not sure this makes sense because other places we check whether `::is-root?` is present or not.
   (instance? RootCollection x))

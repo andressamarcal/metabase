@@ -634,10 +634,11 @@
   application database.
 
   For newly created Collections at the root-level, copy the existing permissions for the Root Collection."
-  [{:keys [location id], :as collection}]
+  [{:keys [location id], collection-namespace :namespace, :as collection}]
   (when-not (is-personal-collection-or-descendant-of-one? collection)
     (let [parent-collection-id (location-path->parent-id location)]
-      (copy-collection-permissions! (or parent-collection-id root-collection) [id]))))
+      (copy-collection-permissions! (or parent-collection-id (assoc root-collection :namespace collection-namespace))
+                                    [id]))))
 
 (defn- post-insert [collection]
   (u/prog1 collection
@@ -956,8 +957,8 @@
                                                 (user->personal-collection-id (u/get-id user))))))))
 
 (defmulti allowed-namespaces
-  "Set of Collection namespaces instances of this model are allowed to go in. By default, only the default
-  namespace (namespace = `nil`)."
+  "Set of Collection namespaces (as keywords) that instances of this model are allowed to go in. By default, only the
+  default namespace (namespace = `nil`)."
   {:arglists '([model])}
   class)
 
