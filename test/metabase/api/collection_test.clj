@@ -4,7 +4,8 @@
              [string :as str]
              [test :refer :all]]
             [metabase
-             [models :refer [Card Collection Dashboard NativeQuerySnippet PermissionsGroup PermissionsGroupMembership Pulse PulseCard PulseChannel PulseChannelRecipient]]
+             [models :refer [Card Collection Dashboard NativeQuerySnippet Permissions PermissionsGroup
+                             PermissionsGroupMembership Pulse PulseCard PulseChannel PulseChannelRecipient]]
              [test :as mt]
              [util :as u]]
             [metabase.models
@@ -67,6 +68,12 @@
                   "Rasta Toucan's Personal Collection"]
                  (map :name ((mt/user->client :rasta) :get 200 "collection")))))))
 
+    (testing "sanity check: All Users should have Root Collection readwrite perms"
+      (is (= true
+             (db/exists? Permissions
+               :group_id (u/get-id (group/all-users))
+               :object (perms/collection-readwrite-path collection/root-collection)))))
+
     (testing "check that we don't see collections if they're archived"
       (mt/with-temp* [Collection [collection-1 {:name "Archived Collection", :archived true}]
                       Collection [collection-2 {:name "Regular Collection"}]]
@@ -81,7 +88,7 @@
         (is (= ["Archived Collection"]
                (map :name ((mt/user->client :rasta) :get 200 "collection" :archived :true))))))
 
-    (testing "?namespace= parameter"
+    (testing "?namespace= parameter\n"
       (mt/with-temp* [Collection [{normal-id :id} {:name "Normal Collection"}]
                       Collection [{coins-id  :id} {:name "Coin Collection", :namespace "currency"}]]
         (letfn [(collection-names [collections]
@@ -89,13 +96,21 @@
                        (filter #(#{normal-id coins-id} (:id %)))
                        (map :name)))]
           (testing "shouldn't show Collections of a different `:namespace` by default"
-            (is (= ["Normal Collection"]
-                   (collection-names ((mt/user->client :rasta) :get 200 "collection")))))
+            (mt/with-discarded-collections-perms-changes coins-id
+              (perms/grant-collection-read-permissions! (group/all-users) coins-id)
+              (is (= ["Normal Collection"]
+                     (collection-names ((mt/user->client :rasta) :get 200 "collection"))))))
 
-          (testing "By passing `:namespace` we should be able to see Collections of that `:namespace`"
-            (testing "?namespace=currency"
-              (is (= ["Coin Collection"]
-                     (collection-names ((mt/user->client :rasta) :get 200 "collection?namespace=currency")))))
+          (testing "By passing `:namespace` we should be able to see Collections of that `:namespace`\n"
+            (testing "?namespace=currency\n"
+              (testing "w/o permissions"
+                (is (= []
+                       (collection-names ((mt/user->client :rasta) :get 200 "collection?namespace=currency")))))
+
+              (perms/grant-collection-read-permissions! (group/all-users) coins-id)
+              (testing "w/ permissions"
+                (is (= ["Coin Collection"]
+                       (collection-names ((mt/user->client :rasta) :get 200 "collection?namespace=currency"))))))
 
             (testing "?namespace=stamps"
               (is (= []
@@ -551,9 +566,10 @@
           (is (= [(collection-item "A")]
                  (api-get-root-collection-children :archived true))))))
 
-    (testing "\n?namespace= parameter"
+    (testing "\n?namespace= parameter\n"
       (mt/with-temp* [Collection [{normal-id :id} {:name "Normal Collection"}]
                       Collection [{coins-id :id}  {:name "Coin Collection", :namespace "currency"}]]
+        (perms/grant-collection-read-permissions! (group/all-users) coins-id)
         (letfn [(collection-names [items]
                   (->> items
                        (filter #(and (= (:model %) "collection")
@@ -694,11 +710,12 @@
       (mt/with-temp Collection [collection]
         (is (= (merge
                 (mt/object-defaults Collection)
-                {:id       (u/get-id collection)
-                 :name     "My Beautiful Collection"
-                 :slug     "my_beautiful_collection"
-                 :color    "#ABCDEF"
-                 :location "/"})
+                {:id        (u/get-id collection)
+                 :name      "My Beautiful Collection"
+                 :slug      "my_beautiful_collection"
+                 :color     "#ABCDEF"
+                 :location  "/"
+                 :parent_id nil})
                ((mt/user->client :crowberto) :put 200 (str "collection/" (u/get-id collection))
                 {:name "My Beautiful Collection", :color "#ABCDEF"})))))
 
@@ -765,11 +782,12 @@
       (with-collection-hierarchy [a b e]
         (is (= (merge
                 (mt/object-defaults Collection)
-                {:id       true
-                 :name     "E"
-                 :slug     "e"
-                 :color    "#ABCDEF"
-                 :location "/A/B/"})
+                {:id        true
+                 :name      "E"
+                 :slug      "e"
+                 :color     "#ABCDEF"
+                 :location  "/A/B/"
+                 :parent_id (u/get-id b)})
                (-> ((mt/user->client :crowberto) :put 200 (str "collection/" (u/get-id e))
                     {:parent_id (u/get-id b)})
                    (update :location collection-test/location-path-ids->names)
@@ -877,12 +895,16 @@
 
         (testing "Should be able to update the graph for a non-default namespace.\n"
           (testing "Should ignore updates to Collections outside of the namespace"
-            (let [response ((mt/user->client :crowberto) :put 200 "collection/graph?namespace=currency"
-                            (assoc (graph/graph) :groups {group-id {default-a :write, currency-a :write}}))]
+            (let [response ((mt/user->client :crowberto) :put 200 "collection/graph"
+                            (assoc (graph/graph)
+                                   :groups {group-id {default-a :write, currency-a :write}}
+                                   :namespace :currency))]
               (is (= {"Currency A" "write", "Currency A -> B" "read"}
                      (nice-graph response))))))
 
         (testing "have to be a superuser"
           (is (= "You don't have permissions to do that."
-                 ((mt/user->client :rasta) :put 403 "collection/graph?namespace=currency"
-                  (assoc (graph/graph) :groups {group-id {default-a :write, currency-a :write}})))))))))
+                 ((mt/user->client :rasta) :put 403 "collection/graph"
+                  (assoc (graph/graph)
+                         :groups {group-id {default-a :write, currency-a :write}}
+                         :namespace :currency)))))))))

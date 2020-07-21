@@ -10,7 +10,7 @@
              [permissions-group :as group]]
             [metabase.public-settings.metastore-test :as metastore-test]))
 
-(def ^:private root-collection (assoc collection/root-collection :name "Root Collection"))
+(def ^:private root-collection (assoc collection/root-collection :name "Root Collection", :namespace "snippets"))
 
 (defn- test-perms [& {:keys [has-perms-for-obj? has-perms-for-id? grant-collection-perms!]}]
   (letfn [(test-perms* [expected]
@@ -34,11 +34,11 @@
         (test-perms* true)))))
 
 (defn- test-with-root-collection-and-collection [f]
-  (mt/with-non-admin-groups-no-root-collection-perms
+  (mt/with-non-admin-groups-no-root-collection-for-namespace-perms "snippets"
     (mt/with-temp Collection [collection {:name "Parent Collection", :namespace "snippets"}]
       (doseq [coll [root-collection collection]]
         (mt/with-temp NativeQuerySnippet [snippet {:collection_id (:id coll)}]
-          (testing (format "in %s" (:name coll))
+          (testing (format "in %s\n" (:name coll))
             (f coll snippet)))))))
 
 (deftest read-perms-test

@@ -13,7 +13,7 @@
 (s/defn ^:private has-parent-collection-perms?
   [snippet       :- {:collection_id (s/maybe su/IntGreaterThanZero), s/Keyword s/Any}
    read-or-write :- (s/enum :read :write)]
-  (i/current-user-has-full-permissions? (perms/perms-objects-set-for-parent-collection snippet read-or-write)))
+  (i/current-user-has-full-permissions? (perms/perms-objects-set-for-parent-collection "snippets" snippet read-or-write)))
 
 (def ee-impl
   "EE implementation of NativeQuerySnippet permissions. Uses Collection permissions instead allowing anyone to view or

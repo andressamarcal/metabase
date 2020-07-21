@@ -191,7 +191,7 @@ export default class Select extends Component {
         triggerElement={
           this.props.triggerElement || (
             <SelectButton
-              className="full-width"
+              className="flex-full"
               hasValue={selectedNames.length > 0}
               {...buttonProps}
             >
