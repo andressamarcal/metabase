@@ -45,12 +45,12 @@ describe("scenarios > question > snippets", () => {
         .type("'foo'");
       cy.findByLabelText("Give your snippet a name")
         .clear()
-        .type("better name");
+        .type("foo");
       cy.findByText("Save").click();
     });
 
     // SQL editor should get updated automatically
-    cy.get(".ace_content").contains("select {{snippet: better name}}");
+    cy.get(".ace_content").contains("select {{snippet: foo}}");
 
     // run the query and check the displayed scalar
     cy.get(".NativeQueryEditor .Icon-play").click();

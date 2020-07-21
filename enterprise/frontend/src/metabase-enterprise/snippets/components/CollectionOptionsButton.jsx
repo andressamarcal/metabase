@@ -1,6 +1,7 @@
 import React from "react";
 import { t } from "ttag";
 
+import MetabaseSettings from "metabase/lib/settings";
 import { canonicalCollectionId } from "metabase/entities/collections";
 import PopoverWithTrigger from "metabase/components/PopoverWithTrigger";
 import AccordionList from "metabase/components/AccordionList";
@@ -10,6 +11,9 @@ const ICON_SIZE = 16;
 
 export default class CollectionOptionsButton extends React.Component {
   render() {
+    if (!MetabaseSettings.enhancementsEnabled()) {
+      return null;
+    }
     const items = this.popoverOptions();
     if (items.length === 0) {
       return null;
