@@ -33,6 +33,7 @@ const isRoot = collection => collection.id === "root" || collection.id == null;
   collectionsById: (
     props.entity || Collections
   ).selectors.getExpandedCollectionsById(state),
+  getCollectionIcon: (props.entity || Collections).objectSelectors.getIcon,
 }))
 export default class ItemPicker extends React.Component {
   constructor(props) {
@@ -79,6 +80,7 @@ export default class ItemPicker extends React.Component {
       value,
       onChange,
       collectionsById,
+      getCollectionIcon,
       style,
       className,
       showSearch = true,
@@ -172,7 +174,7 @@ export default class ItemPicker extends React.Component {
                       item={collection}
                       name={collection.name}
                       color={COLLECTION_ICON_COLOR}
-                      icon="all"
+                      icon={getCollectionIcon(collection)}
                       selected={canSelect && isSelected(collection)}
                       canSelect={canSelect}
                       hasChildren={hasChildren}

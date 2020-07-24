@@ -61,6 +61,10 @@ const SnippetCollections = createEntity({
       getFetched(state, props) || getObject(state, props),
   }),
 
+  objectSelectors: {
+    getIcon: collection => "folder",
+  },
+
   form: {
     fields: [
       {
