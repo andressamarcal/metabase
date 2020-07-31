@@ -1,6 +1,5 @@
 import {
   signInAsNormalUser,
-  signInAsAdmin,
   restore,
   popover,
   modal,
