@@ -163,7 +163,7 @@
                                            :from     [:query_execution]
                                            :group-by [:executor_id]}]
                              [:groups {:select    [[:u.id :id]
-                                                   [(hsql/call :string_agg :pg.name (hx/literal ", ")) :groups]]
+                                                   [(common/group-concat :pg.name ", ") :groups]]
                                        :from      [[:core_user :u]]
                                        :left-join [[:permissions_group_membership :pgm] [:= :u.id :pgm.user_id]
                                                    [:permissions_group :pg]             [:= :pgm.group_id :pg.id]]

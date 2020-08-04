@@ -65,3 +65,60 @@
           (testing :offset
             (is (= [(second expected-rows)]
                    (mt/rows (run-query varr :args [100], :offset 1))))))))))
+
+(deftest CTES->subselects-test
+  (testing "FROM substitution"
+    (is (= {:from [[{:from [[:view_log :vl]]} :mp]]}
+           (#'pages.common/CTEs->subselects
+            {:with      [[:most_popular {:from [[:view_log :vl]]}]]
+             :from      [[:most_popular :mp]]}))))
+
+  (testing "JOIN substitution"
+    (is (= {:left-join [[{:from [[:query_execution :qe]]} :qe_count] [:= :qe_count.executor_id :u.id]]}
+           (#'pages.common/CTEs->subselects
+            {:with      [[:qe_count {:from [[:query_execution :qe]]}]]
+             :left-join [:qe_count [:= :qe_count.executor_id :u.id]]}))))
+
+  (testing "IN subselect substitution"
+    (is (= {:from [[{:from  [[:report_dashboardcard :dc]]
+                     :where [:in :d.id {:from [[{:from [[:view_log :vl]]} :most_popular]]}]} :dash_avg_running_time]]}
+           (#'pages.common/CTEs->subselects
+            {:with [[:most_popular {:from [[:view_log :vl]]}]
+                    [:dash_avg_running_time {:from  [[:report_dashboardcard :dc]]
+                                             :where [:in :d.id {:from [:most_popular]}]}]]
+             :from [:dash_avg_running_time]}))))
+
+  (testing "putting it all together"
+    (is (= {:select    [:mp.dashboard_id]
+            :from      [[{:select    [[:d.id :dashboard_id]]
+                          :from      [[:view_log :vl]]
+                          :left-join [[:report_dashboard :d] [:= :vl.model_id :d.id]]} :mp]]
+            :left-join [[{:select    [[:d.id :dashboard_id]]
+                          :from      [[:report_dashboardcard :dc]]
+                          :left-join [[{:select [:qe.card_id]
+                                        :from   [[:query_execution :qe]]} :rt]
+                                      [:= :dc.card_id :rt.card_id]
+
+                                      [:report_dashboard :d]
+                                      [:= :dc.dashboard_id :d.id]]
+                          :where     [:in :d.id {:select [:dashboard_id]
+                                                 :from   [[{:select    [[:d.id :dashboard_id]]
+                                                            :from      [[:view_log :vl]]
+                                                            :left-join [[:report_dashboard :d]
+                                                                        [:= :vl.model_id :d.id]]} :most_popular]]}]} :rt]
+                        [:= :mp.dashboard_id :rt.dashboard_id]]}
+           (#'pages.common/CTEs->subselects
+            {:with      [[:most_popular {:select    [[:d.id :dashboard_id]]
+                                         :from      [[:view_log :vl]]
+                                         :left-join [[:report_dashboard :d] [:= :vl.model_id :d.id]]}]
+                         [:card_running_time {:select [:qe.card_id]
+                                              :from   [[:query_execution :qe]]}]
+                         [:dash_avg_running_time {:select    [[:d.id :dashboard_id] ]
+                                                  :from      [[:report_dashboardcard :dc]]
+                                                  :left-join [[:card_running_time :rt] [:= :dc.card_id :rt.card_id]
+                                                              [:report_dashboard :d]   [:= :dc.dashboard_id :d.id]]
+                                                  :where     [:in :d.id {:select [:dashboard_id]
+                                                                         :from   [:most_popular]}]}]]
+             :select    [:mp.dashboard_id]
+             :from      [[:most_popular :mp]]
+             :left-join [[:dash_avg_running_time :rt] [:= :mp.dashboard_id :rt.dashboard_id]]})))))

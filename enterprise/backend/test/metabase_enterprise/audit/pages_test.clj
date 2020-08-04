@@ -85,13 +85,8 @@
   `(do-with-temp-objects (fn [~objects-binding] ~@body)))
 
 (deftest all-queries-test
-  ;; skip for now with MySQL because we rely heavily on CTEs and MySQL 5.x doesn't support CTEs. We test CI with
-  ;; MySQL 5.x. I have manually verified these queries do work correctly with versions > 5.x.
-  ;;
-  ;; TODO - come up with a way to test these on CI
-  (when-not (= :mysql (mdb/db-type))
-    (mt/with-test-user :crowberto
-      (with-temp-objects [objects]
-        (metastore-test/with-metastore-token-features #{:audit-app}
-          (doseq [varr (all-queries)]
-            (test-varr varr objects)))))))
+  (mt/with-test-user :crowberto
+    (with-temp-objects [objects]
+      (metastore-test/with-metastore-token-features #{:audit-app}
+        (doseq [varr (all-queries)]
+          (test-varr varr objects))))))

@@ -2,15 +2,23 @@
   "Shared functions used by audit internal queries across different namespaces."
   (:require [clojure.core.async :as a]
             [clojure.java.jdbc :as jdbc]
-            [clojure.string :as str]
+            [clojure
+             [string :as str]
+             [walk :as walk]]
             [honeysql
              [core :as hsql]
+             [format :as hformat]
              [helpers :as h]]
+            [medley.core :as m]
             [metabase-enterprise.audit.query-processor.middleware.handle-audit-queries :as qp.middleware.audit]
-            [metabase.db :as mdb]
+            [metabase
+             [db :as mdb]
+             [driver :as driver]]
             [metabase.driver.sql-jdbc.execute :as sql-jdbc.execute]
             [metabase.driver.sql.query-processor :as sql.qp]
-            [metabase.query-processor.context :as context]
+            [metabase.query-processor
+             [context :as context]
+             [timezone :as qp.tz]]
             [metabase.util
              [honeysql-extensions :as hx]
              [urls :as urls]]
@@ -27,22 +35,79 @@
         (update :offset (fn [query-offset]
                           (or offset query-offset 0))))))
 
+(defn- inject-cte-body-into-from
+  [from ctes]
+  (vec
+   (for [source from]
+     (if (vector? source)
+       (let [[source alias] source]
+         [(ctes source source) alias])
+       (if (ctes source)
+         [(ctes source) source]
+         source)))))
+
+(defn- inject-cte-body-into-join
+  [joins ctes]
+  (->> joins
+       (partition 2)
+       (mapcat (fn [[source condition]]
+                 (if (vector? source)
+                   (let [[source alias] source]
+                     [(if (ctes source)
+                        [(ctes source) alias]
+                        [source alias])
+                      condition])
+                   [(if (ctes source)
+                      [(ctes source) source]
+                      source)
+                    condition])))
+       vec))
+
+(defn- CTEs->subselects
+  ([query] (CTEs->subselects query {}))
+  ([{:keys [with] :as query} ctes]
+   (let [ctes (reduce (fn [ctes [alias definition]]
+                        (assoc ctes alias (CTEs->subselects definition ctes)))
+                      ctes
+                      with)]
+     (walk/postwalk
+      (fn [form]
+        (if (map? form)
+          (-> form
+              (m/update-existing :from inject-cte-body-into-from ctes)
+              ;; TODO -- make this work with all types of joins
+              (m/update-existing :left-join inject-cte-body-into-join ctes)
+              (m/update-existing :join inject-cte-body-into-join ctes))
+          form))
+      (dissoc query :with)))))
+
 (defn- reduce-results* [honeysql-query context rff init]
   (let [driver         (mdb/db-type)
+        honeysql-query (cond-> honeysql-query
+                         ;; MySQL 5.x does not support CTEs, so convert them to subselects instead
+                         (= driver :mysql) CTEs->subselects)
         [sql & params] (db/honeysql->sql (add-default-params honeysql-query))
-        canceled-chan  (context/canceled-chan context)]
-    (try
-      (with-open [conn (jdbc/get-connection (db/connection))
-                  stmt (sql-jdbc.execute/prepared-statement driver conn sql params)
-                  rs   (sql-jdbc.execute/execute-query! driver stmt)]
-        (let [rsmeta   (.getMetaData rs)
-              cols     (sql-jdbc.execute/column-metadata driver rsmeta)
-              metadata {:cols cols}
-              rf       (rff metadata)]
-          (reduce rf init (sql-jdbc.execute/reducible-rows driver rs rsmeta canceled-chan))))
-      (catch InterruptedException e
-        (a/>!! canceled-chan :cancel)
-        (throw e)))))
+        canceled-chan  (context/canceled-chan context)
+        internal-db    {:details @mdb/db-connection-details
+                        :engine  driver
+                        ;; ID must be unique as it's used as key for the connection pool
+                        :id      (inc (db/select-one-field :id 'Database {:order-by [[:id :desc]]}))}]
+    ;; MySQL driver normalizies timestamps. Setting `*results-timezone-id-override*` is a shortcut
+    ;; instead of mocking up a chunk of regular QP pipeline.
+    (binding [qp.tz/*results-timezone-id-override* (driver/db-default-timezone driver internal-db)]
+      (try
+        (with-open [conn (jdbc/get-connection (db/connection))
+                    stmt (sql-jdbc.execute/prepared-statement driver conn sql params)
+                    rs   (sql-jdbc.execute/execute-query! driver stmt)]
+          (let [rsmeta   (.getMetaData rs)
+                cols     (sql-jdbc.execute/column-metadata driver rsmeta)
+                metadata {:cols cols}
+                rf       (rff metadata)]
+
+            (reduce rf init (sql-jdbc.execute/reducible-rows driver rs rsmeta canceled-chan))))
+        (catch InterruptedException e
+          (a/>!! canceled-chan :cancel)
+          (throw e))))))
 
 (defn reducible-query
   "Return a function with the signature
@@ -166,3 +231,12 @@
   format)."
   [query-execution-table]
   [:in (hsql/qualify query-execution-table :context) #{"csv-download" "xlsx-download" "json-download"}])
+
+(defn group-concat
+  "Portable MySQL `group_concat`/Postgres `string_agg`"
+  [expr separator]
+  (if (= (mdb/db-type) :mysql)
+    (hsql/call :group_concat (hsql/raw (format "%s SEPARATOR %s"
+                                               (hformat/to-sql expr)
+                                               (hformat/to-sql (hx/literal separator)))))
+    (hsql/call :string_agg expr (hx/literal separator))))

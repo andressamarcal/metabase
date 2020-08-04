@@ -29,7 +29,7 @@
               {:with   [[:last_query {:select [[:%max.started_at :started_at]]
                                       :from   [:query_execution]
                                       :where  [:= :executor_id user-id]}]
-                        [:groups {:select    [[(hsql/call :string_agg :pg.name (hx/literal ", ")) :groups]]
+                        [:groups {:select    [[(common/group-concat :pg.name ", ") :groups]]
                                   :from      [[:permissions_group_membership :pgm]]
                                   :left-join [[:permissions_group :pg] [:= :pgm.group_id :pg.id]]
                                   :where     [:= :pgm.user_id user-id]}]
