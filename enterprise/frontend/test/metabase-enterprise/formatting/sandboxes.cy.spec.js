@@ -4,7 +4,6 @@ import {
   openOrdersTable,
   signInAsNormalUser,
   signOut,
-  signIn,
   withSampleDataset
 } from "../../../../../frontend/test/__support__/cypress";
 
