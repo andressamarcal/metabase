@@ -5,6 +5,7 @@ import {
   signInAsNormalUser,
   signOut,
   signIn,
+  withSampleDataset
 } from "../../../../../frontend/test/__support__/cypress";
 
 const new_user = {
@@ -14,41 +15,6 @@ const new_user = {
 };
 
 let questionId;
-
-function changePermissionsforSandbox(
-  location,
-  permission_type,
-  column,
-  user_attribute,
-  first,
-) {
-  cy.findByText("Data permissions");
-  cy.get(".ReactVirtualized__Grid__innerScrollContainer")
-    .children()
-    .eq(location)
-    .click();
-  cy.findByText("Grant sandboxed access").click();
-  if (first == "first") {
-    cy.findByText("Change").click();
-  }
-  if (permission_type == "sql param") {
-    cy.findByText(
-      "Use a saved question to create a custom view for this table",
-    ).click();
-    cy.findByText(permission_type).click();
-  }
-  cy.get(".Icon-chevrondown")
-    .first()
-    .click();
-  cy.findByText(column).click();
-  cy.get(".Icon-chevrondown")
-    .last()
-    .click();
-  cy.findAllByText(user_attribute)
-    .last()
-    .click();
-  cy.findByText("Save").click();
-}
 
 describe("formatting > sandboxes", () => {
   before(restore);
@@ -142,15 +108,43 @@ describe("formatting > sandboxes", () => {
     it("should change sandbox permissions as admin", () => {
       signOut();
       signInAsAdmin();
+      const ADMIN_GROUP = 2;
+      const DATA_GROUP = 5;
 
-      cy.visit("/admin/permissions/databases/1/schemas/PUBLIC/tables");
-      // Changes Orders permssions to use filter
-      changePermissionsforSandbox(13, "column", "User ID", "User ID", "first");
-      // Changes People permissions to use saved sql q
-      changePermissionsforSandbox(18, "sql param", "ID", "User ID", "second");
-      cy.findByText("Save Changes").click();
-      cy.findByText("Yes").click();
-      cy.findByText("Save Changes").should("not.exist");
+      // Changes Orders permssions to use filter and People to use SQL filter
+      withSampleDataset(({ ORDERS_ID, PEOPLE_ID, PRODUCTS_ID, REVIEWS_ID }) => {
+        cy.request("POST", "/api/mt/gtap", {
+          "id": 1,
+          "group_id": DATA_GROUP,
+          "table_id": ORDERS_ID,
+          "card_id": null,
+          "attribute_remappings": {
+            "User ID": [ "dimension", [ "field-id", 9 ]]
+          }
+        })
+        cy.request("POST", "/api/mt/gtap", {
+          "group_id": DATA_GROUP,
+          "table_id": PEOPLE_ID,
+          "card_id": 4,
+          "attribute_remappings": {
+            "User ID": [ "dimension", [ "template-tag", "cid" ]]
+          }
+        })
+        cy.request("PUT", "/api/permissions/graph", {
+            revision: 1,
+            groups: {
+              [ADMIN_GROUP]: { "1": { native: "write", schemas: "all" }},
+              [DATA_GROUP]: { "1": { schemas: {
+                    PUBLIC: {
+                      [ORDERS_ID]: { query: "segmented", read: "all" },
+                      [PEOPLE_ID]: { query: "segmented", read: "all" },
+                      [PRODUCTS_ID]: "all",
+                      [REVIEWS_ID]: "all"
+                    }
+              } } }
+            }
+        });
+      });
     });
 
     it("should be sandboxed with a filter (on normal table)", () => {
