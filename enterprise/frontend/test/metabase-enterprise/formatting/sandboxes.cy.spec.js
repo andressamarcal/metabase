@@ -4,7 +4,7 @@ import {
   openOrdersTable,
   signInAsNormalUser,
   signOut,
-  withSampleDataset
+  withSampleDataset,
 } from "../../../../../frontend/test/__support__/cypress";
 
 const new_user = {
@@ -50,23 +50,14 @@ describe("formatting > sandboxes", () => {
 
     it("should make a JOINs table", () => {
       openOrdersTable();
-      cy.wait(1000)
-        .get(".Icon-notebook")
-        .click();
-      cy.wait(1000)
-        .findByText("Join data")
-        .click();
+      cy.wait(1000).get(".Icon-notebook").click();
+      cy.wait(1000).findByText("Join data").click();
       cy.findByText("Products").click();
       cy.findByText("Visualize").click();
       cy.findByText("Save").click();
 
-      cy.findByLabelText("Name")
-        .clear()
-        .wait(1)
-        .type("test joins table");
-      cy.findAllByText("Save")
-        .last()
-        .click();
+      cy.findByLabelText("Name").clear().wait(1).type("test joins table");
+      cy.findAllByText("Save").last().click();
       cy.findByText("Not now").click();
     });
   });
@@ -80,9 +71,7 @@ describe("formatting > sandboxes", () => {
 
       // Existing user
       cy.visit("/admin/people");
-      cy.get(".Icon-ellipsis")
-        .last()
-        .click();
+      cy.get(".Icon-ellipsis").last().click();
       cy.findByText("Edit user").click();
       cy.findByText("Add an attribute").click();
       cy.findByPlaceholderText("Key").type("User ID");
@@ -113,35 +102,39 @@ describe("formatting > sandboxes", () => {
       // Changes Orders permssions to use filter and People to use SQL filter
       withSampleDataset(({ ORDERS_ID, PEOPLE_ID, PRODUCTS_ID, REVIEWS_ID }) => {
         cy.request("POST", "/api/mt/gtap", {
-          "id": 1,
-          "group_id": DATA_GROUP,
-          "table_id": ORDERS_ID,
-          "card_id": null,
-          "attribute_remappings": {
-            "User ID": [ "dimension", [ "field-id", 9 ]]
-          }
-        })
+          id: 1,
+          group_id: DATA_GROUP,
+          table_id: ORDERS_ID,
+          card_id: null,
+          attribute_remappings: {
+            "User ID": ["dimension", ["field-id", 9]],
+          },
+        });
         cy.request("POST", "/api/mt/gtap", {
-          "group_id": DATA_GROUP,
-          "table_id": PEOPLE_ID,
-          "card_id": 4,
-          "attribute_remappings": {
-            "User ID": [ "dimension", [ "template-tag", "cid" ]]
-          }
-        })
+          group_id: DATA_GROUP,
+          table_id: PEOPLE_ID,
+          card_id: 4,
+          attribute_remappings: {
+            "User ID": ["dimension", ["template-tag", "cid"]],
+          },
+        });
         cy.request("PUT", "/api/permissions/graph", {
-            revision: 1,
-            groups: {
-              [ADMIN_GROUP]: { "1": { native: "write", schemas: "all" }},
-              [DATA_GROUP]: { "1": { schemas: {
-                    PUBLIC: {
-                      [ORDERS_ID]: { query: "segmented", read: "all" },
-                      [PEOPLE_ID]: { query: "segmented", read: "all" },
-                      [PRODUCTS_ID]: "all",
-                      [REVIEWS_ID]: "all"
-                    }
-              } } }
-            }
+          revision: 1,
+          groups: {
+            [ADMIN_GROUP]: { "1": { native: "write", schemas: "all" } },
+            [DATA_GROUP]: {
+              "1": {
+                schemas: {
+                  PUBLIC: {
+                    [ORDERS_ID]: { query: "segmented", read: "all" },
+                    [PEOPLE_ID]: { query: "segmented", read: "all" },
+                    [PRODUCTS_ID]: "all",
+                    [REVIEWS_ID]: "all",
+                  },
+                },
+              },
+            },
+          },
         });
       });
     });
@@ -155,15 +148,11 @@ describe("formatting > sandboxes", () => {
         .get(".TableInteractive-cellWrapper--lastColumn")
         .contains("1")
         .should("not.exist");
-      cy.get(".TableInteractive-cellWrapper--lastColumn")
-        .last()
-        .contains("3");
+      cy.get(".TableInteractive-cellWrapper--lastColumn").last().contains("3");
 
       // Notebook filter
       cy.get(".Icon-notebook").click();
-      cy.wait(2000)
-        .findByText("Summarize")
-        .click();
+      cy.wait(2000).findByText("Summarize").click();
       cy.findByText("Count of rows").click();
       cy.findByText("Visualize").click();
       cy.findByText("18,760").should("not.exist");
@@ -183,12 +172,8 @@ describe("formatting > sandboxes", () => {
 
       // Notebook filter
       cy.get(".Icon-notebook").click();
-      cy.wait(2000)
-        .findByText("Filter")
-        .click();
-      cy.findAllByText("Total")
-        .last()
-        .click();
+      cy.wait(2000).findByText("Filter").click();
+      cy.findAllByText("Total").last().click();
       cy.findByText("Equal to").click();
       cy.findByText("Greater than").click();
       cy.findByPlaceholderText("Enter a number").type("100");
