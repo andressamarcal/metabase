@@ -159,14 +159,21 @@ describe("formatting > sandboxes", () => {
       cy.visit("/browse/1");
       cy.findByText("Orders").click();
 
-      // Table filter
-      cy.wait(3000)
-        .get(".TableInteractive-cellWrapper--lastColumn")
-        .contains("1")
-        .should("not.exist");
-      cy.get(".TableInteractive-cellWrapper--lastColumn")
-        .last()
-        .contains("3");
+      // Table filter - only 10 rows showuld show up
+      cy.contains("Showing 10");
+      // // Find the index of the column that contains "User ID"
+      // cy.contains(".TableInteractive-headerCellData", "User ID")
+      //   .invoke("index")
+      //   .then(i => {
+      //     console.log(i, "damon");
+      //   });
+      // cy.wait(3000)
+      //   .get(".TableInteractive-cellWrapper--lastColumn")
+      //   .contains("1")
+      //   .should("not.exist");
+      // cy.get(".TableInteractive-cellWrapper--lastColumn")
+      //   .last()
+      //   .contains("3");
 
       // Notebook filter
       cy.get(".Icon-notebook").click();
