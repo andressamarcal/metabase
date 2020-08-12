@@ -23,29 +23,31 @@ describe("formatting > sandboxes", () => {
     beforeEach(signInAsAdmin);
 
     it("should make SQL question", () => {
-      cy.request("POST", "/api/card", {
-        name: "sql param",
-        dataset_query: {
-          type: "native",
-          native: {
-            query: "select id,name,address,email from people where {{cid}}",
-            "template-tags": {
-              cid: {
-                id: "6b8b10ef-0104-1047-1e1b-2492d5954555",
-                name: "cid",
-                "display-name": "CID",
-                type: "dimension",
-                dimension: ["field-id", 21],
-                "widget-type": "id",
+      withSampleDataset(({ PEOPLE }) => {
+        cy.request("POST", "/api/card", {
+          name: "sql param",
+          dataset_query: {
+            type: "native",
+            native: {
+              query: "select id,name,address,email from people where {{cid}}",
+              "template-tags": {
+                cid: {
+                  id: "6b8b10ef-0104-1047-1e1b-2492d5954555",
+                  name: "cid",
+                  "display-name": "CID",
+                  type: "dimension",
+                  dimension: ["field-id", PEOPLE.ID],
+                  "widget-type": "id",
+                },
               },
             },
+            database: 1,
           },
-          database: 1,
-        },
-        display: "table",
-        visualization_settings: {},
-      }).then(({ body }) => {
-        questionId = body.id;
+          display: "table",
+          visualization_settings: {},
+        }).then(({ body }) => {
+          questionId = body.id;
+        });
       });
     });
 
@@ -112,43 +114,45 @@ describe("formatting > sandboxes", () => {
       const DATA_GROUP = 5;
 
       // Changes Orders permssions to use filter and People to use SQL filter
-      withSampleDataset(({ ORDERS_ID, PEOPLE_ID, PRODUCTS_ID, REVIEWS_ID }) => {
-        cy.request("POST", "/api/mt/gtap", {
-          id: 1,
-          group_id: DATA_GROUP,
-          table_id: ORDERS_ID,
-          card_id: null,
-          attribute_remappings: {
-            "User ID": ["dimension", ["field-id", 9]],
-          },
-        });
-        cy.request("POST", "/api/mt/gtap", {
-          group_id: DATA_GROUP,
-          table_id: PEOPLE_ID,
-          card_id: 4,
-          attribute_remappings: {
-            "User ID": ["dimension", ["template-tag", "cid"]],
-          },
-        });
-        cy.request("PUT", "/api/permissions/graph", {
-          revision: 1,
-          groups: {
-            [ADMIN_GROUP]: { "1": { native: "write", schemas: "all" } },
-            [DATA_GROUP]: {
-              "1": {
-                schemas: {
-                  PUBLIC: {
-                    [ORDERS_ID]: { query: "segmented", read: "all" },
-                    [PEOPLE_ID]: { query: "segmented", read: "all" },
-                    [PRODUCTS_ID]: "all",
-                    [REVIEWS_ID]: "all",
+      withSampleDataset(
+        ({ ORDERS_ID, PEOPLE_ID, PRODUCTS_ID, REVIEWS_ID, ORDERS }) => {
+          cy.request("POST", "/api/mt/gtap", {
+            id: 1,
+            group_id: DATA_GROUP,
+            table_id: ORDERS_ID,
+            card_id: null,
+            attribute_remappings: {
+              "User ID": ["dimension", ["field-id", ORDERS.USER_ID]],
+            },
+          });
+          cy.request("POST", "/api/mt/gtap", {
+            group_id: DATA_GROUP,
+            table_id: PEOPLE_ID,
+            card_id: 4,
+            attribute_remappings: {
+              "User ID": ["dimension", ["template-tag", "cid"]],
+            },
+          });
+          cy.request("PUT", "/api/permissions/graph", {
+            revision: 1,
+            groups: {
+              [ADMIN_GROUP]: { "1": { native: "write", schemas: "all" } },
+              [DATA_GROUP]: {
+                "1": {
+                  schemas: {
+                    PUBLIC: {
+                      [ORDERS_ID]: { query: "segmented", read: "all" },
+                      [PEOPLE_ID]: { query: "segmented", read: "all" },
+                      [PRODUCTS_ID]: "all",
+                      [REVIEWS_ID]: "all",
+                    },
                   },
                 },
               },
             },
-          },
-        });
-      });
+          });
+        },
+      );
     });
 
     it("should be sandboxed with a filter (on normal table)", () => {
