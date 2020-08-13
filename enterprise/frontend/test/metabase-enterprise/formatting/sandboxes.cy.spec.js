@@ -159,29 +159,50 @@ describe("formatting > sandboxes", () => {
       cy.visit("/browse/1");
       cy.findByText("Orders").click();
 
-      // Table filter - only 10 rows showuld show up
+      // Table filter - only 10 rows should show up
       cy.contains("Showing 10");
-      // // Find the index of the column that contains "User ID"
-      // cy.contains(".TableInteractive-headerCellData", "User ID")
-      //   .invoke("index")
-      //   .then(i => {
-      //     console.log(i, "damon");
-      //   });
-      // cy.wait(3000)
-      //   .get(".TableInteractive-cellWrapper--lastColumn")
-      //   .contains("1")
-      //   .should("not.exist");
-      // cy.get(".TableInteractive-cellWrapper--lastColumn")
-      //   .last()
-      //   .contains("3");
+
+      // And those rows should only show the User ID of 3
+      // First get the number of columns...
+      // And then find the index of the column that contains "User ID"
+      // Then ensure every nth element of that column only contains the desired User ID
+      // TODO: If we use this again, it should go in a helper
+      cy.get(".TableInteractive-headerCellData")
+        .its("length")
+        .then(columnCount => {
+          cy.contains(".TableInteractive-headerCellData", "User ID")
+            .invoke("index")
+            .then(userIDIndex => {
+              cy.get(".cellData")
+                .its("length")
+                .then(cellCountWithHeaders => {
+                  const range = (start, stop, step) =>
+                    Array.from(
+                      { length: (stop - start) / step + 1 },
+                      (_, i) => start + i * step,
+                    );
+                  // Loop over the columns starting at the zero-indexed second row (first row is headers)
+                  // userIDIndex is already zero-indexed, so we just add that to the number of columns
+                  var genArr = range(
+                    columnCount + userIDIndex,
+                    cellCountWithHeaders,
+                    columnCount,
+                  );
+                  cy.wrap(genArr).each(index => {
+                    cy.get(".cellData")
+                      .eq(index)
+                      .should("have.text", "3");
+                  });
+                });
+            });
+        });
 
       // Notebook filter
       cy.get(".Icon-notebook").click();
-      cy.wait(2000)
-        .findByText("Summarize")
-        .click();
+      cy.findByText("Summarize").click();
       cy.findByText("Count of rows").click();
       cy.findByText("Visualize").click();
+      cy.get(".ScalarValue");
       cy.findByText("18,760").should("not.exist");
       cy.findByText("10");
     });
