@@ -6,6 +6,7 @@ import {
   USERS,
   signInAsNormalUser,
   withSampleDataset,
+  describeWithToken,
 } from "../../../../../frontend/test/__support__/cypress";
 
 const year = new Date().getFullYear();
@@ -27,7 +28,7 @@ export function generateQuestions(users) {
                 name: "ID",
                 display_name: "ID",
                 type: "dimension",
-                dimension: ["field-id", PRODUCTS.CREATED_AT],
+                dimension: ["field-id", PRODUCTS.ID],
                 "widget-type": "category",
                 default: null,
               },
@@ -60,7 +61,7 @@ export function generateDashboards(users) {
   });
 }
 
-describe("audit > auditing", () => {
+describeWithToken("audit > auditing", () => {
   before(restore);
   const users = ["admin", "normal"];
 
@@ -97,7 +98,7 @@ describe("audit > auditing", () => {
         .findByText(users[0] + " test q")
         .click();
 
-      cy.findByText("CATEGORY");
+      cy.findByText("ID");
     });
 
     it("should download a question", () => {

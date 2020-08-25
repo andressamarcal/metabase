@@ -174,6 +174,9 @@ const config = (module.exports = {
       "process.env": {
         NODE_ENV: JSON.stringify(NODE_ENV),
       },
+      INCLUDE_EE_PLUGINS: JSON.stringify(
+        process.env.MB_EDITION === "ENTERPRISE",
+      ),
     }),
     new BannerWebpackPlugin({
       chunks: {

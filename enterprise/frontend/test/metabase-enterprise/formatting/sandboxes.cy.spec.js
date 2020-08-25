@@ -5,6 +5,7 @@ import {
   signInAsNormalUser,
   signOut,
   signIn,
+  describeWithToken,
 } from "../../../../../frontend/test/__support__/cypress";
 
 const new_user = {
@@ -50,7 +51,7 @@ function changePermissionsforSandbox(
   cy.findByText("Save").click();
 }
 
-describe("formatting > sandboxes", () => {
+describeWithToken("formatting > sandboxes", () => {
   before(restore);
 
   describe("Setup for sandbox tests", () => {

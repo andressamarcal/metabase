@@ -22,9 +22,10 @@ import "metabase/lib/colors";
 // NOTE: this loads all builtin plugins
 import "metabase/plugins/builtin";
 
-// NOTE: this loads all the enterprise plugins
-// eslint-disable-next-line no-restricted-imports
-import "metabase-enterprise/plugins";
+// $FlowFixMe: INCLUDE_EE_PLUGINS is used at compile time
+if (INCLUDE_EE_PLUGINS) {
+  require("metabase-enterprise/plugins");
+}
 
 import { PLUGIN_APP_INIT_FUCTIONS } from "metabase/plugins";
 
