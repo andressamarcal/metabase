@@ -333,11 +333,12 @@
   (let [token-info-response                    (http/post (format google-auth-token-info-url token))
         {:keys [given_name family_name email]} (google-auth-token-info token-info-response)]
     (log/info (trs "Successfully authenticated Google Auth token for: {0} {1}" given_name family_name))
-    (let [{session-uuid :id, :as session} (api/check-500 (google-auth-fetch-or-create-user! given_name family_name email))
-          response   {:id (str session-uuid)}
-          user       (db/select-one [User :id :is_active], :email email)]
+    (let [{session-uuid :id, :as session} (api/check-500
+                                           (google-auth-fetch-or-create-user! given_name family_name email))
+          response                        {:id (str session-uuid)}
+          user                            (db/select-one [User :id :is_active], :email email)]
       (if (and user (:is_active user))
-        (mw.session/set-session-cookie request response session-id)
+        (mw.session/set-session-cookie request response session)
         (throw (ex-info (str disabled-account-message)
                         {:status-code 400
                          :errors      {:account disabled-account-snippet}}))))))
