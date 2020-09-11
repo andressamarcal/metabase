@@ -74,8 +74,52 @@
   (testing "fail regular user login with bad password"
     (is (= false
            (ldap.test/with-ldap-server
-             (ldap/verify-password "cn=Sally Brown,ou=People,dc=metabase,dc=com" "password")))))
+             (ldap/verify-password "cn=Sally Brown,ou=People,dc=metabase,dc=com" "password")))))  )
 
+(deftest find-test
+  (testing "find by username"
+    (is (= {:dn         "cn=John Smith,ou=People,dc=metabase,dc=com"
+            :first-name "John"
+            :last-name  "Smith"
+            :email      "John.Smith@metabase.com"
+            :attributes {:uid       "jsmith1"
+                         :mail      "John.Smith@metabase.com"
+                         :givenname "John"
+                         :sn        "Smith"
+                         :cn        "John Smith"}
+            :groups     ["cn=Accounting,ou=Groups,dc=metabase,dc=com"]}
+           (ldap.test/with-ldap-server
+             (ldap/find-user "jsmith1")))))
+
+  (testing "find by email"
+    (is (= {:dn         "cn=John Smith,ou=People,dc=metabase,dc=com"
+            :first-name "John"
+            :last-name  "Smith"
+            :email      "John.Smith@metabase.com"
+            :attributes {:uid       "jsmith1"
+                         :mail      "John.Smith@metabase.com"
+                         :givenname "John"
+                         :sn        "Smith"
+                         :cn        "John Smith"}
+            :groups     ["cn=Accounting,ou=Groups,dc=metabase,dc=com"]}
+           (ldap.test/with-ldap-server
+             (ldap/find-user "John.Smith@metabase.com")))))
+
+  (testing "find by email, no groups"
+    (is (= {:dn         "cn=Fred Taylor,ou=People,dc=metabase,dc=com"
+            :first-name "Fred"
+            :last-name  "Taylor"
+            :email      "fred.taylor@metabase.com"
+            :attributes {:uid       "ftaylor300"
+                         :mail      "fred.taylor@metabase.com"
+                         :cn        "Fred Taylor"
+                         :givenname "Fred"
+                         :sn        "Taylor"}
+            :groups     []}
+           (ldap.test/with-ldap-server
+             (ldap/find-user "fred.taylor@metabase.com"))))))
+
+(deftest group-matching-test
   (testing "LDAP group matching should identify Metabase groups using DN equality rules"
     (is (= #{1 2 3}
            (tu/with-temporary-setting-values
