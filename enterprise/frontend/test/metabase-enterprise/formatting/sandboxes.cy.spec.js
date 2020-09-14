@@ -4,7 +4,6 @@ import {
   openOrdersTable,
   signInAsNormalUser,
   signOut,
-  signIn,
   describeWithToken,
 } from "../../../../../frontend/test/__support__/cypress";
 
@@ -13,8 +12,6 @@ const new_user = {
   last_name: "Tabley",
   username: "new@metabase.com",
 };
-
-let questionId;
 
 function changePermissionsforSandbox(
   location,
@@ -29,10 +26,10 @@ function changePermissionsforSandbox(
     .eq(location)
     .click();
   cy.findByText("Grant sandboxed access").click();
-  if (first == "first") {
+  if (first === "first") {
     cy.findByText("Change").click();
   }
-  if (permission_type == "sql param") {
+  if (permission_type === "sql param") {
     cy.findByText(
       "Use a saved question to create a custom view for this table",
     ).click();
@@ -79,8 +76,6 @@ describeWithToken("formatting > sandboxes", () => {
         },
         display: "table",
         visualization_settings: {},
-      }).then(({ body }) => {
-        questionId = body.id;
       });
     });
 

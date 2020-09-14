@@ -1,5 +1,3 @@
-/* global process, jasmine */
-
 /**
  * Import this file before other imports in e2e tests
  */
