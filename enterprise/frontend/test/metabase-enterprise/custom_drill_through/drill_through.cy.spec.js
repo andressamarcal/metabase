@@ -1,6 +1,12 @@
-import { signIn, signInAsAdmin, restore, modal } from "__support__/cypress";
+import {
+  signIn,
+  signInAsAdmin,
+  restore,
+  modal,
+  describeWithToken,
+} from "__support__/cypress";
 
-describe("drill through", () => {
+describeWithToken("drill through", () => {
   before(restore);
 
   beforeEach(signInAsAdmin);

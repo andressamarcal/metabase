@@ -174,6 +174,9 @@ const config = (module.exports = {
       "process.env": {
         NODE_ENV: JSON.stringify(NODE_ENV),
       },
+      INCLUDE_EE_PLUGINS: JSON.stringify(
+        process.env.MB_EDITION === "ENTERPRISE",
+      ),
     }),
     new BannerWebpackPlugin({
       chunks: {
@@ -255,11 +258,11 @@ if (NODE_ENV !== "production") {
     }
   }
 
-  // enable "cheap" source maps in hot or watch mode since re-build speed overhead is < 1 second
-  // config.devtool = "cheap-module-source-map";
-
-  // works with breakpoints and makes stacktraces readable
-  config.devtool = "inline-module-source-map";
+  // by default enable "cheap" source maps for fast re-build speed
+  // with BETTER_SOURCE_MAPS we switch to sourcemaps that work with breakpoints and makes stacktraces readable
+  config.devtool = process.env.BETTER_SOURCE_MAPS
+    ? "inline-module-source-map"
+    : "cheap-module-source-map";
 
   // helps with source maps
   config.output.devtoolModuleFilenameTemplate = "[absolute-resource-path]";

@@ -5,9 +5,10 @@ import {
   modal,
   popover,
   sidebar,
+  describeWithToken,
 } from "__support__/cypress";
 
-describe("scenarios > question > snippets", () => {
+describeWithToken("scenarios > question > snippets", () => {
   before(restore);
   beforeEach(signInAsNormalUser);
 

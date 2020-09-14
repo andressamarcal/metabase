@@ -4,6 +4,7 @@ import {
   signOut,
   signInAsNormalUser,
   openOrdersTable,
+  describeWithToken,
 } from "../../../../../frontend/test/__support__/cypress";
 
 const main_color = {
@@ -36,7 +37,7 @@ function checkLogo() {
   });
 }
 
-describe("formatting > whitelabel", () => {
+describeWithToken("formatting > whitelabel", () => {
   before(restore);
 
   describe("Changes to company name work", () => {

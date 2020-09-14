@@ -4,7 +4,7 @@ import React from "react";
 
 import "./AuditTableVisualization";
 
-import QuestionLoadAndDisplay from "metabase/containers/QuestionLoadAndDisplay";
+import QuestionLoadAndDisplay from "./QuestionLoadAndDisplay";
 import Icon from "metabase/components/Icon";
 
 import Question from "metabase-lib/lib/Question";

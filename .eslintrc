@@ -23,7 +23,8 @@
   "globals": {
     "pending": false,
     "cy": true,
-    "Cypress": true
+    "Cypress": true,
+    "INCLUDE_EE_PLUGINS": true,
   },
   "env": {
     "browser": true,
