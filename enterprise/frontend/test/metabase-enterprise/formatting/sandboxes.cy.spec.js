@@ -4,7 +4,6 @@ import {
   openOrdersTable,
   signInAsNormalUser,
   signOut,
-  signIn,
   describeWithToken,
 } from "../../../../../frontend/test/__support__/cypress";
 
@@ -15,42 +14,6 @@ const new_user = {
 };
 
 let questionId;
-
-describe("formatting > sandboxes", () => {
-function changePermissionsforSandbox(
-  location,
-  permission_type,
-  column,
-  user_attribute,
-  first,
-) {
-  cy.findByText("Data permissions");
-  cy.get(".ReactVirtualized__Grid__innerScrollContainer")
-    .children()
-    .eq(location)
-    .click();
-  cy.findByText("Grant sandboxed access").click();
-  if (first == "first") {
-    cy.findByText("Change").click();
-  }
-  if (permission_type == "sql param") {
-    cy.findByText(
-      "Use a saved question to create a custom view for this table",
-    ).click();
-    cy.findByText(permission_type).click();
-  }
-  cy.get(".Icon-chevrondown")
-    .first()
-    .click();
-  cy.findByText(column).click();
-  cy.get(".Icon-chevrondown")
-    .last()
-    .click();
-  cy.findAllByText(user_attribute)
-    .last()
-    .click();
-  cy.findByText("Save").click();
-}
 
 describeWithToken("formatting > sandboxes", () => {
   before(restore);
@@ -89,23 +52,14 @@ describeWithToken("formatting > sandboxes", () => {
 
     it("should make a JOINs table", () => {
       openOrdersTable();
-      cy.wait(1000)
-        .get(".Icon-notebook")
-        .click();
-      cy.wait(1000)
-        .findByText("Join data")
-        .click();
+      cy.wait(1000).get(".Icon-notebook").click();
+      cy.wait(1000).findByText("Join data").click();
       cy.findByText("Products").click();
       cy.findByText("Visualize").click();
       cy.findByText("Save").click();
 
-      cy.findByLabelText("Name")
-        .clear()
-        .wait(1)
-        .type("test joins table");
-      cy.findAllByText("Save")
-        .last()
-        .click();
+      cy.findByLabelText("Name").clear().wait(1).type("test joins table");
+      cy.findAllByText("Save").last().click();
       cy.findByText("Not now").click();
     });
   });
@@ -119,9 +73,7 @@ describeWithToken("formatting > sandboxes", () => {
 
       // Existing user
       cy.visit("/admin/people");
-      cy.get(".Icon-ellipsis")
-        .last()
-        .click();
+      cy.get(".Icon-ellipsis").last().click();
       cy.findByText("Edit user").click();
       cy.findByText("Add an attribute").click();
       cy.findByPlaceholderText("Key").type("User ID");
@@ -205,13 +157,13 @@ describeWithToken("formatting > sandboxes", () => {
       // TODO: If we use this again, it should go in a helper
       cy.get(".TableInteractive-headerCellData")
         .its("length")
-        .then(columnCount => {
+        .then((columnCount) => {
           cy.contains(".TableInteractive-headerCellData", "User ID")
             .invoke("index")
-            .then(userIDIndex => {
+            .then((userIDIndex) => {
               cy.get(".cellData")
                 .its("length")
-                .then(cellCountWithHeaders => {
+                .then((cellCountWithHeaders) => {
                   const range = (start, stop, step) =>
                     Array.from(
                       { length: (stop - start) / step + 1 },
@@ -224,10 +176,8 @@ describeWithToken("formatting > sandboxes", () => {
                     cellCountWithHeaders,
                     columnCount,
                   );
-                  cy.wrap(genArr).each(index => {
-                    cy.get(".cellData")
-                      .eq(index)
-                      .should("have.text", "3");
+                  cy.wrap(genArr).each((index) => {
+                    cy.get(".cellData").eq(index).should("have.text", "3");
                   });
                 });
             });
@@ -256,12 +206,8 @@ describeWithToken("formatting > sandboxes", () => {
 
       // Notebook filter
       cy.get(".Icon-notebook").click();
-      cy.wait(2000)
-        .findByText("Filter")
-        .click();
-      cy.findAllByText("Total")
-        .last()
-        .click();
+      cy.wait(2000).findByText("Filter").click();
+      cy.findAllByText("Total").last().click();
       cy.findByText("Equal to").click();
       cy.findByText("Greater than").click();
       cy.findByPlaceholderText("Enter a number").type("100");
