@@ -22,10 +22,10 @@ import "metabase/lib/colors";
 // NOTE: this loads all builtin plugins
 import "metabase/plugins/builtin";
 
-// $FlowFixMe: INCLUDE_EE_PLUGINS is used at compile time
-if (INCLUDE_EE_PLUGINS) {
-  require("metabase-enterprise/plugins");
-}
+// This is conditionally aliased in the webpack config.
+// If EE isn't enabled, it loads an empty file.
+// $FlowFixMe
+import "ee-plugins";
 
 import { PLUGIN_APP_INIT_FUCTIONS } from "metabase/plugins";
 

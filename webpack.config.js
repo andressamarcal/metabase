@@ -115,6 +115,11 @@ const config = (module.exports = {
       // icepick 2.x is es6 by defalt, to maintain backwards compatability
       // with ie11 point to the minified version
       icepick: __dirname + "/node_modules/icepick/icepick.min",
+      // conditionally load either the EE plugins file or a empty file in the CE code tree
+      "ee-plugins":
+        process.env.MB_EDITION === "ENTERPRISE"
+          ? ENTERPRISE_SRC_PATH + "/plugins"
+          : LIB_SRC_PATH + "/noop",
     },
   },
 
@@ -171,12 +176,7 @@ const config = (module.exports = {
       outputPath: __dirname + "/resources/frontend_client/app/dist",
     }),
     new webpack.DefinePlugin({
-      "process.env": {
-        NODE_ENV: JSON.stringify(NODE_ENV),
-      },
-      INCLUDE_EE_PLUGINS: JSON.stringify(
-        process.env.MB_EDITION === "ENTERPRISE",
-      ),
+      "process.env": { NODE_ENV: JSON.stringify(NODE_ENV) },
     }),
     new BannerWebpackPlugin({
       chunks: {
