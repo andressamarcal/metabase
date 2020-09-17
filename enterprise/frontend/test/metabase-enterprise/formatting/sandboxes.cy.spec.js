@@ -5,6 +5,7 @@ import {
   signInAsNormalUser,
   signOut,
   describeWithToken,
+  withSampleDataset,
 } from "../../../../../frontend/test/__support__/cypress";
 
 const new_user = {
