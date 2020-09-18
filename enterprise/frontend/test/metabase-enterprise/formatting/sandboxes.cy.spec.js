@@ -14,6 +14,8 @@ const new_user = {
   username: "new@metabase.com",
 };
 
+let questionId;
+
 describeWithToken("formatting > sandboxes", () => {
   before(restore);
 
