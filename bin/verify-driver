@@ -9,7 +9,7 @@ if [ ! "$driver" ]; then
     exit -1
 fi
 
-echo "Verifying $driver driver..."
+echo -e "\n\033[1;32mVerifying $driver driver...\033[0m"
 
 driver_file="resources/modules/$driver.metabase-driver.jar"
 

@@ -1,8 +1,10 @@
 (ns metabase.integrations.ldap-test
   (:require [clojure.test :refer :all]
             [metabase.integrations.ldap :as ldap]
+            [metabase.models.user :as user :refer [User]]
             [metabase.test.integrations.ldap :as ldap.test]
-            [metabase.test.util :as tu]))
+            [metabase.test.util :as tu]
+            [toucan.db :as db]))
 
 (defn- get-ldap-details []
   {:host       "localhost"
@@ -72,13 +74,19 @@
   (testing "fail regular user login with bad password"
     (is (= false
            (ldap.test/with-ldap-server
-             (ldap/verify-password "cn=Sally Brown,ou=People,dc=metabase,dc=com" "password")))))
+             (ldap/verify-password "cn=Sally Brown,ou=People,dc=metabase,dc=com" "password")))))  )
 
+(deftest find-test
   (testing "find by username"
     (is (= {:dn         "cn=John Smith,ou=People,dc=metabase,dc=com"
             :first-name "John"
             :last-name  "Smith"
             :email      "John.Smith@metabase.com"
+            :attributes {:uid       "jsmith1"
+                         :mail      "John.Smith@metabase.com"
+                         :givenname "John"
+                         :sn        "Smith"
+                         :cn        "John Smith"}
             :groups     ["cn=Accounting,ou=Groups,dc=metabase,dc=com"]}
            (ldap.test/with-ldap-server
              (ldap/find-user "jsmith1")))))
@@ -88,6 +96,11 @@
             :first-name "John"
             :last-name  "Smith"
             :email      "John.Smith@metabase.com"
+            :attributes {:uid       "jsmith1"
+                         :mail      "John.Smith@metabase.com"
+                         :givenname "John"
+                         :sn        "Smith"
+                         :cn        "John Smith"}
             :groups     ["cn=Accounting,ou=Groups,dc=metabase,dc=com"]}
            (ldap.test/with-ldap-server
              (ldap/find-user "John.Smith@metabase.com")))))
@@ -97,10 +110,16 @@
             :first-name "Fred"
             :last-name  "Taylor"
             :email      "fred.taylor@metabase.com"
+            :attributes {:uid       "ftaylor300"
+                         :mail      "fred.taylor@metabase.com"
+                         :cn        "Fred Taylor"
+                         :givenname "Fred"
+                         :sn        "Taylor"}
             :groups     []}
            (ldap.test/with-ldap-server
-             (ldap/find-user "fred.taylor@metabase.com")))))
+             (ldap/find-user "fred.taylor@metabase.com"))))))
 
+(deftest group-matching-test
   (testing "LDAP group matching should identify Metabase groups using DN equality rules"
     (is (= #{1 2 3}
            (tu/with-temporary-setting-values
@@ -108,6 +127,129 @@
                                    "cn=shipping,ou=groups,dc=metabase,dc=com" [2 3]}]
              (#'ldap/ldap-groups->mb-group-ids ["CN=Accounting,OU=Groups,DC=metabase,DC=com"
                                                 "CN=Shipping,OU=Groups,DC=metabase,DC=com"]))))))
+
+;;; +----------------------------------------------------------------------------------------------------------------+
+;;; |                                                 Attribute Sync                                                 |
+;;; +----------------------------------------------------------------------------------------------------------------+
+
+(deftest attribute-sync-test
+  (testing "find by email/username should return other attributes as well"
+    (is (= {:dn         "cn=Lucky Pigeon,ou=Birds,dc=metabase,dc=com"
+            :first-name "Lucky"
+            :last-name  "Pigeon"
+            :email      "lucky@metabase.com"
+            :attributes {:uid       "lucky"
+                         :mail      "lucky@metabase.com"
+                         :title     "King Pigeon"
+                         :givenname "Lucky"
+                         :sn        "Pigeon"
+                         :cn        "Lucky Pigeon"}
+            :groups     []}
+           (ldap.test/with-ldap-server
+             (ldap/find-user "lucky")))))
+
+  (testing "ignored attributes should not be returned"
+    (is (= {:dn         "cn=Lucky Pigeon,ou=Birds,dc=metabase,dc=com"
+            :first-name "Lucky"
+            :last-name  "Pigeon"
+            :email      "lucky@metabase.com"
+            :attributes {:uid       "lucky"
+                         :mail      "lucky@metabase.com"
+                         :givenname "Lucky"
+                         :sn        "Pigeon"
+                         :cn        "Lucky Pigeon"}
+            :groups     []}
+           (tu/with-temporary-setting-values [ldap-sync-user-attributes-blacklist
+                                              (cons "title" (ldap/ldap-sync-user-attributes-blacklist))]
+             (ldap.test/with-ldap-server
+               (ldap/find-user "lucky"))))))
+
+  (testing "if attribute sync is disabled, no attributes should come back at all"
+    (is (= {:dn         "cn=Lucky Pigeon,ou=Birds,dc=metabase,dc=com"
+            :first-name "Lucky"
+            :last-name  "Pigeon"
+            :email      "lucky@metabase.com"
+            :attributes nil
+            :groups     []}
+           (tu/with-temporary-setting-values [ldap-sync-user-attributes false]
+             (ldap.test/with-ldap-server
+               (ldap/find-user "lucky"))))))
+
+  (testing "when creating a new user, user attributes should get synced"
+    (is (= (user/map->UserInstance
+            {:first_name  "John"
+             :last_name   "Smith"
+             :email       "John.Smith@metabase.com"
+             :login_attributes {"uid"       "jsmith1"
+                                "mail"      "John.Smith@metabase.com"
+                                "givenname" "John"
+                                "sn"        "Smith"
+                                "cn"        "John Smith"}
+             :common_name "John Smith"})
+           (ldap.test/with-ldap-server
+             (try
+               (ldap/fetch-or-create-user! (ldap/find-user "jsmith1"))
+               (db/select-one [User :first_name :last_name :email :login_attributes] :email "John.Smith@metabase.com")
+               (finally
+                 (db/delete! User :email "John.Smith@metabase.com")))))))
+
+  (testing "when creating a new user and attribute sync is disabled, attributes should not be synced"
+    (is (= (user/map->UserInstance
+            {:first_name       "John"
+             :last_name        "Smith"
+             :email            "John.Smith@metabase.com"
+             :login_attributes nil
+             :common_name      "John Smith"})
+           (ldap.test/with-ldap-server
+             (tu/with-temporary-setting-values [ldap-sync-user-attributes false]
+               (try
+                 (ldap/fetch-or-create-user! (ldap/find-user "jsmith1"))
+                 (db/select-one [User :first_name :last_name :email :login_attributes] :email "John.Smith@metabase.com")
+                 (finally
+                   (db/delete! User :email "John.Smith@metabase.com")))))))))
+
+(deftest update-attributes-on-login-test
+  (testing "Existing user's attributes are updated on fetch"
+    (is (= {:first_name       "John"
+            :last_name        "Smith"
+            :common_name      "John Smith"
+            :email            "John.Smith@metabase.com"
+            :login_attributes {"uid"          "jsmith1"
+                               "mail"         "John.Smith@metabase.com"
+                               "givenname"    "John"
+                               "sn"           "Smith"
+                               "cn"           "John Smith"
+                               "unladenspeed" 100}}
+           (try
+            (ldap.test/with-ldap-server
+              (let [user-info    (ldap/find-user "jsmith1")]
+                ;; First let a user get created for John Smith
+                (ldap/fetch-or-create-user! user-info)
+                ;; Call fetch-or-create-user! again to trigger update
+                (ldap/fetch-or-create-user! (assoc-in user-info [:attributes :unladenspeed] 100))
+                (into {} (db/select-one [User :first_name :last_name :email :login_attributes]
+                                        :email "John.Smith@metabase.com"))))
+            (finally
+             (db/delete! User :email "John.Smith@metabase.com"))))))
+
+  (testing "Existing user's attributes are not updated on fetch, when attribute sync is disabled"
+    (is (= {:first_name       "John"
+            :last_name        "Smith"
+            :common_name      "John Smith"
+            :email            "John.Smith@metabase.com"
+            :login_attributes nil}
+           (try
+            (ldap.test/with-ldap-server
+              (tu/with-temporary-setting-values [ldap-sync-user-attributes false]
+                (let [user-info    (ldap/find-user "jsmith1")]
+                  ;; First let a user get created for John Smith
+                  (ldap/fetch-or-create-user! user-info)
+                  ;; Call fetch-or-create-user! again to trigger update
+                  (ldap/fetch-or-create-user! (assoc-in user-info [:attributes :unladenspeed] 100))
+                  (into {} (db/select-one [User :first_name :last_name :email :login_attributes]
+                                          :email "John.Smith@metabase.com")))))
+            (finally
+             (db/delete! User :email "John.Smith@metabase.com")))))))
 
 ;; For hosts that do not support IPv6, the connection code will return an error
 ;; This isn't a failure of the code, it's a failure of the host.

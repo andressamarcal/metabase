@@ -4,7 +4,9 @@
   (:require [cheshire.core :as json]
             [clojure.string :as str]
             [medley.core :as m]
-            [metabase.util :as u]
+            [metabase
+             [types :as types]
+             [util :as u]]
             [metabase.util
              [i18n :as i18n :refer [deferred-tru]]
              [password :as password]]
@@ -12,6 +14,9 @@
              [core :as s]
              [macros :as s.macros]
              [utils :as s.utils]]))
+
+;; So the `:type/` hierarchy is loaded.
+(comment types/keep-me)
 
 ;; always validate all schemas in s/defn function declarations. See
 ;; https://github.com/plumatic/schema#schemas-in-practice for details.

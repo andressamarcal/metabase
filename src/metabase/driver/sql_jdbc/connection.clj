@@ -135,7 +135,9 @@
         ;; check if another thread created the pool while we were waiting to acquire the lock
         (get @database-id->connection-pool database-id)
         ;; create a new pool and add it to our cache, then return it
-        (let [db (db/select-one [Database :id :engine :details] :id database-id)]
+        (let [db (if (= database-or-id database-id)
+                   (db/select-one [Database :id :engine :details] :id database-id)
+                   database-or-id)]
           (u/prog1 (create-pool! db)
             (set-pool! database-id <>))))))))
 

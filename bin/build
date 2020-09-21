@@ -48,8 +48,8 @@ drivers() {
 }
 
 uberjar() {
-    echo "Running 'lein uberjar'..."
-    lein clean && lein uberjar
+    echo "Running 'lein with-profile +ee uberjar'..."
+    lein clean && lein with-profile +ee uberjar
 }
 
 all() {

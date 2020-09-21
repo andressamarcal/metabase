@@ -317,7 +317,7 @@
    context
    respond]
   (let [sql     (str "-- "
-                     (qputil/query->remark :presto outer-query) "\n"
+                     (qputil/query->remark driver outer-query) "\n"
                      (binding [*param-splice-style* :paranoid]
                        (unprepare/unprepare driver (cons sql params))))
         details (merge (:details (qp.store/database))

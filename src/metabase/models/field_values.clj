@@ -61,18 +61,26 @@
   "`true` if the combined length of all the values in `distinct-values` is below the threshold for what we'll allow in a
   FieldValues entry. Does some logging as well."
   [distinct-values]
-  (let [total-length (reduce + (map (comp count str)
-                                    distinct-values))]
+  ;; only consume enough values to determine whether the total length is > `total-max-length` -- if it is, we can stop
+  (let [total-length (reduce
+                      (fn [total-length v]
+                        (let [new-total (+ total-length (count (str v)))]
+                          (if (>= new-total total-max-length)
+                            (reduced new-total)
+                            new-total)))
+                      0
+                      distinct-values)]
     (u/prog1 (<= total-length total-max-length)
-      (log/debug (trs "Field values total length is {0} (max {1})." total-length total-max-length)
+      (log/debug (trs "Field values total length is > {0}." total-max-length)
                  (if <>
                    (trs "FieldValues are allowed for this Field.")
                    (trs "FieldValues are NOT allowed for this Field."))))))
 
-
-(defn- distinct-values
+(defn distinct-values
   "Fetch a sequence of distinct values for `field` that are below the `total-max-length` threshold. If the values are
-  past the threshold, this returns `nil`."
+  past the threshold, this returns `nil`. (This function provides the values that normally get saved as a Field's
+  FieldValues. You most likely should not be using this directly in code outside of this namespace, unless it's for a
+  very specific reason, such as certain cases where we fetch ad-hoc FieldValues for GTAP-filtered Fields.)"
   [field]
   (classloader/require 'metabase.db.metadata-queries)
   (try

@@ -60,7 +60,7 @@
     :exclusions [commons-codec]]
    [buddy/buddy-sign "3.0.0"]                                         ; JSON Web Tokens; High-Level message signing library
    [cheshire "5.8.1"]                                                 ; fast JSON encoding (used by Ring JSON middleware)
-   [clj-http "3.9.1"                                                  ; HTTP client
+   [clj-http "3.4.1"                                                  ; HTTP client
     :exclusions [commons-codec
                  commons-io
                  slingshot]]
@@ -110,7 +110,10 @@
    [me.raynes/fs "1.4.6"]                                             ; Filesystem tools
    [medley "1.3.0"]                                                   ; lightweight lib of useful functions
    [metabase/connection-pool "1.1.1"]                                 ; simple wrapper around C3P0. JDBC connection pools
+   [metabase/saml20-clj "1.0.2"]                                      ; EE SAML integration
    [metabase/throttle "1.0.2"]                                        ; Tools for throttling access to API endpoints and other code pathways
+   [net.redhogs.cronparser/cron-parser-core "3.4"                     ; describe Cron schedule in human-readable language
+    :exclusions [org.slf4j/slf4j-api]]
    [net.sf.cssbox/cssbox "4.12" :exclusions [org.slf4j/slf4j-api]]    ; HTML / CSS rendering
    [org.apache.commons/commons-lang3 "3.10"]                          ; helper methods for working with java.lang stuff
    [org.apache.sshd/sshd-core "2.4.0"]                                ; ssh tunneling and test server
@@ -174,10 +177,13 @@
   "metabase.jar"
 
   :profiles
-  {:dev
-   {:source-paths ["dev/src" "local/src"]
+  {:ee
+   {:source-paths ["enterprise/backend/src"]
+    :test-paths   ["enterprise/backend/test"]}
 
-    :test-paths ["test" "backend/mbql/test"]
+   :dev
+   {:source-paths ["dev/src" "local/src"]
+    :test-paths   ["test" "backend/mbql/test"]
 
     :dependencies
     [[clj-http-fake "1.0.3" :exclusions [slingshot]]                  ; Library to mock clj-http responses
@@ -310,17 +316,20 @@
       (metabase.plugins/load-plugins!)]}]
 
    :repl
-   [:include-all-drivers
+   [:ee
+    :include-all-drivers
     ;; so running the tests doesn't give you different answers
     {:jvm-opts ["-Duser.timezone=UTC"]}]
 
    :bikeshed
    [:include-all-drivers
+    :ee
     {:plugins
      [[lein-bikeshed "0.5.2"]]}]
 
    :eastwood
    [:include-all-drivers
+    :ee
     {:plugins
      [[jonase/eastwood "0.3.6" :exclusions [org.clojure/clojure]]]
 
@@ -338,7 +347,7 @@
                            ;; get them to work
                            #_:unused-fn-args
                            #_:unused-locals]
-      :exclude-linters    [; Turn this off temporarily until we finish removing self-deprecated functions & macros
+      :exclude-linters    [    ; Turn this off temporarily until we finish removing self-deprecated functions & macros
                            :deprecations
                            ;; this has a fit in libs that use Potemin `import-vars` such as `java-time`
                            :implicit-dependencies
@@ -348,11 +357,13 @@
    ;; run ./bin/reflection-linter to check for reflection warnings
    :reflection-warnings
    [:include-all-drivers
+    :ee
     {:global-vars {*warn-on-reflection* true}}]
 
    ;; Check that all public vars have docstrings. Run with 'lein docstring-checker'
    :docstring-checker
    [:include-all-drivers
+    :ee
     {:plugins
      [[docstring-checker "1.1.0"]]
 
@@ -363,6 +374,7 @@
 
    :check-namespace-decls
    [:include-all-drivers
+    :ee
     {:plugins               [[lein-check-namespace-decls "1.0.2"]]
      :source-paths          ^:replace ["src" "backend/mbql/src" "test" "backend/mbql/test"]
      :check-namespace-decls {:prefix-rewriting true}}]

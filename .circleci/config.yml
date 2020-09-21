@@ -273,7 +273,7 @@ jobs:
       - run:
           name: Generate checksums of all backend source files to use as Uberjar cache key
           command: >
-            for file in `find ./src ./backend -type f -name '*.clj' | sort`;
+            for file in `find ./src ./backend ./enterprise/backend/src -type f -name '*.clj' | sort`;
               do echo `md5sum $file` >> backend-checksums.txt;
             done;
             echo `md5sum project.clj` >> backend-checksums.txt
@@ -281,7 +281,7 @@ jobs:
       - run:
           name: Generate checksums of all frontend source files to use as Uberjar cache key
           command: >
-            for file in `find ./frontend -type f | sort`;
+            for file in `find ./frontend ./enterpise/frontend -type f | sort`;
               do echo `md5sum $file` >> frontend-checksums.txt;
             done;
             echo `md5sum yarn.lock` >> frontend-checksums.txt
@@ -420,7 +420,7 @@ jobs:
                   DRIVERS: h2,<< parameters.driver >>
                 command: >
                   /home/circleci/metabase/metabase/.circleci/skip-driver-tests.sh << parameters.driver >> ||
-                  lein with-profile +ci,+junit test
+                  lein with-profile +ci,+junit,+ee test
                 no_output_timeout: << parameters.timeout >>
       # This is exactly the same as without auto-retry but will try running the tests a second time if they fail
       - when:
@@ -432,7 +432,7 @@ jobs:
                   DRIVERS: h2,<< parameters.driver >>
                 command: >
                   /home/circleci/metabase/metabase/.circleci/skip-driver-tests.sh << parameters.driver >> ||
-                  lein with-profile +ci,+junit test || lein with-profile +ci,+junit test
+                  lein with-profile +ci,+junit,+ee test || lein with-profile +ci,+junit,+ee test
                 no_output_timeout: << parameters.timeout >>
       - store_test_results:
           path: /home/circleci/metabase/metabase/target/junit
@@ -568,7 +568,7 @@ jobs:
           name: Build frontend if needed
           command: >
             if [ ! -f './resources/frontend_client/index.html' ];
-              then ./bin/build version frontend;
+              then MB_EDITION=ENTERPRISE ./bin/build version frontend;
             fi
           no_output_timeout: 5m
       - run:
@@ -703,6 +703,19 @@ workflows:
           lein-command: with-profile +junit test
 
       - lein:
+          name: be-tests-ee
+          requires:
+            - be-deps
+          lein-command: with-profile +ee test
+
+      - lein:
+          name: be-tests-java-11-ee
+          requires:
+            - be-deps
+          e: java-11
+          lein-command: with-profile +ee test
+
+      - lein:
           name: be-tests-java-11
           requires:
             - be-deps
@@ -750,25 +763,25 @@ workflows:
       - test-driver:
           name: be-tests-bigquery
           requires:
-            - be-tests
+            - be-tests-ee
           driver: bigquery
 
       - test-driver:
           name: be-tests-druid
           requires:
-            - be-tests
+            - be-tests-ee
           driver: druid
 
       - test-driver:
           name: be-tests-googleanalytics
           requires:
-            - be-tests
+            - be-tests-ee
           driver: googleanalytics
 
       - test-driver:
           name: be-tests-mongo
           requires:
-            - be-tests
+            - be-tests-ee
           e: mongo
           driver: mongo
 
@@ -776,7 +789,7 @@ workflows:
           name: be-tests-mysql
           description: "(MySQL 5.7)"
           requires:
-            - be-tests
+            - be-tests-ee
           e:
             name: mysql-5-7
           driver: mysql
@@ -785,7 +798,7 @@ workflows:
           name: be-tests-mysql-latest
           description: "(MySQL latest)"
           requires:
-            - be-tests
+            - be-tests-ee
           e:
             name: mysql-latest
           driver: mysql
@@ -794,7 +807,7 @@ workflows:
           name: be-tests-mariadb
           description: "(MariaDB 10.2)"
           requires:
-            - be-tests
+            - be-tests-ee
           e:
             name: mariadb-10-2
           driver: mysql
@@ -803,7 +816,7 @@ workflows:
           name: be-tests-mariadb-latest
           description: "(MariaDB latest)"
           requires:
-            - be-tests
+            - be-tests-ee
           e:
             name: mariadb-latest
           driver: mysql
@@ -811,7 +824,7 @@ workflows:
       - test-driver:
           name: be-tests-oracle
           requires:
-            - be-tests
+            - be-tests-ee
           before-steps:
             - fetch-jdbc-driver:
                 source: ORACLE_JDBC_JAR
@@ -823,7 +836,7 @@ workflows:
           name: be-tests-postgres
           description: "(9.6)"
           requires:
-            - be-tests
+            - be-tests-ee
           e: postgres-9-6
           driver: postgres
 
@@ -831,14 +844,14 @@ workflows:
           name: be-tests-postgres-latest
           description: "(Latest)"
           requires:
-            - be-tests
+            - be-tests-ee
           e: postgres-latest
           driver: postgres
 
       - test-driver:
           name: be-tests-presto
           requires:
-            - be-tests
+            - be-tests-ee
           e: presto
           before-steps:
             - wait-for-port:
@@ -848,21 +861,21 @@ workflows:
       - test-driver:
           name: be-tests-redshift
           requires:
-            - be-tests
+            - be-tests-ee
           driver: redshift
           timeout: 10m
 
       - test-driver:
           name: be-tests-snowflake
           requires:
-            - be-tests
+            - be-tests-ee
           driver: snowflake
           timeout: 15m
 
       - test-driver:
           name: be-tests-sparksql
           requires:
-            - be-tests
+            - be-tests-ee
           e: sparksql
           before-steps:
             - wait-for-port:
@@ -872,20 +885,20 @@ workflows:
       - test-driver:
           name: be-tests-sqlite
           requires:
-            - be-tests
+            - be-tests-ee
           driver: sqlite
 
       - test-driver:
           name: be-tests-sqlserver
           requires:
-            - be-tests
+            - be-tests-ee
           e: sqlserver
           driver: sqlserver
 
       - test-driver:
           name: be-tests-vertica
           requires:
-            - be-tests
+            - be-tests-ee
           e: vertica
           before-steps:
             - fetch-jdbc-driver:
@@ -898,14 +911,14 @@ workflows:
       - test-migrate-from-h2:
           name: be-tests-migrate-to-postgres
           requires:
-            - be-tests
+            - be-tests-ee
           e: postgres-9-6
           db-type: postgres
 
       - test-migrate-from-h2:
           name: be-tests-migrate-to-mysql
           requires:
-            - be-tests
+            - be-tests-ee
           e: mysql-5-7
           db-type: mysql
 
@@ -979,54 +992,3 @@ workflows:
           driver: mongo
           only-single-database: true
           test-files-location: frontend/test/metabase-db/mongo
-
-      - deploy-master:
-          requires:
-            - yaml-linter
-            - verify-i18n-files
-
-            - be-linter-bikeshed
-            - be-linter-cloverage
-            - be-linter-docstring-checker
-            - be-linter-eastwood
-            - be-linter-namespace-decls
-            - be-linter-reflection-warnings
-
-            - be-tests
-            - be-tests-java-11
-
-            - be-tests-bigquery
-            - be-tests-druid
-            - be-tests-googleanalytics
-            - be-tests-mongo
-            - be-tests-mysql
-            - be-tests-mysql-latest
-            - be-tests-mariadb
-            - be-tests-mariadb-latest
-            - be-tests-oracle
-            - be-tests-postgres
-            - be-tests-postgres-latest
-            - be-tests-presto
-            - be-tests-redshift
-            - be-tests-snowflake
-            - be-tests-sparksql
-            - be-tests-sqlite
-            - be-tests-sqlserver
-            - be-tests-vertica
-
-            - be-tests-migrate-to-mysql
-            - be-tests-migrate-to-postgres
-
-            - fe-linter-eslint
-            - fe-linter-flow
-            - fe-linter-prettier
-            - fe-linter-docs-links
-
-            - fe-tests-e2e
-            - fe-tests-integration
-            - fe-tests-timezones
-            - fe-tests-karma
-            - fe-tests-unit
-          filters:
-            branches:
-              only: master

@@ -121,6 +121,22 @@
   (sync/sync-database! db)
   (find-values field-values-id))
 
+(deftest values-less-than-total-max-length?-test
+  (testing "values-less-than-total-max-length?"
+    (with-redefs [field-values/total-max-length 10]
+      (is (= true
+             (#'field-values/values-less-than-total-max-length? ["a" "b" "c"])))
+      (is (= false
+             (#'field-values/values-less-than-total-max-length? ["123" "4567" "8901"])))
+      (testing "Should only consume enough values to determine whether length is over limit"
+        (let [realized? (atom false)
+              vs        (lazy-cat ["123" "4567" "8901" "2345"] (do (reset! realized? true) ["Shouldn't get here"]))]
+          (is (= false
+                 (#'field-values/values-less-than-total-max-length? vs)))
+          (testing "Entire lazy seq shouldn't be realized"
+            (is (= false
+                   @realized?))))))))
+
 (deftest update-human-readable-values-test
   (testing "Test \"fixing\" of human readable values when field values change"
     (binding [mdb/*allow-potentailly-unsafe-connections* true]

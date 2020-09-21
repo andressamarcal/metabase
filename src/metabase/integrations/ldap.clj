@@ -85,6 +85,17 @@
                  (throw (IllegalArgumentException. (tru "{0} is not a valid DN." (name k))))))
              (setting/set-json! :ldap-group-mappings new-value)))
 
+(defsetting ldap-sync-user-attributes
+  (deferred-tru "Should we sync user attributes when someone logs in via LDAP?")
+  :type :boolean
+  :default true)
+
+;; TODO - maybe we want to add a csv setting type?
+(defsetting ldap-sync-user-attributes-blacklist
+  (deferred-tru "Comma-separated list of user attributes to skip syncing for LDAP users.")
+  :default "userPassword,dn,distinguishedName"
+  :type    :csv)
+
 (defsetting ldap-configured?
   "Check if LDAP is enabled and that the mandatory settings are configured."
   :type       :boolean
@@ -188,6 +199,10 @@
      :filter     (str/replace (ldap-user-filter) filter-placeholder (Filter/encodeValue username))
      :size-limit 1})))
 
+(defn- syncable-user-attributes [m]
+  (when (ldap-sync-user-attributes)
+    (apply dissoc m :objectclass (map (comp keyword u/lower-case-en) (ldap-sync-user-attributes-blacklist)))))
+
 (defn find-user
   "Gets user information for the supplied username."
   ([username]
@@ -204,6 +219,7 @@
           :first-name fname
           :last-name  lname
           :email      email
+          :attributes (syncable-user-attributes result)
           :groups     (when (ldap-group-sync)
                         ;; Active Directory and others (like FreeIPA) will supply a `memberOf` overlay attribute for
                         ;; groups. Otherwise we have to make the inverse query to get them.
@@ -218,14 +234,24 @@
    (let [dn (if (string? user-info) user-info (:dn user-info))]
      (ldap/bind? conn dn password))))
 
+(defn- attribute-synced-user
+  [{:keys [attributes email]}]
+  (when-let [user (db/select-one [User :id :last_login :login_attributes] :email email)]
+    (let [syncable-attributes (syncable-user-attributes attributes)]
+      (if (and (not= (:login_attributes user) syncable-attributes)
+               (db/update! User (:id user) :login_attributes syncable-attributes))
+        (db/select-one [User :id :last_login] :id (:id user)) ; Reload updated user
+        user))))
+
 (defn fetch-or-create-user!
   "Using the `user-info` (from `find-user`) get the corresponding Metabase user, creating it if necessary."
-  [{:keys [first-name last-name email groups]}]
-  (let [user (or (db/select-one [User :id :last_login] :email email)
+  [{:keys [first-name last-name email groups attributes] :as user-info}]
+  (let [user (or (attribute-synced-user user-info)
                  (user/create-new-ldap-auth-user!
-                  {:first_name first-name
-                   :last_name  last-name
-                   :email      email}))]
+                  {:first_name       first-name
+                   :last_name        last-name
+                   :email            email
+                   :login_attributes attributes}))]
     (u/prog1 user
       (when (ldap-group-sync)
         (let [group-ids (ldap-groups->mb-group-ids groups)]
