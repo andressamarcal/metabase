@@ -9,8 +9,6 @@ import {
   withSampleDataset,
 } from "../../../../../frontend/test/__support__/cypress";
 
-let questionId;
-
 const new_user = {
   first_name: "Barb",
   last_name: "Tabley",
@@ -64,8 +62,6 @@ describeWithToken("formatting > sandboxes", () => {
           },
           display: "table",
           visualization_settings: {},
-        }).then(({ body }) => {
-          questionId = body.id;
         });
       });
     });
@@ -202,7 +198,7 @@ describeWithToken("formatting > sandboxes", () => {
                     );
                   // Loop over the columns starting at the zero-indexed second row (first row is headers)
                   // userIDIndex is already zero-indexed, so we just add that to the number of columns
-                  var genArr = range(
+                  const genArr = range(
                     columnCount + userIDIndex,
                     cellCountWithHeaders,
                     columnCount,
