@@ -198,7 +198,7 @@ describeWithToken("formatting > sandboxes", () => {
                     );
                   // Loop over the columns starting at the zero-indexed second row (first row is headers)
                   // userIDIndex is already zero-indexed, so we just add that to the number of columns
-                  var genArr = range(
+                  const genArr = range(
                     columnCount + userIDIndex,
                     cellCountWithHeaders,
                     columnCount,
