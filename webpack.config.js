@@ -119,7 +119,7 @@ const config = (module.exports = {
       "ee-plugins":
         process.env.MB_EDITION === "ENTERPRISE"
           ? ENTERPRISE_SRC_PATH + "/plugins"
-          : LIB_SRC_PATH + "/noop",
+          : SRC_PATH + "/lib/noop",
     },
   },
 
