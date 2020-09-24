@@ -16,41 +16,6 @@ const new_user = {
   username: "new@metabase.com",
 };
 
-function changePermissionsforSandbox(
-  location,
-  permission_type,
-  column,
-  user_attribute,
-  first,
-) {
-  cy.findByText("Data permissions");
-  cy.get(".ReactVirtualized__Grid__innerScrollContainer")
-    .children()
-    .eq(location)
-    .click();
-  cy.findByText("Grant sandboxed access").click();
-  if (first === "first") {
-    cy.findByText("Change").click();
-  }
-  if (permission_type === "sql param") {
-    cy.findByText(
-      "Use a saved question to create a custom view for this table",
-    ).click();
-    cy.findByText(permission_type).click();
-  }
-  cy.get(".Icon-chevrondown")
-    .first()
-    .click();
-  cy.findByText(column).click();
-  cy.get(".Icon-chevrondown")
-    .last()
-    .click();
-  cy.findAllByText(user_attribute)
-    .last()
-    .click();
-  cy.findByText("Save").click();
-}
-
 // TODO: If we ever have the need to use this user across multiple tests, extract it to `__support__/cypress`
 const sandboxed_user = {
   first_name: "User",
