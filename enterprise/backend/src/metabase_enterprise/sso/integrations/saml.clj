@@ -90,7 +90,8 @@
                            (public-settings/site-url))
           idp-url      (sso-settings/saml-identity-provider-uri)
           saml-request (saml/request
-                        {:sp-name    (sso-settings/saml-application-name)
+                        {:request-id (str "id-" (java.util.UUID/randomUUID))
+                         :sp-name    (sso-settings/saml-application-name)
                          :issuer     (sso-settings/saml-application-name)
                          :acs-url    (acs-url)
                          :idp-url    idp-url
@@ -105,7 +106,7 @@
         (throw (ex-info msg {:status-code 500} e))))))
 
 (defn- validate-response [response]
-  (let [idp-cert           (or (sso-settings/saml-identity-provider-certificate)
+  (let [idp-cert (or (sso-settings/saml-identity-provider-certificate)
                      (throw (ex-info (str (tru "Unable to log in: SAML IdP certificate is not set."))
                                      {:status-code 500})))]
     (try

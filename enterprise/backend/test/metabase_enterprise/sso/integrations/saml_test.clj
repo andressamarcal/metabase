@@ -19,7 +19,10 @@
             [metabase.test
              [fixtures :as fixtures]
              [util :as tu]]
-            [saml20-clj.core :as saml20]
+            [ring.util.codec :as codec]
+            [saml20-clj
+             [core :as saml20]
+             [encode-decode :as encode-decode]]
             [toucan.db :as db]
             [toucan.util.test :as tt])
   (:import java.net.URL
@@ -161,6 +164,41 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
          (fn []
            ~@body))))))
 
+(deftest request-xml-test
+  (testing "Make sure the requests we generate look correct"
+    (with-saml-default-setup
+      (mt/with-temporary-setting-values [site-url "http://localhost:3000"]
+        (let [orig saml20/request]
+          (with-redefs [saml20/request (fn [m]
+                                         (testing "Request ID should be of the format id-<uuid>"
+                                           (is (re= (re-pattern (str "^id-" u/uuid-regex "$"))
+                                                    (:request-id m))))
+                                         (mt/with-clock #t "2020-09-30T17:53:32Z"
+                                           (orig (assoc m :request-id "id-419507d5-1d2a-43c4-bcde-3e5b9746bb47"))))]
+            (let [request     (client-full-response :get 302 "/auth/sso"
+                                                    {:request-options {:follow-redirects false}}
+                                                    :redirect default-redirect-uri)
+                  location    (get-in request [:headers "Location"])
+                  [_ base-64] (re-find #"SAMLRequest=([^&]+)" location)
+                  xml         (-> base-64
+                                  codec/url-decode
+                                  encode-decode/base64->inflate->str
+                                  (str/replace #"\n+" "")
+                                  (str/replace #">\s+<" "><"))]
+              (is (= (str "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+                          "<samlp:AuthnRequest"
+                          " xmlns:samlp=\"urn:oasis:names:tc:SAML:2.0:protocol\""
+                          " AssertionConsumerServiceURL=\"http://localhost:3000/auth/sso\""
+                          " Destination=\"http://test.idp.metabase.com\""
+                          " ID=\"id-419507d5-1d2a-43c4-bcde-3e5b9746bb47\""
+                          " IssueInstant=\"2020-09-30T17:53:32Z\""
+                          " ProtocolBinding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\""
+                          " ProviderName=\"Metabase\""
+                          " Version=\"2.0\">"
+                          "<saml:Issuer xmlns:saml=\"urn:oasis:names:tc:SAML:2.0:assertion\">Metabase</saml:Issuer>"
+                          "</samlp:AuthnRequest>")
+                     xml)))))))))
+
 (deftest redirect-test
   (testing "With SAML configured, a GET request should result in a redirect to the IDP"
     (with-saml-default-setup
@@ -248,7 +286,8 @@ g9oYBkdxlhK9zZvkjCgaLCen+0aY67A=")
     (with-saml-default-setup
       (do-with-some-validators-disabled
        (fn []
-         (testing "After a successful login with the identity provider, the SAML provider will POST to the `/auth/sso` route."
+         (testing (str "After a successful login with the identity provider, the SAML provider will POST to the "
+                       "`/auth/sso` route.")
            (let [req-options (saml-post-request-options (saml-test-response)
                                                         (saml20/str->base64 default-redirect-uri))
                  response    (client-full-response :post 302 "/auth/sso" req-options)]
