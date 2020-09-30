@@ -1,6 +1,7 @@
 (ns metabase-enterprise.sso.integrations.saml
   "Implementation of the SAML backend for SSO"
   (:require [buddy.core.codecs :as codecs]
+            [clojure.string :as str]
             [clojure.tools.logging :as log]
             [medley.core :as m]
             [metabase
@@ -74,11 +75,6 @@
          :password password
          :alias    key-name}))))
 
-;; disabled for now so we don't break multi-instance setups. We'll need to add a custom DB-backed state manager before
-;; re-enabling.
-#_(defonce ^:private state-manager
-    (saml/in-memory-state-manager))
-
 (defn- check-saml-enabled []
   (api/check (sso-settings/saml-configured?)
     [400 (tru "SAML has not been enabled and/or configured")]))
@@ -95,9 +91,9 @@
           idp-url      (sso-settings/saml-identity-provider-uri)
           saml-request (saml/request
                         {:sp-name    (sso-settings/saml-application-name)
+                         :issuer     (sso-settings/saml-application-name)
                          :acs-url    (acs-url)
                          :idp-url    idp-url
-                         ;; :state-manager state-manager
                          :credential (sp-cert-keystore-details)})
           ;; encode the redirect URL to base-64 if it's not already encoded.
           relay-state  (cond-> redirect-url
@@ -109,11 +105,11 @@
         (throw (ex-info msg {:status-code 500} e))))))
 
 (defn- validate-response [response]
-  (let [idp-cert (or (sso-settings/saml-identity-provider-certificate)
+  (let [idp-cert           (or (sso-settings/saml-identity-provider-certificate)
                      (throw (ex-info (str (tru "Unable to log in: SAML IdP certificate is not set."))
                                      {:status-code 500})))]
     (try
-      (saml/validate response idp-cert (sp-cert-keystore-details) #_{:state-manager state-manager})
+      (saml/validate response idp-cert (sp-cert-keystore-details) {:acs-url (acs-url)})
       (catch Throwable e
         (log/error e (trs "SAML response validation failed"))
         (throw (ex-info (tru "Unable to log in: SAML response validation failed")
@@ -150,7 +146,10 @@
   ;; `(get-in saml-info [:assertions :attrs])
   [{:keys [params], :as request}]
   (check-saml-enabled)
-  (let [continue-url  (u/ignore-exceptions (some-> (:RelayState params) base64-decode))
+  (let [continue-url  (u/ignore-exceptions
+                        (when-let [s (some-> (:RelayState params) base64-decode)]
+                          (when-not (str/blank? s)
+                            s)))
         xml-string    (base64-decode (:SAMLResponse params))
         saml-response (xml-string->saml-response xml-string)
         attrs         (saml-response->attributes saml-response)

@@ -530,7 +530,7 @@
   "Is `s` a Base-64 encoded string?"
   ^Boolean [s]
   (boolean (when (string? s)
-             (re-find #"^[0-9A-Za-z/+]+=*$" s))))
+             (re-matches #"^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$" s))))
 
 (defn decode-base64
   "Decodes a Base64 string to a UTF-8 string"
