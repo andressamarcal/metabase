@@ -321,17 +321,21 @@
     ;; so running the tests doesn't give you different answers
     {:jvm-opts ["-Duser.timezone=UTC"]}]
 
-   :bikeshed
+   ;; shared stuff between all linter profiles.
+   :linters-common
    [:include-all-drivers
     :ee
     :test-common
+    ;; always use in-memory H2 database for linters
+    {:env {:mb-db-type "h2"}}]
+
+   :bikeshed
+   [:linters-common
     {:plugins
      [[lein-bikeshed "0.5.2"]]}]
 
    :eastwood
-   [:include-all-drivers
-    :ee
-    :test-common
+   [:linters-common
     {:plugins
      [[jonase/eastwood "0.3.6" :exclusions [org.clojure/clojure]]]
 
@@ -364,8 +368,7 @@
 
    ;; Check that all public vars have docstrings. Run with 'lein docstring-checker'
    :docstring-checker
-   [:include-all-drivers
-    :ee
+   [:linters-common
     {:plugins
      [[docstring-checker "1.1.0"]]
 
@@ -375,15 +378,14 @@
                 #"^metabase\.http-client$"]}}]
 
    :check-namespace-decls
-   [:include-all-drivers
-    :ee
-    :test-common
+   [:linters-common
     {:plugins               [[lein-check-namespace-decls "1.0.2"]]
      :source-paths          ^:replace ["src" "backend/mbql/src" "test" "backend/mbql/test"]
      :check-namespace-decls {:prefix-rewriting true}}]
 
    :cloverage
-   [:test-common
+   [:ee
+    :test-common
     {:dependencies [[camsaul/cloverage "1.2.1.1" :exclusions [riddley]]]
      :plugins      [[camsaul/lein-cloverage  "1.2.1.1"]]
      :source-paths ^:replace ["src" "backend/mbql/src"]
