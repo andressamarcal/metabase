@@ -181,11 +181,6 @@ export default class SettingsSAMLForm extends Component {
           />
         </Box>
 
-        <p className="text-medium">
-          <b>{t`Note:`} </b>
-          {t`If you change any of the settings of an existing SAML active setup, then you will need to restart Metabase for them to take effect.`}
-        </p>
-
         <div>
           <FormMessage />
         </div>
