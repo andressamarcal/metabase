@@ -26,6 +26,7 @@
              [add-timezone-info :as add-timezone-info]
              [annotate :as annotate]
              [auto-bucket-datetimes :as bucket-datetime]
+             [auto-parse-filter-values :as auto-parse-filter-values]
              [binning :as binning]
              [cache :as cache]
              [catch-exceptions :as catch-exceptions]
@@ -75,6 +76,7 @@
   [#'mbql-to-native/mbql->native
    #'check-features/check-features
    #'optimize-datetime-filters/optimize-datetime-filters
+   #'auto-parse-filter-values/auto-parse-filter-values
    #'wrap-value-literals/wrap-value-literals
    #'annotate/add-column-info
    #'perms/check-query-permissions

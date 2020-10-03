@@ -20,6 +20,7 @@ const DEFAULT_OPTIONS = {
   titled: true,
 };
 
+import type { DashboardWithCards } from "metabase-types/types/Dashboard";
 import type { Parameter } from "metabase-types/types/Parameter";
 
 type Props = {
@@ -28,6 +29,7 @@ type Props = {
   actionButtons?: any[],
   name?: string,
   description?: string,
+  dashboard?: DashboardWithCards,
   location: { query: { [key: string]: string }, hash: string },
   parameters?: Parameter[],
   parameterValues?: { [key: string]: string },
@@ -91,6 +93,7 @@ export default class EmbedFrame extends Component {
               {parameters && parameters.length > 0 ? (
                 <div className="flex ml-auto">
                   <Parameters
+                    // dashboard={this.props.dashboard} TODO: uncomment this when embed param endpoints work
                     parameters={parameters.map(p => ({
                       ...p,
                       value: parameterValues && parameterValues[p.id],

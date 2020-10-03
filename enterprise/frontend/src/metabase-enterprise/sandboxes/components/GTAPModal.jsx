@@ -6,7 +6,6 @@ import { withRouter } from "react-router";
 import { connect } from "react-redux";
 import { push } from "react-router-redux";
 
-import { GTAPApi } from "../services";
 import MappingEditor from "./MappingEditor";
 
 import QuestionPicker from "metabase/containers/QuestionPicker";
@@ -18,6 +17,7 @@ import Select, { Option } from "metabase/components/Select";
 import Radio from "metabase/components/Radio";
 import Icon from "metabase/components/Icon";
 import Tooltip from "metabase/components/Tooltip";
+import { GTAPApi } from "metabase/services";
 import RetinaImage from "react-retina-image";
 
 import EntityObjectLoader from "metabase/entities/containers/EntityObjectLoader";

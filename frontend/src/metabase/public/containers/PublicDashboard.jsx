@@ -145,6 +145,7 @@ export default class PublicDashboard extends Component {
       <EmbedFrame
         name={dashboard && dashboard.name}
         description={dashboard && dashboard.description}
+        dashboard={dashboard}
         parameters={parameters}
         parameterValues={parameterValues}
         setParameterValue={this.props.setParameterValue}

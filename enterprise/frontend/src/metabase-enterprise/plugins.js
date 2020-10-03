@@ -12,14 +12,10 @@ MetabaseSettings.versionInfo = () =>
 
 // import "./management";
 
-// Custom drill through updates visualization settings. It needs to be imported
-// before any features that import "metabase/visualizations".
-import "./custom_drill_through";
 import "./audit_app";
 import "./sandboxes";
 import "./auth";
 import "./whitelabel";
 import "./embedding";
 import "./store";
-import "./formatting";
 import "./snippets";

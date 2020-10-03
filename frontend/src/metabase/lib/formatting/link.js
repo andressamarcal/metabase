@@ -10,25 +10,25 @@ function formatValueForLinkTemplate(value, column) {
   return value;
 }
 
-export function renderLinkTextForClick(template, clicked) {
-  return renderTemplateForClick(template, clicked, ({ value, column }) =>
+export function renderLinkTextForClick(template, data) {
+  return renderTemplateForClick(template, data, ({ value, column }) =>
     formatValue(value, { column }),
   );
 }
 
-export function renderLinkURLForClick(template, clicked) {
-  return renderTemplateForClick(template, clicked, ({ value, column }) =>
+export function renderLinkURLForClick(template, data) {
+  return renderTemplateForClick(template, data, ({ value, column }) =>
     encodeURIComponent(formatValueForLinkTemplate(value, column)),
   );
 }
 
 function renderTemplateForClick(
   template,
-  clicked,
+  data,
   formatFunction = ({ value }) => value,
 ) {
   return template.replace(/{{([^}]+)}}/g, (whole, columnName) => {
-    const valueAndColumn = getValueAndColumnForColumnName(clicked, columnName);
+    const valueAndColumn = getValueAndColumnForColumnName(data, columnName);
     if (valueAndColumn) {
       return formatFunction(valueAndColumn);
     }
@@ -37,27 +37,29 @@ function renderTemplateForClick(
   });
 }
 
-function getValueAndColumnForColumnName(clicked, columnName) {
+function getValueAndColumnForColumnName(
+  { column, parameterBySlug, parameterByName, userAttribute },
+  columnName,
+) {
   const name = columnName.toLowerCase();
-  if (clicked.origin) {
-    const { cols } = clicked.origin;
-    // optimization for origin since it's used in tables
-    if (clicked.origin._columnIndex == null) {
-      const index = (clicked.origin._columnIndex = {});
-      for (let i = 0; i < cols.length; i++) {
-        index[cols[i].name.toLowerCase()] = i;
-      }
-    }
-    const index = clicked.origin._columnIndex[name];
-    if (index != null) {
-      return { value: clicked.origin.row[index], column: cols[index] };
+  const dataSources = [
+    ["column", column],
+    ["filter", parameterByName],
+    ["filter", parameterBySlug], // doubling up "filter", let's us search params both by name and slug
+    ["user", userAttribute],
+  ];
+  for (const [key, data] of dataSources) {
+    const prefix = key + ":";
+    if (name.startsWith(prefix)) {
+      return data[name.slice(prefix.length)];
     }
   }
-  for (const { col, value } of clicked.data) {
-    if (col.name.toLowerCase() === name) {
-      return { column: col, value };
+  for (const [, data] of dataSources) {
+    if (data[name]) {
+      return data[name];
     }
   }
+  return "";
 }
 
 function formatDateTimeForParameter(value, unit) {
