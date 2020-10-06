@@ -354,7 +354,7 @@
                            ;; get them to work
                            #_:unused-fn-args
                            #_:unused-locals]
-      :exclude-linters    [    ; Turn this off temporarily until we finish removing self-deprecated functions & macros
+      :exclude-linters    [; Turn this off temporarily until we finish removing self-deprecated functions & macros
                            :deprecations
                            ;; this has a fit in libs that use Potemin `import-vars` such as `java-time`
                            :implicit-dependencies
